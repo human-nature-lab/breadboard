@@ -1,0 +1,619 @@
+/* html, body */
+html, body
+{
+    height: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    font-family: Lucida Grande,Lucida Sans,Arial,sans-serif;
+    font-size: 12pt;
+    line-height: 1em;
+}
+
+div.formRow label {
+    display: inline-block;
+    width: 300px;
+}
+
+/* This rule hides the AngularJS code until it has been pre-processed. */
+[ng\:cloak], [ng-cloak], .ng-cloak {
+  display: none;
+}
+
+select option
+{
+    font-family: Lucida Grande,Lucida Sans,Arial,sans-serif;
+    font-size: 12pt;
+}
+
+.ui-dialog-titlebar
+{
+    font-size: .8em;
+}
+
+.ui-dialog
+{
+    padding: 0;
+}
+
+.ui-button .ui-icon.vim-icon {
+    background-image: url('../img/vim16x16.gif');
+    width: 16px;
+    height: 16px;
+}
+
+
+#newContentDialog, #amtErrorDialog
+{
+    padding: 2em;
+}
+
+#mainDiv
+{
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+span.note {
+  text-size: small;
+  color: #999;
+}
+
+a:link, a:visited, a:hover, a:active
+{
+    color: #5C9CCC; 
+    text-decoration: none;
+}
+
+#topDiv
+{
+    width: 100%;
+    height: 50px;
+    margin: 0;
+    padding: 0;
+}
+
+#parametersTable
+{
+	border-collapse: collapse;
+}
+
+#parametersTable td
+{
+	padding: .2em;
+}
+
+tr.selected-true
+{
+    background-color: #8FCFFF; 
+}
+
+.instancesTable
+{
+    border-collapse: collapse; 
+    margin: 1em;
+    font-size: .7em;
+}
+
+.instancesTable, .instancesTable th, .instancesTable td
+{
+    border: 1px solid black;
+}
+
+.instancesTable td
+{
+    padding: 5px;
+}
+
+caption 
+{
+	font-weight: bold;
+	font-size: 1.3em;
+	margin-bottom: .5em;
+}
+
+#experimentSelectDiv
+{
+    padding-left: 20px;
+    float: left;
+    line-height: 30px;
+}
+
+#logoutDiv
+{
+    padding-right: 20px;
+    float: right;
+    text-align: right;
+    line-height: 30px;
+}
+
+#bottomDiv
+{
+    position: absolute;
+    width: 100%;
+    height: 50px;
+    margin: 0;
+    padding: 0;
+    left: 0;
+    bottom: 0;
+}
+
+#dockDiv
+{
+    height: 50px;
+    padding: 0;
+    padding-left: 20px;
+    margin: 0;
+}
+
+.disabled-button, .disabled-button:hover, .disabled-button:active
+{
+    font-size: .8em;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    border: 1px solid #333333;
+    background: #666666;
+    color: white;
+    font-weight: bold;
+}
+
+.styled-button
+{
+    font-size: .8em;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    border: 1px solid #4297D7;
+    background: #5C9CCC url(redmond/images/ui-bg_gloss-wave_55_5c9ccc_500x100.png) 50% 50% repeat-x;
+    color: white;
+    font-weight: bold;
+}
+
+.styled-button:hover
+{
+    color: #DD6E00;    
+}
+
+.styled-button:active
+{
+    color: #DD6E00;    
+    background: #4297D7;
+}
+
+.styled-button-orange
+{
+    font-size: .8em;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    border: 1px solid #A15037;
+    background: #DD6E00;
+    color: white;
+    font-weight: bold;
+}
+
+.styled-button-orange:hover
+{
+    color: #A15037;    
+}
+
+.styled-button-orange:active
+{
+    color: #A15037;    
+    background: #BB4C00;
+}
+
+label
+{
+    float: left;
+    width: 180px;
+}
+
+
+.new-dialog
+{
+    
+}
+
+.delete-dialog {
+
+}
+
+.delete-dialog p {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.user-settings-dialog .user-setting-section {
+    margin-left: 1em;
+    margin-right: 1em;
+}
+
+.user-setting-section fieldset label {
+    float: left;
+}
+
+.user-setting-section fieldset p {
+    clear: both;
+}
+
+.user-setting-section fieldset legend {
+    font-weight: bold;
+}
+
+.user-setting-section ul#changePasswordError {
+    list-style: none;
+    padding-left: 0;
+}
+
+.closed-dialog
+{
+    padding: .4em 1em;
+    font-size: .8em;
+    border-bottom-right-radius: 5px;
+    border-bottom-left-radius: 5px;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    border: 1px solid #4297D7;
+    background: #5C9CCC url(redmond/images/ui-bg_gloss-wave_55_5c9ccc_500x100.png) 50% 50% repeat-x;
+    color: white;
+    font-weight: bold;
+    display: inline-block;
+    cursor: pointer;
+    margin: 0;
+    margin-right: 10px;
+}
+
+.closed-dialog-title
+{
+    float: left;
+    /* margin: .1em 16px .1em 0; */
+}
+
+.ui-dialog .ui-dialog-content
+{
+    padding: .3em .1em;
+}
+
+#contentDiv {
+    overflow: hidden;
+}
+
+#stepsTabsDiv, #contentTabsDiv
+{
+    /*margin-bottom: 5px;*/
+    margin: 0px;
+    padding: 0px;
+    vertical-align: bottom;
+}
+
+#stepsTabsDiv {
+    border-bottom: 1px solid rgb(182,182,182);
+}
+
+.steps-dialog
+{
+    padding: 0;
+}
+
+.steps-tab
+{
+    padding: .3em .9em;
+    font-size: .7em;
+    border-top-right-radius: 5px;
+    border-top-left-radius: 5px;
+    /*border: 1px solid #4297D7;*/
+    border: 1px solid rgb(182,182,182);
+    /*background: #5C9CCC url(redmond/images/ui-bg_gloss-wave_55_5c9ccc_500x100.png) 50% 50% repeat-x;*/
+    background:-webkit-linear-gradient(top, #ededed 0%,#c4c4c4 100%);
+    display: inline-block;
+    cursor: pointer;
+    margin: 2px 3px -2px 0;
+}
+
+.steps-tab a {
+    color: rgb(79,79,79);
+    float: left;
+    font-weight: bold;
+}
+
+.steps-tab.selected-true
+{
+    background: -webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%);
+}
+
+.steps-tab.selected-true a {
+    color: rgb(49,49,49);
+}
+
+/*
+.steps-tab a 
+{
+    color: white;
+    float: left;
+}
+*/
+
+.step-titlebar-close {
+    float: right;
+    margin-left: 6px;
+}
+
+/*
+.step-icon {
+    background-image: url(redmond/images/ui-icons_d8e7f3_256x240.png);
+    width: 16px;
+    height: 16px;
+    display: block;
+    text-indent: -99999px;
+    overflow: hidden;
+    background-repeat: no-repeat;
+}
+
+.step-icon:hover {
+    background-image: url(redmond/images/ui-icons_217bc0_256x240.png);
+}
+*/
+
+.step-icon {
+    background-image: url(Aristo/images/ui-icons_454545_256x240.png);
+    width: 16px;
+    height: 16px;
+    display: block;
+    text-indent: -99999px;
+    overflow: hidden;
+    background-repeat: no-repeat;
+}
+
+.step-icon:hover {
+    background-image: url(Aristo/images/ui-icons_222222_256x240.png);
+}
+
+.steps-tab a:hover, .steps-tab a:active, .selected-true a
+{
+    color: #DD6E00;    
+}
+
+#stepSourceDiv, #contentHTMLDiv
+{
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+#stepSourceDiv .CodeMirror-scroll, #contentHTMLDiv .CodeMirror-scroll 
+{
+    height: auto;
+    overflow-y: hidden;
+    overflow-x: auto;
+}
+
+#scriptDiv, #cssDiv
+{
+    height: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    overflow: hidden;
+}
+
+.CodeMirror
+{
+    height: 100%;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
+.CodeMirror-scroll 
+{
+    height: 100%;
+    width: 100%
+}
+
+#outputDiv
+{
+    white-space: pre-wrap;
+    font-family: monospace;
+    display: block;
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.error
+{
+    color: red;
+}
+
+#playerDiv
+{
+    overflow: auto;
+}
+
+#prettyPrintDiv
+{
+    overflow: auto;
+}
+
+#graphDiv
+{
+    overflow: none;
+}
+
+#prettyPrintDiv div table
+{
+    margin: 0 auto;
+}
+
+/* Style for the content management site here. */
+
+#contentPane
+{
+    padding-left: 20px;
+}
+
+#contentEditor
+{
+    display: inline-block;
+    vertical-align: top;
+    margin-right: 20px;
+}
+
+#contentList
+{
+    display: inline-block;
+    vertical-align: top;
+}
+
+#contentList select
+{
+    width: 200px;
+}
+
+/* tinyMCE */
+table.mceLayout
+{
+}
+
+#tinymceDiv
+{
+    width: 100%;
+    /*height: 100%;*/
+}
+
+#tinymceTextarea
+{
+    width: 100%;
+    height: 100%;
+}
+
+/* Login page style goes here */
+
+#login
+{
+    margin-left: 40px;
+    margin-top: 40px;
+    float: left;
+}
+
+#login #loginButton
+{
+    float: right;
+}
+
+/* Default style for svg elements here */
+circle {
+    stroke: #333;
+    stroke-width: 1px;
+}
+
+circle[selected="1"] {
+    stroke: black;
+    stroke-width: 3px;
+}
+
+line[selected="1"] {
+    stroke: black;
+    stroke-width: 3px;
+}
+
+line {
+    stroke: #333;
+    stroke-width: 2px;
+}
+
+circle[color="1"] { fill:#1f77b4; } 
+circle[color="2"] { fill:#aec7e8; } 
+circle[color="3"] { fill:#ff7f0e; } 
+circle[color="4"] { fill:#ffbb78; } 
+circle[color="5"] { fill:#2ca02c; } 
+circle[color="6"] { fill:#98df8a; } 
+circle[color="7"] { fill:#d62728; } 
+circle[color="8"] { fill:#ff9896; } 
+circle[color="9"] { fill:#9467bd; } 
+circle[color="10"] { fill:#c5b0d5; } 
+circle[color="11"] { fill:#8c564b; } 
+circle[color="12"] { fill:#c49c94; } 
+circle[color="13"] { fill:#e377c2; } 
+circle[color="14"] { fill:#f7b6d2; } 
+circle[color="15"] { fill:#7f7f7f; } 
+circle[color="16"] { fill:#c7c7c7; } 
+circle[color="17"] { fill:#bcbd22; } 
+circle[color="18"] { fill:#dbdb8d; } 
+circle[color="19"] { fill:#17becf; } 
+circle[color="20"] { fill:#9edae5; } 
+
+/*
+
+.ui-button {
+    border: 1px solid #4297D7 !important;
+    background: #5C9CCC url(redmond/images/ui-bg_gloss-wave_55_5c9ccc_500x100.png) 50% 50% repeat-x !important;
+    padding: 0 !important;
+    margin: 0 .4em 0 0 !important;
+    border-radius: 5px !important;
+}
+
+.ui-button-text {
+    color: white !important;
+    font-size: .8em !important;
+    padding: .4em 1em !important;
+    font-weight: bold !important;
+}
+
+*/
+
+#data-table, #event-table
+{
+    border-collapse: collapse;
+}
+
+#data-table, #data-table th, #data-table td, #event-table, #event-table th, #event-table td
+{
+    border: 1px solid black;
+}
+
+#data-table td, #event-table td
+{
+    padding: 5px;
+}
+
+.clearBoth {
+    clear: both;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+/*
+.reload-icon {
+    background-image: url(redmond/images/ui-icons_d8e7f3_256x240.png);
+    width: 16px;
+    height: 16px;
+    display: block;
+    text-indent: -99999px;
+    overflow: hidden;
+    background-repeat: no-repeat;
+}
+
+.reload-icon:hover {
+    background-image: url(redmond/images/ui-icons_217bc0_256x240.png);
+}
+*/
+
+/* Progress Bar */
+
+.progress {
+    height: 30px;
+}
+
+.progress-bar {
+    line-height: 30px;
+    font-size: 16px;
+}

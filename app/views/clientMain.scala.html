@@ -1,0 +1,59 @@
+@(experimentId: String, experimentInstanceId: String, clientId: String, connectionSpeed: String)(content: Html)
+@import play.api.Play
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html lang="en" ng-app="client">
+    <head>
+        <title>breadboard: Client</title>
+        <!--<link href='https://fonts.googleapis.com/css?family=Lora:400,700' rel='stylesheet' type='text/css'>-->
+        <link href='https://fonts.googleapis.com/css?family=Open+Sans:700,400' rel='stylesheet' type='text/css'>
+        <!--link href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css" rel="stylesheet"-->
+        <link href="@routes.Assets.at("css/bootstrap.min.css")" rel="stylesheet">
+        <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("img/favicon.png")">
+        <link rel="stylesheet" href="@routes.Assets.at("css/client.css")">
+    </head>
+    <body>
+        <!-- Routes -->
+        <script type="text/javascript" charset="utf-8">
+            var clientVars = {
+                referer: "@if(request.headers.get("Referer") != null) {@request.headers.get("Referer").mkString(", ")}",
+                connection: "@if(request.headers.get("Connection") != null) {@request.headers.get("Connection").mkString(", ")}",
+                accept: "@if(request.headers.get("Accept") != null) {@request.headers.get("Accept").mkString(", ")}",
+                cacheControl: "@if(request.headers.get("Cache-Control") != null) {@request.headers.get("Cache-Control").mkString(", ")}",
+                acceptCharset: "@if(request.headers.get("Accept-Charset") != null) {@request.headers.get("Accept-Charset").mkString(", ")}",
+                cookie: "@if(request.headers.get("Cookie") != null) {@request.headers.get("Cookie").mkString(", ")}",
+                acceptLanguage: "@if(request.headers.get("Accept-Language") != null) {@request.headers.get("Accept-Language").mkString(", ")}",
+                acceptEncoding: "@if(request.headers.get("Accept-Encoding") != null) {@request.headers.get("Accept-Encoding").mkString(", ")}",
+                userAgent: "@if(request.headers.get("User-Agent") != null) {@request.headers.get("User-Agent").mkString(", ")}",
+                host: "@if(request.headers.get("Host") != null) {@request.headers.get("Host").mkString(", ")}",
+                ipAddress: "@request.remoteAddress()",
+                requestURI: "@request.uri()",
+                connectSocket: "@routes.ClientController.connectClient(experimentId, experimentInstanceId, clientId).webSocketURL(request, Play.current.configuration.getString("breadboard.wsUrl").getOrElse("wss://").contains("wss://"))",
+                clientId: "@clientId",
+                connectionSpeed: "@Option(connectionSpeed)"
+            }
+        </script>
+        <!-- PROD
+        <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+        <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
+        <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.2.21/angular.min.js"></script-->
+        <!-- DEV -->
+        <script src="@routes.Assets.at("lib/jquery/jquery.js")"></script>
+        <script src="@routes.Assets.at("lib/jquery-ui/jquery-ui.js")"></script>
+        <script src="@routes.Assets.at("lib/angular/angular.js")"></script>
+
+        <script src="@routes.Assets.at("lib/angular/angular-sanitize.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.at("lib/ui-bootstrap/ui-bootstrap-tpls-0.11.0.js")"></script>
+        <script src="@routes.Assets.at("js/client-filters.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.at("js/client-services.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.at("js/client-controllers.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.at("js/client-app.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.at("lib/d3/d3.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.at("lib/underscore/underscore.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.at("js/client-graph.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.at("lib/modernizr/modernizr-latest.js")" type="text/javascript"></script>
+        <script src="@routes.Assets.at("js/client.js")" type="text/javascript"></script>
+
+        @content
+
+    </body>
+</html>

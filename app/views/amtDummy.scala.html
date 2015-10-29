@@ -1,0 +1,29 @@
+@(assignmentId: String, sandbox: Boolean) 
+<html>
+    <head>
+        <title>Dummy HIT</title>
+        <link rel="stylesheet" href="@routes.Assets.at("css/client.css")">
+        <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+        <style>
+			#mainDiv {
+				margin: 1em;
+			}
+        </style>
+    </head>
+    <body>
+    	<div id="mainDiv">
+			<p>
+				We are sorry that you were unable to submit the assignment previously and have created a dummy HIT for you to submit so we can pay you for your time.
+			</p>
+			<p>
+				Please click the "Submit HIT" button below.
+			</p>
+
+			<form action="https://@{var urlPrefix = "www"; if (sandbox) urlPrefix = "workersandbox"; urlPrefix}.mturk.com/mturk/externalSubmit" method="get">
+				<button type="submit">Submit HIT</button> 
+				<input type="hidden" name="assignmentId" value="@assignmentId" /> 
+				<input type="hidden" name="submitted" value="true" /> 
+			</form>
+		</div>
+    </body>
+</html>

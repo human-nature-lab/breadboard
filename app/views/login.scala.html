@@ -1,0 +1,43 @@
+@(form: Form[Application.Login])
+<html>
+    <head>
+        <title>breadboard: Login</title>
+        <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("img/favicon.png")">
+        <link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("css/main.css")">
+    </head>
+    <body>
+        
+        <div id="login">
+        @helper.form(routes.Application.authenticate) {
+            
+				<h2>Sign in</h2>
+				
+				@if(form.hasGlobalErrors) { 
+					<p class="error">
+						@form.globalError.message
+					</p>
+				}
+				
+				@if(flash.contains("success")) {
+					<p class="success">
+						@flash.get("success")
+					</p>
+				}
+				<p>
+					<input type="email" name="email" placeholder="Email" value="@form("email").value" autofocus>
+				</p>
+				<p>
+					<input type="password" name="password" placeholder="Password">
+				</p>
+
+				<p id="loginButton">
+					<button type="submit">Login</button>
+				</p>
+        }
+		</div>
+        
+    </body>
+</html>
+    
+
+

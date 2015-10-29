@@ -1,0 +1,62 @@
+<html>
+    <head>
+        <title>AMT Admin</title>
+        <link rel="stylesheet" href="@routes.Assets.at("css/main.css")">
+        <link rel="stylesheet" href="@routes.Assets.at("css/redmond/jquery-ui-1.8.21.custom.css")">
+        <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+        <style>
+			#mainDiv {
+				margin: 1em;
+			}
+            .message-box {
+                padding: .7em;
+                margin: .7em;
+            }
+            textarea, input {
+                font-family: Lucida Grande,Lucida Sans,Arial,sans-serif;
+            }
+        </style>
+		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+		<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
+    </head>
+    <body>
+        <div id="mainDiv">
+            <h2>Create Dummy HITs</h2>
+            <p>
+                This is the future home of the AMT Administrator Interface.  For now there is just one function: creating dummy HITs.  
+            </p>
+            <p>
+                Below, enter a list of AMT Worker IDs (one per line, space separated, or comma separated), a description of the reason for the payment, and a reward in dollars.  The app will create dummy HITs for each worker with the specified reward and assign a required qualification.  
+            </p>
+
+            <form action="@routes.AMTAdmin.createDummyHit" onsubmit="jQuery('#success_div').hide();jQuery('#error_div').hide();jQuery('#wait_div').show();">
+                <table>
+                    <tr><td><label for="amt_ids">AMT IDs</label></td><td><textarea rows="20" cols="60" name="amt_ids" placeholder="AMT Worker IDs" required></textarea></td></tr>
+                    <tr><td><label for="reason">Reason</label></td><td><textarea rows="2" cols="60" name="reason" placeholder="Reason" required></textarea></td></tr>
+                    <tr><td><label for="reward">Reward</label></td><td><input type="text" pattern="^\d+(\.|\,)\d{2}$" name="reward" placeholder="Reward" required></td></tr>
+                    <tr><td><label for="sandbox">Sandbox?</label></td><td><input type="checkbox" name="sandbox"></td></tr>
+                    <tr><td colspan="2"><input type="submit" value="Create Dummy HITs"></td></tr>
+                </table>
+            </form>
+
+            <div id="wait_div" style="display: none;" class="message-box ui-state-active ui-corner-all">
+                <h3>Please wait...</h3>
+            </div>
+
+            @if(flash.containsKey("success")) {
+                <div id="success_div" class="message-box ui-state-highlight ui-corner-all">
+                    <h3>Done!</h3> 
+                    <p>@Html(flash.get("success"))</p>
+                </div>
+            }
+
+            @if(flash.containsKey("error")) {
+                <div id="error_div" class="message-box ui-state-error ui-corner-all">
+                    <h3>There was a problem with this request:</h3> 
+                    <p>@Html(flash.get("error"))</p>
+                </div>
+            }
+
+        </div>
+    </body>
+</html>

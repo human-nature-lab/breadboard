@@ -1,0 +1,38 @@
+@(experimentId: String, experimentInstanceId: String, clientId: String, connectionSpeed: String)
+@clientMain(experimentId, experimentInstanceId, clientId, connectionSpeed) {
+    <div id="mainDiv" ng-controller="ClientCtrl">
+        <div id="statusDiv" ng-controller="TimersCtrl" ng-show="isTimer()">
+            <progressbar ng-repeat="timer in timers" type="{{timer.appearance}}" value="timer.timerValue">{{timer.timerText}}</progressbar>
+        </div>
+        <div id="gameDiv" ng-hide="client.player.active == false">
+            <div id="graph">
+            </div>
+
+            <div id="rightDiv">
+                <div ng-hide="client.player.curRound == undefined">
+                    <h3>Round {{client.player.curRound}}</h3>
+                </div>
+                <div id="text" ng-bind-html="client.player.text | to_trusted"></div>
+
+
+                <div id="choices" ng-controller="ChoicesCtrl">
+                    <div ng-bind-html="custom | to_trusted" ng-hide="client.player.choices === undefined || custom === undefined"></div>
+                    <button ng-repeat="choice in childChoices |filter: {class: '!drop'}" class="{{choice.class}}" ng-disabled="customComplete()" ng-click="makeChoice(choice.uid)">
+                        {{choice.name}}
+                    </button>
+                </div>
+
+                <!--pre>{{client.player.timers|json}}</pre-->
+            </div>
+
+            <div id="error">
+                An error has occurred, please send this message to <a href="mailto:mark.mcknight@@yale.edu">
+                mark.mcknight@@yale.edu</a>
+                <pre id="errorText">
+                </pre>
+            </div>
+        </div>
+    </div>
+
+    <style id="style"></style>
+}

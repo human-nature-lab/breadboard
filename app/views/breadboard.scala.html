@@ -1,0 +1,640 @@
+@main("breadboard: Design") {
+
+<div id="mainDiv" ng-controller="AppCtrl" ng-style="breadboard.experiment.style" ng-cloak>
+
+<div id="topDiv">
+    <div id="experimentSelectDiv">
+        <select ng-hide='breadboard.user.experiments.length == 0'
+                ng-options='experiment for experiment in breadboard.user.experiments' ng-change='experimentChanged()'
+                ng-model='breadboard.user.selectedExperiment'
+                ng-disabled='breadboard.experimentInstance.status === "RUNNING"'>
+        </select>
+        <button jq-button title='New experiment' id='newExperimentButton' ng-click='newExperiment()' jq-button-disabled='breadboard.experimentInstance.status === "RUNNING"'><span
+                class="step-icon ui-icon-plusthick">New experiment</span></button>
+        <button jq-button title='Delete experiment' id='deleteExperimentButton' jq-button-disabled='breadboard.experimentInstance.status === "RUNNING"'
+                ng-click='deleteExperiment()'><span class="step-icon ui-icon-closethick">Delete experiment</span>
+        </button>
+        <button title='Export' ui-jq='button' id='exportButton'
+            ng-click='exportExperiment()'><span class="step-icon ui-icon-triangle-1-s">Export experiment</span>
+        </button>
+        <button jq-button title='Run' id='runButton'
+            ng-click='run()'><span class="step-icon ui-icon-play">Run experiment</span>
+        </button>
+        <button jq-button title='Stop' id='stopButton'
+            ng-click='stopGame(breadboard.experimentInstance.id)' jq-button-disabled='breadboard.experimentInstance.status !== "RUNNING"'><span class="step-icon ui-icon-stop">Stop experiment</span>
+        </button>
+        <button title='Reload' ui-jq='button' id='reloadButton'
+                ng-click='reload()'><span class="step-icon ui-icon-refresh">Reload</span>
+        </button>
+        <button title='Vim' ui-jq='button' id='vimButton'
+        ng-click='toggleVim()'><span class="ui-button ui-icon step-icon vim-icon">Vim</span>
+        </button>
+    </div>
+    <div id="logoutDiv">You are logged in as <a ng-click="showUserSettings()">@session.get("email")</a>
+        | <a href="@routes.Application.logout()">Log out</a></div>
+</div>
+
+<div id="bottomDiv">
+    <div id="dockDiv"></div>
+</div>
+
+
+<!-- Dialogs -->
+
+<!-- New Experiment -->
+<div class="new-dialog" id="newExperimentDialog" style="display: none;">
+    <form ng-submit="createExperiment()">
+        <p>
+            Copy
+            <select name="copyExperiment" ng-options="experiment for experiment in breadboard.user.experiments"
+                    ng-model="copyExperimentName">
+                <option value="">Default</option>
+            </select>
+        </p>
+        <p>
+            <input name="name" ng-model="newExperimentName" placeholder="Name" required>
+        </p>
+
+        <p>
+            <button class="ui-button" style="float: right;" type="submit">
+                <span class="ui-button-text">Create</span>
+            </button>
+        </p>
+    </form>
+</div>
+
+<!-- Output -->
+<div>
+    <div class="testClass" ui-jq="dialog" ui-options="outputDialogOptions" id="outputDiv">
+{{breadboard.output}}
+        <span class="error">{{breadboard.error}}</span>
+    </div>
+</div>
+
+<!-- Graph -->
+<!--div><div ui-jq="dialog" ui-options="graphDialogOptions" id="graphDiv">
+    <graph source="breadboard.graph"></graph>
+</div></div-->
+
+<!-- Graph 2 -->
+<div>
+    <div ui-jq="dialog" ui-options="graphDialogOptions" id="graphDiv">
+    </div>
+</div>
+
+<!-- Player -->
+<div>
+    <div ui-jq="dialog" ui-options="playerDialogOptions" id="playerDiv">
+        <div id="playerStatusDiv">
+          <h3>Player {{selectedNode.id}}</h3>
+			    <pre>{{playerProperties(selectedNode)}}</pre>
+        </div>
+        <div id='playerText' ng-bind-html="selectedNode.text | to_trusted"></div>
+        <div id='playerChoices'>
+            <button ng-repeat="choice in selectedNode.choices" class="{{choice.class}}" ng-click="makeChoice($index)">
+                {{choice.name}}
+            </button>
+        </div>
+        <div id="dropDiv">
+        	<button ng-click="dropPlayer(selectedNode.id)">Drop Player</button>
+        </div>
+    </div>
+</div>
+
+<!-- AMT -->
+<div>
+    <div ui-jq="dialog" ui-options="amtDialogOptions" id="amtDiv">
+    	<div ng-hide="breadboard.experimentInstance.amtHits.length > 0">
+			<div class="formRow"><label for="title">Title</label><input name="title" ng-model="amtTaskTitle" placeholder="Title" required></div>
+			<div class="formRow"><label for="description">Description</label><textarea name="description" ng-model="amtTaskDescription" placeholder="Description" rows="3" cols="60" required></textarea></div>
+			<div class="formRow"><label for="reward">Reward</label><input type="number" pattern="\d+(\.\d{2})?" name="reward" ng-model="amtTaskReward" placeholder="Reward" required></div>
+			<div class="formRow"><label for="lifetimeInSeconds">HIT lifetime (in seconds)</label><input type="number" name="lifetimeInSeconds" ng-model="amtTaskLifetime" placeholder="HIT lifetime (sec.)" required></div>
+			<div class="formRow"><label for="tutorialTime">Tutorial time (in seconds)</label><input type="number" name="tutorialTime" ng-model="amtTaskTutorialTime" placeholder="Tutorial time (sec.)" required></div>
+			<div class="formRow"><label for="maxAssignments">Max. Assignments</label><input type="number" min="1" max="1000000000" name="maxAssignments" ng-model="amtTaskMaxAssignments" placeholder="Max Assignments" required></div>
+			<div class="formRow"><label for="disallowPrevious">Disallow previous players?</label><select name="disallowPrevious" ng-model="amtTaskDisallowPrevious">
+			  <option value=""></option>
+			  <option value="type">Only this game type</option>
+			  <option value="any">Any</option>
+			  <option value="none">None</option>
+			</select></div>
+			<div class="formRow"><label for="sandbox">Sandbox?</label><input type="checkbox" name="sandbox" ng-model="amtTaskSandbox" ng-init="amtTaskSandbox=true"></div>
+			<button title='' ui-jq='button' id='submitAMTButton'
+			ng-click='submitAMTTask()'>Submit AMT Task
+			</button>
+        </div>
+        <div ng-show="breadboard.experimentInstance.amtHits.length > 0">
+        	<table ng-repeat="hit in breadboard.experimentInstance.amtHits">
+        		<tr><td>Creation Time</td><td>{{hit.creationTime}}</td></tr>
+        		<tr><td>Request Id</td><td>{{hit.requestId}}</td></tr>
+        		<tr><td>HIT Id</td><td>{{hit.hitId}}</td></tr>
+        		<tr><td>Is Valid?</td><td>{{hit.isValid}}</td></tr>
+        		<tr><td>Title</td><td>{{hit.title}}</td></tr>
+        		<tr><td>Description</td><td>{{hit.description}}</td></tr>
+        		<tr><td>Reward</td><td>{{hit.reward}}</td></tr>
+        		<tr><td>HIT lifetime (in seconds)</td><td>{{hit.lifetimeInSeconds}}</td></tr>
+        		<tr><td>Tutorial time (in seconds)</td><td>{{hit.tutorialTime}}</td></tr>
+        		<tr><td>Max. Assignments</td><td>{{hit.maxAssignments}}</td></tr>
+        		<tr><td>URL</td><td>{{hit.externalURL}}</td></tr>
+        		<tr><td>Sandbox?</td><td>{{hit.sandbox}}</td></tr>
+        	</table>
+        </div>
+    </div>
+</div>
+
+<!-- AMT Assignments -->
+<div>
+    <div ui-jq="dialog" ui-options="amtAssignmentsDialogOptions" id="amtAssignmentsDiv">
+		<table class="instancesTable">
+			<caption>Instances</caption>
+			<thead>
+				<tr>
+					<th>Creation Date</th>
+					<th>ID</th>
+					<th>Name</th>
+					<th>Status</th>
+					<th></th>
+					<th></th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="instance in breadboard.experiment.instances" class="selected-{{instance.hitId == selectedHIT}}"> 
+					<td>{{instance.creationTime}}</td>
+					<td>{{instance.id}}</td>
+					<td>{{instance.name}}</td>
+					<td>{{instance.status}}</td>
+					<td><button ng-hide="instance.hitId==''" title="Get Assignments" ui-jq='button' ng-click='getAssignments(instance.hitId)'>Get Assignments</button></td>
+					<td><button ng-hide="instance.hitId==''" title="Extend HIT" ui-jq='button' ng-click='extendHit(instance.hitId)'>Extend HIT</button></td>
+				</tr>
+			</tbody>
+		</table>
+
+		<table class="instancesTable" ng-hide="selectedHIT == undefined">
+			<caption>Assignments</caption>
+			<thead>
+				<tr>
+					<th>ID</th>
+					<th>Assignment ID</th>
+					<th>Worker ID</th>
+					<th>Accept Time</th>
+					<th>Submit Time</th>
+					<th>Bonus</th>
+					<th>Reason</th>
+					<th>Status</th>
+					<th>Block Worker</th>
+					<th>Assign Qualification</th>
+					<th>Assignment Completed?</th>
+				</tr>
+			</thead>
+			<tbody>
+				<tr ng-repeat="assignment in curAssignments()"> 
+					<td>{{assignment.id}}</td>
+					<td>{{assignment.assignmentId}}</td>
+					<td>{{assignment.workerId}}</td>
+					<td>{{assignment.acceptTime}}</td>
+					<td>{{assignment.submitTime}}</td>
+					<td>
+						<div ng-hide="assignment.bonusGranted">
+							<button title="Grant Bonus" ui-jq='button' ng-click='grantBonus(assignment.workerId, assignment.assignmentId, assignment.score)'>Grant Bonus: ${{assignment.score}}</button>
+						</div>
+						<div ng-show="assignment.bonusGranted">
+							Granted ${{assignment.score}}
+						</div>
+					</td>
+					<td>{{assignment.reason}}</td>
+					<td>
+						<div ng-hide="assignment.assignmentStatus != 'Submitted'">
+							<button title="Approve" ui-jq='button' ng-click='approveAssignment(assignment.assignmentId)'>Approve</button>
+							<button title="Reject" ui-jq='button' ng-click='rejectAssignment(assignment.assignmentId)'>Reject</button>
+						</div>
+						<div ng-show="assignment.assignmentStatus != 'Submitted'">
+							{{assignment.assignmentStatus}}
+						</div>
+					</td>
+					<td>
+						<div ng-hide="assignment.workerBlocked">
+							<button title="Block Worker" ui-jq='button' ng-click='blockWorker(assignment.assignmentId)'>Block Worker</button>
+						</div>
+						<div ng-show="assignment.workerBlocked">
+							Blocked
+						</div>
+					</td>
+					<td>
+						<div ng-hide="assignment.qualificationAssigned">
+							<button title="Assign Qualification" ui-jq='button' ng-click='assignQualification(assignment.assignmentId)'>Assign Qualification</button>
+						</div>
+						<div ng-show="assignment.qualificationAssigned">
+							Assigned
+						</div>
+					</td>
+					<td>
+						<div ng-hide="assignment.assignmentCompleted">
+							<button title="Mark Completed" ui-jq='button' ng-click='markCompleted(assignment.assignmentId)'>Mark Completed</button>
+						</div>
+						<div ng-show="assignment.assignmentCompleted">
+							Completed
+						</div>
+					</td>
+				</tr>
+			</tbody>
+		</table>
+    </div>
+</div>
+
+<!-- Steps -->
+<div>
+    <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
+        <div id="stepsTabsDiv">
+            <span class="steps-tab selected-{{$parent.selectedStep==step}}"
+                  ng-repeat="step in breadboard.experiment.steps" ng-init="initStep(step)"><a
+                    ng-click="$parent.selectedStep=step">{{step.name}}</a><a title="Delete step"
+                                                                             ng-click="deleteStep(step)"
+                                                                             class="step-titlebar-close ui-corner-all"
+                                                                             role="button"><span
+                    class="step-icon ui-icon-closethick">close</span></a></span><span class="steps-tab"><a
+                title="Create new step" ng-click="newStep()"><span
+                class="step-icon ui-icon-plusthick">New step</span></a></span>
+        </div>
+        <div id="stepSourceDiv">
+            <textarea class="codemirror" ui-codemirror ui-codemirror-opts="stepCodemirrorOptions"
+                      ng-model="selectedStep.source" ng-refresh="stepCodemirrorOptions.vimMode"> </textarea>
+        </div>
+    </div>
+</div>
+
+<div class="delete-dialog" id="deleteStepDialog" style="display: none;">
+    <p id="deleteStepDesc"></p>
+</div>
+
+<div class="new-dialog" id="newStepDialog" style="display: none;">
+    <form ng-submit="createStep()">
+        <p>
+            <input name="name" ng-model="newStepName" placeholder="Name" required>
+        </p>
+
+        <p>
+            <button style="float: right;" type="submit">Create</button>
+        </p>
+    </form>
+</div>
+
+<!-- Style -->
+<div>
+    <div ui-jq="dialog" ui-options="cssDialogOptions" id="cssDiv">
+        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="cssCodemirrorOptions" ui-refresh="cssDialogIsOpen"
+                  ng-model="breadboard.experiment.style"></textarea>
+    </div>
+</div>
+
+<!-- Script -->
+<div>
+    <div ui-jq="dialog" ui-options="scriptDialogOptions" id="scriptDiv">
+        <textarea id="scriptTextArea" class="codemirror" ui-codemirror ui-codemirror-opts="scriptCodemirrorOptions"
+                  ng-model="breadboard.user.currentScript"></textarea>
+    </div>
+</div>
+
+<!-- Content -->
+<div>
+    <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
+        <div id="contentTabsDiv">
+            <span class="steps-tab selected-{{$parent.selectedContent.id==c.id}}" ng-repeat="c in breadboard.experiment.content">
+              <a ng-click="$parent.selectedContent=c">{{c.name}}</a>
+              <a title="Delete step" ng-click="deleteContent(c)" class="step-titlebar-close ui-corner-all" role="button">
+                <span class="step-icon ui-icon-closethick">close</span>
+              </a>
+            </span><span class="steps-tab"><a ng-click="newContent()"><span class="step-icon ui-icon-plusthick">New content</span></a></span>
+        </div>
+        <div id="tinymceDiv" ng-hide="selectedContent==undefined">
+            <textarea id="tinymceTextarea" ui-tinymce="tinymceOptions" ng-model="selectedContent.html"></textarea>
+        </div>
+    </div>
+</div>
+
+<div class="new-dialog" id="newContentDialog" style="display: none;">
+    <form ng-submit="createContent()">
+        <p>
+            <input name="name" ng-model="newContentName" placeholder="Name" required>
+        </p>
+
+        <p>
+            <button style="float: right;" type="submit">Create</button>
+        </p>
+    </form>
+</div>
+
+<!-- Launch -->
+<div>
+    <div ui-jq="dialog" ui-options="launchDialogOptions" id="launchDiv">
+        <form ng-show="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
+            <div>
+                <div>
+                    <label for="name">Name: </label><input id="name" name="name" ng-model="experimentInstanceName"
+                                                           required>
+                </div>
+                <div ng-repeat="elem in breadboard.experiment.parameters" ng-switch="elem.type">
+                  <label for="{{elem.name}}">{{elem.name}}: </label>
+                  
+                  <input ng-switch-when="Boolean" id="{{elem.name}}" ng-model="launchParameters[elem.name]" type="checkbox" ng-init="launchParametes[elem.name]=elem.name" required>
+                  <input ng-switch-default="Text" id="{{elem.name}}" ng-model="launchParameters[elem.name]" type="text" required>
+                  <span class="note">{{elem.description}}</span>
+                </div>
+                <!--parameterType ng-repeat="elem in breadboard.experiment.parameters">
+                    <label for="{{elem.name}}">{{elem.name}}: </label><input id="{{elem.name}}"
+                                                                             ng-model="launchParameters[elem.name]"
+                                                                             type="{{paramType(elem.type)}}"
+                                                                             required>
+                </parameterType-->
+                <div>
+                    <button name="launch" ui-jq='button' type="button" ng-click="launchGame()">Launch
+                    </button>
+                    <button name="test" ui-jq='button' type="button" ng-click="testGame()">Test</button>
+                </div>
+            </div>
+        </form>
+        <div>
+            <table class="instancesTable" id="instance-table">
+                <caption>Instances</caption>
+                <thead>
+                <tr>
+                    <th>Creation Date</th>
+                    <th>ID</th>
+                    <th>Name</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                    <th>Client</th>
+                </tr>
+                </thead>
+                <tbody ng-switch on="breadboard.experimentInstance.status">
+                <tr ng-switch-when="TESTING" class="selected-true">
+                    <td>{{breadboard.experimentInstance.creationTime}}</td>
+                    <td>0</td>
+                    <td>
+                        {{breadboard.experimentInstance.name}}
+                    </td>
+                    <td>{{breadboard.experimentInstance.status}}</td>
+                    <td>
+                        <a ng-click="stopGame(breadboard.experimentInstance.id)">stop</a>
+                    </td>
+                    <td>
+                    	<span><a href="game/{{breadboard.experiment.id}}/{{breadboard.experimentInstance.id}}/login">login</a></span>	
+                    </td>
+                </tr>
+
+                <tr ng-repeat="instance in breadboard.experiment.instances" 
+                	class="selected-{{instance.name == breadboard.experimentInstance.name}}">
+                    <td>{{instance.creationTime}}</td>
+                    <td>{{instance.id}}</td>
+                    <td>
+                        {{instance.name}}
+                    </td>
+                    <td>{{instance.status}}</td>
+                    <td ng-switch on="instance.status">
+                                <span ng-switch-when="STOPPED">
+                                    <a ng-click="selectInstance(instance.id)">launch</a> |
+                                    <a ng-click="deleteInstance(instance.name, instance.id)">delete</a>
+                                </span>
+                                <span ng-switch-when="FINISHED">
+                                    <a ng-click="deleteInstance(instance.name, instance.id)">delete</a>
+                                </span>
+                                <span ng-switch-default>
+                                <a ng-click="stopGame(instance.id)">stop</a>
+                                </span>
+                    </td>
+                    <td>
+                    	<span ng-show="instance.name == breadboard.experimentInstance.name"><a href="game/{{breadboard.experiment.id}}/{{breadboard.experimentInstance.id}}/login">login</a></span>	
+                    </td>
+                    <!--<td ng-switch on="instance.status">-->
+                    <!--<a>Test</a>-->
+                    <!--<a ng-switch-when="STOPPED" ng-click="selectInstance(instance.id)">-->
+
+                    <!--</a>-->
+                    <!--<span ng-switch-default>{{instance.name}}</span>-->
+                    <!--</td>-->
+                </tr>
+                </tbody>
+            </table>
+        </div>
+        <div ng-hide="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
+            <h3>{{breadboard.experimentInstance.name}}</h3>
+            <table style="border-collapse: collapse; border: 1px solid black;">
+                <caption>Data</caption>
+                <tr ng-repeat="d in breadboard.experimentInstance.data">
+                    <td>{{d.name}}:</td>
+                    <td>{{d.value}}</td>
+                </tr>
+            </table>
+            <div ng-switch on="breadboard.experimentInstance.status">
+                    <span ng-switch-when="TESTING">
+                        <button ui-jq='button' type="button" ng-click="stopGame()">Stop Test</button>
+                    </span>
+                    <span ng-switch-default>
+                        <button ui-jq='button' type="button" ng-click="stopGame(breadboard.experimentInstance.id)">Stop</button>
+                    </span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Parameters -->
+<div>
+    <div ui-jq="dialog" ui-options="parametersDialogOptions" id="parametersDiv">
+        <form ng-submit="newParameter()">
+            <table id="parametersTable">
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Min.</th>
+                    <th>Max.</th>
+                    <th>Default</th>
+                    <th>Short Description</th>
+                    <th></th>
+                </tr>
+                <tr>
+                    <td><input style="width: 8em;" type="text" name="parameterName" ng-model="parameterName"
+                               placeholder="Name" required></td>
+                    <td>
+                        <select ng-model="parameterType">
+                        	<option></option>
+                            <option value="Integer">Integer</option>
+                            <option value="Decimal">Decimal</option>
+                            <option value="Text">Text</option>
+                            <option value="Boolean">Boolean</option>
+                        </select>
+                    </td>
+                    <td><input style="width: 3em;" ng-disabled="parameterType=='Text' || parameterType=='Boolean'" type="text" name="parameterMin"
+                               ng-model="parameterMin" placeholder="Min."></td>
+                    <td><input style="width: 3em;" ng-disabled="parameterType=='Text' || parameterType=='Boolean'" type="text" name="parameterMax"
+                               ng-model="parameterMax" placeholder="Max."></td>
+                    <td><input style="width: 4em;" type="text" name="parameterDefault" ng-model="parameterDefault"
+                               placeholder="Default"></td>
+                    <td><input style="width: 16em;" type="text" name="parameterDescription"
+                               ng-model="parameterDescription" placeholder="Short Description"></td>
+                    <td>
+                        <button title='New parameter' ui-jq='button' style="float: right;" type="submit"><span
+                                class="step-icon ui-icon-plusthick">New parameter</span></button>
+                    </td>
+                </tr>
+                <tr class="parameters" ng-repeat="elem in breadboard.experiment.parameters">
+                    <td>{{elem.name}}</td>
+                    <td>{{elem.type}}</td>
+                    <td>{{elem.minVal}}</td>
+                    <td>{{elem.maxVal}}</td>
+                    <td>{{elem.defaultVal}}</td>
+                    <td>{{elem.description}}</td>
+                    <td>
+                        <button title="Delete parameter"
+                                onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
+                                onmouseout="$(this).parent().parent().css('background', '');"
+                                ng-click="removeParameter(elem.id);" type="button" ui-jq='button'
+                                style="float: right;"><span class="step-icon ui-icon-closethick">Delete parameter</span>
+                        </button>
+                    </td>
+
+                </tr>
+            </table>
+        </form>
+    </div>
+</div>
+
+<!-- Images -->
+<div>
+    <div ui-jq="dialog" ui-options="imagesDialogOptions" id="imagesDiv">
+        <form action="@routes.Application.uploadImage()" method="post" enctype="multipart/form-data" id="imageUploadForm">
+            <table>
+                <thead>
+                    <tr>
+                        <td colspan="3">Add Image</td>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td><input type="file" name="picture"></td>
+                        <td><button title='Add image' ui-jq='button' style="float: right;" type="submit"><span class="step-icon ui-icon-plusthick">New image</span></button></td>
+                        <td><iframe id="imageUploadIframe" name="imageUploadIframe" src="" style="display: none;"></iframe></td>
+                    </tr>
+                </tbody>
+            </table>
+            <input type="hidden" name="experimentId" value="{{breadboard.experiment.id}}">
+        </form>
+        <table style="border-collapse: collapse;">
+            <thead>
+                <tr>
+                    <td>File Name</td>
+                    <td>Image</td>
+                    <td>URL</td>
+                    <td>Delete</td>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="image in breadboard.experiment.images">
+                    <td>{{image.fileName}}</td>
+                    <td><img ng-src="/thumbs/{{image.id}}"></td>
+                    <td>/images/{{image.id}}</td>
+                    <td>
+                        <button title='Delete image' ui-jq='button'
+                        onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
+                        onmouseout="$(this).parent().parent().css('background', '');"
+                        ng-click='deleteImage(image.id)'><span class="step-icon ui-icon-closethick">Delete image</span></button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Experiment -->
+<div class="delete-dialog" id="deleteExperimentDialog" style="display: none;">
+    <p>
+        Are you sure that you want to permanently delete the experiment '<span class="deleteExperimentName"></span>' and
+        all of its associated data and instances?
+    </p>
+</div>
+
+<!-- User Settings -->
+<div class="user-settings-dialog" id="userSettingsDialog" title="User Settings" style="display: none;">
+    <div class="user-setting-section">
+        <fieldset>
+            <legend>Change Password</legend>
+            <ul id="changePasswordError" class="error" style="display: none;"></ul>
+            <p>
+                <label for="currentPassword">Current Password</label>*
+                <input type="password" name="currentPassword" id="currentPassword"/>
+            </p>
+
+            <p>
+                <label for="newPassword">New Password</label>*
+                <input type="password" name="newPassword" id="newPassword"/>
+            </p>
+
+            <p>
+                <label for="confirmNewPassword">Confirm Password</label>*
+                <input type="password" name="confirmNewPassword" id="confirmNewPassword"/>
+            </p>
+        </fieldset>
+    </div>
+
+</div>
+
+<!-- Delete instance -->
+<div class="delete-dialog" id="deleteInstanceDialog" title="Delete Instance" style="display: none;">
+    <p>Are you sure that you want to permanently delete the instance "<span id="deleteInstanceDialogDesc" class="bold"></span>"
+        and all of its associated data?</p>
+</div>
+
+<!-- Data -->
+<div>
+    <div ui-jq="dialog" ui-options="dataDialogOptions" id="dataDiv">
+        <table id="data-table">
+            <thead>
+            <tr>
+                <th>Instance</th>
+                <th ng-repeat="elem in breadboard.experiment.parameters">{{elem.name}}</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr ng-repeat="instance in breadboard.experiment.instances">
+                <td><a ng-click="showEvent(instance)">{{instance.name}}</a></td>
+                <td ng-repeat="data in instance.data">{{data.value}}</td>
+            </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+<div id="amtErrorDialog" style="display: none;">
+    <p>Please select an experiment and launch an instance before posting a HIT.</p>
+</div>
+<div class="event-data-dialog" id="eventDataDialog" style="display: none;">
+
+    <button class="ui-button" style="float: right;" type="button" ng-click="downloadEventCsv(showEvent.experimentInstance)">
+        <span class="ui-button-text">Download CSV</span>
+    </button>
+    <div class="bold">Instance - {{breadboard.eventExperimentInstance}}</div>
+    <div class="clearBoth">
+        <br/>
+    <table id="event-table">
+        <thead>
+        <tr>
+            <th>id</th>
+            <th>event</th>
+            <th>event data(s)</th>
+            <th>datetime</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="event in breadboard.events">
+            <td>{{event.id}}</td>
+            <td>{{event.name}}</td>
+            <td>
+                <span ng-repeat="data in event.data">{{data.name}}-{{data.value}}<span ng-show="!$last">,</span> </span>
+            </td>
+            <td>{{event.datetime}}</td>
+        </tr>
+        </tbody>
+    </table>
+    </div>
+</div>
+
+</div><!-- END mainDiv -->
+
+<style id="styleTag"></style>
+}

@@ -1,0 +1,39 @@
+# Routes
+# This file defines all application routes (Higher priority routes first)
+# ~~~~
+
+# Home page
+GET     /                           controllers.Application.index()
+GET     /connect                    controllers.Application.connect()
+GET     /csv/data/:experimentId          controllers.Application.dataCsv(experimentId: Long)
+GET     /csv/event/:experimentInstanceId          controllers.Application.eventCsv(experimentInstanceId: Long)
+# GET     /design                 	controllers.Application.index()
+GET     /images/:id                 controllers.Application.getImage(id: Long)
+GET     /thumbs/:id                 controllers.Application.getImageThumb(id: Long)
+POST    /uploadImage                controllers.Application.uploadImage()
+GET		/game/:experimentId/:experimentInstanceId/:clientId/connected			controllers.ClientController.index(experimentId: String, experimentInstanceId: String, clientId: String, connectionSpeed: String ?= null)
+GET		/game/:experimentId/:experimentInstanceId/:clientId/connect			controllers.ClientController.connectClient(experimentId: String, experimentInstanceId: String, clientId: String)
+
+# Authentication
+
+# AMT Admin Page
+GET     /amtadmin                      controllers.AMTAdmin.index()
+GET     /amtadmin/login                controllers.AMTAdmin.login()
+GET     /amtadmin/createDummyHit       controllers.AMTAdmin.createDummyHit()
+
+# Dummy HITs
+GET     /dummyHit                      controllers.ClientLogin.dummyHit(assignmentId: String ?= null, sandbox: String ?= null)
+
+# The hitId and assignmentId parameters may or may not be present
+GET		/game/:experimentId/:experimentInstanceId/amt		controllers.ClientLogin.amtLogin(experimentId: Long, experimentInstanceId: Long, hitId: String ?= null, assignmentId: String ?= null, workerId: String ?= null)
+GET		/game/:experimentId/:experimentInstanceId/login		controllers.ClientLogin.login(experimentId: String, experimentInstanceId: String)
+POST	/game/:experimentId/:experimentInstanceId/login		controllers.ClientLogin.authenticate(experimentId: String, experimentInstanceId: String)
+POST	/game/:experimentId/:experimentInstanceId/amt		controllers.ClientLogin.amtAuthenticate(experimentId: Long, experimentInstanceId: Long, hitId: String, assignmentId: String, workerId: String)
+GET		/login												controllers.Application.login()
+POST	/login												controllers.Application.authenticate()
+GET		/logout												controllers.Application.logout()
+
+POST	/saveUserSettings									controllers.Application.saveUserSettings()
+
+# Map static resources from the /public folder to the /assets URL path
+GET     /assets/*file               controllers.Assets.at(path="/public", file)
