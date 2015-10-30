@@ -22,11 +22,12 @@ function AppCtrl($scope, $breadboardFactory) {
 
                 if (data.action == "nodePropertyChanged") {
                     // TODO: Do we ever send node property values as JSON?
+                    var value;
                     try {
-                        var value = JSON.parse(data.value);
+                        value = JSON.parse(data.value);
                     } catch (e) {
                         //console.log("Error parsing JSON: " + data.value);
-                        var value = data.value;
+                        value = data.value;
                     }
                     $scope.breadboardGraph.nodePropertyChanged(data.id, data.key, value);
                 }
@@ -68,7 +69,7 @@ function AppCtrl($scope, $breadboardFactory) {
 
     /* Graph here */
     $scope.selectedNode = {};
-    $scope.breadboardGraph = new graph(($(window).width() / 2), ($(window).width() / 2), $scope);
+    $scope.breadboardGraph = new Graph(($(window).width() / 2), ($(window).width() / 2), $scope);
 
     $scope.paramType = function (type) {
         if (type == 'Boolean') {
@@ -80,7 +81,7 @@ function AppCtrl($scope, $breadboardFactory) {
         }
 
         return "text";
-    }
+    };
 
     $scope.dropPlayer = function (pid) {
         $breadboardFactory.send(
@@ -88,7 +89,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 "action": "DropPlayer",
                 "pid": pid
             });
-    }
+    };
 
     $scope.newParameter = function () {
         $breadboardFactory.send(
@@ -103,7 +104,7 @@ function AppCtrl($scope, $breadboardFactory) {
             });
         // Set the default value
         $scope.launchParameters[$scope.parameterName] = $scope.parameterDefault;
-    }
+    };
 
     $scope.removeParameter = function (id) {
         $breadboardFactory.send(
@@ -111,7 +112,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 "action": "RemoveParameter",
                 "id": id
             });
-    }
+    };
 
     $scope.playerProperties = function (n) {
         var ignoreProps = ["weight", "x", "y", "px", "fixed", "equals", "py", "text", "choices"];
@@ -121,7 +122,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 playerProps += propertyName + ": " + n[propertyName] + "\n";
         }
         return playerProps;
-    }
+    };
 
     $scope.makeChoice = function (i) {
         //console.log("Making choice: " + $scope.breadboard.graph.nodes[$scope.selectedNodeIndex].choices[i].uid);
@@ -130,7 +131,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 "action": "MakeChoice",
                 "choiceUID": $scope.selectedNode.choices[i].uid
             });
-    }
+    };
 
     $scope.makeChoiceOld = function (i) {
         //console.log("Making choice: " + $scope.breadboard.graph.nodes[$scope.selectedNodeIndex].choices[i].uid);
@@ -139,7 +140,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 "action": "MakeChoice",
                 "choiceUID": $scope.breadboard.graph.nodes[$scope.selectedNodeIndex].choices[i].uid
             });
-    }
+    };
 
     var saveContent = function () {
         if ($scope.selectedContent != undefined) {
@@ -152,7 +153,7 @@ function AppCtrl($scope, $breadboardFactory) {
                     "html": $scope.selectedContent.html
                 });
         }
-    }
+    };
 
     $scope.update = function () {
         //console.log("update");
@@ -160,7 +161,7 @@ function AppCtrl($scope, $breadboardFactory) {
             {
                 "action": "Update"
             });
-    }
+    };
 
     var applyStyle = function () {
         $('#styleTag').text($scope.breadboard.experiment.style);
@@ -173,6 +174,14 @@ function AppCtrl($scope, $breadboardFactory) {
                 "action": "SaveStyle",
                 "style": $scope.breadboard.experiment.style
             });
+    };
+
+    var saveClientHtml = function () {
+        $breadboardFactory.send(
+          {
+              "action": "SaveClientHtml",
+              "clientHtml": $scope.breadboard.experiment.clientHtml
+          });
     };
 
     $scope.experimentChanged = function () {
@@ -207,7 +216,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 }
             }
         });
-    }
+    };
 
     $scope.exportExperiment = function () {
         var selectedExperiment = $scope.breadboard.user.selectedExperiment;
@@ -216,7 +225,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 "action": "ExportExperiment",
                 "selectedExperiment": selectedExperiment
             });
-    }
+    };
 
     $scope.createExperiment = function () {
         //console.log("createExperiment: " + $scope.newExperimentName);
@@ -286,7 +295,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 "action": "ExtendHit",
                 "amtHitId": id
             });
-    }
+    };
 
     $scope.grantBonus = function (workerId, assignmentId, score) {
         $breadboardFactory.send(
@@ -296,7 +305,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 "assignmentId": assignmentId,
                 "bonus": score
             });
-    }
+    };
 
     $scope.approveAssignment = function (assignmentId) {
         $breadboardFactory.send(
@@ -350,7 +359,7 @@ function AppCtrl($scope, $breadboardFactory) {
             }
         }
         return new Array();
-    }
+    };
 
     $scope.showUserSettings = function () {
         var currentPasswordField = $('.user-setting-section input#currentPassword');
@@ -419,7 +428,7 @@ function AppCtrl($scope, $breadboardFactory) {
             changePasswordError.hide();
             $('#saveUserSettings, #cancelUserSettings').prop('disabled', false).removeClass('ui-state-disabled');
         }
-    }
+    };
 
     $scope.selectInstance = function (id) {
         $breadboardFactory.send(
@@ -463,11 +472,11 @@ function AppCtrl($scope, $breadboardFactory) {
     var clearScript = function () {
         $scope.breadboard.user.currentScript = '';
         $scope.$apply();
-    }
+    };
 
     var sendScript = function () {
         //console.log("sendScript sending: " + $scope.breadboard.user.currentScript);
-        var script = $scope.breadboard.user.currentScript
+        var script = $scope.breadboard.user.currentScript;
         if (window.getSelection && window.getSelection().toString().length > 0) {
           script = window.getSelection().toString();
         }
@@ -511,6 +520,7 @@ function AppCtrl($scope, $breadboardFactory) {
         $scope.stepCodemirrorOptions.vimMode = $scope.vim.vimMode;
         $scope.cssCodemirrorOptions.vimMode = $scope.vim.vimMode;
         $scope.scriptCodemirrorOptions.vimMode = $scope.vim.vimMode;
+        $scope.clientHtmlCodemirrorOptions.vimMode = $scope.vim.vimMode;
     }, true);
 
     $scope.toggleVim = function () {
@@ -531,7 +541,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 $scope.selectedStep = step;
             }
         }
-    }
+    };
 
     $scope.deleteStep = function (step) {
 
@@ -550,7 +560,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 }
             }
         });
-    }
+    };
 
     $scope.deleteContent = function (content) {
 
@@ -571,7 +581,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 }
             }
         });
-    }
+    };
 
     $scope.newStep = function () {
         $("#newStepDialog input").each(function (index, element) {
@@ -583,7 +593,7 @@ function AppCtrl($scope, $breadboardFactory) {
     $scope.createStep = function () {
         $('#newStepDialog').dialog('close');
         $breadboardFactory.send({"action": "CreateStep", "name": $scope.newStepName});
-    }
+    };
 
     $scope.newContent = function () {
         $("#newContentDialog input").each(function (index, element) {
@@ -596,7 +606,7 @@ function AppCtrl($scope, $breadboardFactory) {
     $scope.createContent = function () {
         $('#newContentDialog').dialog('close');
         $breadboardFactory.send({"action": "CreateContent", "name": $scope.newContentName});
-    }
+    };
 
     $scope.launchParameters = {};
 
@@ -609,7 +619,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 "name": $scope.experimentInstanceName,
                 "parameters": $scope.launchParameters
             });
-    }
+    };
 
     $scope.testGame = function () {
         //console.log($scope.launchParameters);
@@ -620,7 +630,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 "name": $scope.experimentInstanceName,
                 "parameters": $scope.launchParameters
             });
-    }
+    };
 
     $scope.stopGame = function (id) {
         $breadboardFactory.send(
@@ -629,7 +639,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 "id": id
                 //$scope.breadboard.experimentInstance.id
             });
-    }
+    };
 
     $scope.showEvent = function (experimentInstance) {
         $scope.showEvent.experimentInstance = experimentInstance;
@@ -639,11 +649,11 @@ function AppCtrl($scope, $breadboardFactory) {
                 "id": experimentInstance.id
             });
         $('#eventDataDialog').dialog({title: 'Event Data', width: 800, height: 660, modal: true});
-    }
+    };
 
     $scope.downloadEventCsv = function (experimentInstance) {
         location.href = '/csv/event/' + experimentInstance.id;
-    }
+    };
 
     var dialogMargin = 10,
         topDivHeight = 50,
@@ -691,7 +701,7 @@ function AppCtrl($scope, $breadboardFactory) {
                 }
             }
         ]
-    }
+    };
 
     $scope.contentDialogOptions = {
         title: 'Content',
@@ -728,6 +738,19 @@ function AppCtrl($scope, $breadboardFactory) {
         buttons: {
             'Save': function () {
                 saveStyle();
+            }
+        },
+        width: ((windowWidth * .5) - dialogMargin),
+        height: ((windowHeight * .25) - dialogMargin),
+        position: [((windowWidth * .5) + dialogMargin), (topDivHeight + dialogMargin + (.75 * windowHeight))]
+    };
+
+    $scope.clientHtmlDialogOptions = {
+        title: 'Client HTML',
+        autoOpen: true,
+        buttons: {
+            'Save': function () {
+                saveClientHtml();
             }
         },
         width: ((windowWidth * .5) - dialogMargin),
@@ -813,7 +836,7 @@ function AppCtrl($scope, $breadboardFactory) {
         },
         vimMode: false,
         showCursorWhenSelecting: true
-    }
+    };
 
     $scope.scriptCodemirrorOptions = {
         lineNumbers: true,
@@ -824,7 +847,7 @@ function AppCtrl($scope, $breadboardFactory) {
         },
         vimMode: false,
         showCursorWhenSelecting: true
-    }
+    };
 
     $scope.cssCodemirrorOptions = {
         lineNumbers: true,
@@ -835,8 +858,18 @@ function AppCtrl($scope, $breadboardFactory) {
         },
         vimMode: false,
         showCursorWhenSelecting: true
-    }
+    };
 
+    $scope.clientHtmlCodemirrorOptions = {
+        lineNumbers: true,
+        matchBrackets: true,
+        mode: 'text/html',
+        extraKeys: {
+            "Ctrl-Enter": saveClientHtml
+        },
+        vimMode: false,
+        showCursorWhenSelecting: true
+    };
 
     $scope.tinymceOptions = {
         theme: 'modern',

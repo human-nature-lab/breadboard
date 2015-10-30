@@ -883,10 +883,10 @@ class PlayerActions {
             // Perform the action
             def parsedParams = [:]
             if (params != null) {
-                println("params: ${params}")
+                //println("params: ${params}")
                 def jsonSlurper = new JsonSlurper()
                 parsedParams = jsonSlurper.parseText(params)
-                println("parsedParams: ${parsedParams}")
+                //println("parsedParams: ${parsedParams}")
             }
             action.execute(uid, parsedParams)
 

@@ -65,6 +65,12 @@ public class Experiment extends Model
     @Column(columnDefinition="text")
     public String style = "";
 
+    /*
+     * The HTML + JavaScript for the client.
+     */
+    @Column(columnDefinition="text")
+    public String clientHtml = "";
+
     @JsonIgnore
     public static Model.Finder<Long, Experiment> find = new Model.Finder(Long.class, Experiment.class);
 
@@ -102,6 +108,8 @@ public class Experiment extends Model
      */
     public Experiment(Experiment experiment) {
         this.style = experiment.style;
+        this.clientHtml = experiment.clientHtml;
+
         for (Step step : experiment.steps) {
             this.steps.add(new Step(step));
         }
@@ -119,6 +127,7 @@ public class Experiment extends Model
     public void export() throws IOException {
         File experimentDirectory = new File(Play.application().path().toString() + "/experiments/" + this.name);
         FileUtils.writeStringToFile(new File(experimentDirectory, "style.css"), this.style);
+        FileUtils.writeStringToFile(new File(experimentDirectory, "client.html"), this.clientHtml);
 
         File stepsDirectory = new File(experimentDirectory, "/Steps");
         for (Step step : this.steps) {
@@ -141,6 +150,29 @@ public class Experiment extends Model
         for (Image image : this.images) {
         	FileUtils.writeByteArrayToFile(new File(imagesDirectory, image.fileName), image.file);
         }
+    }
+
+    public static String defaultClientHTML() {
+        return "    <div id=\"mainDiv\" ng-controller=\"ClientCtrl\">\n" +
+            "        <div id=\"statusDiv\" ng-controller=\"TimersCtrl\" ng-show=\"isTimer()\">\n" +
+            "            <progressbar ng-repeat=\"timer in timers\" type=\"{{timer.appearance}}\" value=\"timer.timerValue\">{{timer.timerText}}</progressbar>\n" +
+            "        </div>\n" +
+            "        <div id=\"gameDiv\">\n" +
+            "            <div id=\"graph\">\n" +
+            "            </div>\n" +
+            "\n" +
+            "            <div id=\"rightDiv\">\n" +
+            "                <div id=\"text\" ng-bind-html=\"client.player.text | to_trusted\"></div>\n" +
+            "\n" +
+            "                <div id=\"choices\" ng-controller=\"ChoicesCtrl\">\n" +
+            "                    <div ng-bind-html=\"custom | to_trusted\" ng-hide=\"client.player.choices === undefined || custom === undefined\"></div>\n" +
+            "                    <button ng-repeat=\"choice in childChoices |filter: {class: '!drop'}\" class=\"{{choice.class}}\" ng-click=\"makeChoice(choice.uid)\">\n" +
+            "                        {{choice.name}}\n" +
+            "                    </button>\n" +
+            "                </div>\n" +
+            "            </div>\n" +
+            "        </div>\n" +
+            "    </div>\n";
     }
 
     public static Step generateOnJoinStep() {
@@ -215,6 +247,11 @@ public class Experiment extends Model
         this.style = style;
     }
 
+    public void setClientHtml(String clientHtml)
+    {
+        this.clientHtml = clientHtml;
+    }
+
     public Content getContent(Long id)
     {
         for (Content c : content)
@@ -286,6 +323,7 @@ public class Experiment extends Model
         return null;
     }
 
+
     @JsonValue
     public ObjectNode toJson()
     {
@@ -327,6 +365,7 @@ public class Experiment extends Model
         }
 
         experiment.put("style", style);
+        experiment.put("clientHtml", clientHtml);
 
         return experiment;
     }

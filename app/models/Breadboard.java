@@ -225,6 +225,11 @@ public class Breadboard extends UntypedActor
                             String style = jsonInput.get("style").toString();
                             breadboardController.tell(new SaveStyle(user, style, out));
                         }
+                        else if(action.equals("SaveClientHtml"))
+                        {
+                            String clientHtml = jsonInput.get("clientHtml").toString();
+                            breadboardController.tell(new SaveClientHtml(user, clientHtml, out));
+                        }
                         else if(action.equals("CreateStep"))
                         {
                             String name = jsonInput.get("name").toString();
@@ -485,6 +490,7 @@ public class Breadboard extends UntypedActor
                     experiment.steps.add(onJoin);
                     experiment.steps.add(onLeave);
                     experiment.steps.add(init);
+                    experiment.clientHtml = Experiment.defaultClientHTML();
                 }
                 experiment.name = createExperiment.name;
                 experiment.save();
@@ -1038,6 +1044,22 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
                     breadboardMessage.out.write(jsonOutput);
                 }
             }
+            else if(message instanceof SaveClientHtml)
+            {
+                SaveClientHtml saveClientHtml = (SaveClientHtml)message;
+                Experiment selectedExperiment = breadboardMessage.user.getExperiment();
+                if (selectedExperiment != null)
+                {
+                    Logger.debug("SaveClientHtml: " + saveClientHtml.clientHtml);
+                    selectedExperiment.setClientHtml(saveClientHtml.clientHtml);
+                    selectedExperiment.update();
+                    // Send "Style saved" message to output
+                    ObjectNode jsonOutput = Json.newObject();
+                    jsonOutput.put("output", "Client HTML saved.");
+                    breadboardMessage.out.write(jsonOutput);
+                    // TODO: Consider pushing update to all clients here, to prevent need for browser refresh.
+                }
+            }
             else if(message instanceof NewParameter)
             {
                 NewParameter newParameter = (NewParameter)message;
@@ -1446,6 +1468,17 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         {
             super(user, out);
             this.style = style;
+        }
+    }
+
+    public static class SaveClientHtml extends BreadboardMessage
+    {
+        final String clientHtml;
+
+        public SaveClientHtml(User user, String clientHtml, ThrottledWebSocketOut out)
+        {
+            super(user, out);
+            this.clientHtml = clientHtml;
         }
     }
 

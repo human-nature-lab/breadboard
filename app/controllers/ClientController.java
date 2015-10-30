@@ -30,7 +30,7 @@ public class ClientController extends Controller
           return ok( amtError.render() );
         }
       
-        return ok(client.render(experimentId, experimentInstanceId, clientId, connectionSpeed));
+        return ok(client.render(experimentId, experimentInstanceId, clientId, connectionSpeed, experiment.clientHtml));
     }
 
     /**

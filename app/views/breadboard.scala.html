@@ -285,6 +285,15 @@
     </div>
 </div>
 
+
+<!-- Client HTML -->
+<div>
+    <div ui-jq="dialog" ui-options="clientHtmlDialogOptions" id="clientHtmlDiv">
+        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="clientHtmlCodemirrorOptions"
+                    ng-model="breadboard.experiment.clientHtml"></textarea>
+    </div>
+</div>
+
 <!-- Script -->
 <div>
     <div ui-jq="dialog" ui-options="scriptDialogOptions" id="scriptDiv">
@@ -334,7 +343,7 @@
                 <div ng-repeat="elem in breadboard.experiment.parameters" ng-switch="elem.type">
                   <label for="{{elem.name}}">{{elem.name}}: </label>
                   
-                  <input ng-switch-when="Boolean" id="{{elem.name}}" ng-model="launchParameters[elem.name]" type="checkbox" ng-init="launchParametes[elem.name]=elem.name" required>
+                  <input ng-switch-when="Boolean" id="{{elem.name}}" ng-model="launchParameters[elem.name]" type="checkbox" ng-init="launchParameters[elem.name]=elem.name" required>
                   <input ng-switch-default="Text" id="{{elem.name}}" ng-model="launchParameters[elem.name]" type="text" required>
                   <span class="note">{{elem.description}}</span>
                 </div>

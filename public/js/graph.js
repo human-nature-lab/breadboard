@@ -1,4 +1,4 @@
-function graph(_width, _height, parentScope) {
+function Graph(_width, _height, parentScope) {
 
 	var width = (_width == undefined) ? 600 : _width;
 	var height = (_height == undefined) ? 600 : _width;
