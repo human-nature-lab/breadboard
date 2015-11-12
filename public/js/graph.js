@@ -75,6 +75,7 @@ function Graph(_width, _height, parentScope) {
 	});
 
 	this.addNode = function(id, properties) {
+		console.log("got here");
 		try {
 			var node = {"id":id};
 			if (properties != undefined) {

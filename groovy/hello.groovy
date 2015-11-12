@@ -878,8 +878,6 @@ class PlayerActions {
         //if (params != null) println("params: " + params)
 
         if (action != null) {
-            def choiceArray = action.player.removeProperty("choices")
-
             // Perform the action
             def parsedParams = [:]
             if (params != null) {
@@ -887,7 +885,19 @@ class PlayerActions {
                 def jsonSlurper = new JsonSlurper()
                 parsedParams = jsonSlurper.parseText(params)
                 //println("parsedParams: ${parsedParams}")
+                choose(uid, parsedParams)
             }
+        }
+    }
+
+    def choose(String uid, Map parsedParams) {
+        PlayerAction action = actions[uid]
+
+        //if (params != null) println("params: " + params)
+
+        if (action != null) {
+            def choiceArray = action.player.removeProperty("choices")
+
             action.execute(uid, parsedParams)
 
             //remove the head action now
@@ -906,6 +916,7 @@ class PlayerActions {
             choiceArray.each { actions.remove(it.uid) }
         }
     }
+
 
     def size() {
         return actions.size()
