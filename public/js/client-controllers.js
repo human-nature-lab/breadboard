@@ -4,11 +4,13 @@ function ChoicesCtrl($scope, $clientFactory) {
   $scope.custom = undefined;
 
   $scope.makeChoice = function (uid) {
-    if (angular.element('input[name=params]')) {
+    if (angular.element('.param')) {
       $scope.params = {};
       angular.forEach(angular.element(".param"), function(value, key){
+        console.log("value", value);
         var param = angular.element(value);
         if (param.attr("name")) {
+          console.log("name", param.attr("name"));
           $scope.params[param.attr("name")] = param.val();
         }
       });
@@ -53,7 +55,7 @@ function ClientCtrl($scope, $clientFactory) {
         }
         if (data.hasOwnProperty("player")) {
           $scope.client.player = _(data.player).clone();
-          console.log("data.player", $scope.client.player);
+          //console.log("data.player", $scope.client.player);
         }
         if (data.hasOwnProperty("style")) {
           $scope.client.style = _(data.style).clone();

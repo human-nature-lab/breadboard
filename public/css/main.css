@@ -394,7 +394,7 @@ label
     overflow-x: auto;
 }
 
-#scriptDiv, #cssDiv, #clientHtmlDiv
+#scriptDiv, #cssDiv, #clientHtmlDiv, #clientGraphDiv
 {
     height: 100%;
     width: 100%;

@@ -670,6 +670,8 @@ class PlayerActions {
 
     def eventTracker
     def idleTime
+    def warnTime
+    def dropTime
     def dropPlayers = false
 
     Closure dropPlayerClosure
@@ -685,13 +687,23 @@ class PlayerActions {
         this.idleTime = idleTime
     }
 
+    def setWarnTime(warnTime) {
+        this.warnTime = warnTime
+    }
+
+    def setDropTime(dropTime) {
+        this.dropTime = dropTime
+    }
+
     def setIdleTimer(playerAction) {
-        if ((idleTime != null) && (dropPlayers != null && dropPlayers == true)) {
+        if ((idleTime != null || (warnTime != null && dropTime != null)) && (dropPlayers != null && dropPlayers == true)) {
             def idleTimer1 = [:]
             idleTimer1.player = playerAction.player
             idleTimer1.timer = new Timer()
             idleTimer1.fired = false
-            def warn = idleTimer1.timer.runAfter(idleTime * 1000) {
+            def time1 = (warnTime != null) ? warnTime : idleTime
+            def time2 = (dropTime != null) ? dropTime : idleTime
+            def warn = idleTimer1.timer.runAfter(time1 * 1000) {
                 /*
                 if (playerAction.player.getProperty("timer") != null && playerAction.player.getProperty("timer").size() > 0) {
                     playerAction.player.setProperty("tempTimer", playerAction.player.getProperty("timer"));
@@ -701,7 +713,7 @@ class PlayerActions {
                 def timerName = "dropTimer"
                 def dropTimer = ["timerText" : "You have been idle for a while and will be dropped in: ",
                                  "startTime" : (System.currentTimeMillis()),
-                                 "endTime" : (System.currentTimeMillis() + (idleTime * 1000)),
+                                 "endTime" : (System.currentTimeMillis() + (time2 * 1000)),
                                  "appearance" : "warning",
                                  "timerType" :  "time",
                                  "direction" : "down",
@@ -718,7 +730,7 @@ class PlayerActions {
             def idleTimer2 = [:]
             idleTimer2.player = playerAction.player
             idleTimer2.timer = new Timer()
-            def drop = idleTimer1.timer.runAfter(idleTime * 2000) {
+            def drop = idleTimer1.timer.runAfter(time2 * 2000) {
                 if (dropPlayerClosure) {
                     dropPlayerClosure(playerAction.player)
                 }

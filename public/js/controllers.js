@@ -184,6 +184,14 @@ function AppCtrl($scope, $breadboardFactory) {
           });
     };
 
+    var saveClientGraph = function () {
+        $breadboardFactory.send(
+          {
+              "action": "SaveClientGraph",
+              "clientGraph": $scope.breadboard.experiment.clientGraph
+          });
+    };
+
     $scope.experimentChanged = function () {
         $breadboardFactory.send(
             {
@@ -521,6 +529,7 @@ function AppCtrl($scope, $breadboardFactory) {
         $scope.cssCodemirrorOptions.vimMode = $scope.vim.vimMode;
         $scope.scriptCodemirrorOptions.vimMode = $scope.vim.vimMode;
         $scope.clientHtmlCodemirrorOptions.vimMode = $scope.vim.vimMode;
+        $scope.clientGraphCodemirrorOptions.vimMode = $scope.vim.vimMode;
     }, true);
 
     $scope.toggleVim = function () {
@@ -758,6 +767,19 @@ function AppCtrl($scope, $breadboardFactory) {
         position: [((windowWidth * .5) + dialogMargin), (topDivHeight + dialogMargin + (.75 * windowHeight))]
     };
 
+    $scope.clientGraphDialogOptions = {
+        title: 'Client Graph',
+        autoOpen: true,
+        buttons: {
+            'Save': function () {
+                saveClientGraph();
+            }
+        },
+        width: ((windowWidth * .5) - dialogMargin),
+        height: ((windowHeight * .25) - dialogMargin),
+        position: [((windowWidth * .5) + dialogMargin), (topDivHeight + dialogMargin + (.75 * windowHeight))]
+    };
+
     $scope.cssDialogIsOpen = false;
 
     function openCSS() {
@@ -866,6 +888,17 @@ function AppCtrl($scope, $breadboardFactory) {
         mode: 'text/html',
         extraKeys: {
             "Ctrl-Enter": saveClientHtml
+        },
+        vimMode: false,
+        showCursorWhenSelecting: true
+    };
+
+    $scope.clientGraphCodemirrorOptions = {
+        lineNumbers: true,
+        matchBrackets: true,
+        mode: 'text/javascript',
+        extraKeys: {
+            "Ctrl-Enter": saveClientGraph
         },
         vimMode: false,
         showCursorWhenSelecting: true

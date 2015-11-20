@@ -230,6 +230,11 @@ public class Breadboard extends UntypedActor
                             String clientHtml = jsonInput.get("clientHtml").toString();
                             breadboardController.tell(new SaveClientHtml(user, clientHtml, out));
                         }
+                        else if(action.equals("SaveClientGraph"))
+                        {
+                            String clientGraph = jsonInput.get("clientGraph").toString();
+                            breadboardController.tell(new SaveClientGraph(user, clientGraph, out));
+                        }
                         else if(action.equals("CreateStep"))
                         {
                             String name = jsonInput.get("name").toString();
@@ -491,6 +496,7 @@ public class Breadboard extends UntypedActor
                     experiment.steps.add(onLeave);
                     experiment.steps.add(init);
                     experiment.clientHtml = Experiment.defaultClientHTML();
+                    experiment.clientGraph = Experiment.defaultClientGraph();
                 }
                 experiment.name = createExperiment.name;
                 experiment.save();
@@ -1053,9 +1059,23 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
                     Logger.debug("SaveClientHtml: " + saveClientHtml.clientHtml);
                     selectedExperiment.setClientHtml(saveClientHtml.clientHtml);
                     selectedExperiment.update();
-                    // Send "Style saved" message to output
                     ObjectNode jsonOutput = Json.newObject();
                     jsonOutput.put("output", "Client HTML saved.");
+                    breadboardMessage.out.write(jsonOutput);
+                    // TODO: Consider pushing update to all clients here, to prevent need for browser refresh.
+                }
+            }
+            else if(message instanceof SaveClientGraph)
+            {
+                SaveClientGraph saveClientGraph = (SaveClientGraph)message;
+                Experiment selectedExperiment = breadboardMessage.user.getExperiment();
+                if (selectedExperiment != null)
+                {
+                    Logger.debug("SaveClientGraph: " + saveClientGraph.clientGraph);
+                    selectedExperiment.setClientGraph(saveClientGraph.clientGraph);
+                    selectedExperiment.update();
+                    ObjectNode jsonOutput = Json.newObject();
+                    jsonOutput.put("output", "Client Graph saved.");
                     breadboardMessage.out.write(jsonOutput);
                     // TODO: Consider pushing update to all clients here, to prevent need for browser refresh.
                 }
@@ -1479,6 +1499,17 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         {
             super(user, out);
             this.clientHtml = clientHtml;
+        }
+    }
+
+    public static class SaveClientGraph extends BreadboardMessage
+    {
+        final String clientGraph;
+
+        public SaveClientGraph(User user, String clientGraph, ThrottledWebSocketOut out)
+        {
+            super(user, out);
+            this.clientGraph = clientGraph;
         }
     }
 

@@ -71,6 +71,12 @@ public class Experiment extends Model
     @Column(columnDefinition="text")
     public String clientHtml = "";
 
+    /*
+     * The client-graph.js for the client.
+     */
+    @Column(columnDefinition="text")
+    public String clientGraph = "";
+
     @JsonIgnore
     public static Model.Finder<Long, Experiment> find = new Model.Finder(Long.class, Experiment.class);
 
@@ -109,6 +115,7 @@ public class Experiment extends Model
     public Experiment(Experiment experiment) {
         this.style = experiment.style;
         this.clientHtml = experiment.clientHtml;
+        this.clientGraph = experiment.clientGraph;
 
         for (Step step : experiment.steps) {
             this.steps.add(new Step(step));
@@ -128,6 +135,7 @@ public class Experiment extends Model
         File experimentDirectory = new File(Play.application().path().toString() + "/experiments/" + this.name);
         FileUtils.writeStringToFile(new File(experimentDirectory, "style.css"), this.style);
         FileUtils.writeStringToFile(new File(experimentDirectory, "client.html"), this.clientHtml);
+        FileUtils.writeStringToFile(new File(experimentDirectory, "client-graph.js"), this.clientGraph);
 
         File stepsDirectory = new File(experimentDirectory, "/Steps");
         for (Step step : this.steps) {
@@ -173,6 +181,10 @@ public class Experiment extends Model
             "            </div>\n" +
             "        </div>\n" +
             "    </div>\n";
+    }
+
+    public static String defaultClientGraph() {
+        return "TODO";
     }
 
     public static Step generateOnJoinStep() {
@@ -250,6 +262,11 @@ public class Experiment extends Model
     public void setClientHtml(String clientHtml)
     {
         this.clientHtml = clientHtml;
+    }
+
+    public void setClientGraph(String clientGraph)
+    {
+        this.clientGraph = clientGraph;
     }
 
     public Content getContent(Long id)
@@ -366,6 +383,7 @@ public class Experiment extends Model
 
         experiment.put("style", style);
         experiment.put("clientHtml", clientHtml);
+        experiment.put("clientGraph", clientGraph);
 
         return experiment;
     }
