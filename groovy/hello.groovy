@@ -228,10 +228,10 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         int startId = 1;
 
         for (i in 0..n - 1) {
-            while (hasVertex(startId))
+            while (hasVertex("_" + startId))
                 startId++;
 
-            def v = addVertex(startId)
+            def v = addVertex("_" + startId)
             if (behavior == null)
                 a.ai.add(v)
             else
@@ -290,8 +290,9 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
 
     def geometricRandom(v) {
         removeEdges()
-        List players = getVertices().iterator().toList()
-        final int n = numVertices()
+        List players = V.filter{it.active}.iterator().toList()
+        int n = V.filter{it.active}.iterator().toList().size()
+
         Random rand = new Random()
         for (i in 0..(n - 1)) {
             def p = players.get(i)
@@ -711,7 +712,7 @@ class PlayerActions {
                 */
                 idleTimer1.fired = true
                 def timerName = "dropTimer"
-                def dropTimer = ["timerText" : "You have been idle for a while and will be dropped in: ",
+                def dropTimer = ["timerText" : "You have will be dropped in: ",
                                  "startTime" : (System.currentTimeMillis()),
                                  "endTime" : (System.currentTimeMillis() + (time2 * 1000)),
                                  "appearance" : "warning",
