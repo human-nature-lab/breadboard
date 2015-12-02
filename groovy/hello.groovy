@@ -712,7 +712,7 @@ class PlayerActions {
                 */
                 idleTimer1.fired = true
                 def timerName = "dropTimer"
-                def dropTimer = ["timerText" : "You have will be dropped in: ",
+                def dropTimer = ["timerText" : "You will be dropped in: ",
                                  "startTime" : (System.currentTimeMillis()),
                                  "endTime" : (System.currentTimeMillis() + (time2 * 1000)),
                                  "appearance" : "warning",
