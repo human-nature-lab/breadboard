@@ -1,0 +1,43 @@
+@(form: Form[CreateFirstUser])
+<html>
+  <head>
+    <title>breadboard: Create First User</title>
+    <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("img/favicon.png")">
+    <link rel="stylesheet" type="text/css" media="screen" href="@routes.Assets.at("css/main.css")">
+  </head>
+  <body>
+
+    <div id="login">
+    @helper.form(routes.Application.addFirstUser()) {
+
+      <h2>Create a new user</h2>
+
+      @if(form.hasGlobalErrors) {
+        <p class="error">
+        @form.globalError.message
+        </p>
+      }
+
+      @if(flash.contains("success")) {
+        <p class="success">
+        @flash.get("success")
+        </p>
+      }
+      <p>
+        <input type="email" name="email" placeholder="Email" value="@form("email").value" autofocus>
+      </p>
+      <p>
+        <input type="password" name="newPassword" placeholder="Password">
+      </p>
+      <p>
+        <input type="password" name="confirmPassword" placeholder="Confirm Password">
+      </p>
+
+      <p id="loginButton">
+        <button type="submit">Create User</button>
+      </p>
+    }
+    </div>
+
+  </body>
+</html>

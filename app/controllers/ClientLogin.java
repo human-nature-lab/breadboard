@@ -51,7 +51,7 @@ public class ClientLogin extends Controller
 		public String validate()
 		{
 			Logger.info("validating id: " + id);			
-			Logger.info("validating password: " + password);			
+			//Logger.info("validating password: " + password);
 			Logger.info("validating experimentId: " + experimentId);			
 			Logger.info("validating experimentInstanceId: " + experimentInstanceId);			
 			/*

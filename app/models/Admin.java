@@ -1,102 +1,96 @@
 package models;
 
-import com.tinkerpop.blueprints.*;
-import akka.actor.*;
-import play.mvc.WebSocket;
+import akka.actor.ActorRef;
+import com.tinkerpop.blueprints.Direction;
+import com.tinkerpop.blueprints.Edge;
+import com.tinkerpop.blueprints.Graph;
+import com.tinkerpop.blueprints.Vertex;
 import controllers.D3Utils;
 import org.codehaus.jackson.node.ObjectNode;
 import play.libs.Json;
-import org.codehaus.jackson.JsonNode;
-import play.Logger;
+
 import java.util.Map;
-import java.util.HashMap;
 
-public class Admin implements ClientListener
-{
-	/*
-	 * This class represents a logged in administrator
-	 */
-	private User user;
-	private ActorRef scriptBoardController;
-	private ThrottledWebSocketOut out;
+public class Admin implements ClientListener {
+  /*
+   * This class represents a logged in administrator
+   */
+  private User user;
+  private ActorRef scriptBoardController;
+  private ThrottledWebSocketOut out;
 
-	public Admin(User user, ActorRef scriptBoardController, ThrottledWebSocketOut out)
-	{
-		this.user = user;
-		this.scriptBoardController = scriptBoardController;
-		this.out = out;
-	}
+  public Admin(User user, ActorRef scriptBoardController, ThrottledWebSocketOut out) {
+    this.user = user;
+    this.scriptBoardController = scriptBoardController;
+    this.out = out;
+  }
 
-	public void graphChanged(Graph wholeGraph)
-	{
-        //Logger.debug("graphChanged");
-		
-        ObjectNode jsonOutput = Json.newObject(); 
+  public void graphChanged(Graph wholeGraph) {
+    //Logger.debug("graphChanged");
 
-        ObjectNode graph = D3Utils.graphToJsonString(wholeGraph);
-        jsonOutput.put("graph", graph);
+    ObjectNode jsonOutput = Json.newObject();
 
-        out.write(jsonOutput);
-	}
+    ObjectNode graph = D3Utils.graphToJsonString(wholeGraph);
+    jsonOutput.put("graph", graph);
 
-	public void vertexAdded(Vertex vertex) {
-      vertexAdded(vertex, true);
-	}
+    out.write(jsonOutput);
+  }
 
-	public void vertexAdded(Vertex vertex, Boolean runOnJoin)
-	{
-        //Logger.debug("Admin.vertexAdded");
-        user.refresh();
+  public void vertexAdded(Vertex vertex) {
+    vertexAdded(vertex, true);
+  }
 
-		if (runOnJoin) {
-			Breadboard.RunOnJoinStep onJoinStep = new Breadboard.RunOnJoinStep(user, vertex, out);
-			scriptBoardController.tell(onJoinStep);
-		}
+  public void vertexAdded(Vertex vertex, Boolean runOnJoin) {
+    //Logger.debug("Admin.vertexAdded");
+    user.refresh();
 
-        ObjectNode jsonOutput = Json.newObject(); 
+    if (runOnJoin) {
+      Breadboard.RunOnJoinStep onJoinStep = new Breadboard.RunOnJoinStep(user, vertex, out);
+      scriptBoardController.tell(onJoinStep);
+    }
 
-        jsonOutput.put("action", "addNode");
-        jsonOutput.put("id", vertex.getId().toString());
+    ObjectNode jsonOutput = Json.newObject();
 
-        out.write(jsonOutput);
+    jsonOutput.put("action", "addNode");
+    jsonOutput.put("id", vertex.getId().toString());
 
-		if (! runOnJoin) {
-			for (String key : vertex.getPropertyKeys()) {
-				vertexPropertyChanged(vertex, key, null, vertex.getProperty(key));
-			}
-		}
-	}
+    out.write(jsonOutput);
 
-	public void vertexRemoved(Vertex vertex) {
-		vertexRemoved(vertex, true);
-	}
+    if (!runOnJoin) {
+      for (String key : vertex.getPropertyKeys()) {
+        vertexPropertyChanged(vertex, key, null, vertex.getProperty(key));
+      }
+    }
+  }
 
-	public void vertexRemoved(Vertex vertex, Boolean runOnLeave)
-	{
-        //Logger.debug("vertexRemoved");
-        user.refresh();
+  public void vertexRemoved(Vertex vertex) {
+    vertexRemoved(vertex, true);
+  }
 
-		if (runOnLeave) {
-			Breadboard.RunOnLeaveStep onLeaveStep = new Breadboard.RunOnLeaveStep(user, vertex, out);
-			scriptBoardController.tell(onLeaveStep);
-		}
-		
-        ObjectNode jsonOutput = Json.newObject(); 
+  public void vertexRemoved(Vertex vertex, Boolean runOnLeave) {
+    //Logger.debug("vertexRemoved");
+    user.refresh();
 
-        jsonOutput.put("action", "removeNode");
-        jsonOutput.put("id", vertex.getId().toString());
+    if (runOnLeave) {
+      Breadboard.RunOnLeaveStep onLeaveStep = new Breadboard.RunOnLeaveStep(user, vertex, out);
+      scriptBoardController.tell(onLeaveStep);
+    }
 
-        out.write(jsonOutput);
-	}
+    ObjectNode jsonOutput = Json.newObject();
 
-	public void vertexPropertyChanged(Vertex vertex, String key, Object oldValue, Object setValue)
-	{
-        //Logger.debug("vertexPropertyChanged");
-		
-        ObjectNode jsonOutput = Json.newObject(); 
+    jsonOutput.put("action", "removeNode");
+    jsonOutput.put("id", vertex.getId().toString());
+
+    out.write(jsonOutput);
+  }
+
+  public void vertexPropertyChanged(Vertex vertex, String key, Object oldValue, Object setValue) {
+    //Logger.debug("vertexPropertyChanged");
+
+    ObjectNode jsonOutput = Json.newObject();
 
 		/*
-		if (key.startsWith("private")) {
+    if (key.startsWith("private")) {
         	String privateKey = key.substring(7);
 			jsonOutput = Json.newObject();
 			jsonOutput.put("action", "nodePropertyChanged");
@@ -110,10 +104,10 @@ public class Admin implements ClientListener
 			jsonOutput.put("value", Json.toJson(setValue));
         }
         */
-        if (key.equals("private")) {
-			if (vertex.getProperty("private") instanceof Map) {
-				//Logger.debug("vertex.getProperty(private) instanceof Map");
-				Map newMap = (Map) vertex.getProperty("private");
+    if (key.equals("private")) {
+      if (vertex.getProperty("private") instanceof Map) {
+        //Logger.debug("vertex.getProperty(private) instanceof Map");
+        Map newMap = (Map) vertex.getProperty("private");
 
 				/*
 				 * TODO: oldValue and setValue don't seem to be Maps, is there any way to only send the changed private variables?
@@ -124,15 +118,15 @@ public class Admin implements ClientListener
 				}
 				*/
 
-				// Find the changed Property and write it out
-				for (Object k : newMap.keySet()) {
-					//Logger.debug("k.toString() = " + k.toString());
-					jsonOutput = Json.newObject();
-					jsonOutput.put("action", "nodePropertyChanged");
-					jsonOutput.put("id", vertex.getId().toString());
-					jsonOutput.put("key", k.toString());
-					jsonOutput.put("value", Json.toJson(newMap.get(k)));
-					out.write(jsonOutput);
+        // Find the changed Property and write it out
+        for (Object k : newMap.keySet()) {
+          //Logger.debug("k.toString() = " + k.toString());
+          jsonOutput = Json.newObject();
+          jsonOutput.put("action", "nodePropertyChanged");
+          jsonOutput.put("id", vertex.getId().toString());
+          jsonOutput.put("key", k.toString());
+          jsonOutput.put("value", Json.toJson(newMap.get(k)));
+          out.write(jsonOutput);
 
 					/*
 					if ((! oldMap.containsKey(k)) || (! oldMap.get(k).equals(newMap.get(k)))) {
@@ -143,87 +137,82 @@ public class Admin implements ClientListener
 						jsonOutput.put("value", Json.toJson(newMap.get(k)));
 					}
 					*/
-				}
-			}
-		} else {
-			jsonOutput.put("action", "nodePropertyChanged");
-			jsonOutput.put("id", vertex.getId().toString());
-			jsonOutput.put("key", key);
-			jsonOutput.put("value", Json.toJson(setValue));
-			out.write(jsonOutput);
         }
-	}
-
-	public void vertexPropertyRemoved(Vertex vertex, String key)
-	{
-        //Logger.debug("vertexPropertyRemoved");
-		
-        ObjectNode jsonOutput = Json.newObject(); 
-
-        jsonOutput.put("action", "nodePropertyRemoved");
-        jsonOutput.put("id", vertex.getId().toString());
-        jsonOutput.put("key", key);
-
-        out.write(jsonOutput);
-	}
-
-	public void edgeAdded(Edge edge)
-	{
-        //Logger.debug("edgeAdded");
-		
-        ObjectNode jsonOutput = Json.newObject(); 
-
-        jsonOutput.put("action", "addLink");
-        jsonOutput.put("id", edge.getId().toString());
-        jsonOutput.put("source", edge.getVertex(Direction.OUT).getId().toString());
-        jsonOutput.put("target", edge.getVertex(Direction.IN).getId().toString());
-        jsonOutput.put("value", edge.getLabel());
-
-        out.write(jsonOutput);
-	}
-
-	public void edgeRemoved(Edge edge)
-	{
-        //Logger.debug("edgeRemoved");
-		
-        ObjectNode jsonOutput = Json.newObject(); 
-
-        jsonOutput.put("action", "removeLink");
-        jsonOutput.put("id", edge.getId().toString());
-        jsonOutput.put("source", edge.getVertex(Direction.OUT).getId().toString());
-        jsonOutput.put("target", edge.getVertex(Direction.IN).getId().toString());
-
-        out.write(jsonOutput);
-	}
-
-	public void edgePropertyChanged(Edge edge, String key, Object setValue)
-	{
-        //Logger.debug("edgePropertyChanged");
-		
-        ObjectNode jsonOutput = Json.newObject(); 
-
-        jsonOutput.put("action", "linkPropertyChanged");
-        jsonOutput.put("id", edge.getId().toString());
-        jsonOutput.put("key", key);
-        jsonOutput.put("value", setValue.toString());
-
-        out.write(jsonOutput);
-	}
-
-	public void edgePropertyRemoved(Edge edge, String key)
-	{
-        //Logger.debug("edgePropertyRemoved");
-		
-        ObjectNode jsonOutput = Json.newObject(); 
-
-        jsonOutput.put("action", "linkPropertyRemoved");
-        jsonOutput.put("id", edge.getId().toString());
-        jsonOutput.put("key", key);
-
-        out.write(jsonOutput);
-	}
-
-    public void setOut(ThrottledWebSocketOut out) {
-        this.out = out;
+      }
+    } else {
+      jsonOutput.put("action", "nodePropertyChanged");
+      jsonOutput.put("id", vertex.getId().toString());
+      jsonOutput.put("key", key);
+      jsonOutput.put("value", Json.toJson(setValue));
+      out.write(jsonOutput);
     }
+  }
+
+  public void vertexPropertyRemoved(Vertex vertex, String key) {
+    //Logger.debug("vertexPropertyRemoved");
+
+    ObjectNode jsonOutput = Json.newObject();
+
+    jsonOutput.put("action", "nodePropertyRemoved");
+    jsonOutput.put("id", vertex.getId().toString());
+    jsonOutput.put("key", key);
+
+    out.write(jsonOutput);
+  }
+
+  public void edgeAdded(Edge edge) {
+    //Logger.debug("edgeAdded");
+
+    ObjectNode jsonOutput = Json.newObject();
+
+    jsonOutput.put("action", "addLink");
+    jsonOutput.put("id", edge.getId().toString());
+    jsonOutput.put("source", edge.getVertex(Direction.OUT).getId().toString());
+    jsonOutput.put("target", edge.getVertex(Direction.IN).getId().toString());
+    jsonOutput.put("value", edge.getLabel());
+
+    out.write(jsonOutput);
+  }
+
+  public void edgeRemoved(Edge edge) {
+    //Logger.debug("edgeRemoved");
+
+    ObjectNode jsonOutput = Json.newObject();
+
+    jsonOutput.put("action", "removeLink");
+    jsonOutput.put("id", edge.getId().toString());
+    jsonOutput.put("source", edge.getVertex(Direction.OUT).getId().toString());
+    jsonOutput.put("target", edge.getVertex(Direction.IN).getId().toString());
+
+    out.write(jsonOutput);
+  }
+
+  public void edgePropertyChanged(Edge edge, String key, Object setValue) {
+    //Logger.debug("edgePropertyChanged");
+
+    ObjectNode jsonOutput = Json.newObject();
+
+    jsonOutput.put("action", "linkPropertyChanged");
+    jsonOutput.put("id", edge.getId().toString());
+    jsonOutput.put("key", key);
+    jsonOutput.put("value", setValue.toString());
+
+    out.write(jsonOutput);
+  }
+
+  public void edgePropertyRemoved(Edge edge, String key) {
+    //Logger.debug("edgePropertyRemoved");
+
+    ObjectNode jsonOutput = Json.newObject();
+
+    jsonOutput.put("action", "linkPropertyRemoved");
+    jsonOutput.put("id", edge.getId().toString());
+    jsonOutput.put("key", key);
+
+    out.write(jsonOutput);
+  }
+
+  public void setOut(ThrottledWebSocketOut out) {
+    this.out = out;
+  }
 }

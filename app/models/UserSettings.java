@@ -2,6 +2,7 @@ package models;
 
 
 import org.apache.commons.lang3.StringUtils;
+import org.mindrot.jbcrypt.BCrypt;
 
 /**
  * Created with IntelliJ IDEA.
@@ -32,8 +33,7 @@ public class UserSettings {
         if(StringUtils.isEmpty(currentPassword)) {
             return "Current password is missing";
         }
-        if (!user.password.equals(currentPassword)) {
-            System.out.println("here");
+        if (! BCrypt.checkpw(currentPassword, user.password)) {
             return "Current password doesn't match user's password";
         }
         if (StringUtils.isEmpty(newPassword)) {

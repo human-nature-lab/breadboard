@@ -5,7 +5,7 @@ import play.Project._
 object ApplicationBuild extends Build {
 
     val appName         = "breadboard"
-    val appVersion      = "v2.1"
+    val appVersion      = "v2.2"
 
     val appDependencies = Seq(
       javaCore,
@@ -20,7 +20,8 @@ object ApplicationBuild extends Build {
       "org.apache.commons" % "commons-lang3" % "3.1",
       "commons-codec" % "commons-codec" % "1.7",
       "org.imgscalr" % "imgscalr-lib" % "4.2",
-      "net.sf.jung" % "jung2" % "2.0.1"
+      "net.sf.jung" % "jung2" % "2.0.1",
+      "org.mindrot" % "jbcrypt" % "0.3m"
     )
 
     val main = play.Project(appName, appVersion, appDependencies).settings(
