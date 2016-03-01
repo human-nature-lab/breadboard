@@ -153,7 +153,6 @@
 					<th>Name</th>
 					<th>Status</th>
 					<th></th>
-					<th></th>
 				</tr>
 			</thead>
 			<tbody>
@@ -163,7 +162,6 @@
 					<td>{{instance.name}}</td>
 					<td>{{instance.status}}</td>
 					<td><button ng-hide="instance.hitId==''" title="Get Assignments" ui-jq='button' ng-click='getAssignments(instance.hitId)'>Get Assignments</button></td>
-					<td><button ng-hide="instance.hitId==''" title="Extend HIT" ui-jq='button' ng-click='extendHit(instance.hitId)'>Extend HIT</button></td>
 				</tr>
 			</tbody>
 		</table>
@@ -181,7 +179,6 @@
 					<th>Reason</th>
 					<th>Status</th>
 					<th>Block Worker</th>
-					<th>Assign Qualification</th>
 					<th>Assignment Completed?</th>
 				</tr>
 			</thead>
@@ -216,14 +213,6 @@
 						</div>
 						<div ng-show="assignment.workerBlocked">
 							Blocked
-						</div>
-					</td>
-					<td>
-						<div ng-hide="assignment.qualificationAssigned">
-							<button title="Assign Qualification" ui-jq='button' ng-click='assignQualification(assignment.assignmentId)'>Assign Qualification</button>
-						</div>
-						<div ng-show="assignment.qualificationAssigned">
-							Assigned
 						</div>
 					</td>
 					<td>
@@ -296,7 +285,6 @@
 
 <!-- Client Graph -->
 <div>
-    Foo
     <div ui-jq="dialog" ui-options="clientGraphDialogOptions" id="clientGraphDiv">
         <textarea class="codemirror" ui-codemirror ui-codemirror-opts="clientGraphCodemirrorOptions"
         ng-model="breadboard.experiment.clientGraph"></textarea>

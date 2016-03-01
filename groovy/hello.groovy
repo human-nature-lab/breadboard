@@ -12,11 +12,17 @@ import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.pipes.Pipe
 import java.text.DecimalFormat
 import static java.math.RoundingMode.*
+import static com.tinkerpop.blueprints.util.EdgeHelper.*
 import groovy.transform.Synchronized
 import java.util.concurrent.*
 import groovy.json.*
 
 Gremlin.defineStep('neighbors', [Vertex, Pipe], { _().both('connected') })
+
+EventEdge.metaClass.randV = {
+  def rand = new Random()
+  if (rand.nextDouble() < 0.5) {return delegate.getVertex(Direction.IN) } else {return delegate.getVertex(Direction.OUT) }
+}
 
 EventEdge.metaClass.private = { _privateTo, _prop ->
     if (!(_privateTo instanceof EventVertex && _prop instanceof LinkedHashMap)) {
@@ -166,6 +172,19 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         //println("""startTime: ${startTime}, endTime: ${endTime}, name: ${name}, timerText: ${timerText}, direction: ${direction}, type: ${type}, player: ${player}""")
     }
 
+    def getSubmitForm(player, dollars, reason="completed", sandbox=false, comments=false) {
+        def url = (sandbox) ? "https://workersandbox.mturk.com/mturk/externalSubmit" : "https://www.mturk.com/mturk/externalSubmit"
+        def submitForm = "<form action=\"" + url + "\" method=\"get\">"
+        if (comments) submitForm += "Comments:<br><textarea name=\"comments\" rows=\"5\" cols=\"50\"></textarea><br>"
+        submitForm += "<button type=\"submit\">Submit HIT</button>"
+        submitForm += "<input type=\"hidden\" name=\"assignmentId\" value=\"" + player.id + "\">"
+        submitForm += "<input type=\"hidden\" name=\"bonus\" value=\"" + dollars + "\">"
+        submitForm += "<input type=\"hidden\" name=\"reason\" value=\"" + reason + "\">"
+        submitForm += "</form>"
+
+        return submitForm
+    }
+
     def addVertices(n) {
         int startId = 1;
 
@@ -215,12 +234,14 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     }
 
     def addTrackedEdge(v1, v2, label) {
-        addEdge(v1, v2, label)
+        def edge = addEdge(v1, v2, label)
 
         def data = [[name: "playerId1", value: v1.id.toString()], [name: "playerId2", value: v2.id.toString()]]
         if (eventTracker) {
             eventTracker.track("Connected", data)
         }
+
+        return edge
     }
 
     // TODO: Is there a way to simplify this method so we don't have to pass in the PlayerActions object?
@@ -312,6 +333,50 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         }
     }
 
+    def wattsStrogatz(k, p) {
+      removeEdges()
+      // starting from a ring lattice with k edges per vertex we rewire each edge at random with probability p
+
+      // First, create a ring lattice graph with k edges per node
+      List players = getVertices().iterator().toList()
+      final int n = players.size()
+
+      Collections.shuffle(players)
+
+      for (i in 0..(n - 1)) {
+        for (j in 1..k) {
+          addEdge(players.get(i), players.get((i + j) % n), "connected")
+        }
+      }
+
+      // Then, iterate through the vertices and rewire each degree at probability p
+      Random r = new Random()
+      for (j in 1..k) {
+        for (i in 0..(n-1)) {
+          if (r.nextDouble() < p) {
+            def edge = getEdge(players.get(i), players.get((i + j) % n))
+            removeEdge(edge)
+            def newEdge = false
+            while(!newEdge) {
+              def randomPlayer = players.get(r.nextInt(n))
+              if (getEdge(players.get(i), randomPlayer) == null) {
+                addEdge(players.get(i), randomPlayer, "connected")
+                newEdge = true
+              }
+            }
+          }
+        }
+      }
+
+      // Finally, record the final edges in the data
+      E.each { edge->
+        def data = [[name: "playerId1", value: edge.inV.id.toString()], [name: "playerId2", value: edge.outV.id.toString()]]
+        if (eventTracker) {
+            eventTracker.track("Connected", data)
+        }
+      }
+    }
+
     def smallWorld(n) {
         ring()
         def edgesAdded = 0
@@ -349,6 +414,10 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         removeVertices()
     }
 
+    def ringLattice(int m, random = true) {
+      mRing(m, random)
+    }
+
     def mRing(int m, random = true) {
         removeEdges()
 
@@ -368,6 +437,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     }
 
     def barbasiAlbert(int v) {
+        removeEdges()
         Random rand = new Random()
 
         def neighborList = [] //Target vertices for new edges.  The array size is always v.

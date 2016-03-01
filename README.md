@@ -1,7 +1,9 @@
-README - breadboard v2.0 
+README - breadboard v2 
 =====================================
 
-breadboard is a platform for developing and running experiments on networks using online participants. 
+breadboard is a software platform for developing and conducting human interaction experiments on networks. 
+
+It allows researchers to rapidly design experiments using a flexible domain-specific language and provides researchers with immediate access to a diverse pool of online participants.
 
 Features:
 

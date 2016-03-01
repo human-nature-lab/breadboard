@@ -1,6 +1,17 @@
 # breadboard v2 change log
 
-## [2.2.0] - 2015-12-02
+## [v2.2.1] - 2016-03-01
+### Added
+- The wattsStrogatz graph algorithm implementing the Watts-Strogatz small world algorithm
+- A edge.randV() function that returns a random vertex attached to the edge
+- Settings can now be set using an application-prod.conf file in the root of the breadboard directory
+### Changed
+- Removed the confusing 'Extend HIT' and 'Assign Qualification' buttons from the AMT Assignments dialog
+- Updated the README
+### Fixed 
+- Fixed support for checkboxes and radio buttons as input options for custom player choices
+
+## [v2.2.0] - 2015-12-02
 ### Added 
 - A Client Graph dialog that allows users to modify the players' graph view without modifying source code
 - Now hashing and salting admin passwords with BCrypt
@@ -8,14 +19,14 @@
 ### Fixed 
 - Added proper syntax highlighting to the Client HTML dialog
 
-## [2.1.0] - 2015-11-05
+## [v2.1.0] - 2015-11-05
 ### Added 
 - A Client HTML dialog that allows users to modify the players' client view without modifying source code
 ### Changed
 - The admin graph function name from 'graph' to 'Graph' to match javascript conventions
 - Moved TimersCtrl to its own client-timer.js file
  
-## [2.0.0] - 2015-10-29
+## [v2.0.0] - 2015-10-29
 ### Added
 - The initial release version of breadboard v2
 

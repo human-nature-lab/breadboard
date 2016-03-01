@@ -7,11 +7,13 @@ function ChoicesCtrl($scope, $clientFactory) {
     if (angular.element('.param')) {
       $scope.params = {};
       angular.forEach(angular.element(".param"), function(value, key){
-        console.log("value", value);
+        //console.log("value", value);
         var param = angular.element(value);
         if (param.attr("name")) {
-          console.log("name", param.attr("name"));
-          $scope.params[param.attr("name")] = param.val();
+          //console.log("name", param.attr("name"));
+          if (! (param.attr("type") == "radio" || param.attr("type") == "checkbox") || param.is(":checked")) {
+            $scope.params[param.attr("name")] = param.val();
+          }
         }
       });
     }

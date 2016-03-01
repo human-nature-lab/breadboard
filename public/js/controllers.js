@@ -297,14 +297,6 @@ function AppCtrl($scope, $breadboardFactory) {
         });
     };
 
-    $scope.extendHit = function (id) {
-        $breadboardFactory.send(
-            {
-                "action": "ExtendHit",
-                "amtHitId": id
-            });
-    };
-
     $scope.grantBonus = function (workerId, assignmentId, score) {
         $breadboardFactory.send(
             {
@@ -335,14 +327,6 @@ function AppCtrl($scope, $breadboardFactory) {
         $breadboardFactory.send(
             {
                 "action": "BlockWorker",
-                "assignmentId": assignmentId
-            });
-    };
-
-    $scope.assignQualification = function (assignmentId) {
-        $breadboardFactory.send(
-            {
-                "action": "AssignQualification",
                 "assignmentId": assignmentId
             });
     };
