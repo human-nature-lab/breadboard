@@ -11,7 +11,18 @@ function ChoicesCtrl($scope, $clientFactory) {
         var param = angular.element(value);
         if (param.attr("name")) {
           //console.log("name", param.attr("name"));
-          if (! (param.attr("type") == "radio" || param.attr("type") == "checkbox") || param.is(":checked")) {
+          if (param.attr("type") == "radio") {
+            if (param.is(":checked")) {
+              $scope.params[param.attr("name")] = param.val();
+            }
+          } else if (param.attr("type") == "checkbox") {
+            if (! $scope.params.hasOwnProperty(param.attr("name"))) {
+              $scope.params[param.attr("name")] = new Array();
+            }
+            if (param.is(":checked")) {
+              $scope.params[param.attr("name")].push(param.val());
+            }
+          } else {
             $scope.params[param.attr("name")] = param.val();
           }
         }

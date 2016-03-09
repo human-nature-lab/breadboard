@@ -175,7 +175,7 @@ button[disabled] {
 }
 #choices {
     margin: 10px;
-    text-align: center;
+   /* text-align: center;*/
 }
 
 #signalBtn{
