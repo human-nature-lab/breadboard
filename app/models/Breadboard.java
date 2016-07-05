@@ -352,7 +352,9 @@ public class Breadboard extends UntypedActor
                             Long imageId = Long.parseLong(jsonInput.get("imageId").toString());
                             breadboardController.tell(new DeleteImage(user, imageId, out));
                         }
-                    }// END if (user != null)
+                    } else { // END if (user != null)
+                        Logger.error("user not found with UID: " + user.uid);
+                    }
                 }
                 catch (java.io.IOException ioe)
                 {

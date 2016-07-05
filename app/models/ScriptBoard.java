@@ -177,8 +177,18 @@ public class ScriptBoard extends UntypedActor {
                 client.setOut(out);
             }
 
+            /*
+            in.onClose(new Callback0() {
+              public void invoke() {
+                    Logger.debug("Websocket Closed!");
+                }
+            });
+            */
+
             in.onMessage(new Callback<JsonNode>() {
                 public void invoke(JsonNode event) {
+                    //Logger.debug("invoke:");
+                    //Logger.debug(event.toString());
                     try {
                         ObjectMapper mapper = new ObjectMapper();
                         Map<String, Object> jsonInput = mapper.readValue(event, Map.class);
@@ -215,11 +225,13 @@ public class ScriptBoard extends UntypedActor {
 
                             //Logger.debug("Client LogIn: clientId = " + clientId + " referer = " + referer + " connection = " + connection + " accept = " + accept + " cacheControl = " + cacheControl + " acceptCharset = " + acceptCharset + " cookie = " + cookie + " acceptLanguage = " + acceptLanguage + " acceptEncoding = " + acceptEncoding + " userAgent = " + userAgent + " host = " + host + " ipAddress = " + ipAddress + " requestURI = " + requestURI);
                         } else if (action.equals("MakeChoice")) {
+                            //Logger.debug("action.equals(MakeChoice)");
                             String choiceUID = jsonInput.get("choiceUID").toString();
                             String params = (jsonInput.containsKey("params")) ? jsonInput.get("params").toString() : null;
                             makeChoice(choiceUID, params, out);
                         }
                     } catch (java.io.IOException ignored) {
+                        //Logger.debug("java.io.IOException");
                     }
                 }
             });

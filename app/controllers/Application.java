@@ -69,6 +69,15 @@ public class Application extends Controller {
       user.selectedExperiment = null;
       user.save();
 
+      // TODO: Make method for creating demo experiments and associating with new user
+      // insert into users_experiments (users_email, experiments_id) values (user.email, 321);
+      Experiment experiment = Experiment.findById(321l);
+      if (experiment != null) {
+        user.ownedExperiments.add(experiment);
+        user.update();
+        user.saveManyToManyAssociations("ownedExperiments");
+      }
+
       if (user != null) {
         Logger.info("authenticate: uid = " + uid);
         user.uid = uid;

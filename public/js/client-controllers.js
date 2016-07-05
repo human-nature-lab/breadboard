@@ -4,13 +4,13 @@ function ChoicesCtrl($scope, $clientFactory) {
   $scope.custom = undefined;
 
   $scope.makeChoice = function (uid) {
+    //console.log("makeChoice");
+    $scope.params= {};
     if (angular.element('.param')) {
-      $scope.params = {};
       angular.forEach(angular.element(".param"), function(value, key){
         //console.log("value", value);
         var param = angular.element(value);
         if (param.attr("name")) {
-          //console.log("name", param.attr("name"));
           if (param.attr("type") == "radio") {
             if (param.is(":checked")) {
               $scope.params[param.attr("name")] = param.val();
@@ -23,8 +23,11 @@ function ChoicesCtrl($scope, $clientFactory) {
               $scope.params[param.attr("name")].push(param.val());
             }
           } else {
+            //console.log(param.attr("name"), param.val());
             $scope.params[param.attr("name")] = param.val();
           }
+        } else {
+          //console.log("! param.attr(name)");
         }
       });
     }
@@ -33,7 +36,8 @@ function ChoicesCtrl($scope, $clientFactory) {
       "choiceUID": uid,
       "params": ($scope.params == undefined) ? "{}" : JSON.stringify($scope.params)
     };
-    $scope.params = {};
+    //console.log(sendData);
+    //$scope.params = {};
     $clientFactory.send(sendData);
   };
 

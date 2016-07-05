@@ -43,6 +43,16 @@ angular.module('client.services', [], function($provide) {
             );
         };
 
+        /*
+        websocket.onerror = function(evt) {
+            console.log("error:", evt);
+        };
+
+        websocket.onclose = function(evt) {
+            console.log("close:", evt);
+        };
+        */
+
         return {
             onmessage: function (callback) {
                 websocket.onmessage = function() {
@@ -55,7 +65,8 @@ angular.module('client.services', [], function($provide) {
                 };
             },
             send: function (message) {
-                websocket.send(JSON.stringify(message));
+                var jsonMessage = JSON.stringify(message);
+                websocket.send(jsonMessage);
             }
         }
     }]);
