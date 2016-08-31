@@ -161,26 +161,29 @@ public class Experiment extends Model
     }
 
     public static String defaultClientHTML() {
-        return "    <div id=\"mainDiv\" ng-controller=\"ClientCtrl\">\n" +
-            "        <div id=\"statusDiv\" ng-controller=\"TimersCtrl\" ng-show=\"isTimer()\">\n" +
-            "            <progressbar ng-repeat=\"timer in timers\" type=\"{{timer.appearance}}\" value=\"timer.timerValue\">{{timer.timerText}}</progressbar>\n" +
-            "        </div>\n" +
-            "        <div id=\"gameDiv\">\n" +
-            "            <div id=\"graph\">\n" +
-            "            </div>\n" +
-            "\n" +
-            "            <div id=\"rightDiv\">\n" +
-            "                <div id=\"text\" ng-bind-html=\"client.player.text | to_trusted\"></div>\n" +
-            "\n" +
-            "                <div id=\"choices\" ng-controller=\"ChoicesCtrl\">\n" +
-            "                    <div ng-bind-html=\"custom | to_trusted\" ng-hide=\"client.player.choices === undefined || custom === undefined\"></div>\n" +
-            "                    <button ng-repeat=\"choice in childChoices |filter: {class: '!drop'}\" class=\"{{choice.class}}\" ng-click=\"makeChoice(choice.uid)\">\n" +
-            "                        {{choice.name}}\n" +
-            "                    </button>\n" +
-            "                </div>\n" +
-            "            </div>\n" +
-            "        </div>\n" +
-            "    </div>\n";
+        return "<div id=\"mainDiv\" ng-controller=\"ClientCtrl\">\n" +
+                "  <div id=\"droppedDiv\" ng-if=\"client.player.dropped == true\">\n" +
+                "    <p><span>You have been dropped for being idle.</span></p>\n" +
+                "    <p><strong>Please return this HIT.</strong></p>\n" +
+                "  </div>\n" +
+                "  <div id=\"statusDiv\" ng-controller=\"TimersCtrl\" ng-show=\"isTimer()\" ng-hide=\"client.player.dropped == true\">\n" +
+                "    <progressbar ng-repeat=\"timer in timers\" type=\"{{timer.appearance}}\" value=\"timer.timerValue\">{{timer.timerText}}</progressbar>\n" +
+                "  </div>\n" +
+                "  <div id=\"gameDiv\">\n" +
+                "    <div id=\"graph\" ng-hide=\"client.player.dropped == true\"></div>\n" +
+                "    <div id=\"rightDiv\" ng-hide=\"client.player.dropped == true\">\n" +
+                "      <div id=\"text\" ng-bind-html=\"client.player.text | to_trusted\"></div>\n" +
+                "      <div id=\"choices\" ng-controller=\"ChoicesCtrl\">\n" +
+                "        <ng-form name=\"choicesForm\" ng-hide=\"client.player.choices === undefined\">\n" +
+                "          <div ng-if=\"custom\" bind-html-compile=\"custom\"></div>\n" +
+                "          <button ng-repeat=\"choice in childChoices |filter: {class: '!drop'}\" class=\"{{choice.class}}\" ng-click=\"makeChoice(choice.uid)\" ng-disabled=\"choicesForm.$invalid\">\n" +
+                "            {{choice.name}}\n" +
+                "          </button>\n" +
+                "        </ng-form>\n" +
+                "      </div> <!-- choices -->\n" +
+                "    </div>  <!-- rightDiv -->\n" +
+                "  </div> <!-- gameDiv --> \n" +
+                "</div> <!-- mainDiv -->";
     }
 
     public static String defaultClientGraph() {

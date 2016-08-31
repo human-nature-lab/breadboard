@@ -370,7 +370,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
 
       // Finally, record the final edges in the data
       E.each { edge->
-        def data = [[name: "playerId1", value: edge.inV.id.toString()], [name: "playerId2", value: edge.outV.id.toString()]]
+        def data = [[name: "playerId1", value: edge.getVertex(Direction.IN).id], [name: "playerId2", value: edge.getVertex(Direction.OUT).id]]
         if (eventTracker) {
             eventTracker.track("Connected", data)
         }
