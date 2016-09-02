@@ -52,6 +52,7 @@ public class ClientLogin extends Controller
 		{
 			Logger.info("Client Login, ID: " + id);
 
+			// TODO: make password a groovy closure to allow for hash functions or custom passwords
 			if (! ScriptBoard.checkPassword(password)) {
 				return "Invalid user or password";
 			}
