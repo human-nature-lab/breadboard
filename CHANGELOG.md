@@ -10,6 +10,7 @@
 - Changed default Client HTML to support required input elements added using the custom property of the a.add method
 - Resolved 'No such Property: onLeaveStep' error when launching new experiment instance with nodes in the graph
 - Fixed bug where multiple instances with the same name will be highlighted in the Launch dialog if one is RUNNING
+- Fixed an error where edge properties are no longer displayed in the graph dialog after browser refresh
 
 ### [v2.2.3] - 2016-04-01
 #### First public release!

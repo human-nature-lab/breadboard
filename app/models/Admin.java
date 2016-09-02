@@ -172,6 +172,11 @@ public class Admin implements ClientListener {
     jsonOutput.put("value", edge.getLabel());
 
     out.write(jsonOutput);
+
+    // If there are properties on the edge, notify the listener
+    for (String key : edge.getPropertyKeys()) {
+      edgePropertyChanged(edge, key, edge.getProperty(key));
+    }
   }
 
   public void edgeRemoved(Edge edge) {
