@@ -111,11 +111,11 @@
 			<div class="formRow"><label for="lifetimeInSeconds">HIT lifetime (in seconds)</label><input type="number" name="lifetimeInSeconds" ng-model="amtTaskLifetime" placeholder="HIT lifetime (sec.)" required></div>
 			<div class="formRow"><label for="tutorialTime">Tutorial time (in seconds)</label><input type="number" name="tutorialTime" ng-model="amtTaskTutorialTime" placeholder="Tutorial time (sec.)" required></div>
 			<div class="formRow"><label for="maxAssignments">Max. Assignments</label><input type="number" min="1" max="1000000000" name="maxAssignments" ng-model="amtTaskMaxAssignments" placeholder="Max Assignments" required></div>
-			<div class="formRow"><label for="disallowPrevious">Disallow previous players?</label><select name="disallowPrevious" ng-model="amtTaskDisallowPrevious">
+			<div class="formRow"><label for="disallowPrevious">Allow repeat play?</label><select name="disallowPrevious" ng-model="amtTaskDisallowPrevious">
 			  <option value=""></option>
-			  <option value="type">Only this game type</option>
-			  <option value="any">Any</option>
-			  <option value="none">None</option>
+			  <option value="type">Block previous players of THIS experiment</option>
+			  <option value="any">Block previous players of ANY experiment</option>
+			  <option value="none">Allow repeat play</option>
 			</select></div>
 			<div class="formRow"><label for="sandbox">Sandbox?</label><input type="checkbox" name="sandbox" ng-model="amtTaskSandbox" ng-init="amtTaskSandbox=true"></div>
 			<button title='' ui-jq='button' id='submitAMTButton'
