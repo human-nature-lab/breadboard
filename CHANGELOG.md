@@ -2,6 +2,7 @@
 #### Added 
 - Added support for html5 'required' attribute in HTML forms added to custom property of public actions
 - Added LICENSE file to download
+- Now client login will check password if a password parameter has been set for the experiment
 #### Changed 
 - Changed 'Disallow previous players?' options in the AMT dialog to be less confusing
 ### Fixed 

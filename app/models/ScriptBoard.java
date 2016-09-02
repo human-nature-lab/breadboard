@@ -49,6 +49,14 @@ public class ScriptBoard extends UntypedActor {
 
   private GameListener gameListener = new GameListener();
 
+  public static boolean checkPassword(String _password) {
+    // If no password is set, always return true
+    if (engine.get("password") == null)
+      return true;
+    Object password = engine.get("password");
+    return _password.equals(password.toString());
+  }
+
   public ScriptBoard() throws IOException, ScriptException {
     rebuildScriptBoard(null);
   }
