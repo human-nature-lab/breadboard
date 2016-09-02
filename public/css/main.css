@@ -440,26 +440,26 @@ line {
     stroke-width: 2px;
 }
 
-circle[color="1"] { fill:#1f77b4; } 
-circle[color="2"] { fill:#aec7e8; } 
-circle[color="3"] { fill:#ff7f0e; } 
-circle[color="4"] { fill:#ffbb78; } 
-circle[color="5"] { fill:#2ca02c; } 
-circle[color="6"] { fill:#98df8a; } 
-circle[color="7"] { fill:#d62728; } 
-circle[color="8"] { fill:#ff9896; } 
-circle[color="9"] { fill:#9467bd; } 
-circle[color="10"] { fill:#c5b0d5; } 
-circle[color="11"] { fill:#8c564b; } 
-circle[color="12"] { fill:#c49c94; } 
-circle[color="13"] { fill:#e377c2; } 
-circle[color="14"] { fill:#f7b6d2; } 
-circle[color="15"] { fill:#7f7f7f; } 
-circle[color="16"] { fill:#c7c7c7; } 
-circle[color="17"] { fill:#bcbd22; } 
-circle[color="18"] { fill:#dbdb8d; } 
-circle[color="19"] { fill:#17becf; } 
-circle[color="20"] { fill:#9edae5; } 
+circle[color="1"] { fill:#1f77b4; }
+circle[color="2"] { fill:#aec7e8; }
+circle[color="3"] { fill:#ff7f0e; }
+circle[color="4"] { fill:#ffbb78; }
+circle[color="5"] { fill:#2ca02c; }
+circle[color="6"] { fill:#98df8a; }
+circle[color="7"] { fill:#d62728; }
+circle[color="8"] { fill:#ff9896; }
+circle[color="9"] { fill:#9467bd; }
+circle[color="10"] { fill:#c5b0d5; }
+circle[color="11"] { fill:#8c564b; }
+circle[color="12"] { fill:#c49c94; }
+circle[color="13"] { fill:#e377c2; }
+circle[color="14"] { fill:#f7b6d2; }
+circle[color="15"] { fill:#7f7f7f; }
+circle[color="16"] { fill:#c7c7c7; }
+circle[color="17"] { fill:#bcbd22; }
+circle[color="18"] { fill:#dbdb8d; }
+circle[color="19"] { fill:#17becf; }
+circle[color="20"] { fill:#9edae5; }
 
 #data-table, #event-table {
     border-collapse: collapse;

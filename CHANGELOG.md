@@ -4,6 +4,8 @@
 - Added LICENSE file to download
 ### Fixed 
 - Resolved 'Not a valid Play application' error with Windows breadboard.bat batch file
+- Fixed issue with recording connections in data when using the Watts-Strogatz graph
+- Changed default Client HTML to support required input elements added using the custom property of the a.add method
 
 ### [v2.2.3] - 2016-04-01
 #### First public release!

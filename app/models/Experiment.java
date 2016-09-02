@@ -619,12 +619,12 @@ public class Experiment extends Model
         onJoin.source = "onJoinStep = stepFactory.createNoUserActionStep()\n" +
                 "\n" +
                 "onJoinStep.run = { playerId->\n" +
-                "   println \"onJoinStep.run\"\n" +
-                "   def player = g.getVertex(playerId)\n" +
+                "  println \"onJoinStep.run\"\n" +
+                "  def player = g.getVertex(playerId)\n" +
                 "}" +
                 "\n" +
                 "onJoinStep.done = {\n" +
-                "   println \"onJoinStep.done\"\n" +
+                "  println \"onJoinStep.done\"\n" +
                 "}";
 
         return onJoin;
@@ -636,11 +636,11 @@ public class Experiment extends Model
         onLeave.source = "onLeaveStep = stepFactory.createNoUserActionStep()\n" +
                 "\n" +
                 "onLeaveStep.run = {\n" +
-                "   println \"onLeaveStep.run\"\n" +
+                "  println \"onLeaveStep.run\"\n" +
                 "}" +
                 "\n" +
                 "onLeaveStep.done = {\n" +
-                "   println \"onLeaveStep.done\"\n" +
+                "  println \"onLeaveStep.done\"\n" +
                 "}";
         return onLeave;
     }
@@ -651,11 +651,11 @@ public class Experiment extends Model
         init.source = "initStep = stepFactory.createStep()\n" +
                 "\n" +
                 "initStep.run = {\n" +
-                "   println \"initStep.run\"\n" +
+                "  println \"initStep.run\"\n" +
                 "}" +
                 "\n" +
                 "initStep.done = {\n" +
-                "   println \"initStep.done\"\n" +
+                "  println \"initStep.done\"\n" +
                 "}";
         return init;
     }
