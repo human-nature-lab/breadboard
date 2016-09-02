@@ -3,12 +3,13 @@
 - Added support for html5 'required' attribute in HTML forms added to custom property of public actions
 - Added LICENSE file to download
 #### Changed 
-- Changed 'Disallow previous players?' options in the AMT dialog to be more clear
+- Changed 'Disallow previous players?' options in the AMT dialog to be less confusing
 ### Fixed 
 - Resolved 'Not a valid Play application' error with Windows breadboard.bat batch file
 - Fixed issue with recording connections in data when using the Watts-Strogatz graph
 - Changed default Client HTML to support required input elements added using the custom property of the a.add method
 - Resolved 'No such Property: onLeaveStep' error when launching new experiment instance with nodes in the graph
+- Fixed bug where multiple instances with the same name will be highlighted in the Launch dialog if one is RUNNING
 
 ### [v2.2.3] - 2016-04-01
 #### First public release!

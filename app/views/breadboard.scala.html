@@ -387,7 +387,7 @@
                 </tr>
 
                 <tr ng-repeat="instance in breadboard.experiment.instances" 
-                	class="selected-{{instance.name == breadboard.experimentInstance.name}}">
+                	class="selected-{{instance.id == breadboard.experimentInstance.id}}">
                     <td>{{instance.creationTime}}</td>
                     <td>{{instance.id}}</td>
                     <td>
