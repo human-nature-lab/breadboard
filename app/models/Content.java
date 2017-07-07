@@ -3,8 +3,8 @@ package models;
 import java.util.*;
 import javax.persistence.*;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import play.db.ebean.*;
 import play.data.format.*;

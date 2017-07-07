@@ -6,7 +6,7 @@ import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
 import controllers.D3Utils;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.libs.Json;
 
 import java.util.Map;
@@ -46,7 +46,7 @@ public class Admin implements ClientListener {
 
     if (runOnJoin) {
       Breadboard.RunOnJoinStep onJoinStep = new Breadboard.RunOnJoinStep(user, vertex, out);
-      scriptBoardController.tell(onJoinStep);
+      scriptBoardController.tell(onJoinStep, null);
     }
 
     ObjectNode jsonOutput = Json.newObject();
@@ -73,7 +73,7 @@ public class Admin implements ClientListener {
 
     if (runOnLeave) {
       Breadboard.RunOnLeaveStep onLeaveStep = new Breadboard.RunOnLeaveStep(user, vertex, out);
-      scriptBoardController.tell(onLeaveStep);
+      scriptBoardController.tell(onLeaveStep, null);
     }
 
     ObjectNode jsonOutput = Json.newObject();

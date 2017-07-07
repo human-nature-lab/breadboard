@@ -1,6 +1,6 @@
 package models;
 
-import org.codehaus.jackson.JsonNode;
+import com.fasterxml.jackson.databind.JsonNode;
 import play.Logger;
 import play.mvc.WebSocket;
 
@@ -62,7 +62,7 @@ public class GameListener {
             // Set User ExperimentInstance to -1 here.
             user.setExperimentInstanceId(-1L);
             user.update();
-            Breadboard.instances.get(user.email).tell(new Breadboard.GameFinish(user, out));
+            Breadboard.instances.get(user.email).tell(new Breadboard.GameFinish(user, out), null);
         }
 
     }

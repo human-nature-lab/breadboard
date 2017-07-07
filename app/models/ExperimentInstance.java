@@ -1,11 +1,11 @@
 package models;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import play.Logger;
 import play.libs.Json;
 
-import org.codehaus.jackson.node.ObjectNode;
-import org.codehaus.jackson.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 
 import java.util.*;
 import javax.persistence.*;
@@ -66,7 +66,7 @@ public class ExperimentInstance extends Model {
     public static enum Status {
         RUNNING, TESTING, STOPPED, FINISHED, ARCHIVED;
 
-        static final EnumSet<Status> RUNNABLE = EnumSet.of(RUNNING, TESTING, STOPPED);
+        static EnumSet<Status> RUNNABLE = EnumSet.of(RUNNING, TESTING, STOPPED);
 
         public boolean isRunnable() {
             return RUNNABLE.contains(this);

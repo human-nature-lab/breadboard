@@ -9,7 +9,7 @@ import play.Logger;
 
 import views.html.*;
 
-import org.codehaus.jackson.*;
+import com.fasterxml.jackson.databind.*;
 
 import com.avaje.ebean.*;
 

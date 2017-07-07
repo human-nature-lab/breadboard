@@ -6,7 +6,7 @@ import com.tinkerpop.blueprints.util.wrappers.event.EventVertex
 import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener
 import com.tinkerpop.gremlin.groovy.Gremlin
 import com.tinkerpop.blueprints.Vertex
-import org.codehaus.jackson.annotate.JsonIgnore
+import com.fasterxml.jackson.annotation.JsonIgnore
 import java.beans.PropertyChangeListener
 import com.tinkerpop.blueprints.Direction
 import com.tinkerpop.pipes.Pipe

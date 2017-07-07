@@ -8,8 +8,8 @@ import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
 import com.tinkerpop.blueprints.util.wrappers.event.EventGraph;
 
 import controllers.D3Utils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.db.ebean.Model;
 import play.libs.Json;
 import play.mvc.WebSocket;

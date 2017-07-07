@@ -10,9 +10,9 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.groovy.control.CompilationFailedException;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.Logger;
 import play.Play;
 import play.libs.F.Callback;
@@ -194,7 +194,8 @@ public class ScriptBoard extends UntypedActor {
         public void invoke(JsonNode event) {
           try {
             ObjectMapper mapper = new ObjectMapper();
-            Map<String, Object> jsonInput = mapper.readValue(event, Map.class);
+            // TODO: is event.toString() the correct method here?
+            Map<String, Object> jsonInput = mapper.readValue(event.toString(), Map.class);
             String action = jsonInput.get("action").toString();
             if (action.equals("LogIn")) {
               String clientId = jsonInput.get("clientId").toString();
@@ -332,7 +333,7 @@ public class ScriptBoard extends UntypedActor {
               step.update();
             }
             // Now run the step
-            Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, sendStep.source, breadboardMessage.out));
+            Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, sendStep.source, breadboardMessage.out), null);
           }
         } else if (message instanceof Breadboard.RunStep) {
           // TODO: Compile step here and make available to scripting engine
@@ -408,7 +409,7 @@ public class ScriptBoard extends UntypedActor {
             toBeDeleteExperiment.delete();
           }
 
-          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out));
+          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
         } else if (message instanceof Breadboard.DropPlayer) {
           Breadboard.DropPlayer dropPlayer = (Breadboard.DropPlayer) message;
           Logger.debug("dropPlayer:" + dropPlayer.pid);
@@ -436,11 +437,11 @@ public class ScriptBoard extends UntypedActor {
 
             // Re-run the Steps
             for (Step step : instance.experiment.steps)
-              Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, step.source, breadboardMessage.out));
+              Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, step.source, breadboardMessage.out), null);
 
           } // END if (breadboardMessage.user.selectedExperiment != null)
           // Update User JSON
-          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out));
+          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
 
         } // END else if(message instanceof Breadboard.LaunchGame)
         else if (message instanceof Breadboard.TestGame) {
@@ -460,11 +461,11 @@ public class ScriptBoard extends UntypedActor {
 
             // Re-run the Steps
             for (Step step : testInstance.experiment.steps) {
-              Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, step.source, breadboardMessage.out));
+              Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, step.source, breadboardMessage.out), null);
             }
           }
           // Update User JSON
-          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out));
+          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
 
         } // END else if(message instanceof Breadboard.TestGame)
         else if (message instanceof Breadboard.SelectInstance) {
@@ -494,7 +495,7 @@ public class ScriptBoard extends UntypedActor {
             //which is causing the launch button still shows up (because the status isn't updated) instead of the stop button for the instance
             breadboardMessage.user.selectedExperiment = Experiment.findById(breadboardMessage.user.selectedExperiment.id);
           }
-          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out));
+          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
         } // END else if(message instanceof Breadboard.SelectInstance)
         else if (message instanceof Breadboard.StopGame) {
           Breadboard.StopGame stopGame = (Breadboard.StopGame) message;
@@ -525,7 +526,7 @@ public class ScriptBoard extends UntypedActor {
           breadboardMessage.user.setExperimentInstanceId(-1L);
           breadboardMessage.user.update();
           // Update User JSON
-          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out));
+          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
         } // END else if(message instanceof Breadboard.StopGame)
         else if (message instanceof Breadboard.RunOnJoinStep) {
           Breadboard.RunOnJoinStep runOnJoinStep = (Breadboard.RunOnJoinStep) message;
@@ -576,8 +577,8 @@ public class ScriptBoard extends UntypedActor {
 
           breadboardMessage.out.write(jsonOutput);
         } else if (message instanceof Breadboard.GameFinish) {
-          Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.ReloadEngine(breadboardMessage.user, breadboardMessage.out));
-          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out));
+          Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.ReloadEngine(breadboardMessage.user, breadboardMessage.out), null);
+          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
         } else if (message instanceof Breadboard.ReloadEngine) {
           Experiment selectedExperiment = breadboardMessage.user.getExperiment();
           rebuildScriptBoard(selectedExperiment);

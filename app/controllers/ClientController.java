@@ -8,7 +8,7 @@ import play.libs.F.*;
 
 import views.html.*;
 
-import org.codehaus.jackson.*;
+import com.fasterxml.jackson.databind.*;
 
 import models.*;
 

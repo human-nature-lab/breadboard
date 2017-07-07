@@ -3,7 +3,7 @@ package models;
 import java.util.*;
 import com.tinkerpop.blueprints.*;
 import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.libs.Json;
 import play.Logger;
 

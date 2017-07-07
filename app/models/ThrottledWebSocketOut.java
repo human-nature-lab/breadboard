@@ -2,8 +2,8 @@ package models;
 
 import play.mvc.*;
 import play.libs.Json;
-import org.codehaus.jackson.*;
-import org.codehaus.jackson.node.ObjectNode;
+import com.fasterxml.jackson.databind.*;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.util.*;
 import java.util.concurrent.*;
 import java.lang.*;
