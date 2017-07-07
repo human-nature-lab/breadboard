@@ -1,62 +1,56 @@
 package models;
 
-import org.codehaus.jackson.annotate.JsonIgnore;
-import play.Logger;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import play.db.ebean.Model;
 import play.libs.Json;
 
-import org.codehaus.jackson.node.ObjectNode;
-import org.codehaus.jackson.node.ArrayNode;
-
-import java.util.*;
-import javax.persistence.*;
-import java.text.SimpleDateFormat;
-
-import play.db.ebean.*;
-import play.data.format.*;
-import play.data.validation.*;
-
-import com.avaje.ebean.*;
+import javax.persistence.Entity;
+import javax.persistence.Id;
+import javax.persistence.ManyToOne;
+import javax.persistence.Table;
+import java.util.List;
 
 @Entity
 @Table(name = "amt_workers")
 public class AMTWorker extends Model {
-    @Id
-    public Long id;
+  @Id
+  public Long id;
 
-    public String workerId;
-    public String score;
-    public String completion;
+  public String workerId;
+  public String score;
+  public String completion;
 
-    @JsonIgnore
-    @ManyToOne
-    public AMTHit amtHit;
+  @JsonIgnore
+  @ManyToOne
+  public AMTHit amtHit;
 
-    @JsonIgnore
-    public static Model.Finder<Long, AMTWorker> find = new Model.Finder(Long.class, AMTWorker.class);
+  @JsonIgnore
+  public static Model.Finder<Long, AMTWorker> find = new Model.Finder(Long.class, AMTWorker.class);
 
-    public static List<AMTWorker> findAll() {
-        return find.all();
-    }
-    
-    public static int countByWorkerId(String wid) {
-        return find.where().eq("worker_id", wid).findRowCount();
-    }
+  public static List<AMTWorker> findAll() {
+    return find.all();
+  }
 
-    public AMTWorker() {
-    }
+  public static int countByWorkerId(String wid) {
+    return find.where().eq("worker_id", wid).findRowCount();
+  }
 
-    public ObjectNode toJson() {
-        ObjectNode amtWorker = Json.newObject();
+  public AMTWorker() {
+  }
 
-        amtWorker.put("id", id);
-        amtWorker.put("workerId", workerId);
-        amtWorker.put("score", score);
-        amtWorker.put("completion", completion);
+  public ObjectNode toJson() {
+    ObjectNode amtWorker = Json.newObject();
 
-        return amtWorker;
-    }
+    amtWorker.put("id", id);
+    amtWorker.put("workerId", workerId);
+    amtWorker.put("score", score);
+    amtWorker.put("completion", completion);
 
-    public String toString() {
-        return "AMTWorker(" + id + ")";
-    }
+    return amtWorker;
+  }
+
+  public String toString() {
+    return "AMTWorker(" + id + ")";
+  }
 }

@@ -3,13 +3,13 @@ package models;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tinkerpop.blueprints.Vertex;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.map.ObjectMapper;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.ObjectNode;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
@@ -40,34 +40,35 @@ public class Breadboard extends UntypedActor {
       public void invoke(JsonNode event) {
         try {
           ObjectMapper mapper = new ObjectMapper();
-          Map<String, Object> jsonInput = mapper.readValue(event, Map.class);
+          // TODO: check if there is a better way to do this with new version of Jackson
+          Map<String, Object> jsonInput = mapper.readValue(event.toString(), Map.class);
           String action = jsonInput.get("action").toString();
           String uid = jsonInput.get("uid").toString();
           User user = User.findByUID(uid);
           if (user != null) {
             if (action.equals("LogIn")) {
-              breadboardController.tell(new LogIn(user, out));
+              breadboardController.tell(new LogIn(user, out), null);
             } else if (action.equals("SaveUserSettings")) {
               String currentPassword = jsonInput.get("currentPassword").toString().trim();
               String newPassword = jsonInput.get("newPassword").toString().trim();
               String confirmPassword = jsonInput.get("confirmPassword").toString().trim();
 
-              breadboardController.tell(new SaveUserSettings(user, currentPassword, newPassword, confirmPassword, out));
+              breadboardController.tell(new SaveUserSettings(user, currentPassword, newPassword, confirmPassword, out), null);
 
             } else if (action.equals("SelectExperiment")) {
               String experimentName = jsonInput.get("experiment").toString();
               Experiment experiment = user.getExperimentByName(experimentName);
 
               if (experiment != null)
-                breadboardController.tell(new SelectExperiment(user, experiment, out));
+                breadboardController.tell(new SelectExperiment(user, experiment, out), null);
             } else if (action.equals("CreateExperiment")) {
               String name = jsonInput.get("name").toString();
               String copyExperimentName = jsonInput.containsKey("copyExperimentName") ? jsonInput.get("copyExperimentName").toString() : null;
-              breadboardController.tell(new CreateExperiment(user, name, copyExperimentName, out));
+              breadboardController.tell(new CreateExperiment(user, name, copyExperimentName, out), null);
               Logger.debug("CreateExperiment");
             } else if (action.equals("DeleteExperiment")) {
               String selectedExperimentName = jsonInput.get("selectedExperiment").toString();
-              instances.get(user.email).tell(new DeleteExperiment(user, selectedExperimentName, out));
+              instances.get(user.email).tell(new DeleteExperiment(user, selectedExperimentName, out), null);
               //breadboardController.tell(new DeleteExperiment(user, selectedExperimentName, out));
             } else if (action.equals("ExportExperiment")) {
               String selectedExperimentName = jsonInput.get("selectedExperiment").toString();
@@ -97,7 +98,7 @@ public class Breadboard extends UntypedActor {
                 String experimentId = jsonInput.get("experimentId").toString();
                 String experimentInstanceId = jsonInput.get("experimentInstanceId").toString();
 
-                breadboardController.tell(new SubmitAMTTask(user, title, description, reward, lifetimeInSeconds, tutorialTime, maxAssignments, disallowPrevious, sandbox, experimentId, experimentInstanceId, out));
+                breadboardController.tell(new SubmitAMTTask(user, title, description, reward, lifetimeInSeconds, tutorialTime, maxAssignments, disallowPrevious, sandbox, experimentId, experimentInstanceId, out), null);
               } catch (NumberFormatException nfe) {
                 Logger.error("Invalid number provided for reward, lifetimeInSeconds, onInSeconds, or maxAssignments parameter.");
               } catch (Exception e) {
@@ -109,7 +110,7 @@ public class Breadboard extends UntypedActor {
                 String amtHitIdString = jsonInput.get("amtHitId").toString();
                 Logger.debug("amtHitIdString = " + amtHitIdString);
                 Long amtHitId = Long.parseLong(amtHitIdString);
-                breadboardController.tell(new GetAssignmentsForHIT(user, amtHitId, out));
+                breadboardController.tell(new GetAssignmentsForHIT(user, amtHitId, out), null);
               } catch (NumberFormatException nfe) {
                 Logger.error("Invalid number provided for amtHitId.");
               }
@@ -118,7 +119,7 @@ public class Breadboard extends UntypedActor {
                 String amtHitIdString = jsonInput.get("amtHitId").toString();
                 Logger.debug("amtHitIdString = " + amtHitIdString);
                 Long amtHitId = Long.parseLong(amtHitIdString);
-                breadboardController.tell(new ExtendHit(user, amtHitId, out));
+                breadboardController.tell(new ExtendHit(user, amtHitId, out), null);
               } catch (NumberFormatException nfe) {
                 Logger.error("Invalid number provided for amtHitId.");
               }
@@ -127,76 +128,71 @@ public class Breadboard extends UntypedActor {
               String assignmentId = jsonInput.get("assignmentId").toString();
               String bonus = jsonInput.get("bonus").toString();
 
-              breadboardController.tell(new GrantBonus(user, workerId, assignmentId, bonus, out));
+              breadboardController.tell(new GrantBonus(user, workerId, assignmentId, bonus, out), null);
             } else if (action.equals("ApproveAssignment")) {
               String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new ApproveAssignment(user, assignmentId, out));
+              breadboardController.tell(new ApproveAssignment(user, assignmentId, out), null);
             } else if (action.equals("RejectAssignment")) {
               String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new RejectAssignment(user, assignmentId, out));
+              breadboardController.tell(new RejectAssignment(user, assignmentId, out), null);
             } else if (action.equals("BlockWorker")) {
               String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new BlockWorker(user, assignmentId, out));
+              breadboardController.tell(new BlockWorker(user, assignmentId, out), null);
             } else if (action.equals("MarkCompleted")) {
               String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new MarkCompleted(user, assignmentId, out));
+              breadboardController.tell(new MarkCompleted(user, assignmentId, out), null);
             } else if (action.equals("AssignQualification")) {
               String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new AssignQualification(user, assignmentId, out));
+              breadboardController.tell(new AssignQualification(user, assignmentId, out), null);
             } else if (action.equals("RunGame")) {
               if (instances.containsKey(user.email)) {
-                instances.get(user.email).tell(new RunGame(user, out));
+                instances.get(user.email).tell(new RunGame(user, out), null);
               }
             } else if (action.equals("SendScript")) {
               if (instances.containsKey(user.email)) {
                 String script = jsonInput.get("script").toString();
-                instances.get(user.email).tell(new SendScript(user, script, out));
+                instances.get(user.email).tell(new SendScript(user, script, out), null);
               }
             } else if (action.equals("CreateContent")) {
               String name = jsonInput.get("name").toString();
-              String language = jsonInput.get("language").toString();
-              breadboardController.tell(new CreateContent(user, name, language, out));
+              breadboardController.tell(new CreateContent(user, name, out), null);
             } else if (action.equals("SaveContent")) {
               try {
                 Long id = Long.parseLong(jsonInput.get("id").toString());
                 String name = jsonInput.get("name").toString();
                 String html = jsonInput.get("html").toString();
                 // TODO: is providing the name necessary?
-                breadboardController.tell(new SaveContent(user, id, name, html, out));
+                breadboardController.tell(new SaveContent(user, id, name, html, out), null);
               } catch (NumberFormatException nfe) {
                 Logger.debug("SaveContent threw NumberFormatException at Long.parseLong parsing: " + jsonInput.get("id").toString());
               }
-            } else if (action.equals("AddLanguage")) {
-              String contentName = jsonInput.get("contentName").toString();
-              String newLanguage = jsonInput.get("newLanguage").toString();
-              breadboardController.tell(new AddLanguage(user, contentName, newLanguage, out));
             } else if (action.equals("MakeChoice")) {
               // TODO: Player client will not be logged in with email and will
               // need a different way to identify the correct game
               if (instances.containsKey(user.email)) {
                 String choiceUID = jsonInput.get("choiceUID").toString();
                 String params = (jsonInput.containsKey("params")) ? jsonInput.get("params").toString() : null;
-                instances.get(user.email).tell(new MakeChoice(user, choiceUID, params, out));
+                instances.get(user.email).tell(new MakeChoice(user, choiceUID, params, out), null);
               }
             } else if (action.equals("SaveStyle")) {
               String style = jsonInput.get("style").toString();
-              breadboardController.tell(new SaveStyle(user, style, out));
+              breadboardController.tell(new SaveStyle(user, style, out), null);
             } else if (action.equals("SaveClientHtml")) {
               String clientHtml = jsonInput.get("clientHtml").toString();
-              breadboardController.tell(new SaveClientHtml(user, clientHtml, out));
+              breadboardController.tell(new SaveClientHtml(user, clientHtml, out), null);
             } else if (action.equals("SaveClientGraph")) {
               String clientGraph = jsonInput.get("clientGraph").toString();
-              breadboardController.tell(new SaveClientGraph(user, clientGraph, out));
+              breadboardController.tell(new SaveClientGraph(user, clientGraph, out), null);
             } else if (action.equals("CreateStep")) {
               String name = jsonInput.get("name").toString();
-              breadboardController.tell(new CreateStep(user, name, out));
+              breadboardController.tell(new CreateStep(user, name, out), null);
             } else if (action.equals("DeleteStep")) {
               Long id = Long.valueOf(jsonInput.get("id").toString());
-              breadboardController.tell(new DeleteStep(user, id, out));
+              breadboardController.tell(new DeleteStep(user, id, out), null);
             } else if (action.equals("DeleteContent")) {
               Long id = Long.valueOf(jsonInput.get("id").toString());
               //Logger.debug("action.equals(DeleteContent), id=" + id.toString());
-              breadboardController.tell(new DeleteContent(user, id, out));
+              breadboardController.tell(new DeleteContent(user, id, out), null);
             } else if (action.equals("SendStep")) {
               if (instances.containsKey(user.email)) {
                 try {
@@ -204,7 +200,7 @@ public class Breadboard extends UntypedActor {
                   String name = jsonInput.get("name").toString();
                   String source = jsonInput.get("source").toString();
                   // TODO: is providing the name necessary?
-                  instances.get(user.email).tell(new SendStep(user, id, name, source, out));
+                  instances.get(user.email).tell(new SendStep(user, id, name, source, out), null);
                 } catch (NumberFormatException nfe) {
                   Logger.debug("Long.parseLong threw NumberFormatException, input: " + jsonInput.get("id").toString());
                 }
@@ -212,7 +208,7 @@ public class Breadboard extends UntypedActor {
             } else if (action.equals("DropPlayer")) {
               if (instances.containsKey(user.email)) {
                 String pid = jsonInput.get("pid").toString();
-                instances.get(user.email).tell(new DropPlayer(user, pid, out));
+                instances.get(user.email).tell(new DropPlayer(user, pid, out), null);
               }
             } else if (action.equals("LaunchGame")) {
               if (instances.containsKey(user.email)) {
@@ -221,7 +217,7 @@ public class Breadboard extends UntypedActor {
                 Logger.debug("parameters.getClass().toString() = " + parameters.getClass().toString());
                 if (parameters instanceof LinkedHashMap) {
                   LinkedHashMap params = (LinkedHashMap) parameters;
-                  instances.get(user.email).tell(new LaunchGame(user, name, params, out));
+                  instances.get(user.email).tell(new LaunchGame(user, name, params, out), null);
                 }
               }
             } else if (action.equals("TestGame")) {
@@ -231,14 +227,14 @@ public class Breadboard extends UntypedActor {
                 Logger.debug("parameters.getClass().toString() = " + parameters.getClass().toString());
                 if (parameters instanceof LinkedHashMap) {
                   LinkedHashMap params = (LinkedHashMap) parameters;
-                  instances.get(user.email).tell(new TestGame(user, name, params, out));
+                  instances.get(user.email).tell(new TestGame(user, name, params, out), null);
                 }
               }
             } else if (action.equals("StopGame")) {
               if (instances.containsKey(user.email)) {
                 try {
                   Long id = Long.parseLong(jsonInput.get("id").toString());
-                  instances.get(user.email).tell(new StopGame(user, id, out));
+                  instances.get(user.email).tell(new StopGame(user, id, out), null);
                 } catch (NumberFormatException nfe) {
                   Logger.debug("Error parsing Long from String: " + jsonInput.get("id").toString());
                 }
@@ -251,28 +247,28 @@ public class Breadboard extends UntypedActor {
               String defaultVal = jsonInput.get("defaultVal").toString();
               String description = jsonInput.get("description").toString();
 
-              breadboardController.tell(new NewParameter(user, name, type, minVal, maxVal, defaultVal, description, out));
+              breadboardController.tell(new NewParameter(user, name, type, minVal, maxVal, defaultVal, description, out), null);
             } else if (action.equals("RemoveParameter")) {
               String id = jsonInput.get("id").toString();
 
-              breadboardController.tell(new RemoveParameter(user, id, out));
+              breadboardController.tell(new RemoveParameter(user, id, out), null);
             } else if (action.equals("SelectInstance")) {
               Long id = Long.parseLong(jsonInput.get("id").toString());
 
-              breadboardController.tell(new SelectInstance(user, id, out));
+              breadboardController.tell(new SelectInstance(user, id, out), null);
             } else if (action.equals("Update")) {
-              breadboardController.tell(new Update(user, out));
+              breadboardController.tell(new Update(user, out), null);
             } else if (action.equals("ShowEvent")) {
               Long experimentInstanceId = Long.parseLong(jsonInput.get("id").toString());
-              breadboardController.tell(new ShowEvent(user, experimentInstanceId, out));
+              breadboardController.tell(new ShowEvent(user, experimentInstanceId, out), null);
             } else if (action.equals("DeleteInstance")) {
               Long experimentInstanceId = Long.parseLong(jsonInput.get("id").toString());
-              breadboardController.tell(new DeleteInstance(user, experimentInstanceId, out));
+              breadboardController.tell(new DeleteInstance(user, experimentInstanceId, out), null);
             } else if (action.equals("ReloadEngine")) {
-              instances.get(user.email).tell(new ReloadEngine(user, out));
+              instances.get(user.email).tell(new ReloadEngine(user, out), null);
             } else if (action.equals("DeleteImage")) {
               Long imageId = Long.parseLong(jsonInput.get("imageId").toString());
-              breadboardController.tell(new DeleteImage(user, imageId, out));
+              breadboardController.tell(new DeleteImage(user, imageId, out), null);
             }
           } else { // END if (user != null)
             Logger.error("user not found with UID: " + user.uid);
@@ -308,15 +304,15 @@ public class Breadboard extends UntypedActor {
           instances.put(breadboardMessage.user.email, scriptBoardController);
 
           // Add an Admin to the scriptBoardController
-          scriptBoardController.tell(new AddAdmin(breadboardMessage.user, scriptBoardController, breadboardMessage.out));
+          scriptBoardController.tell(new AddAdmin(breadboardMessage.user, scriptBoardController, breadboardMessage.out), null);
 
           // If the User has a selected experiment, select the experiment
           if (breadboardMessage.user.selectedExperiment != null) {
             Logger.debug("breadboardMessage.user.selectedExperiment = " + breadboardMessage.user.selectedExperiment);
-            breadboardController.tell(new SelectExperiment(breadboardMessage.user, breadboardMessage.user.selectedExperiment, breadboardMessage.out));
+            breadboardController.tell(new SelectExperiment(breadboardMessage.user, breadboardMessage.user.selectedExperiment, breadboardMessage.out), null);
           }
           if (breadboardMessage.user.experimentInstanceId != -1) {
-            breadboardController.tell(new SelectInstance(breadboardMessage.user, breadboardMessage.user.experimentInstanceId, breadboardMessage.out));
+            breadboardController.tell(new SelectInstance(breadboardMessage.user, breadboardMessage.user.experimentInstanceId, breadboardMessage.out), null);
           }
         } else {
           //this is reconnect/refresh
@@ -326,7 +322,7 @@ public class Breadboard extends UntypedActor {
           breadboardMessage.out.write(userJson);
 
           Logger.debug("breadboardMessage.user.email GET: " + breadboardMessage.user.email);
-          instances.get(breadboardMessage.user.email).tell(new Refresh(breadboardMessage.user, breadboardMessage.out));
+          instances.get(breadboardMessage.user.email).tell(new Refresh(breadboardMessage.user, breadboardMessage.out), null);
           return;
         }
         Logger.debug("LogIn: " + breadboardMessage.user.email);
@@ -364,7 +360,7 @@ public class Breadboard extends UntypedActor {
         if (selectedExperiment != null) {
           // TODO: Create "ChangeExperiment" action and handle it in ScriptBoard
           // Find Content based on currently selected Experiment
-          instances.get(breadboardMessage.user.email).tell(new ChangeExperiment(breadboardMessage.user, selectedExperiment, breadboardMessage.out));
+          instances.get(breadboardMessage.user.email).tell(new ChangeExperiment(breadboardMessage.user, selectedExperiment, breadboardMessage.out), null);
           //move the load steps into scriptboard
 //                    for (Step step : selectedExperiment.steps)
 //                        instances.get(breadboardMessage.user.email).tell(new RunStep(breadboardMessage.user, step.source, breadboardMessage.out));
@@ -416,7 +412,7 @@ public class Breadboard extends UntypedActor {
         breadboardMessage.user.saveManyToManyAssociations("ownedExperiments");
 
         // Select the newly created experiment
-        breadboardController.tell(new SelectExperiment(breadboardMessage.user, experiment, breadboardMessage.out));
+        breadboardController.tell(new SelectExperiment(breadboardMessage.user, experiment, breadboardMessage.out), null);
       } else if (message instanceof SubmitAMTTask) {
         Logger.debug("message instanceof SubmitAMTTask");
 
@@ -529,7 +525,7 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
             experimentInstance.amtHits.add(amtHit);
             experimentInstance.save();
 
-            instances.get(breadboardMessage.user.email).tell(new HitCreated(breadboardMessage.user, lifetimeInSeconds, tutorialTime, breadboardMessage.out));
+            instances.get(breadboardMessage.user.email).tell(new HitCreated(breadboardMessage.user, lifetimeInSeconds, tutorialTime, breadboardMessage.out), null);
 
             ObjectNode jsonOutput = Json.newObject();
             jsonOutput.put("output", "AMT HIT Created.");
@@ -855,17 +851,18 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
       } else if (message instanceof CreateContent) {
         // TODO: Think about disallowing Content with the same name in the same Experiment
         CreateContent createContent = (CreateContent) message;
-        Logger.debug("CreateContent: " + createContent.name + ", " + createContent.language);
+        Logger.debug("CreateContent: " + createContent.name);
         Experiment selectedExperiment = breadboardMessage.user.getExperiment();
         if (selectedExperiment != null) {
           Content newContent = new Content();
           newContent.name = createContent.name;
           newContent.html = "<p><span>Type your new content here using \"{0} -&gt; {n}\" as a placeholder for fills.</span></p>";
-          newContent.language = createContent.language;
+          //newContent.save();
 
           selectedExperiment.content.add(newContent);
           selectedExperiment.save();
-          instances.get(breadboardMessage.user.email).tell(message);
+          //selectedExperiment.saveManyToManyAssociations("content");
+          instances.get(breadboardMessage.user.email).tell(message, null);
         }
       } else if (message instanceof CreateStep) {
         CreateStep createStep = (CreateStep) message;
@@ -901,39 +898,19 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         SaveContent saveContent = (SaveContent) message;
         Experiment selectedExperiment = breadboardMessage.user.getExperiment();
         if (selectedExperiment != null) {
-          Logger.debug("SaveContent: " + saveContent.id + ", " + saveContent.name + ", " + saveContent.html);
+          //Logger.debug("SaveContent: " + saveContent.id + ", " + saveContent.name + ", " + saveContent.html);
           Content content = selectedExperiment.getContent(saveContent.id);
           if (content != null) {
             content.setHtml(saveContent.html);
             content.update();
             selectedExperiment.update();
-            instances.get(breadboardMessage.user.email).tell(message);
+            instances.get(breadboardMessage.user.email).tell(message, null);
 
             // Send "Content saved" message to output
             ObjectNode jsonOutput = Json.newObject();
             jsonOutput.put("output", "Content saved.");
             breadboardMessage.out.write(jsonOutput);
           }
-        }
-      } else if (message instanceof AddLanguage) {
-        AddLanguage addLanguage = (AddLanguage) message;
-        Experiment selectedExperiment = breadboardMessage.user.getExperiment();
-        if (selectedExperiment != null) {
-          Logger.debug("AddLanguage: " + addLanguage.contentName + ", " + addLanguage.newLanguage);
-
-          Content newContent = new Content();
-          newContent.name = addLanguage.contentName;
-          newContent.html = "<p>Translate your content into a new language here.</p>";
-          newContent.language = addLanguage.newLanguage;
-
-          selectedExperiment.content.add(newContent);
-          selectedExperiment.save();
-
-          instances.get(breadboardMessage.user.email).tell(message);
-
-          ObjectNode jsonOutput = Json.newObject();
-          jsonOutput.put("output", "New language added.");
-          breadboardMessage.out.write(jsonOutput);
         }
       } else if (message instanceof SaveStyle) {
         SaveStyle saveStyle = (SaveStyle) message;
@@ -1005,7 +982,7 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
           }
         }
       } else if (message instanceof SelectInstance) {
-        instances.get(breadboardMessage.user.email).tell(message);
+        instances.get(breadboardMessage.user.email).tell(message, null);
       } else if (message instanceof Update) {
         //Do nothing, just update the user JSON object
       } else if (message instanceof ShowEvent) {
@@ -1268,12 +1245,10 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
 
   public static class CreateContent extends BreadboardMessage {
     final String name;
-    final String language;
 
-    public CreateContent(User user, String name, String language, ThrottledWebSocketOut out) {
+    public CreateContent(User user, String name, ThrottledWebSocketOut out) {
       super(user, out);
       this.name = name;
-      this.language = language;
     }
   }
 
@@ -1314,17 +1289,6 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
       this.id = id;
       this.name = name;
       this.html = html;
-    }
-  }
-
-  public static class AddLanguage extends BreadboardMessage {
-    final String contentName;
-    final String newLanguage;
-
-    public AddLanguage(User user, String contentName, String newLanguage, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.contentName = contentName;
-      this.newLanguage = newLanguage;
     }
   }
 

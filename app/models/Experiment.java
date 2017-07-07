@@ -1,12 +1,10 @@
 package models;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
-import org.codehaus.jackson.JsonNode;
-import org.codehaus.jackson.annotate.JsonIgnore;
-import org.codehaus.jackson.annotate.JsonValue;
-import org.codehaus.jackson.node.ArrayNode;
-import org.codehaus.jackson.node.ObjectNode;
 import play.Play;
 import play.data.format.Formats;
 import play.data.validation.Constraints;
@@ -17,9 +15,7 @@ import javax.persistence.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "experiments")
@@ -698,13 +694,12 @@ public class Experiment extends Model {
     return null;
   }
 
-  public List<Content> getContentByName(String name) {
-    List<Content> returnList = new ArrayList<>();
+  public Content getContentByName(String name) {
     for (Content c : content) {
       if (c.name.equals(name))
-        returnList.add(c);
+        return c;
     }
-    return returnList;
+    return null;
   }
 
   public Step getStep(Long id) {
@@ -766,53 +761,10 @@ public class Experiment extends Model {
       jsonSteps.add(s.toJson());
     }
 
-    ObjectNode jsonContent = Json.newObject();
-    // Transform flat { name, html, language } objects
-    // 1. into nested { name: [ { html, language1 }, { html, language2 } ] } object
-    /*
-    Set<String> languages = new HashSet<>();
-    ObjectNode contentObject = Json.newObject();
+    ArrayNode jsonContent = experiment.putArray("content");
     for (Content c : content) {
-      if (! languages.contains(c.language)) {
-        languages.add(c.language);
-      }
-      ArrayNode contentArray = (ArrayNode) contentObject.get(c.name);
-      if (contentArray == null) {
-        contentArray = contentObject.putArray(c.name);
-      }
-      ObjectNode contentChild = Json.newObject();
-      contentChild.put("html", c.html);
-      contentChild.put("language", c.language);
-      contentArray.add(contentChild);
+      jsonContent.add(c.toJson());
     }
-
-    ArrayNode jsonLanguages = jsonContent.putArray("languages");
-    for (String l : languages) {
-      jsonLanguages.add(l);
-    }
-    jsonContent.put("content", contentObject);
-    experiment.put("content", jsonContent);
-     */
-    // 2. into nested { name: { language1 : { id: id, text: html }, language2: { id: id, text: html } } object
-    for (Content c : content) {
-      if (jsonContent.get(c.name) == null) {
-        ObjectNode outerJsonContentNode = Json.newObject();
-        ObjectNode innerJsonContentNode = Json.newObject();
-        innerJsonContentNode.put("id", c.id);
-        innerJsonContentNode.put("text", c.html);
-        outerJsonContentNode.put(c.language, innerJsonContentNode);
-        jsonContent.put(c.name, outerJsonContentNode);
-      } else {
-        ObjectNode outerJsonContentNode = (ObjectNode) jsonContent.get(c.name);
-        ObjectNode innerJsonContentNode = Json.newObject();
-        innerJsonContentNode.put("id", c.id);
-        innerJsonContentNode.put("text", c.html);
-        outerJsonContentNode.put(c.language, innerJsonContentNode);
-      }
-    }
-    experiment.put("content", jsonContent);
-
-
 
     ArrayNode jsonParameters = experiment.putArray("parameters");
     for (Parameter p : parameters) {

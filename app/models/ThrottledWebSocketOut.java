@@ -1,26 +1,26 @@
 package models;
 
-import play.mvc.*;
-import play.libs.Json;
-import org.codehaus.jackson.*;
-import org.codehaus.jackson.node.ObjectNode;
-import java.util.*;
-import java.util.concurrent.*;
-import java.lang.*;
+import com.fasterxml.jackson.databind.JsonNode;
+import play.mvc.WebSocket;
+
+import java.util.Timer;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class ThrottledWebSocketOut {
-	private WebSocket.Out<JsonNode> out;	
-	private LinkedBlockingQueue<JsonNode> queue = new LinkedBlockingQueue<JsonNode>();
-	private long lastSent = Long.MAX_VALUE; 
-	private long wait;
-	private Timer timer = new Timer();
-	private boolean scheduled = false;
-	public ThrottledWebSocketOut(WebSocket.Out<JsonNode> out, long wait) {
-		this.out = out;
-		this.wait = wait;
-	}
-	public synchronized void write(JsonNode message) {
-	  /*
+  private WebSocket.Out<JsonNode> out;
+  private LinkedBlockingQueue<JsonNode> queue = new LinkedBlockingQueue<JsonNode>();
+  private long lastSent = Long.MAX_VALUE;
+  private long wait;
+  private Timer timer = new Timer();
+  private boolean scheduled = false;
+
+  public ThrottledWebSocketOut(WebSocket.Out<JsonNode> out, long wait) {
+    this.out = out;
+    this.wait = wait;
+  }
+
+  public synchronized void write(JsonNode message) {
+    /*
 		if(System.currentTimeMillis() - lastSent < wait || scheduled) {
 			queue.offer(message);
 			if (! scheduled) {
@@ -51,6 +51,6 @@ public class ThrottledWebSocketOut {
 			lastSent = System.currentTimeMillis();
 		}
 		*/
-		out.write(message);
-	}
+    out.write(message);
+  }
 }
