@@ -248,15 +248,17 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     def addAI(a, int n, behavior = null) {
         int startId = 1;
 
-        for (i in 0..n - 1) {
-            while (hasVertex("_" + startId))
-                startId++;
+        if (n > 0) {
+          for (i in 0..n - 1) {
+              while (hasVertex("_" + startId))
+                  startId++;
 
-            def v = addVertex("_" + startId)
-            if (behavior == null)
-                a.ai.add(v)
-            else
-                a.ai.add(v, behavior)
+              def v = addVertex("_" + startId)
+              if (behavior == null)
+                  a.ai.add(v)
+              else
+                  a.ai.add(v, behavior)
+          }
         }
     }
 
@@ -436,7 +438,12 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         }
     }
 
+    // For compatibility with previous versions of breadboard
     def barbasiAlbert(int v) {
+      barabasiAlbert(v)
+    }
+
+    def barabasiAlbert(int v) {
         removeEdges()
         Random rand = new Random()
 

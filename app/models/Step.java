@@ -51,8 +51,7 @@ public class Step extends Model
 	    this.source = source;
 	}
 
-	public static Step findByName(String name)
-	{
+	public static Step findByName(String name) {
 		return find.where().eq("name", name).findUnique();
 	}
 

@@ -33,7 +33,7 @@
                 <table>
                     <tr><td><label for="amt_ids">AMT IDs</label></td><td><textarea rows="20" cols="60" name="amt_ids" placeholder="AMT Worker IDs" required></textarea></td></tr>
                     <tr><td><label for="reason">Reason</label></td><td><textarea rows="2" cols="60" name="reason" placeholder="Reason" required></textarea></td></tr>
-                    <tr><td><label for="reward">Reward</label></td><td><input type="text" pattern="^\d+(\.|\,)\d{2}$" name="reward" placeholder="Reward" required></td></tr>
+                    <tr><td><label for="reward">Reward</label></td><td><input type="text" pattern="(0\.((0[1-9]{1})|([1-9]{1}([0-9]{1})?)))|(([1-9]+[0-9]*)(\.([0-9]{1,2}))?)" name="reward" placeholder="Reward" required></td></tr>
                     <tr><td><label for="sandbox">Sandbox?</label></td><td><input type="checkbox" name="sandbox"></td></tr>
                     <tr><td colspan="2"><input type="submit" value="Create Dummy HITs"></td></tr>
                 </table>

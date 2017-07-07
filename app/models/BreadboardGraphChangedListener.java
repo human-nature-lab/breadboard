@@ -7,7 +7,7 @@ import org.codehaus.jackson.node.ObjectNode;
 import play.libs.Json;
 import play.Logger;
 
-public class BreadboardGraphChangedListener implements GraphChangedListener 
+public class BreadboardGraphChangedListener implements GraphChangedListener
 {
 	private Graph graph;
 	private ArrayList<ClientListener> adminListeners = new ArrayList<ClientListener>();
@@ -23,12 +23,12 @@ public class BreadboardGraphChangedListener implements GraphChangedListener
 		adminListeners.add(adminListener);
 	}
 
-	public ArrayList<ClientListener> getAdminListeners() 
+	public ArrayList<ClientListener> getAdminListeners()
 	{
 		return this.adminListeners;
 	}
 
-	public ArrayList<Client> getClientListeners() 
+	public ArrayList<Client> getClientListeners()
 	{
 		ArrayList<Client> returnArrayList = new ArrayList<Client>();
 		for (Client client : clientListeners.values()) {
@@ -42,13 +42,13 @@ public class BreadboardGraphChangedListener implements GraphChangedListener
 		clientListeners.put(clientListener.id, clientListener);
 	}
 
-    public void removeAdminListener(ClientListener adminListener) 
+    public void removeAdminListener(ClientListener adminListener)
     {
         adminListeners.remove(adminListener);
     }
-	
+
 	@Override
-	public void edgeAdded(Edge edge) 
+	public void edgeAdded(Edge edge)
 	{
 		//Logger.debug("BreadboardGraphChangedListener edgeAdded");
 		for (ClientListener al : adminListeners)
@@ -58,7 +58,7 @@ public class BreadboardGraphChangedListener implements GraphChangedListener
 	}
 
 	@Override
-	public void edgePropertyChanged(Edge edge, String key, Object oldValue, Object setValue) 
+	public void edgePropertyChanged(Edge edge, String key, Object oldValue, Object setValue)
 	{
 		for (ClientListener al : adminListeners)
 			al.edgePropertyChanged(edge, key, setValue);
@@ -131,7 +131,7 @@ public class BreadboardGraphChangedListener implements GraphChangedListener
 		*/
 	}
 
-	private void clientEdgePropertyChanged(Edge edge, String key, Object value) 
+	private void clientEdgePropertyChanged(Edge edge, String key, Object value)
 	{
 		// inProps are only visible by the inVertex and outProps are only visible by the outVertex
 		if (key.equals("inProps")) {
@@ -195,7 +195,7 @@ public class BreadboardGraphChangedListener implements GraphChangedListener
         }
     }
 
-	private ArrayList<Client> getClientsByEdge(Edge edge) 
+	private ArrayList<Client> getClientsByEdge(Edge edge)
 	{
 		ArrayList<Client> returnClientList = new ArrayList<Client>();
 		String inId = (String)edge.getVertex(Direction.IN).getId();
@@ -218,7 +218,7 @@ public class BreadboardGraphChangedListener implements GraphChangedListener
 		return returnArray;
 	}
 
-	private ArrayList<Client> getClientsByVertex(Vertex vertex) 
+	private ArrayList<Client> getClientsByVertex(Vertex vertex)
 	{
 		ArrayList<Client> returnClientList = new ArrayList<Client>();
 

@@ -20,7 +20,7 @@ angular.module('client.services', [], function($provide) {
             : undefined;
     });
 
-    $provide.factory('clientFactory', ['websocketFactory', '$rootScope', function($websocketFactory, $rootScope) {
+    $provide.factory('clientFactory', ['websocketFactory', '$rootScope', '$timeout', function($websocketFactory, $rootScope, $timeout) {
 
         var websocket = $websocketFactory(clientVars.connectSocket);
         websocket.onopen = function (evt) {
@@ -58,15 +58,17 @@ angular.module('client.services', [], function($provide) {
                 websocket.onmessage = function() {
                     var args = arguments;
 
-                    $rootScope.$apply(function () {
+                    $rootScope.$apply($timeout(function () {
                         callback.apply(websocket, args);
-                    });
+                    }, 1000));
 
                 };
             },
             send: function (message) {
+              $timeout(function() {
                 var jsonMessage = JSON.stringify(message);
                 websocket.send(jsonMessage);
+              }, 1000);
             }
         }
     }]);

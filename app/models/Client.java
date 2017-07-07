@@ -36,7 +36,7 @@ public class Client extends Model
 		this.out = out;
 	}
 
-	public synchronized void updateGraph(Vertex me) 
+	public synchronized void updateGraph(Vertex me)
 	{
 		// Create an in-memory graph to store the sub-graph in
 		TinkerGraph inMemoryGraph = new TinkerGraph();

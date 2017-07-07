@@ -292,7 +292,7 @@ label {
     color: rgb(49,49,49);
 }
 
-.step-titlebar-close {
+.steps-tab a.step-titlebar-close {
     float: right;
     margin-left: 6px;
 }

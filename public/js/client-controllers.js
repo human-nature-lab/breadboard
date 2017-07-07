@@ -51,7 +51,15 @@ function ChoicesCtrl($scope, $clientFactory) {
   }, true);
 }
 
-function ClientCtrl($scope, $clientFactory) {
+function ClientCtrl($scope, $clientFactory, $location) {
+  $scope.languages = [];
+  $scope.selectedLanguage = ($location.search().language) ? $location.search().language : "";
+
+  $scope.selectLanguage = function(language) {
+    $scope.selectedLanguage = language;
+    $location.search('language', language);
+  };
+
   $clientFactory.onmessage(function (message) {
     try {
       if ($scope.client == undefined) {
@@ -61,7 +69,7 @@ function ClientCtrl($scope, $clientFactory) {
 
       var data = JSON.parse(message.data);
       // For debugging:
-      //console.log(data);
+      console.log(data);
       if (data.queuedMessages != undefined) {
         for (var i = 0; i < data.queuedMessages.length; i++) {
           _.extend($scope.client, data.queuedMessages[i]);
@@ -85,6 +93,12 @@ function ClientCtrl($scope, $clientFactory) {
     }
   });
 
+  $scope.translateText = function(textJson) {
+    console.log("textJson: ", textJson);
+    var textObject = JSON.parse(textJson);
+    return (textObject.contentArray[0].text);
+  };
+
   /* Graph here */
   $scope.clientGraph = new Graph((Math.min($(window).width() * 0.50, $(window).height())), (Math.min($(window).width() * 0.50, $(window).height())), clientVars.clientId);
 
@@ -99,5 +113,5 @@ function ClientCtrl($scope, $clientFactory) {
   var beep = new Audio('/assets/snd/countdown_beeps.ogg');
 }
 
-ClientCtrl.$inject = ['$scope', 'clientFactory'];
+ClientCtrl.$inject = ['$scope', 'clientFactory', '$location'];
 ChoicesCtrl.$inject = ['$scope', 'clientFactory'];

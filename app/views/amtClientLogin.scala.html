@@ -102,9 +102,9 @@
 
             </script>
         </div>
-        @if(experiment.getContentByName("AMTIntro") != null) {
+        @if(!experiment.getContentByName("AMTIntro").isEmpty()) {
         <div id="amtIntroText">
-          @Html(experiment.getContentByName("AMTIntro").html)
+          @Html(experiment.getContentByName("AMTIntro").get(0).html)
         </div>
         }
       @if(! assignmentId.equals("ASSIGNMENT_ID_NOT_AVAILABLE")) {

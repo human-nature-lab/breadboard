@@ -28,6 +28,8 @@ public class Content extends Model
     @Column(columnDefinition="text")
     public String html;
 
+    public String language;
+
     @JsonIgnore
     public static Model.Finder<Long, Content> find = new Model.Finder(Long.class, Content.class);
 
@@ -42,6 +44,7 @@ public class Content extends Model
     public Content(Content content) {
         this.name = content.name;
         this.html = content.html;
+        this.language = content.language;
     }
 
     public String toString()
@@ -60,11 +63,11 @@ public class Content extends Model
         content.put("id", id);
         content.put("name", name);
         content.put("html", html);
+        content.put("language", language);
         return content;
     }
 
-    public static Content findByName(String name)
-    {
-        return find.where().eq("name", name).findUnique();
+    public static List<Content> findByName(String name) {
+        return find.where().eq("name", name).findList();
     }
 }
