@@ -1,239 +1,220 @@
 package models;
 
-import java.util.*;
-import com.tinkerpop.blueprints.*;
+import com.tinkerpop.blueprints.Direction;
+import com.tinkerpop.blueprints.Edge;
+import com.tinkerpop.blueprints.Graph;
+import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import play.libs.Json;
 import play.Logger;
 
-public class BreadboardGraphChangedListener implements GraphChangedListener 
-{
-	private Graph graph;
-	private ArrayList<ClientListener> adminListeners = new ArrayList<ClientListener>();
-    private static HashMap<String, Client> clientListeners = new HashMap<String, Client>();
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 
-	public BreadboardGraphChangedListener(Graph graph)
-	{
-		this.graph = graph;
-	}
+public class BreadboardGraphChangedListener implements GraphChangedListener {
+  private Graph graph;
+  private ArrayList<ClientListener> adminListeners = new ArrayList<ClientListener>();
+  private static HashMap<String, Client> clientListeners = new HashMap<String, Client>();
 
-	public void addAdminListener(ClientListener adminListener)
-	{
-		adminListeners.add(adminListener);
-	}
+  public BreadboardGraphChangedListener(Graph graph) {
+    this.graph = graph;
+  }
 
-	public ArrayList<ClientListener> getAdminListeners() 
-	{
-		return this.adminListeners;
-	}
+  public void addAdminListener(ClientListener adminListener) {
+    adminListeners.add(adminListener);
+  }
 
-	public ArrayList<Client> getClientListeners() 
-	{
-		ArrayList<Client> returnArrayList = new ArrayList<Client>();
-		for (Client client : clientListeners.values()) {
-			returnArrayList.add(client);
-		}
-		return returnArrayList;
-	}
+  public ArrayList<ClientListener> getAdminListeners() {
+    return this.adminListeners;
+  }
 
-	public void addClientListener(Client clientListener)
-	{
-		clientListeners.put(clientListener.id, clientListener);
-	}
-
-    public void removeAdminListener(ClientListener adminListener) 
-    {
-        adminListeners.remove(adminListener);
+  public ArrayList<Client> getClientListeners() {
+    ArrayList<Client> returnArrayList = new ArrayList<Client>();
+    for (Client client : clientListeners.values()) {
+      returnArrayList.add(client);
     }
-	
-	@Override
-	public void edgeAdded(Edge edge) 
-	{
-		//Logger.debug("BreadboardGraphChangedListener edgeAdded");
-		for (ClientListener al : adminListeners)
-			al.edgeAdded(edge);
+    return returnArrayList;
+  }
 
-        clientEdgeChanged(edge);
-	}
+  public void addClientListener(Client clientListener) {
+    clientListeners.put(clientListener.id, clientListener);
+  }
 
-	@Override
-	public void edgePropertyChanged(Edge edge, String key, Object oldValue, Object setValue) 
-	{
-		for (ClientListener al : adminListeners)
-			al.edgePropertyChanged(edge, key, setValue);
+  public void removeAdminListener(ClientListener adminListener) {
+    adminListeners.remove(adminListener);
+  }
 
-        clientEdgePropertyChanged(edge, key, setValue);
-	}
+  @Override
+  public void edgeAdded(Edge edge) {
+    //Logger.debug("BreadboardGraphChangedListener edgeAdded");
+    for (ClientListener al : adminListeners)
+      al.edgeAdded(edge);
 
-	@Override
-	public void edgePropertyRemoved(Edge edge, String key, Object removedValue)
-	{
-		for (ClientListener al : adminListeners)
-			al.edgePropertyRemoved(edge, key);
+    clientEdgeChanged(edge);
+  }
 
-        clientEdgePropertyChanged(edge, key, removedValue);
-	}
+  @Override
+  public void edgePropertyChanged(Edge edge, String key, Object oldValue, Object setValue) {
+    for (ClientListener al : adminListeners)
+      al.edgePropertyChanged(edge, key, setValue);
 
-	@Override
-	public void edgeRemoved(Edge edge, Map<String, Object> props)
-	{
-		for (ClientListener al : adminListeners)
-			al.edgeRemoved(edge);
+    clientEdgePropertyChanged(edge, key, setValue);
+  }
 
-        clientEdgeChanged(edge);
-	}
+  @Override
+  public void edgePropertyRemoved(Edge edge, String key, Object removedValue) {
+    for (ClientListener al : adminListeners)
+      al.edgePropertyRemoved(edge, key);
 
-	@Override
-	public void vertexAdded(Vertex vertex)
-	{
-		for (ClientListener al : adminListeners)
-			al.vertexAdded(vertex);
+    clientEdgePropertyChanged(edge, key, removedValue);
+  }
 
-        clientVertexChanged(vertex, false);
-	}
+  @Override
+  public void edgeRemoved(Edge edge, Map<String, Object> props) {
+    for (ClientListener al : adminListeners)
+      al.edgeRemoved(edge);
 
-	@Override
-	public void vertexPropertyChanged(Vertex vertex, String key, Object oldValue, Object setValue)
-	{
-		for (ClientListener al : adminListeners)
-			al.vertexPropertyChanged(vertex, key, oldValue, setValue);
+    clientEdgeChanged(edge);
+  }
 
-		boolean pvt = (key.equals("private") || key.equals("choices") || key.equals("text"));
-        clientVertexChanged(vertex, pvt);
-	}
+  @Override
+  public void vertexAdded(Vertex vertex) {
+    for (ClientListener al : adminListeners)
+      al.vertexAdded(vertex);
 
-	@Override
-	public void vertexPropertyRemoved(Vertex vertex, String key, Object removedValue)
-	{
-		for (ClientListener al : adminListeners)
-			al.vertexPropertyRemoved(vertex, key);
+    clientVertexChanged(vertex, false);
+  }
 
-		boolean pvt = (key.equals("private") || key.equals("choices") || key.equals("text"));
-        clientVertexChanged(vertex, pvt);
-	}
+  @Override
+  public void vertexPropertyChanged(Vertex vertex, String key, Object oldValue, Object setValue) {
+    for (ClientListener al : adminListeners)
+      al.vertexPropertyChanged(vertex, key, oldValue, setValue);
 
-	@Override
-	public void vertexRemoved(Vertex vertex, Map<String, Object> props)
-	{
-		for (ClientListener al : adminListeners)
-			al.vertexRemoved(vertex);
+    boolean pvt = (key.equals("private") || key.equals("choices") || key.equals("text"));
+    clientVertexChanged(vertex, pvt);
+  }
 
-        clientVertexChanged(vertex, false);
-	}
+  @Override
+  public void vertexPropertyRemoved(Vertex vertex, String key, Object removedValue) {
+    for (ClientListener al : adminListeners)
+      al.vertexPropertyRemoved(vertex, key);
 
-	private void notifyAdminListeners()
-	{
-        Logger.debug("notifyAdminListeners");
-		/*
-		for (AdminListener al : adminListeners)
+    boolean pvt = (key.equals("private") || key.equals("choices") || key.equals("text"));
+    clientVertexChanged(vertex, pvt);
+  }
+
+  @Override
+  public void vertexRemoved(Vertex vertex, Map<String, Object> props) {
+    for (ClientListener al : adminListeners)
+      al.vertexRemoved(vertex);
+
+    clientVertexChanged(vertex, false);
+  }
+
+  private void notifyAdminListeners() {
+    Logger.debug("notifyAdminListeners");
+    /*
+    for (AdminListener al : adminListeners)
 			al.graphChanged(graph);
 		*/
-	}
+  }
 
-	private void clientEdgePropertyChanged(Edge edge, String key, Object value) 
-	{
-		// inProps are only visible by the inVertex and outProps are only visible by the outVertex
-		if (key.equals("inProps")) {
-			Vertex inVertex = edge.getVertex(Direction.IN);
-        	String inId = (String)inVertex.getId();
-        	if (clientListeners.containsKey(inId)) {
-        		Client inClient = clientListeners.get(inId);
-        		inClient.updateGraph(inVertex);
-        	}
-		} else if (key.equals("outProps")) {
-			Vertex outVertex = edge.getVertex(Direction.OUT);
-        	String outId = (String)outVertex.getId();
-        	if (clientListeners.containsKey(outId)) {
-        		Client outClient = clientListeners.get(outId);
-        		outClient.updateGraph(outVertex);
-        	}
-		} else {
-			clientEdgeChanged(edge);
-        }
-	}
+  private void clientEdgePropertyChanged(Edge edge, String key, Object value) {
+    // inProps are only visible by the inVertex and outProps are only visible by the outVertex
+    if (key.equals("inProps")) {
+      Vertex inVertex = edge.getVertex(Direction.IN);
+      String inId = (String) inVertex.getId();
+      if (clientListeners.containsKey(inId)) {
+        Client inClient = clientListeners.get(inId);
+        inClient.updateGraph(inVertex);
+      }
+    } else if (key.equals("outProps")) {
+      Vertex outVertex = edge.getVertex(Direction.OUT);
+      String outId = (String) outVertex.getId();
+      if (clientListeners.containsKey(outId)) {
+        Client outClient = clientListeners.get(outId);
+        outClient.updateGraph(outVertex);
+      }
+    } else {
+      clientEdgeChanged(edge);
+    }
+  }
 
-    private void clientEdgeChanged(Edge edge)
-    {
-        Vertex[] vertices = getVerticesByEdge(edge);
+  private void clientEdgeChanged(Edge edge) {
+    Vertex[] vertices = getVerticesByEdge(edge);
 
-        String id1 = (String)vertices[0].getId();
-        String id2 = (String)vertices[1].getId();
+    String id1 = (String) vertices[0].getId();
+    String id2 = (String) vertices[1].getId();
 
-        if (clientListeners.containsKey(id1)) {
-            Client c1 = clientListeners.get(id1);
-            //c1.vertexAdded(vertices[1]);
-            //c1.edgeAdded(edge);
+    if (clientListeners.containsKey(id1)) {
+      Client c1 = clientListeners.get(id1);
+      //c1.vertexAdded(vertices[1]);
+      //c1.edgeAdded(edge);
 
-            c1.updateGraph(vertices[0]);
-        }
-
-        if (clientListeners.containsKey(id2)) {
-            Client c2 = clientListeners.get(id2);
-            //c2.vertexAdded(vertices[0]);
-            //c2.edgeAdded(edge);
-
-            c2.updateGraph(vertices[1]);
-        }
+      c1.updateGraph(vertices[0]);
     }
 
-    private void clientVertexChanged(Vertex vertex, boolean pvt)
-    {
-        // The vertex itself
-        String id = (String)vertex.getId();
+    if (clientListeners.containsKey(id2)) {
+      Client c2 = clientListeners.get(id2);
+      //c2.vertexAdded(vertices[0]);
+      //c2.edgeAdded(edge);
+
+      c2.updateGraph(vertices[1]);
+    }
+  }
+
+  private void clientVertexChanged(Vertex vertex, boolean pvt) {
+    // The vertex itself
+    String id = (String) vertex.getId();
+    if (clientListeners.containsKey(id)) {
+      clientListeners.get(id).updateGraph(vertex);
+    }
+    // And all neighbors, if it isn't a private property
+    if (!pvt) {
+      for (Vertex v : vertex.getVertices(Direction.BOTH)) {
+        id = (String) v.getId();
         if (clientListeners.containsKey(id)) {
-          clientListeners.get(id).updateGraph(vertex);
+          clientListeners.get(id).updateGraph(v);
         }
-        // And all neighbors, if it isn't a private property
-        if (! pvt) {
-			    for(Vertex v : vertex.getVertices(Direction.BOTH)) {
-				    id = (String)v.getId();
-				    if (clientListeners.containsKey(id)) {
-					    clientListeners.get(id).updateGraph(v);
-				    }
-			    }
-        }
+      }
     }
+  }
 
-	private ArrayList<Client> getClientsByEdge(Edge edge) 
-	{
-		ArrayList<Client> returnClientList = new ArrayList<Client>();
-		String inId = (String)edge.getVertex(Direction.IN).getId();
-		String outId = (String)edge.getVertex(Direction.OUT).getId();
+  private ArrayList<Client> getClientsByEdge(Edge edge) {
+    ArrayList<Client> returnClientList = new ArrayList<Client>();
+    String inId = (String) edge.getVertex(Direction.IN).getId();
+    String outId = (String) edge.getVertex(Direction.OUT).getId();
 
-		if (clientListeners.containsKey(inId))
-			returnClientList.add(clientListeners.get(inId));
+    if (clientListeners.containsKey(inId))
+      returnClientList.add(clientListeners.get(inId));
 
-		if (clientListeners.containsKey(outId))
-			returnClientList.add(clientListeners.get(outId));
+    if (clientListeners.containsKey(outId))
+      returnClientList.add(clientListeners.get(outId));
 
-		return returnClientList;
-	}
+    return returnClientList;
+  }
 
-	private Vertex[] getVerticesByEdge(Edge edge)
-	{
-		Vertex[] returnArray = new Vertex[2];
-		returnArray[0] = edge.getVertex(Direction.IN);
-		returnArray[1] = edge.getVertex(Direction.OUT);
-		return returnArray;
-	}
+  private Vertex[] getVerticesByEdge(Edge edge) {
+    Vertex[] returnArray = new Vertex[2];
+    returnArray[0] = edge.getVertex(Direction.IN);
+    returnArray[1] = edge.getVertex(Direction.OUT);
+    return returnArray;
+  }
 
-	private ArrayList<Client> getClientsByVertex(Vertex vertex) 
-	{
-		ArrayList<Client> returnClientList = new ArrayList<Client>();
+  private ArrayList<Client> getClientsByVertex(Vertex vertex) {
+    ArrayList<Client> returnClientList = new ArrayList<Client>();
 
-		// Add the client himself
-		String id = (String)vertex.getId();
-		if (clientListeners.containsKey(id))
-			returnClientList.add(clientListeners.get(id));
+    // Add the client himself
+    String id = (String) vertex.getId();
+    if (clientListeners.containsKey(id))
+      returnClientList.add(clientListeners.get(id));
 
-        for (Vertex v : vertex.getVertices(Direction.BOTH))
-        {
-        	id = (String)v.getId();
-        	if (clientListeners.containsKey(id))
-				returnClientList.add(clientListeners.get(id));
-		}
-		return returnClientList;
-	}
+    for (Vertex v : vertex.getVertices(Direction.BOTH)) {
+      id = (String) v.getId();
+      if (clientListeners.containsKey(id))
+        returnClientList.add(clientListeners.get(id));
+    }
+    return returnClientList;
+  }
 
 }

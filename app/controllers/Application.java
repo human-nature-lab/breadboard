@@ -15,10 +15,7 @@ import play.mvc.Http.MultipartFormData;
 import play.mvc.Http.MultipartFormData.FilePart;
 import play.mvc.Result;
 import play.mvc.WebSocket;
-import views.html.breadboard;
-import views.html.createFirstUser;
-import views.html.login;
-
+import views.html.*;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
@@ -47,9 +44,6 @@ public class Application extends Controller {
     Form<CreateFirstUser> createFirstUserForm = Form.form(CreateFirstUser.class).bindFromRequest();
 
     if (createFirstUserForm.hasErrors()) {
-      //Logger.debug("loginForm.hasErrors():");
-      //Logger.debug("Email:" + loginForm.get().email);
-      //Logger.debug("Password:" + loginForm.get().password);
       return badRequest(createFirstUser.render(createFirstUserForm));
     } else {
       String email = createFirstUserForm.get().email;
@@ -99,9 +93,6 @@ public class Application extends Controller {
     Form<Login> loginForm = Form.form(Login.class).bindFromRequest();
 
     if (loginForm.hasErrors()) {
-      //Logger.debug("loginForm.hasErrors():");
-      //Logger.debug("Email:" + loginForm.get().email);
-      //Logger.debug("Password:" + loginForm.get().password);
       return badRequest(login.render(loginForm));
     } else {
       String email = loginForm.get().email;
@@ -346,17 +337,7 @@ public class Application extends Controller {
 
     public String validate() {
       Logger.debug("email: " + email);
-      //Logger.debug("password: " + password);
       if (User.authenticate(email, password) == null) {
-                /*
-                 * This code makes the app throw an java.lang.reflect.InvocationTargetException
-                 * when the database needs to be reloaded into memory
-				for (User u : User.findAll())
-				{
-					Logger.info(u.toString());
-				}
-				*/
-
         return "Invalid user or password";
       }
       return null;

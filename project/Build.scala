@@ -5,7 +5,7 @@ import play.Project._
 object ApplicationBuild extends Build {
 
     val appName         = "breadboard"
-    val appVersion      = "v2.2"
+    val appVersion      = "v2.3"
 
     val appDependencies = Seq(
       javaCore,

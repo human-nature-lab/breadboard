@@ -2,14 +2,8 @@ package controllers;
 
 import play.*;
 import play.mvc.*;
-import play.data.*;
-import play.libs.*;
-import play.libs.F.*;
-
 import views.html.*;
-
 import com.fasterxml.jackson.databind.*;
-
 import models.*;
 
 // TODO: Why does this always redirect to login?
@@ -24,7 +18,7 @@ public class ClientController extends Controller
         try {
           experimentInstance = ExperimentInstance.findById(Long.valueOf(experimentInstanceId));
           experiment = Experiment.findById(Long.valueOf(experimentId));
-        } catch (NumberFormatException nfe) {}
+        } catch (NumberFormatException ignored) {}
 
         if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
           return ok( amtError.render() );

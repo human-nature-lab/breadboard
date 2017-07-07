@@ -1,12 +1,12 @@
 package models;
 
 import akka.actor.ActorRef;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
 import controllers.D3Utils;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.libs.Json;
 
 import java.util.Map;
@@ -85,32 +85,14 @@ public class Admin implements ClientListener {
   }
 
   public void vertexPropertyChanged(Vertex vertex, String key, Object oldValue, Object setValue) {
-    //Logger.debug("vertexPropertyChanged");
-
     ObjectNode jsonOutput = Json.newObject();
 
-		/*
-    if (key.startsWith("private")) {
-        	String privateKey = key.substring(7);
-			jsonOutput = Json.newObject();
-			jsonOutput.put("action", "nodePropertyChanged");
-			jsonOutput.put("id", vertex.getId().toString());
-			jsonOutput.put("key", privateKey);
-			jsonOutput.put("value", Json.toJson(setValue));
-		} else {
-			jsonOutput.put("action", "nodePropertyChanged");
-			jsonOutput.put("id", vertex.getId().toString());
-			jsonOutput.put("key", key);
-			jsonOutput.put("value", Json.toJson(setValue));
-        }
-        */
     if (key.equals("private")) {
       if (vertex.getProperty("private") instanceof Map) {
-        //Logger.debug("vertex.getProperty(private) instanceof Map");
         Map newMap = (Map) vertex.getProperty("private");
 
 				/*
-				 * TODO: oldValue and setValue don't seem to be Maps, is there any way to only send the changed private variables?
+         * TODO: oldValue and setValue don't seem to be Maps, is there any way to only send the changed private variables?
 				Map oldMap = new HashMap();
 				if (oldValue instanceof Map) {
 					Logger.debug("oldValue instanceof Map");
@@ -127,16 +109,6 @@ public class Admin implements ClientListener {
           jsonOutput.put("key", k.toString());
           jsonOutput.put("value", Json.toJson(newMap.get(k)));
           out.write(jsonOutput);
-
-					/*
-					if ((! oldMap.containsKey(k)) || (! oldMap.get(k).equals(newMap.get(k)))) {
-						Logger.debug("(! oldMap.containsKey(k)) || (! oldMap.get(k).equals(newMap.get(k)))");
-						jsonOutput.put("action", "nodePropertyChanged");
-						jsonOutput.put("id", vertex.getId().toString());
-						jsonOutput.put("key", k.toString());
-						jsonOutput.put("value", Json.toJson(newMap.get(k)));
-					}
-					*/
         }
       }
     } else {
