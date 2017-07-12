@@ -16,12 +16,19 @@ import play.mvc.WebSocket;
 
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class Client extends Model {
   public String id;
   public WebSocket.In<JsonNode> in;
   public ThrottledWebSocketOut out;
   public ExperimentInstance experimentInstance;
+  //private int updates = 0;
+  private long lastWrite = 0;
+  private static long delay = 250000000;
+  private Timer delayTimer = new Timer();
+  private boolean timerScheduled = false;
 
   public Client(String id, ExperimentInstance experimentInstance, WebSocket.In<JsonNode> in, ThrottledWebSocketOut out) {
     this.id = id;
@@ -31,6 +38,20 @@ public class Client extends Model {
   }
 
   public synchronized void updateGraph(Vertex me) {
+    long curTime = System.nanoTime();
+    // If we already updated within the past delay nanoseconds, don't update again
+    // Set a timer in case this is the last of a series of updates
+    if ( (curTime - lastWrite < delay) || timerScheduled) {
+      if (! timerScheduled) {
+        delayTimer.schedule(new DelayTimerTask(me), (delay/1000000) + 100);
+        timerScheduled = true;
+      }
+      return;
+    }
+
+    // If we get here update the graph
+    lastWrite = curTime;
+
     // Create an in-memory graph to store the sub-graph in
     TinkerGraph inMemoryGraph = new TinkerGraph();
     EventGraph subGraph = new EventGraph(inMemoryGraph);
@@ -131,6 +152,24 @@ public class Client extends Model {
       }
     }
 
+    /*
+    long curTime = System.nanoTime();
+    if (curTime - lastWrite > delay) {
+      writeGraph(m, subGraph);
+      lastWrite = curTime;
+      delayTimer.purge();
+      if (timerScheduled) {
+        Logger.info("Timer cancelled");
+        timerScheduled = false;
+      }
+    } else {
+      if (!timerScheduled) {
+        Logger.info("Timer scheduled");
+        delayTimer.schedule(new DelayTimerTask(m, subGraph), delay/1000000);
+        timerScheduled = true;
+      }
+    }
+    */
     writeGraph(m, subGraph);
   }
 
@@ -149,6 +188,7 @@ public class Client extends Model {
 
     jsonOutput.put("player", client);
 
+    //Logger.info("writeGraph: " + (updates++));
     out.write(jsonOutput);
   }
 
@@ -285,5 +325,17 @@ public class Client extends Model {
 
   public String toString() {
     return "Client(" + id + ")";
+  }
+
+  private class DelayTimerTask extends TimerTask {
+    private Vertex me;
+    DelayTimerTask(Vertex me) {
+      this.me = me;
+    }
+    public void run() {
+      //Logger.info("DelayTimer.run()");
+      timerScheduled = false;
+      updateGraph(me);
+    }
   }
 }
