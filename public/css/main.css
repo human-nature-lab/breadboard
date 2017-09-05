@@ -182,14 +182,14 @@ caption {
     background: #BB4C00;
 }
 
-label {
+label.fixed-width {
     float: left;
     width: 180px;
 }
 
 
 .new-dialog {
-    
+    padding: 1em;
 }
 
 .delete-dialog {

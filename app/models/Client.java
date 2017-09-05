@@ -10,6 +10,7 @@ import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
 import com.tinkerpop.blueprints.util.wrappers.event.EventGraph;
 import controllers.D3Utils;
 import play.Logger;
+import play.Play;
 import play.db.ebean.Model;
 import play.libs.Json;
 import play.mvc.WebSocket;
@@ -26,7 +27,8 @@ public class Client extends Model {
   public ExperimentInstance experimentInstance;
   //private int updates = 0;
   private long lastWrite = 0;
-  private static long delay = 250000000;
+  private static final long DELAY = Play.application().configuration().getLong("breadboard.client.messageBuffer");
+  //private static long delay = 250000000;
   private Timer delayTimer = new Timer();
   private boolean timerScheduled = false;
 
@@ -37,18 +39,36 @@ public class Client extends Model {
     this.out = out;
   }
 
+  private class DelayTimerTask extends TimerTask {
+    private Vertex me;
+    DelayTimerTask(Vertex me) {
+      this.me = me;
+    }
+    public void run() {
+      //Logger.info("DelayTimer.run()");
+      timerScheduled = false;
+      updateGraph(me);
+    }
+  }
+
   public synchronized void updateGraph(Vertex me) {
+
     long curTime = System.nanoTime();
+    //Logger.debug("curTime - lastWrite = " + (curTime - lastWrite));
+    //Logger.debug("DELAY = " + DELAY);
+
     // If we already updated within the past delay nanoseconds, don't update again
     // Set a timer in case this is the last of a series of updates
-    if ( (curTime - lastWrite < delay) || timerScheduled) {
+    if ( (curTime - lastWrite < DELAY) || timerScheduled) {
       if (! timerScheduled) {
-        delayTimer.schedule(new DelayTimerTask(me), (delay/1000000) + 100);
+        //Logger.debug("Timer scheduled for: " + ((DELAY/1000000) + 1) + "ms");
+        delayTimer.schedule(new DelayTimerTask(me), (DELAY/1000000) + 1);
         timerScheduled = true;
       }
       return;
     }
 
+    //Logger.debug("Update");
     // If we get here update the graph
     lastWrite = curTime;
 
@@ -327,15 +347,4 @@ public class Client extends Model {
     return "Client(" + id + ")";
   }
 
-  private class DelayTimerTask extends TimerTask {
-    private Vertex me;
-    DelayTimerTask(Vertex me) {
-      this.me = me;
-    }
-    public void run() {
-      //Logger.info("DelayTimer.run()");
-      timerScheduled = false;
-      updateGraph(me);
-    }
-  }
 }

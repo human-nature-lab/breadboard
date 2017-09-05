@@ -164,13 +164,13 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
 
   var saveContent = function () {
     if ($scope.selectedContent != undefined) {
-      console.log("saveContent: " + $scope.selectedContent.text);
+      console.log("saveContent: ", $scope.selectedContent);
       $breadboardFactory.send(
         {
           "action": "SaveContent",
           "id": $scope.selectedContent.id,
-          "name": $scope.selectedContentName,
-          "html": $scope.selectedContent.text
+          "name": $scope.selectedContent.name,
+          "html": $scope.selectedContent.html
         });
     }
   };
@@ -252,6 +252,24 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
       {
         "action": "ExportExperiment",
         "selectedExperiment": selectedExperiment
+      });
+  };
+
+  $scope.openImportDialog = function () {
+    $("#importExperimentDialog input").each(function (index, element) {
+      $(element).val("");
+    });
+
+    $('#importExperimentDialog').dialog({title: 'Import Experiment'});
+  };
+
+  $scope.importExperiment = function () {
+    $('#importExperimentDialog').dialog('close');
+    $breadboardFactory.send(
+      {
+        "action": "ImportExperiment",
+        "importFrom": $scope.importFrom,
+        "importTo": $scope.importTo
       });
   };
 

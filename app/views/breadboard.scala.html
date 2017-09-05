@@ -17,6 +17,9 @@
         <button title='Export' ui-jq='button' id='exportButton'
         ng-click='exportExperiment()'><span class="step-icon ui-icon-triangle-1-s">Export experiment</span>
         </button>
+        <button title='Import' ui-jq='button' id='importButton'
+        ng-click='openImportDialog()'><span class="step-icon ui-icon-triangle-1-n">Import experiment</span>
+        </button>
         <button jq-button title='Run' id='runButton'
         ng-click='run()'><span class="step-icon ui-icon-play">Run experiment</span>
         </button>
@@ -43,25 +46,49 @@
       <!-- Dialogs -->
 
       <!-- New Experiment -->
-    <div class="new-dialog" id="newExperimentDialog" style="display: none;">
-      <form ng-submit="createExperiment()">
-        <p>
-          Copy
-          <select name="copyExperiment" ng-options="experiment for experiment in breadboard.user.experiments"
-          ng-model="copyExperimentName">
-            <option value="">Default</option>
-          </select>
-        </p>
-        <p>
-          <input name="name" ng-model="newExperimentName" placeholder="Name" required>
-        </p>
+    <div id="newExperimentDialog" style="display: none;">
+      <div class="new-dialog">
+        <form ng-submit="createExperiment()">
+          <p>
+            Copy
+            <select name="copyExperiment" ng-options="experiment for experiment in breadboard.user.experiments"
+            ng-model="copyExperimentName">
+              <option value="">Default</option>
+            </select>
+          </p>
+          <p>
+            <input name="name" ng-model="newExperimentName" placeholder="Name" required>
+          </p>
 
-        <p>
-          <button class="ui-button" style="float: right;" type="submit">
-            <span class="ui-button-text">Create</span>
-          </button>
-        </p>
-      </form>
+          <p>
+            <button jq-button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" style="float: right;" type="submit">
+              <span class="ui-button-text">Create</span>
+            </button>
+          </p>
+        </form>
+      </div>
+    </div>
+
+      <!-- Import Experiment -->
+    <div id="importExperimentDialog" style="display: none;">
+      <div class="new-dialog">
+        <form ng-submit="importExperiment()">
+          <p>
+            <label for="importExperimentImportFrom">Import experiment from: <br><small>(breadboard-v2.X/experiments/...)</small></label>
+            <input id="importExperimentImportFrom" name="importFrom" ng-model="importFrom" placeholder="Directory name" required>
+          </p>
+          <p>
+            <label for="importExperimentImportTo">Save experiment as:</label>
+            <input id="importExperimentImportTo" name="importTo" ng-model="importTo" placeholder="Experiment name" required>
+          </p>
+
+          <p>
+            <button jq-button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" style="float: right;" type="submit">
+              <span class="ui-button-text">Import</span>
+            </button>
+          </p>
+        </form>
+      </div>
     </div>
 
       <!-- Output -->
@@ -106,26 +133,26 @@
     <div>
       <div ui-jq="dialog" ui-options="amtDialogOptions" id="amtDiv">
         <div ng-hide="breadboard.experimentInstance.amtHits.length > 0">
-          <div class="formRow"><label for="title">
+          <div class="formRow"><label class="fixed-width" for="title">
             Title</label><input name="title" ng-model="amtTaskTitle" placeholder="Title" required></div>
-          <div class="formRow"><label for="description">
+          <div class="formRow"><label class="fixed-width" for="description">
             Description</label><textarea name="description" ng-model="amtTaskDescription" placeholder="Description" rows="3" cols="60" required></textarea></div>
-          <div class="formRow"><label for="reward">
+          <div class="formRow"><label class="fixed-width" for="reward">
             Reward</label><input type="number" pattern="\d+(\.\d{2})?" name="reward" ng-model="amtTaskReward" placeholder="Reward" required></div>
-          <div class="formRow"><label for="lifetimeInSeconds">
+          <div class="formRow"><label class="fixed-width" for="lifetimeInSeconds">
             HIT lifetime (in seconds)</label><input type="number" name="lifetimeInSeconds" ng-model="amtTaskLifetime" placeholder="HIT lifetime (sec.)" required></div>
-          <div class="formRow"><label for="tutorialTime">
+          <div class="formRow"><label class="fixed-width" for="tutorialTime">
             Tutorial time (in seconds)</label><input type="number" name="tutorialTime" ng-model="amtTaskTutorialTime" placeholder="Tutorial time (sec.)" required></div>
-          <div class="formRow"><label for="maxAssignments">
+          <div class="formRow"><label class="fixed-width" for="maxAssignments">
             Max. Assignments</label><input type="number" min="1" max="1000000000" name="maxAssignments" ng-model="amtTaskMaxAssignments" placeholder="Max Assignments" required></div>
-          <div class="formRow"><label for="disallowPrevious">
+          <div class="formRow"><label class="fixed-width" for="disallowPrevious">
             Allow repeat play?</label><select name="disallowPrevious" ng-model="amtTaskDisallowPrevious">
             <option value=""></option>
             <option value="type">Block previous players of THIS experiment</option>
             <option value="any">Block previous players of ANY experiment</option>
             <option value="none">Allow repeat play</option>
           </select></div>
-          <div class="formRow"><label for="sandbox">
+          <div class="formRow"><label class="fixed-width" for="sandbox">
             Sandbox?</label><input type="checkbox" name="sandbox" ng-model="amtTaskSandbox" ng-init="amtTaskSandbox=true"></div>
           <button title='' ui-jq='button' id='submitAMTButton'
           ng-click='submitAMTTask()'>Submit AMT Task
@@ -320,12 +347,42 @@
       </div>
     </div>
 
-      <!-- Content -->
+      <!-- Content
+    <div>
+      <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
+        <div id="contentTabsDiv">
+          <span class="steps-tab selected-{{$parent.selectedContent.id==c.id}}" ng-repeat="c in breadboard.experiment.content">
+            <a ng-click="$parent.selectedContent=c">{{c.name}}</a>
+            <a title="Delete step" ng-click="deleteContent(c)" class="step-titlebar-close ui-corner-all" role="button">
+              <span class="step-icon ui-icon-closethick">close</span>
+            </a>
+          </span><span class="steps-tab"><a ng-click="newContent()"><span class="step-icon ui-icon-plusthick">New content</span></a></span>
+        </div>
+        <div id="tinymceDiv" ng-hide="selectedContent==undefined">
+          <textarea id="tinymceTextarea" ui-tinymce="tinymceOptions" ng-model="selectedContent.html"></textarea>
+        </div>
+      </div>
+    </div>
+
+    <div class="new-dialog" id="newContentDialog" style="display: none;">
+      <form ng-submit="createContent()">
+        <p>
+          <input name="name" ng-model="newContentName" placeholder="Name" required>
+        </p>
+
+        <p>
+          <button style="float: right;" type="submit">Create</button>
+        </p>
+      </form>
+    </div-->
+
+
+      <!-- Content w/ Translation support -->
     <div>
       <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
         <div id="contentTabsDiv">
           <span class="steps-tab selected-{{selectedContentName==ckey}}"
-                ng-repeat="(ckey, cvalue) in breadboard.experiment.content">
+               ng-repeat="(ckey, cvalue) in breadboard.experiment.content">
             <a ng-click="selectContent(ckey)">{{ckey}}</a>
               &nbsp;
               <i class="fa fa-language" aria-hidden="true"></i>
@@ -339,7 +396,7 @@
               <a title="Delete step" ng-click="deleteContent(ckey)" class="step-titlebar-close ui-corner-all" role="button">
                 <i class="fa fa-close"></i>
               </a>
-          </span>  <!-- steps-tab -->
+          </span>
           <span class="steps-tab selected-false">
             &nbsp;
             <a ng-click="newContent()" class="ng-binding">
@@ -347,11 +404,11 @@
             </a>
           </span>
 
-        </div> <!-- contentTabsDiv -->
+        </div>
         <div id="tinymceDiv" ng-if="selectedContent!==undefined && selectedLanguages[selectedContentName]!==undefined">
           <textarea id="tinymceTextarea" ui-tinymce="tinymceOptions" ng-model="selectedContent.text"></textarea>
-        </div> <!-- tinymceDiv -->
-      </div> <!-- contentDiv -->
+        </div>
+      </div>
     </div>
 
     <div class="new-dialog" id="newContentDialog" style="display: none;">
@@ -608,17 +665,17 @@
           <legend>Change Password</legend>
           <ul id="changePasswordError" class="error" style="display: none;"></ul>
           <p>
-            <label for="currentPassword">Current Password</label>*
+            <label class="fixed-width" for="currentPassword">Current Password</label>*
             <input type="password" name="currentPassword" id="currentPassword"/>
           </p>
 
           <p>
-            <label for="newPassword">New Password</label>*
+            <label class="fixed-width" for="newPassword">New Password</label>*
             <input type="password" name="newPassword" id="newPassword"/>
           </p>
 
           <p>
-            <label for="confirmNewPassword">Confirm Password</label>*
+            <label class="fixed-width" for="confirmNewPassword">Confirm Password</label>*
             <input type="password" name="confirmNewPassword" id="confirmNewPassword"/>
           </p>
         </fieldset>

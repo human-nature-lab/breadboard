@@ -8,18 +8,25 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tinkerpop.blueprints.Vertex;
+import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
+import org.imgscalr.Scalr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import play.Logger;
+import play.Play;
 import play.libs.*;
 import play.libs.F.Callback;
 import play.mvc.WebSocket;
 
-import java.io.IOException;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.*;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -66,6 +73,11 @@ public class Breadboard extends UntypedActor {
               String copyExperimentName = jsonInput.containsKey("copyExperimentName") ? jsonInput.get("copyExperimentName").toString() : null;
               breadboardController.tell(new CreateExperiment(user, name, copyExperimentName, out), null);
               Logger.debug("CreateExperiment");
+            } else if (action.equals("ImportExperiment")) {
+              String importFrom = jsonInput.get("importFrom").toString();
+              String importTo = jsonInput.get("importTo").toString();
+              breadboardController.tell(new ImportExperiment(user, importFrom, importTo, out), null);
+              Logger.debug("ImportExperiment");
             } else if (action.equals("DeleteExperiment")) {
               String selectedExperimentName = jsonInput.get("selectedExperiment").toString();
               instances.get(user.email).tell(new DeleteExperiment(user, selectedExperimentName, out), null);
@@ -413,6 +425,119 @@ public class Breadboard extends UntypedActor {
 
         // Select the newly created experiment
         breadboardController.tell(new SelectExperiment(breadboardMessage.user, experiment, breadboardMessage.out), null);
+      } else if (message instanceof ImportExperiment) {
+        ImportExperiment importExperiment = (ImportExperiment) message;
+        Logger.debug("Importing experiment from " + importExperiment.importFrom + " to " + importExperiment.importTo);
+        Experiment importedExperiment = new Experiment();
+        importedExperiment.name = importExperiment.importTo;
+        File experimentDirectory = new File(Play.application().path().toString() + "/experiments/" + importExperiment.importFrom);
+
+        String style = FileUtils.readFileToString(new File(experimentDirectory, "style.css"));
+        importedExperiment.style = style;
+
+        String clientHtml = FileUtils.readFileToString(new File(experimentDirectory, "client.html"));
+        importedExperiment.clientHtml = clientHtml;
+
+        String clientGraph = FileUtils.readFileToString(new File(experimentDirectory, "client-graph.js"));
+        importedExperiment.clientGraph = clientGraph;
+
+        File stepsDirectory = new File(experimentDirectory, "/Steps");
+        File[] stepFiles = stepsDirectory.listFiles();
+
+        if (stepFiles != null) {
+          for (File stepFile : stepFiles) {
+            Step step = new Step();
+            String stepName = FilenameUtils.removeExtension(stepFile.getName());
+            String source = FileUtils.readFileToString(stepFile);
+            step.name = stepName;
+            step.source = source;
+            importedExperiment.steps.add(step);
+            Logger.debug("Adding step: " + stepName);
+          }
+        }
+
+        File contentDirectory = new File(experimentDirectory, "/Content");
+        File[] contentFiles = contentDirectory.listFiles();
+
+        if (contentFiles != null) {
+          for (File contentFile : contentFiles) {
+            Content content = new Content();
+            String contentName = FilenameUtils.removeExtension(contentFile.getName());
+            String html = FileUtils.readFileToString(contentFile);
+            content.name = contentName;
+            content.html = html;
+            importedExperiment.content.add(content);
+            Logger.debug("Adding content: " + contentName);
+          }
+        }
+
+        String ls = System.getProperty("line.separator");
+        File parametersFile = new File(experimentDirectory, "parameters.csv");
+        String parameters = FileUtils.readFileToString(parametersFile);
+        String[] parametersLines = parameters.split(ls);
+
+        if (parametersLines.length > 1) {
+          for (int i = 1; i < parametersLines.length; i++) {
+            String parameterLine = parametersLines[i];
+            String[] parameterValues = parameterLine.split(",");
+            if (parameterValues.length == 6) {
+              Parameter parameter = new Parameter();
+              String parameterName = parameterValues[0];
+              Logger.debug("Adding parameter: " + parameterName);
+              String parameterType = parameterValues[1];
+              String parameterMinVal = parameterValues[2];
+              String parameterMaxVal = parameterValues[3];
+              String parameterDefaultVal = parameterValues[4];
+              String parameterDescription = parameterValues[5];
+              parameter.name = parameterName;
+              parameter.type = parameterType;
+              parameter.minVal = parameterMinVal;
+              parameter.maxVal = parameterMaxVal;
+              parameter.defaultVal = parameterDefaultVal;
+              parameter.description = parameterDescription;
+              importedExperiment.parameters.add(parameter);
+            }
+          }
+        }
+
+        File imagesDirectory = new File(experimentDirectory, "/Images");
+        File[] imageFiles = imagesDirectory.listFiles();
+
+        if (imageFiles != null) {
+          for (File imageFile : imageFiles) {
+            String imageName = FilenameUtils.removeExtension(imageFile.getName());
+            byte[] imageBytes = FileUtils.readFileToByteArray(imageFile);
+            Image image = new Image();
+            image.fileName = imageFile.getName();
+            image.file = imageBytes;
+            image.contentType = "image/" + FilenameUtils.getExtension(imageFile.getName());
+
+            // Create thumbnail
+            InputStream in = new ByteArrayInputStream(image.file);
+            BufferedImage bImage = ImageIO.read(in);
+            BufferedImage scaledImage = Scalr.resize(bImage, 100);
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(scaledImage, FilenameUtils.getExtension(imageFile.getName()), baos);
+            baos.flush();
+
+            byte[] thumbImageBytes = baos.toByteArray();
+            image.thumbFile = thumbImageBytes;
+            image.thumbFileName = (image.fileName).concat("_thumb");
+            baos.close();
+
+            importedExperiment.images.add(image);
+            Logger.debug("Adding image: " + imageName);
+          }
+        }
+
+        importedExperiment.save();
+
+        breadboardMessage.user.ownedExperiments.add(importedExperiment);
+        breadboardMessage.user.update();
+        breadboardMessage.user.saveManyToManyAssociations("ownedExperiments");
+
+        // Select the newly imported experiment
+        breadboardController.tell(new SelectExperiment(breadboardMessage.user, importedExperiment, breadboardMessage.out), null);
       } else if (message instanceof SubmitAMTTask) {
         Logger.debug("message instanceof SubmitAMTTask");
 
@@ -1126,6 +1251,17 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
       super(user, out);
       this.name = name;
       this.copyExperimentName = copyExperimentName;
+    }
+  }
+
+  public static class ImportExperiment extends BreadboardMessage {
+    final String importFrom;
+    final String importTo;
+
+    public ImportExperiment(User user, String importFrom, String importTo, ThrottledWebSocketOut out) {
+      super(user, out);
+      this.importFrom = importFrom;
+      this.importTo = importTo;
     }
   }
 
