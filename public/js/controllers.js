@@ -9,55 +9,34 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
         $scope.breadboard = {};
       }
 
-      console.log("data: ", data);
-      //var data = JSON.parse(message.data);
+      $scope.breadboard = _.extend($scope.breadboard, data);
 
-      //if (data.action != undefined)
-      if (false) {
-        if (data.action == "addNode")
-          $scope.breadboardGraph.addNode(data.id);
+      console.log("$scope.breadboard", $scope.breadboard);
 
-        if (data.action == "removeNode")
-          $scope.breadboardGraph.removeNode(data.id);
-
-        if (data.action == "nodePropertyChanged") {
-          // TODO: Do we ever send node property values as JSON?
-          var value;
-          try {
-            value = JSON.parse(data.value);
-          } catch (e) {
-            //console.log("Error parsing JSON: " + data.value);
-            value = data.value;
-          }
-          $scope.breadboardGraph.nodePropertyChanged(data.id, data.key, value);
+      if ($scope.breadboard.experiment != undefined) {
+        // If there is style, apply it
+        if ($scope.breadboard.experiment.style) {
+          applyStyle();
         }
 
-        if (data.action == "nodePropertyRemoved")
-          $scope.breadboardGraph.nodePropertyChanged(data.id, data.key);
-
-        if (data.action == "addLink")
-          $scope.breadboardGraph.addLink(data.id, data.source, data.target, data.value);
-
-        if (data.action == "removeLink")
-          $scope.breadboardGraph.removeLink(data.source, data.target);
-      }
-      else {
-        $scope.breadboard = _.extend($scope.breadboard, data);
-
-        console.log($scope.breadboard);
-
-        if ($scope.breadboard.experiment != undefined) {
-          if ($scope.breadboard.experiment.style)
-            applyStyle();
-
-          if ($scope.breadboard.experiment.parameters != undefined) {
-            for (var i = 0; i < $scope.breadboard.experiment.parameters.length; i++) {
-              var parameter = $scope.breadboard.experiment.parameters[i];
-              if (!$scope.launchParameters[parameter.name]) {
-                $scope.launchParameters[parameter.name] = parameter.defaultVal;
-              }
+        if ($scope.breadboard.experiment.parameters != undefined) {
+          // Set parameters in Launch dialog to default values
+          for (var i = 0; i < $scope.breadboard.experiment.parameters.length; i++) {
+            var parameter = $scope.breadboard.experiment.parameters[i];
+            if (!$scope.launchParameters[parameter.name]) {
+              $scope.launchParameters[parameter.name] = parameter.defaultVal;
             }
           }
+        }
+
+        // Setup content languages
+        if ($scope.breadboard.experiment.content != undefined && $scope.contentLanguages == undefined) {
+          $scope.contentLanguages = [];
+          $scope.selectedContentLanguages = {};
+          $scope.contentObjects = {};
+          $scope.selectedContentName = undefined;
+          setupContentLanguages();
+          $scope.$watch($scope.breadboard.experiment.content, setupContentLanguages, true);
         }
       }
     }
@@ -70,6 +49,27 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   /* Graph here */
   $scope.selectedNode = {};
   $scope.breadboardGraph = new Graph(($(window).width() / 2), ($(window).width() / 2), $scope);
+
+  function setupContentLanguages() {
+    var contentLanguageSet = new Set();
+    $scope.breadboard.experiment.content.forEach(function (content) {
+      contentLanguageSet.add(content.language);
+      // Default to the first language found as selected language for that content
+      if (! ((content.name) in $scope.selectedContentLanguages)) {
+        $scope.selectedContentLanguages[content.name] = content.language;
+      }
+      if (! ((content.name) in $scope.contentObjects)) {
+        $scope.contentObjects[content.name] = {};
+      }
+      $scope.contentObjects[content.name][content.language] = content;
+    });
+    $scope.contentLanguages = Array.from(contentLanguageSet);
+    $scope.selectedLanguage = $scope.contentLanguages[0];
+    console.log("$scope.contentObjects", $scope.contentObjects);
+    console.log("$scope.contentLanguages", $scope.contentLanguages);
+    console.log("$scope.selectedContentLanguages", $scope.selectedContentLanguages);
+
+  }
 
   $scope.paramType = function (type) {
     if (type == 'Boolean') {
@@ -142,7 +142,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
       });
   };
 
-  $scope.formatContent = function(content) {
+  $scope.formatContent = function (content) {
     var returnContent = {};
     returnContent.languages = {};
     returnContent.contentObject = {};
@@ -151,7 +151,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
       var c = content[i];
       returnContent.languages[c.language] = true;
 
-      if (! returnContent.contentObject.hasOwnProperty(c.name)) {
+      if (!returnContent.contentObject.hasOwnProperty(c.name)) {
         returnContent.contentObject[c.name] = [];
       }
 
@@ -593,44 +593,70 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     });
   };
 
-  $scope.selectedLanguages = {};
+  /*
+  $scope.selectedContentLanguages = {};
   $scope.selectedContentName = undefined;
   $scope.selectedContent = undefined;
+  */
 
-  $scope.selectLanguage = function(contentName, selectedLanguage, thisSelect) {
+  $scope.addContentLanguage = function(contentName) {
+    console.log("addContentLanguage", contentName);
+    // Reset the language dialog
+    $("#addLanguageDialog input").each(function (index, element) {
+      $(element).val("");
+    });
+
+    $('#addLanguageDialog').dialog({
+      title: 'Add new language',
+      buttons: {
+        'Submit': function () {
+          var experimentId = $scope.breadboard.experiment.id;
+          console.log("scope.newLanguage", $scope.newLanguage);
+          console.log("contentName", contentName);
+          console.log("experimentId", experimentId);
+
+          $breadboardFactory.send({
+            "action": "AddLanguage",
+            "experimentId": experimentId,
+            "contentName": contentName,
+            "newLanguage": $scope.newLanguage
+          });
+          // If the added language doesn't exist, add it
+          if ($scope.contentLanguages.indexOf($scope.newLanguage) == -1) {
+            $scope.contentLanguages.push($scope.newLanguage);
+          }
+
+          // Add a placeholder object for the new language
+          $scope.contentObjects[contentName][$scope.newLanguage] = { 'html':'' };
+
+          // Select the new language
+          $scope.selectedContentLanguages[contentName] = $scope.newLanguage;
+          $(this).dialog("close");
+        }
+      }
+    });
+  };
+
+  /*
+  $scope.selectContentLanguage = function (contentName, selectedLanguage, thisSelect) {
     console.log("contentName", contentName);
     console.log("selectedLanguage", selectedLanguage);
     console.log("thisSelect", thisSelect);
 
-    if (selectedLanguage == "+") {
-      $("#addLanguageDialog input").each(function (index, element) {
-        $(element).val("");
-      });
-      $('#addLanguageDialog').dialog({
-        title: 'Add new language',
-        buttons: {
-          'Submit': function () {
-            console.log("scope.newLanguage", $scope.newLanguage);
-            console.log("contentName", contentName);
-            $breadboardFactory.send({"action": "AddLanguage", "contentName": contentName, "newLanguage": $scope.newLanguage});
-            thisSelect.selectedLanguage = " ";
-            $(this).dialog("close");
-          }
-        }
-      });
-    } else {
-      $scope.selectedContentName = contentName;
-      $scope.selectedContent = $scope.breadboard.experiment.content[contentName][selectedLanguage];
-      $scope.selectedLanguages[contentName] = selectedLanguage;
-      $timeout(resizeTiny, 10);
-    }
-  };
-
-  $scope.selectContent = function(contentName) {
     $scope.selectedContentName = contentName;
-    if ($scope.selectedLanguages[contentName] !== undefined) {
-      $scope.selectedContent = $scope.breadboard.experiment.content[contentName][$scope.selectedLanguages[contentName]];
+    $scope.selectedContent = $scope.breadboard.experiment.content[contentName][selectedLanguage];
+    $scope.selectedContentLanguages[contentName] = selectedLanguage;
+    $timeout(resizeTiny, 10);
+  };
+  */
+
+  $scope.selectContentName = function (contentName) {
+    $scope.selectedContentName = contentName;
+    /*
+    if ($scope.selectedContentLanguages[contentName] !== undefined) {
+      $scope.selectedContent = $scope.breadboard.experiment.content[contentName][$scope.selectedContentLanguages[contentName]];
     }
+    */
     $timeout(resizeTiny, 10);
   };
 
@@ -677,7 +703,11 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
 
   $scope.createContent = function () {
     $('#newContentDialog').dialog('close');
-    $breadboardFactory.send({"action": "CreateContent", "name": $scope.newContentName, "language": $scope.newContentLanguage});
+    $breadboardFactory.send({
+      "action": "CreateContent",
+      "name": $scope.newContentName,
+      "language": $scope.newContentLanguage
+    });
   };
 
   $scope.launchParameters = {};

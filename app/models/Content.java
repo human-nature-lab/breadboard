@@ -1,16 +1,14 @@
 package models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.data.format.Formats;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
 import play.libs.Json;
 
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.util.List;
 
 @Entity
@@ -23,9 +21,8 @@ public class Content extends Model {
   @Formats.NonEmpty
   public String name;
 
-  @Constraints.Required
-  @Column(columnDefinition = "text")
-  public String html;
+  @OneToMany(mappedBy="content")
+  public List<Translation> translations;
 
   @JsonIgnore
   public static Model.Finder<Long, Content> find = new Model.Finder(Long.class, Content.class);
@@ -34,31 +31,31 @@ public class Content extends Model {
     return find.all();
   }
 
+  public static Content findByName(String name) {
+    return find.where().eq("name", name).findUnique();
+  }
+
   public Content() {
   }
 
-  public Content(Content content) {
-    this.name = content.name;
-    this.html = content.html;
+  public Content(Content c) {
+    this.name = c.name;
+    this.translations = c.translations;
   }
 
   public String toString() {
     return "Content(" + name + ")";
   }
 
-  public void setHtml(String html) {
-    this.html = html;
-  }
-
   public ObjectNode toJson() {
     ObjectNode content = Json.newObject();
     content.put("id", id);
     content.put("name", name);
-    content.put("html", html);
+    ArrayNode jsonTranslations = content.putArray("translations");
+    for (Translation t : translations) {
+      jsonTranslations.add(t.toJson());
+    }
     return content;
   }
 
-  public static Content findByName(String name) {
-    return find.where().eq("name", name).findUnique();
-  }
 }

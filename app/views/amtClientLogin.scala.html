@@ -104,7 +104,7 @@
         </div>
         @if(experiment.getContentByName("AMTIntro") != null) {
         <div id="amtIntroText">
-          @Html(experiment.getContentByName("AMTIntro").html)
+          @Html(experiment.getContentByName("AMTIntro").translations.get(0).html)
         </div>
         }
       @if(! assignmentId.equals("ASSIGNMENT_ID_NOT_AVAILABLE")) {

@@ -30,6 +30,7 @@ public class Step extends Model {
   @JsonIgnore
   public static Model.Finder<Long, Step> find = new Model.Finder(Long.class, Step.class);
 
+  @JsonIgnore
   public static List<Step> findAll() {
     return find.all();
   }

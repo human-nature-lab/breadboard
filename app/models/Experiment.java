@@ -45,6 +45,10 @@ public class Experiment extends Model {
   @OneToMany(cascade = CascadeType.ALL)
   public List<Image> images = new ArrayList<Image>();
 
+  @ManyToMany(cascade = CascadeType.PERSIST)
+  @JoinTable(name = "experiments_languages")
+  public List<Language> languages = new ArrayList<Language>();
+
   public static final Long TEST_INSTANCE_ID = 0L;
   public ExperimentInstance TEST_INSTANCE = null;
 
@@ -138,7 +142,12 @@ public class Experiment extends Model {
 
     File contentDirectory = new File(experimentDirectory, "/Content");
     for (Content c : this.content) {
-      FileUtils.writeStringToFile(new File(contentDirectory, c.name.concat(".html")), c.html);
+      // Write to a subdirectory based on the language of the Content or 'en' if language is undefined
+      for (Translation t : c.translations) {
+        String language = (t.language == null) ? "en" : t.language.code;
+        File languageDirectory = new File(contentDirectory, "/" + language);
+        FileUtils.writeStringToFile(new File(languageDirectory, c.name.concat(".html")), t.html);
+      }
     }
 
     String ls = System.getProperty("line.separator");

@@ -10,9 +10,23 @@ public class ContentFetcher {
 
   public String get(String name) {
     Content c = selectedExperiment.getContentByName(name);
+    /*
     if (c == null)
       return " ";
-    return c.html;
+    String returnString = "[";
+    for (int i = 0; i < c.translations.size(); i++) {
+      Translation t = c.translations.get(i);
+      returnString += "{'language':" + t.language.code;
+      returnString += ",'html':" + t.html + "}";
+      if (i < (c.translations.size() - 1)) {
+        returnString += ",";
+      }
+    }
+    returnString += "]";
+    return returnString;
+    */
+    if (c == null) return " ";
+    return c.toJson().toString();
   }
 
   public String get(String name, Object... parameters) {
