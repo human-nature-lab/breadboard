@@ -248,7 +248,8 @@ public class ScriptBoard extends UntypedActor {
         Graph wholeGraph = (Graph) engine.get("g");
         Vertex clientVertex = wholeGraph.getVertex(clientId);
         if (clientVertex != null) {
-          client.updateGraph(clientVertex);
+          // TODO: Only update graph through iterated single threaded process
+          //client.updateGraph(clientVertex);
         }
       }
 

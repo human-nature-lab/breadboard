@@ -59,6 +59,8 @@ public class Client extends Model {
 
     // If we already updated within the past delay nanoseconds, don't update again
     // Set a timer in case this is the last of a series of updates
+    /*
+    TODO: replacing this performance enhancement with an iterated update
     if ( (curTime - lastWrite < DELAY) || timerScheduled) {
       if (! timerScheduled) {
         //Logger.debug("Timer scheduled for: " + ((DELAY/1000000) + 1) + "ms");
@@ -67,6 +69,7 @@ public class Client extends Model {
       }
       return;
     }
+    */
 
     //Logger.debug("Update");
     // If we get here update the graph
