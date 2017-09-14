@@ -6,7 +6,6 @@ import play.db.ebean.Model;
 import play.libs.Json;
 
 import javax.persistence.*;
-import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -19,22 +18,18 @@ public class Language extends Model {
 
   public String name;
 
-  /*
-  @JsonIgnore
-  @ManyToMany
-  @JoinTable(name = "experiments_languages")
-  public List<Experiment> experiments = new ArrayList<Experiment>();
-  */
-
   @JsonIgnore
   public static Finder<Long, Language> find = new Finder(Long.class, Language.class);
 
+  @JsonIgnore
   public static List<Language> findAll() {
     return find.all();
   }
 
+  @JsonIgnore
   public Language() {}
 
+  @JsonIgnore
   public ObjectNode toJson() {
     ObjectNode language = Json.newObject();
     language.put("id", id);
@@ -43,6 +38,7 @@ public class Language extends Model {
     return language;
   }
 
+  @JsonIgnore
   public String toString() {
     return "Language(" + id + ")";
   }

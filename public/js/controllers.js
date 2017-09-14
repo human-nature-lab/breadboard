@@ -29,7 +29,11 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
           }
         }
 
-        // Setup content languages
+        // Setup default language
+        $scope.selectedLanguage = $scope.breadboard.experiment.languages[0];
+        // Setup watch for selectedTranslation
+        $scope.$watch('[selectedLanguage, selectedContent]', $scope.selectTranslation, true);
+        /*
         if ($scope.breadboard.experiment.content != undefined && $scope.contentLanguages == undefined) {
           $scope.contentLanguages = [];
           $scope.selectedContentLanguages = {};
@@ -38,6 +42,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
           setupContentLanguages();
           $scope.$watch($scope.breadboard.experiment.content, setupContentLanguages, true);
         }
+        */
       }
     }
     catch (e) {
@@ -50,6 +55,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   $scope.selectedNode = {};
   $scope.breadboardGraph = new Graph(($(window).width() / 2), ($(window).width() / 2), $scope);
 
+  /*
   function setupContentLanguages() {
     var contentLanguageSet = new Set();
     $scope.breadboard.experiment.content.forEach(function (content) {
@@ -68,8 +74,8 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     console.log("$scope.contentObjects", $scope.contentObjects);
     console.log("$scope.contentLanguages", $scope.contentLanguages);
     console.log("$scope.selectedContentLanguages", $scope.selectedContentLanguages);
-
   }
+  */
 
   $scope.paramType = function (type) {
     if (type == 'Boolean') {
@@ -168,9 +174,9 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
       $breadboardFactory.send(
         {
           "action": "SaveContent",
-          "id": $scope.selectedContent.id,
+          "contentId": $scope.selectedContent.id,
           "name": $scope.selectedContent.name,
-          "html": $scope.selectedContent.html
+          "translations": $scope.selectedContent.translations
         });
     }
   };
@@ -599,8 +605,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   $scope.selectedContent = undefined;
   */
 
-  $scope.addContentLanguage = function(contentName) {
-    console.log("addContentLanguage", contentName);
+  $scope.addLanguage = function() {
     // Reset the language dialog
     $("#addLanguageDialog input").each(function (index, element) {
       $(element).val("");
@@ -611,26 +616,15 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
       buttons: {
         'Submit': function () {
           var experimentId = $scope.breadboard.experiment.id;
-          console.log("scope.newLanguage", $scope.newLanguage);
-          console.log("contentName", contentName);
+          console.log("scope.newLanguage", $scope.newLanguageCode);
           console.log("experimentId", experimentId);
 
           $breadboardFactory.send({
             "action": "AddLanguage",
             "experimentId": experimentId,
-            "contentName": contentName,
-            "newLanguage": $scope.newLanguage
+            "code": $scope.newLanguageCode
           });
-          // If the added language doesn't exist, add it
-          if ($scope.contentLanguages.indexOf($scope.newLanguage) == -1) {
-            $scope.contentLanguages.push($scope.newLanguage);
-          }
 
-          // Add a placeholder object for the new language
-          $scope.contentObjects[contentName][$scope.newLanguage] = { 'html':'' };
-
-          // Select the new language
-          $scope.selectedContentLanguages[contentName] = $scope.newLanguage;
           $(this).dialog("close");
         }
       }
@@ -658,6 +652,38 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     }
     */
     $timeout(resizeTiny, 10);
+  };
+
+  $scope.selectContent = function (content) {
+    $scope.selectedContent = content;
+    /*
+     if ($scope.selectedContentLanguages[contentName] !== undefined) {
+     $scope.selectedContent = $scope.breadboard.experiment.content[contentName][$scope.selectedContentLanguages[contentName]];
+     }
+     */
+    $timeout(resizeTiny, 10);
+  };
+
+  $scope.selectTranslation = function() {
+    if ($scope.selectedLanguage !== undefined && $scope.selectedContent !== undefined) {
+      $scope.selectedTranslation = undefined;
+      angular.forEach($scope.selectedContent.translations, function(translation) {
+        if (translation.language.id == $scope.selectedLanguage.id) {
+          $scope.selectedTranslation = translation;
+        }
+      });
+      if ($scope.selectedTranslation == undefined) {
+        // No translation for the selected language
+        var length = $scope.selectedContent.translations.push(
+          {
+            'id' : null,
+            'html' : "<p>No translation found.</p>",
+            'language' : $scope.selectedLanguage
+          }
+        );
+        $scope.selectedTranslation = $scope.selectedContent.translations[(length - 1)];
+      }
+    }
   };
 
   $scope.deleteContent = function (content) {

@@ -3,6 +3,11 @@ package models;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonFormat;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
@@ -167,20 +172,45 @@ public class Breadboard extends UntypedActor {
               }
             } else if (action.equals("AddLanguage")) {
               Long experimentId = Long.parseLong(jsonInput.get("experimentId").toString());
-              String contentName = jsonInput.get("contentName").toString();
-              String language = jsonInput.get("newLanguage").toString();
-              breadboardController.tell(new AddLanguage(user, experimentId, contentName, language, out), null);
+              String languageCode = jsonInput.get("code").toString();
+              breadboardController.tell(new AddLanguage(user, experimentId, languageCode, out), null);
             } else if (action.equals("CreateContent")) {
               String name = jsonInput.get("name").toString();
               breadboardController.tell(new CreateContent(user, name, out), null);
-            } else if (action.equals("SaveTranslation")) {
+            } else if (action.equals("SaveContent")) {
+              Logger.debug("SaveContent");
               try {
+                // TODO:
+                /*
+                Logger.debug("event.toString(): " + event.toString());
+                mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
+                SaveContentObject saveContentObject = mapper.readValue(event.toString(), SaveContentObject.class);
+                Logger.debug("saveContentObject", saveContentObject);
+                for (Translation t : saveContentObject.translations) {
+                  Logger.debug("translation.html: " + t.html);
+                }
+                */
+
+                /*
                 Long contentId = Long.parseLong(jsonInput.get("contentId").toString());
-                String language = jsonInput.get("language").toString();
-                String html = jsonInput.get("html").toString();
-                breadboardController.tell(new SaveTranslation(user, contentId, language, html, out), null);
+                Logger.debug("contentId: " + contentId);
+                String name = jsonInput.get("name").toString();
+                Logger.debug("name: " + name);
+                */
+                //jsonInput.get("translations")
+                //String translationString = jsonInput.get("translations").toString();
+                //Logger.debug("translationString: " + translationString);
+                //List<Translation> translations = mapper.readValue(jsonInput.get("translations").toString(), mapper.getTypeFactory().constructCollectionType(List.class, Translation.class));
+                /*
+                List<Translation> translations = (List<Translation>) jsonInput.get("translations");
+                for (Translation t : translations) {
+                  Logger.debug("translation.html: " + t.html);
+                }
+                */
+
+                //breadboardController.tell(new SaveTranslation(user, contentId, language, html, out), null);
               } catch (NumberFormatException nfe) {
-                Logger.debug("SaveTranslation threw NumberFormatException at Long.parseLong parsing: " + jsonInput.get("contentId").toString());
+                Logger.debug("SaveContent threw NumberFormatException at Long.parseLong parsing: " + jsonInput.get("contentId").toString());
               }
             } else if (action.equals("MakeChoice")) {
               // TODO: Player client will not be logged in with email and will
@@ -472,8 +502,20 @@ public class Breadboard extends UntypedActor {
                 // For each file in the language directory with an extension equal to ".html"
                 // The language is the same as the name of the containing directory
                 if (languageFile.isFile() && FilenameUtils.getExtension(languageFile.getName()).equals("html")) {
+                  // First, check if the language is in the database
                   Language language = Language.find.where().eq("code", contentFile.getName()).findUnique();
+
                   if (language == null) {
+                    // Next, check if the language is in importedExperiment.languages
+                    for (Language l : importedExperiment.languages) {
+                      if (l.code.equals(contentFile.getName())) {
+                        language = l;
+                      }
+                    }
+                  }
+
+                  if (language == null) {
+                    // Language not found in database or importedExperiment.languages, create new language
                     Logger.debug("No language found, creating new language.");
                     language = new Language();
                     language.code = contentFile.getName();
@@ -481,8 +523,16 @@ public class Breadboard extends UntypedActor {
                     language.name = new Locale(contentFile.getName()).getDisplayLanguage();
                     Logger.debug("The language based on the code " + contentFile.getName() + " is " + language.name);
                   }
-                  if (importedExperiment.languages.indexOf(language) == -1) {
+
+                  boolean hasLanguage = false;
+                  for (Language l : importedExperiment.languages) {
+                    if (l.code.equals(contentFile.getName())) {
+                      hasLanguage = true;
+                    }
+                  }
+                  if (!hasLanguage) {
                     importedExperiment.languages.add(language);
+                    importedExperiment.save();
                   }
 
                   Translation translation = new Translation();
@@ -490,25 +540,43 @@ public class Breadboard extends UntypedActor {
                   String html = FileUtils.readFileToString(languageFile);
                   translation.html = html;
 
-                  Content content = new Content();
                   String contentName = FilenameUtils.removeExtension(languageFile.getName());
-                  content.name = contentName;
-                  content.translations.add(translation);
-                  importedExperiment.content.add(content);
+                  Content content = null;
+                  for (Content c : importedExperiment.content) {
+                    if (c.name.equals(contentName)) {
+                      content = c;
+                    }
+                  }
+                  if (content == null) {
+                    content = new Content();
+                    content.name = contentName;
+                    importedExperiment.content.add(content);
+                  }
                   Logger.debug("Adding content: " + contentName + " with language " + contentFile.getName());
+                  content.translations.add(translation);
                 }
               }
             } else if(contentFile.isFile() && FilenameUtils.getExtension(contentFile.getName()).equals("html")) {
               // Import from a v2.2.4 or earlier DB, let's assume the content is in English
+              // First, check if english is in the database
               Language english = Language.find.where().eq("code", "en").findUnique();
+
               if (english == null) {
-                // Create the English Language
+                // Next, check if the language is in importedExperiment.languages
+                for (Language l : importedExperiment.languages) {
+                  if (l.code.equals("en") && l.name.equals("English")) {
+                    english = l;
+                  }
+                }
+              }
+
+              if (english == null) {
+                // Not in the database or imporetedExperiment.languages, create a new language
                 english = new Language();
                 english.code = "en";
                 english.name = "English";
-              }
-              if (importedExperiment.languages.indexOf(english) == -1) {
                 importedExperiment.languages.add(english);
+                importedExperiment.save();
               }
 
               Translation translation = new Translation();
@@ -1030,17 +1098,22 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         } //if (assignment != null)
       } else if (message instanceof AddLanguage) {
         AddLanguage addLanguage = (AddLanguage) message;
-        Language language = Language.find.where().eq("code", addLanguage.languageCode).eq("name", addLanguage.languageName).findUnique();
+        Language language = Language.find.where().eq("code", addLanguage.languageCode).findUnique();
         if (language == null) {
           // New language, create it
           language = new Language();
           language.code = addLanguage.languageCode;
-          language.name = addLanguage.languageName;
-          language.save();
+          language.name = new Locale(addLanguage.languageCode).getDisplayLanguage();
         }
         // Add the language to the currently selected Experiment, if it doesn't already exist
         Experiment selectedExperiment = Experiment.findById(addLanguage.experimentId);
-        if (selectedExperiment.languages.indexOf(language) == -1) {
+        boolean hasLanguage = false;
+        for (Language l : selectedExperiment.languages) {
+          if (l.id == language.id) {
+            hasLanguage = true;
+          }
+        }
+        if (!hasLanguage) {
           selectedExperiment.languages.add(language);
           selectedExperiment.save();
         }
@@ -1090,9 +1163,10 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         Content content = Content.find.byId(deleteContent.id);
         //Logger.debug("message instanceof DeleteContent, content=" + content);
         content.delete();
-      } else if (message instanceof SaveTranslation) {
-        SaveTranslation saveTranslation = (SaveTranslation) message;
+      } else if (message instanceof SaveContent) {
+        SaveContent saveTranslation = (SaveContent) message;
         Experiment selectedExperiment = breadboardMessage.user.getExperiment();
+        /*
         if (selectedExperiment != null) {
           Content content = selectedExperiment.getContent(saveTranslation.contentId);
           if (content != null) {
@@ -1131,6 +1205,7 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
             breadboardMessage.out.write(jsonOutput);
           }
         }
+        */
       } else if (message instanceof SaveStyle) {
         SaveStyle saveStyle = (SaveStyle) message;
         Experiment selectedExperiment = breadboardMessage.user.getExperiment();
@@ -1485,13 +1560,11 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
   public static class AddLanguage extends BreadboardMessage {
     final Long experimentId;
     final String languageCode;
-    final String languageName;
 
-    public AddLanguage(User user, Long experimentId, String languageCode, String languageName, ThrottledWebSocketOut out) {
+    public AddLanguage(User user, Long experimentId, String languageCode, ThrottledWebSocketOut out) {
       super(user, out);
       this.experimentId = experimentId;
       this.languageCode = languageCode;
-      this.languageName = languageName;
     }
   }
 
@@ -1522,17 +1595,33 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
     }
   }
 
-  public static class SaveTranslation extends BreadboardMessage {
+  public static class SaveContent extends BreadboardMessage {
     final Long contentId;
-    final String language;
-    final String html;
+    final String name;
+    final List<Translation> translations;
 
-    public SaveTranslation(User user, Long contentId, String language, String html, ThrottledWebSocketOut out) {
+    public SaveContent(User user, Long contentId, String name, List<Translation> translations, ThrottledWebSocketOut out) {
       super(user, out);
       this.contentId = contentId;
-      this.language = language;
-      this.html = html;
+      this.name = name;
+      this.translations = translations;
     }
+  }
+
+  public class SaveContentObject {
+    @JsonCreator
+    public SaveContentObject(@JsonProperty("action") String action, @JsonProperty("uid") String uid, @JsonProperty("contentId") Long contentId, @JsonProperty("name") String name, @JsonProperty("translations") List<Translation> translations) {
+      this.action = action;
+      this.uid = uid;
+      this.contentId = contentId;
+      this.name = name;
+      this.translations = translations;
+    }
+    public String action;
+    public String uid;
+    public Long contentId;
+    public String name;
+    public List<Translation> translations;
   }
 
   public static class SaveStyle extends BreadboardMessage {

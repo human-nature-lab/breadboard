@@ -297,7 +297,8 @@
     <div class="new-dialog" id="addLanguageDialog" style="display: none;">
       <form ng-submit="addLanguage()">
         <p>
-          <input name="name" ng-model="newLanguage" placeholder="ISO 639-1 Code" required>
+          <input name="code" ng-model="newLanguageCode" placeholder="ISO 639-1 Code" required>
+          <input name="name" ng-model="newLanguageName" placeholder="Display Name" required>
         </p>
       </form>
     </div>
@@ -350,25 +351,16 @@
       <!-- Content w/ Translation support -->
     <div>
       <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
-        <!--div id="contentLanguageDiv">
-          <span class="i-button" ng-click="addLanguage()">Add Language <i class="fa fa-language" aria-hidden="true"></i></span>
-          <select ng-model="selectedLanguage">
-            <option ng-repeat="language in contentLanguages" value="{{language}}">
-              {{language}}
-            </option>
-          </select>
-        </div-->
+        <div id="contentLanguageDiv">
+          <span><i class="fa fa-language" aria-hidden="true"></i></span>
+          <select ng-model="selectedLanguage" ng-options="language as language.name for language in breadboard.experiment.languages"></select>
+          <span class="i-button" ng-click="addLanguage()" title="Add Language"><span class="fa fa-plus-circle" aria-hidden="true"></span></span>
+        </div>
         <div id="contentTabsDiv">
-          <span class="steps-tab selected-{{selectedContentName==cName}}"
-               ng-repeat="(cName, cObject) in contentObjects">
-            <a ng-click="selectContentName(cName)">{{cName}}</a>
+          <span class="steps-tab selected-{{selectedContent==content}}"
+               ng-repeat="content in breadboard.experiment.content">
+            <a ng-click="selectContent(content)">{{content.name}}</a>
               &nbsp;
-            <span class="i-button" ng-click="addContentLanguage(cName)"><i class="fa fa-language" aria-hidden="true"></i></span>
-              <select ng-model="selectedContentLanguages[cName]">
-                <option ng-repeat="language in contentLanguages" value="{{language}}">
-                  {{language}}
-                </option>
-              </select>
               <a title="Delete step" ng-click="deleteContent(cObject)" class="step-titlebar-close ui-corner-all" role="button">
                 <i class="fa fa-close"></i>
               </a>
@@ -381,8 +373,8 @@
           </span>
 
         </div>
-        <div id="tinymceDiv" ng-if="selectedContentName!==undefined && selectedContentLanguages[selectedContentName]!==undefined">
-          <textarea id="tinymceTextarea" ui-tinymce="tinymceOptions" ng-model="contentObjects[selectedContentName][selectedContentLanguages[selectedContentName]].html"></textarea>
+        <div id="tinymceDiv" ng-if="selectedTranslation !== undefined">
+          <textarea id="tinymceTextarea" ui-tinymce="tinymceOptions" ng-model="selectedTranslation.html"></textarea>
         </div>
       </div>
     </div>

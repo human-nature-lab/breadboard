@@ -27,10 +27,15 @@ public class Translation extends Model {
   @JsonIgnore
   public static Finder<Long, Translation> find = new Finder(Long.class, Translation.class);
 
+  @JsonIgnore
   public static List<Translation> findAll() {
     return find.all();
   }
 
+  @JsonIgnore
+  public Translation() {}
+
+  @JsonIgnore
   public ObjectNode toJson() {
     ObjectNode translation = Json.newObject();
     translation.put("id", id);
@@ -39,6 +44,7 @@ public class Translation extends Model {
     return translation;
   }
 
+  @JsonIgnore
   public String toString() {
     return "Translation(" + id + ")";
   }

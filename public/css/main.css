@@ -252,6 +252,11 @@ label.fixed-width {
     overflow: hidden;
 }
 
+#contentLanguageDiv {
+    padding-left: 1em;
+    margin-bottom: 0.5em;
+}
+
 #stepsTabsDiv, #contentTabsDiv {
     margin: 0;
     padding: 0;

@@ -12,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class IteratedBreadboardGraphChangedListener implements GraphChangedListener {
   private Graph graph;
@@ -19,10 +20,23 @@ public class IteratedBreadboardGraphChangedListener implements GraphChangedListe
   private static HashMap<String, Client> clientListeners = new HashMap<String, Client>();
 
   private static ScheduledExecutorService executor;
+  private static Runnable clientUpdateTask;
 
   public IteratedBreadboardGraphChangedListener(Graph graph) {
     this.graph = graph;
     this.executor = Executors.newSingleThreadScheduledExecutor();
+    this.clientUpdateTask = new ClientUpdateTask();
+    this.executor.scheduleWithFixedDelay(clientUpdateTask, 0, 1, TimeUnit.SECONDS);
+  }
+
+  private class ClientUpdateTask implements Runnable {
+    @Override
+    public void run() {
+      //Logger.debug("ClientUpdateTask.run()");
+      for(Client c : clientListeners.values()) {
+        c.updateGraph(graph.getVertex(c.id));
+      }
+    }
   }
 
   public void addAdminListener(ClientListener adminListener) {

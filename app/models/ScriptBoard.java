@@ -35,7 +35,7 @@ public class ScriptBoard extends UntypedActor {
   private static Map results = new HashMap();
   private static PlayerActionsInterface playerActions;
   private static BreadboardGraphInterface graphInterface;
-  private static BreadboardGraphChangedListener graphChangedListener;
+  private static IteratedBreadboardGraphChangedListener graphChangedListener;
   private static EventTracker eventTracker = new EventTracker();
 
   private static Random rand = new Random();
@@ -105,9 +105,9 @@ public class ScriptBoard extends UntypedActor {
     Object g = engine.get("g");
     graphInterface = inv.getInterface(g, BreadboardGraphInterface.class);
 
-    BreadboardGraphChangedListener oldGraphChangedListener = graphChangedListener;
+    IteratedBreadboardGraphChangedListener oldGraphChangedListener = graphChangedListener;
 
-    graphChangedListener = new BreadboardGraphChangedListener((Graph) g);
+    graphChangedListener = new IteratedBreadboardGraphChangedListener((Graph) g);
 
     // if there are any existing adminListeners they need to be added as listeners to the new graph
     if (oldGraphChangedListener != null) {
@@ -551,7 +551,7 @@ public class ScriptBoard extends UntypedActor {
           }
 
         } // END else if(message instanceof Breadboard.RunOnLeaveStep)
-        else if (message instanceof Breadboard.SaveTranslation || message instanceof Breadboard.CreateContent) {
+        else if (message instanceof Breadboard.SaveContent || message instanceof Breadboard.CreateContent) {
           breadboardMessage.user.selectedExperiment.refresh();
           engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", breadboardMessage.user.selectedExperiment.contentFetcher);
         } // END else if(message instanceof Breadboard.SaveContent || message instanceof Breadboard.CreateContent)
