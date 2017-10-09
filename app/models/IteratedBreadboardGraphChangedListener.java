@@ -16,27 +16,50 @@ import java.util.concurrent.TimeUnit;
 
 public class IteratedBreadboardGraphChangedListener implements GraphChangedListener {
   private Graph graph;
+  private Integer updateIteration = 0;
   private ArrayList<ClientListener> adminListeners = new ArrayList<ClientListener>();
-  private static HashMap<String, Client> clientListeners = new HashMap<String, Client>();
+  private HashMap<String, Client> clientListeners = new HashMap<String, Client>();
 
-  private static ScheduledExecutorService executor;
-  private static Runnable clientUpdateTask;
+  private ScheduledExecutorService executor;
 
   public IteratedBreadboardGraphChangedListener(Graph graph) {
     this.graph = graph;
-    this.executor = Executors.newSingleThreadScheduledExecutor();
-    this.clientUpdateTask = new ClientUpdateTask();
-    this.executor.scheduleWithFixedDelay(clientUpdateTask, 0, 1, TimeUnit.SECONDS);
+    //Logger.debug("Creating a new executor");
+    executor = Executors.newSingleThreadScheduledExecutor();
+    ClientUpdateTask clientUpdateTask = new ClientUpdateTask();
+    Long clientUpdateRate = play.Play.application().configuration().getMilliseconds("breadboard.clientUpdateRate");
+    if (clientUpdateRate == null) {
+      Logger.debug("clientUpdateRate = null");
+      clientUpdateRate = 1000L;
+    }
+    Logger.debug("clientUpdateRate = " + clientUpdateRate);
+    executor.scheduleWithFixedDelay(clientUpdateTask, 0, clientUpdateRate, TimeUnit.MILLISECONDS);
   }
 
   private class ClientUpdateTask implements Runnable {
     @Override
     public void run() {
-      //Logger.debug("ClientUpdateTask.run()");
+      Logger.debug("Client update: " + (++updateIteration));
+
       for(Client c : clientListeners.values()) {
-        c.updateGraph(graph.getVertex(c.id));
+        if (graph.getVertex(c.id) != null) {
+          c.updateGraph(graph.getVertex(c.id));
+        }
       }
     }
+  }
+
+  public ScheduledExecutorService getExecutor() {
+    return executor;
+  }
+
+  public void stopExecutor() {
+    Logger.debug("executor.shutdown()");
+    executor.shutdown();
+  }
+
+  public void setGraph(Graph g) {
+    this.graph = g;
   }
 
   public void addAdminListener(ClientListener adminListener) {

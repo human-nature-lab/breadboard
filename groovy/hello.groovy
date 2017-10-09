@@ -110,9 +110,14 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
 
     /*
       timer usage examples:
-      g.addTimer(time: 20, type: "currency", appearance: "success", timerText: "currency timer", currencyAmount: "500", direction: "down", result: { player-> player.color = r.nextInt(19) + 1 })
+      g.addTimer(time: 20,
+      type: "currency",
+      appearance: "success",
+      timerText: "currency timer",
+      currencyAmount: "500", direction: "down", result: { player-> player.color = r.nextInt(19) + 1 })
       g.addTimer(time: 30, type: "percent", appearance: "info", timerText: "percent timer", direction: "up", result: { player-> player.color = r.nextInt(19) + 1 })
-      g.addTimer(time: 10, type: "time", appearance: "warning", timerText: "time timer", direction: "down", result: { player-> player.color = r.nextInt(19) + 1 })
+      g.addTimer(time: 10,
+      type: "time", appearance: "warning", timerText: "time timer", direction: "down", result: { player-> player.color = r.nextInt(19) + 1 })
       g.addTimer(time: 15, type: "time", appearance: "danger", timerText: "time timer", direction: "up", result: { player-> player.color = r.nextInt(19) + 1 })
      */
     def addTimer(Map params) {
@@ -152,15 +157,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
                 player.timers = [:]
             }
 
-            player.timers[name] = ["startTime":startTime,
-                                   "endTime":endTime,
-                                   "timerType":type,
-                                   "timerText":timerText,
-                                   "direction":direction,
-                                   "currencyAmount":currencyAmount,
-                                   "appearance":appearance]
-
-            new Timer().runAfter(time * 1000) {
+            def timer = new Timer().runAfter(time * 1000) {
                 if (player.timers) {
                     player.timers.remove(name)
                 }
@@ -168,6 +165,16 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
                     result(player)
                 }
             }
+
+            player.timers[name] = ["startTime":startTime,
+                                   "endTime":endTime,
+                                   "timerType":type,
+                                   "timerText":timerText,
+                                   "direction":direction,
+                                   "currencyAmount":currencyAmount,
+                                   "appearance":appearance,
+                                   "timer":timer]
+
         }
         //println("""startTime: ${startTime}, endTime: ${endTime}, name: ${name}, timerText: ${timerText}, direction: ${direction}, type: ${type}, player: ${player}""")
     }

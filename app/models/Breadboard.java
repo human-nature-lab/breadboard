@@ -3,15 +3,12 @@ package models;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
-import com.fasterxml.jackson.annotation.JsonCreator;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
 import com.tinkerpop.blueprints.Vertex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -26,12 +23,10 @@ import play.Play;
 import play.libs.*;
 import play.libs.F.Callback;
 import play.mvc.WebSocket;
-
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigDecimal;
-import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -180,35 +175,17 @@ public class Breadboard extends UntypedActor {
             } else if (action.equals("SaveContent")) {
               Logger.debug("SaveContent");
               try {
-                // TODO:
-                /*
-                Logger.debug("event.toString(): " + event.toString());
-                mapper.configure(DeserializationFeature.ACCEPT_SINGLE_VALUE_AS_ARRAY, true);
-                SaveContentObject saveContentObject = mapper.readValue(event.toString(), SaveContentObject.class);
-                Logger.debug("saveContentObject", saveContentObject);
-                for (Translation t : saveContentObject.translations) {
-                  Logger.debug("translation.html: " + t.html);
+                try {
+                  Gson gson = new Gson();
+                  SaveContentObject saveContentObject = gson.fromJson(event.toString(), SaveContentObject.class);
+                  breadboardController.tell(new SaveContent(user, saveContentObject.getContentId(), saveContentObject.getName(), saveContentObject.getTranslations(), out), null);
+                } catch (Exception e) {
+                  StringWriter sw = new StringWriter();
+                  e.printStackTrace(new PrintWriter(sw));
+                  String exceptionAsString = sw.toString();
+                  Logger.debug(exceptionAsString);
                 }
-                */
 
-                /*
-                Long contentId = Long.parseLong(jsonInput.get("contentId").toString());
-                Logger.debug("contentId: " + contentId);
-                String name = jsonInput.get("name").toString();
-                Logger.debug("name: " + name);
-                */
-                //jsonInput.get("translations")
-                //String translationString = jsonInput.get("translations").toString();
-                //Logger.debug("translationString: " + translationString);
-                //List<Translation> translations = mapper.readValue(jsonInput.get("translations").toString(), mapper.getTypeFactory().constructCollectionType(List.class, Translation.class));
-                /*
-                List<Translation> translations = (List<Translation>) jsonInput.get("translations");
-                for (Translation t : translations) {
-                  Logger.debug("translation.html: " + t.html);
-                }
-                */
-
-                //breadboardController.tell(new SaveTranslation(user, contentId, language, html, out), null);
               } catch (NumberFormatException nfe) {
                 Logger.debug("SaveContent threw NumberFormatException at Long.parseLong parsing: " + jsonInput.get("contentId").toString());
               }
@@ -1164,37 +1141,25 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         //Logger.debug("message instanceof DeleteContent, content=" + content);
         content.delete();
       } else if (message instanceof SaveContent) {
-        SaveContent saveTranslation = (SaveContent) message;
+        SaveContent saveContent = (SaveContent) message;
         Experiment selectedExperiment = breadboardMessage.user.getExperiment();
-        /*
         if (selectedExperiment != null) {
-          Content content = selectedExperiment.getContent(saveTranslation.contentId);
+          Content content = selectedExperiment.getContent(saveContent.contentId);
           if (content != null) {
-            Translation translation = null;
-            for (Translation t : content.translations) {
-              if (t.language.code.equals(saveTranslation.language)) {
-                translation = t;
+            for (Translation t : saveContent.translations) {
+              if (t.id == null) {
+                // New translation, create it
+                Translation newTranslation = new Translation();
+                newTranslation.language = t.getLanguage();
+                newTranslation.html = t.getHtml();
+                content.translations.add(newTranslation);
+                content.save();
+              } else {
+                // Existing translation, update it
+                Translation translation = Translation.find.byId(t.id);
+                translation.setHtml(t.getHtml());
+                translation.update();
               }
-            }
-
-            if (translation == null) {
-              // New translation, create it
-              translation = new Translation();
-              Language language = Language.find.where().eq("code", saveTranslation.language).findUnique();
-              if (language == null) {
-                language = new Language();
-                language.code = saveTranslation.language;
-                language.name = new Locale(saveTranslation.language).getDisplayLanguage();
-                selectedExperiment.languages.add(language);
-                selectedExperiment.save();
-              }
-              translation.language = language;
-              content.translations.add(translation);
-              content.save();
-            } else {
-              // Update existing translation
-              translation.html = saveTranslation.html;
-              translation.save();
             }
 
             instances.get(breadboardMessage.user.email).tell(message, null);
@@ -1205,7 +1170,6 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
             breadboardMessage.out.write(jsonOutput);
           }
         }
-        */
       } else if (message instanceof SaveStyle) {
         SaveStyle saveStyle = (SaveStyle) message;
         Experiment selectedExperiment = breadboardMessage.user.getExperiment();
@@ -1608,20 +1572,75 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
     }
   }
 
-  public class SaveContentObject {
+  public class SaveContentObject implements Serializable {
     @JsonCreator
-    public SaveContentObject(@JsonProperty("action") String action, @JsonProperty("uid") String uid, @JsonProperty("contentId") Long contentId, @JsonProperty("name") String name, @JsonProperty("translations") List<Translation> translations) {
+    public SaveContentObject(@JsonProperty("action") String action,
+                             @JsonProperty("uid") String uid,
+                             @JsonProperty("contentId") long contentId,
+                             @JsonProperty("name") String name,
+                             @JsonProperty("translations") List<Translation> translations) {
       this.action = action;
       this.uid = uid;
       this.contentId = contentId;
       this.name = name;
       this.translations = translations;
     }
-    public String action;
-    public String uid;
-    public Long contentId;
-    public String name;
-    public List<Translation> translations;
+    private String action;
+    private String uid;
+    private long contentId;
+    private String name;
+    @JsonProperty("translations")
+    private List<Translation> translations;
+
+    @JsonGetter("action")
+    public String getAction() {
+      return action;
+    }
+
+    @JsonSetter("action")
+    public void setAction(String action) {
+      this.action = action;
+    }
+
+    @JsonGetter("uid")
+    public String getUid() {
+      return uid;
+    }
+
+    @JsonSetter("uid")
+    public void setUid(String uid) {
+      this.uid = uid;
+    }
+
+    @JsonGetter("contentId")
+    public long getContentId() {
+      return contentId;
+    }
+
+    @JsonSetter("contentId")
+    public void setContentId(long contentId) {
+      this.contentId = contentId;
+    }
+
+    @JsonGetter("name")
+    public String getName() {
+      return name;
+    }
+
+    @JsonSetter("name")
+    public void setName(String name) {
+      this.name = name;
+    }
+
+    @JsonGetter("translations")
+    public List<Translation> getTranslations() {
+      return translations;
+    }
+
+    @JsonSetter("translations")
+    public void setTranslations(List<Translation> translations) {
+      this.translations = translations;
+    }
   }
 
   public static class SaveStyle extends BreadboardMessage {
