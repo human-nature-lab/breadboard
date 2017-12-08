@@ -1,6 +1,8 @@
 package models;
 
 
+import play.Logger;
+
 public class ContentFetcher {
   public Experiment selectedExperiment;
 
@@ -45,8 +47,12 @@ public class ContentFetcher {
     String returnString = "";
     Content c = selectedExperiment.getContentByName(name);
     for (Translation t : c.translations) {
-      if (t.language.code.equals(languageCode)) {
-        returnString = t.html;
+      if (t.getLanguage() != null && t.getLanguage().getCode() != null && languageCode != null) {
+        if (t.getLanguage().getCode().equals(languageCode)) {
+          returnString = t.html;
+        }
+      } else {
+        Logger.debug("t.language == null || t.language.code == null || languageCode == null" + t.language.toJson() + ", " + languageCode);
       }
     }
     for (int i = 0; i < parameters.length; i++) {

@@ -548,7 +548,7 @@ public class Breadboard extends UntypedActor {
               }
 
               if (english == null) {
-                // Not in the database or imporetedExperiment.languages, create a new language
+                // Not in the database or importedExperiment.languages, create a new language
                 english = new Language();
                 english.code = "en";
                 english.name = "English";
@@ -579,6 +579,7 @@ public class Breadboard extends UntypedActor {
         if (parametersLines.length > 1) {
           for (int i = 1; i < parametersLines.length; i++) {
             String parameterLine = parametersLines[i];
+            // TODO: Let's properly handle commas in the short description
             String[] parameterValues = parameterLine.split(",");
             if (parameterValues.length == 6) {
               Parameter parameter = new Parameter();

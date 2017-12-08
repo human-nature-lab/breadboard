@@ -166,6 +166,11 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
                 }
             }
 
+            /*
+            // TODO: Adding a reference to the timer here, although useful, is causing an exception on JSON serialization:
+            java.lang.IllegalArgumentException: No serializer found for class org.codehaus.groovy.runtime.DefaultGroovyMethods$3
+            and no properties discovered to create BeanSerializer (to avoid exception, disable SerializationFeature.FAIL_ON_EMPTY_BEANS) )
+            (through reference chain: java.util.LinkedHashMap["a12f7856-42aa-4911-9d69-93376ba7ed15"]->java.util.LinkedHashMap["timer"])
             player.timers[name] = ["startTime":startTime,
                                    "endTime":endTime,
                                    "timerType":type,
@@ -174,6 +179,15 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
                                    "currencyAmount":currencyAmount,
                                    "appearance":appearance,
                                    "timer":timer]
+            */
+
+            player.timers[name] = ["startTime":startTime,
+                                   "endTime":endTime,
+                                   "timerType":type,
+                                   "timerText":timerText,
+                                   "direction":direction,
+                                   "currencyAmount":currencyAmount,
+                                   "appearance":appearance]
 
         }
         //println("""startTime: ${startTime}, endTime: ${endTime}, name: ${name}, timerText: ${timerText}, direction: ${direction}, type: ${type}, player: ${player}""")

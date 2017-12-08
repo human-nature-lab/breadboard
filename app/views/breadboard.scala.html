@@ -274,7 +274,7 @@
       <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
         <div id="stepsTabsDiv">
           <span class="steps-tab selected-{{$parent.selectedStep==step}}"
-          ng-repeat="step in breadboard.experiment.steps" ng-init="initStep(step)"><a
+          ng-repeat="step in breadboard.experiment.steps | orderBy: 'name'" ng-init="initStep(step)"><a
           ng-click="$parent.selectedStep=step">{{step.name}}</a><a title="Delete step"
           ng-click="deleteStep(step)"
           class="step-titlebar-close ui-corner-all"
@@ -353,12 +353,12 @@
       <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
         <div id="contentLanguageDiv">
           <span><i class="fa fa-language" aria-hidden="true"></i></span>
-          <select ng-model="selectedLanguage" ng-options="language as language.name for language in breadboard.experiment.languages"></select>
+          <select ng-model="selectedLanguage" ng-options="language as language.name for language in breadboard.experiment.languages track by language.id"></select>
           <span class="i-button" ng-click="addLanguage()" title="Add Language"><span class="fa fa-plus-circle" aria-hidden="true"></span></span>
         </div>
         <div id="contentTabsDiv">
-          <span class="steps-tab selected-{{selectedContent==content}}"
-               ng-repeat="content in breadboard.experiment.content">
+          <span class="steps-tab selected-{{selectedContent.id==content.id}}"
+               ng-repeat="content in breadboard.experiment.content | orderBy: 'name'">
             <a ng-click="selectContent(content)">{{content.name}}</a>
               &nbsp;
               <a title="Delete step" ng-click="deleteContent(cObject)" class="step-titlebar-close ui-corner-all" role="button">

@@ -53,7 +53,7 @@ public class Client extends Model {
 
   public synchronized void updateGraph(Vertex me) {
 
-    Logger.debug("updateGraph(" + me + ")");
+    //Logger.debug("updateGraph(" + me + ")");
     long curTime = System.nanoTime();
     //Logger.debug("curTime - lastWrite = " + (curTime - lastWrite));
     //Logger.debug("DELAY = " + DELAY);
@@ -198,7 +198,7 @@ public class Client extends Model {
   }
 
   public void writeGraph(Vertex me, Graph graph) {
-    Logger.debug("writeGraph(" + me + "," + graph + ")");
+    //Logger.debug("writeGraph(" + me + "," + graph + ")");
     ObjectNode jsonOutput = Json.newObject();
 
     ObjectNode jsonGraph = D3Utils.graphToJsonString(graph);

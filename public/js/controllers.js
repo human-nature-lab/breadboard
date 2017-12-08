@@ -3,6 +3,10 @@
 /* Controllers */
 
 function AppCtrl($scope, $breadboardFactory, $timeout) {
+  $scope.$watch('selectedLanguage', function(newValue) {
+    console.log('selectedLanguage', newValue);
+  });
+
   $breadboardFactory.onmessage(function (data) {
     try {
       if ($scope.breadboard == undefined) {
@@ -28,9 +32,12 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
             }
           }
         }
-
-        // Setup default language
-        $scope.selectedLanguage = $scope.breadboard.experiment.languages[0];
+        if ($scope.selectedLanguage === undefined) {
+          // Setup default language
+          $scope.selectedLanguage = $scope.breadboard.experiment.languages[0];
+        } else {
+          console.log("$scope.selectedLanguage", $scope.selectedLanguage);
+        }
         // Setup watch for selectedTranslation
         $scope.$watch('[selectedLanguage, selectedContent]', $scope.selectTranslation, true);
         /*
