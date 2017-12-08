@@ -36,8 +36,13 @@ function TimersCtrl($scope, $filter, $interval) {
           timer.baseText = curTimer.timerText;
           var totalTime = curTimer.endTime - curTimer.startTime;
           var time = curTimer.endTime - Date.now();
+          console.log("Date.now()", Date.now());
+          console.log("curTimer.startTime", curTimer.startTime);
+          console.log("curTimer.endTime", curTimer.endTime);
+          console.log("time", time);
           var percent = timer.timerValue = (curTimer.direction == "up") ? (Math.round(( ((totalTime - time) / totalTime) * 100))) : (Math.round(( (time / totalTime) * 100)));
           var currencyAmount = parseInt(curTimer.currencyAmount);
+          timer.currencyAmount = currencyAmount;
 
           if (curTimer.timerType == "currency") {
             var amount = (curTimer.direction == "up") ? (currencyAmount * (((totalTime - time) / totalTime) / 100)) : (currencyAmount * ((time / totalTime) / 100));
@@ -66,8 +71,8 @@ function TimersCtrl($scope, $filter, $interval) {
               var percent = $scope.timers[key].timerValue = (curTimer.direction == "up") ? (Math.round(( ((totalTime - time) / totalTime) * 100))) : (Math.round(( (time / totalTime) * 100)));
 
               if (curTimer.timerType == "currency") {
-                var amount = (curTimer.direction == "up") ? (currencyAmount * (((totalTime - time) / totalTime) / 100)) : (currencyAmount * ((time / totalTime) / 100));
-                var formattedAmount = $filter('currency')(amount, '$');
+                var amount = (curTimer.direction == "up") ? (curTimer.currencyAmount * (((totalTime - time) / totalTime) / 100)) : (curTimer.currencyAmount * ((time / totalTime) / 100));
+                var formattedAmount = $filter('currency')(amount, "$");
                 $scope.timers[key].timerText = curTimer.baseText + " " + formattedAmount;
               } else if (curTimer.timerType == "percent") {
                 $scope.timers[key].timerText = curTimer.baseText + " " + percent + "%";
