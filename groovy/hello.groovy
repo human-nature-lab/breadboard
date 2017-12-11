@@ -184,10 +184,30 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
             player.timers[name] = ["startTime":startTime,
                                    "endTime":endTime,
                                    "timerType":type,
+                                   "elapsed": 0,
+                                   "duration" : time * 1000,
                                    "timerText":timerText,
                                    "direction":direction,
                                    "currencyAmount":currencyAmount,
                                    "appearance":appearance]
+
+
+            // Update the elapsed time for this timer
+            def timerUpdateRate = 1000
+            def tim = new Timer()
+            tim.scheduleAtFixedRate({
+                player.timers[name].elapsed += 1000
+            } as GroovyTimerTask, 1000, 1000)
+            tim.runAfter(time * 1000) {
+                if (player.timers) {
+                    player.timers.remove(name)
+                }
+                if (result != null) {
+                    result(player)
+                }
+                tim.cancel()
+                tim.purge()
+            }
 
         }
         //println("""startTime: ${startTime}, endTime: ${endTime}, name: ${name}, timerText: ${timerText}, direction: ${direction}, type: ${type}, player: ${player}""")
