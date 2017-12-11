@@ -694,14 +694,20 @@ class PlayerAI {
     @JsonIgnore
     def defaultBehavior = { player ->
         def randomDelay = 1000 + r.nextInt(3000)
-        def task = timer.runAfter(randomDelay) {
-            if (player.getProperty("choices")) {
-                def choices = player.getProperty("choices")
-                def choice = choices[r.nextInt(choices.size())]
-                playerActions.choose(choice.uid, null)
+        try {
+            def task = timer.runAfter(randomDelay) {
+                if (player.getProperty("choices")) {
+                    def choices = player.getProperty("choices")
+                    def choice = choices[r.nextInt(choices.size())]
+                    playerActions.choose(choice.uid, null)
+                }
             }
+        } catch(IllegalStateException e){
+            // This is most likely a side effect of a.remove()
+            println "Caught side effect of a.remove(): " + e
         }
     }
+
 
     // A timer so we can stagger AI actions
     def timer = new Timer()
