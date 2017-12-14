@@ -22,7 +22,8 @@ object ApplicationBuild extends Build {
       "org.imgscalr" % "imgscalr-lib" % "4.2",
       "net.sf.jung" % "jung2" % "2.0.1",
       "org.mindrot" % "jbcrypt" % "0.3m",
-      "com.google.code.gson" % "gson" % "2.8.2"
+      "com.google.code.gson" % "gson" % "2.8.2",
+      "com.amazonaws" % "aws-java-sdk" % "1.11.245"
     )
 
     val main = play.Project(appName, appVersion, appDependencies).settings(
