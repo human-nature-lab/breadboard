@@ -157,14 +157,6 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
                 player.timers = [:]
             }
 
-            def timer = new Timer().runAfter(time * 1000) {
-                if (player.timers) {
-                    player.timers.remove(name)
-                }
-                if (result != null) {
-                    result(player)
-                }
-            }
 
             /*
             // TODO: Adding a reference to the timer here, although useful, is causing an exception on JSON serialization:
@@ -189,24 +181,27 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
                                    "timerText":timerText,
                                    "direction":direction,
                                    "currencyAmount":currencyAmount,
-                                   "appearance":appearance]
+                                   "appearance":appearance,
+                                   "order":player.timers.size()]
+
 
 
             // Update the elapsed time for this timer
             def timerUpdateRate = 1000
-            def tim = new Timer()
-            tim.scheduleAtFixedRate({
-                player.timers[name].elapsed += 1000
-            } as GroovyTimerTask, 1000, 1000)
-            tim.runAfter(time * 1000) {
+            def timer = new Timer()
+            // This keeps track of the elapsed time on the server side
+            timer.scheduleAtFixedRate({
+                player.timers[name].elapsed += timerUpdateRate
+            } as GroovyTimerTask, timerUpdateRate, timerUpdateRate)
+            timer.runAfter(time * 1000) {
                 if (player.timers) {
                     player.timers.remove(name)
                 }
                 if (result != null) {
                     result(player)
                 }
-                tim.cancel()
-                tim.purge()
+                timer.cancel()
+//                timer.purge()
             }
 
         }
@@ -715,7 +710,7 @@ class PlayerAI {
     def defaultBehavior = { player ->
         def randomDelay = 1000 + r.nextInt(3000)
         try {
-            def task = timer.runAfter(randomDelay) {
+            def task = new Timer().runAfter(randomDelay) {
                 if (player.getProperty("choices")) {
                     def choices = player.getProperty("choices")
                     def choice = choices[r.nextInt(choices.size())]
@@ -734,18 +729,18 @@ class PlayerAI {
 
     // Is the AI behavior globally turned on?
     // Changed to default to true
-    def on = true
+    def isOn = true
 
     // We have the ability to assign custom AI behavior for each ai player
     // Map of Vertex player : Closure behavior
     def behaviors = [:]
 
     def off() {
-        this.on = false
+        this.isOn = false
     }
 
     def on() {
-        this.on = true
+        this.isOn = true
     }
 
     def add(Vertex player, Closure behavior = defaultBehavior) {
@@ -780,7 +775,7 @@ class PlayerAI {
     }
 
     def choose(Vertex player) {
-        if (!this.on)
+        if (!this.isOn)
             return;
 
         if (behaviors.containsKey(player)) {
