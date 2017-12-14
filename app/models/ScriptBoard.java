@@ -25,6 +25,7 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class ScriptBoard extends UntypedActor {
   private static ObjectMapper mapper = new ObjectMapper();
@@ -35,7 +36,7 @@ public class ScriptBoard extends UntypedActor {
   private static Map results = new HashMap();
   private static PlayerActionsInterface playerActions;
   private static BreadboardGraphInterface graphInterface;
-  private static BreadboardGraphChangedListener graphChangedListener;
+  private static IteratedBreadboardGraphChangedListener graphChangedListener;
   private static EventTracker eventTracker = new EventTracker();
 
   private static Random rand = new Random();
@@ -71,6 +72,7 @@ public class ScriptBoard extends UntypedActor {
   }
 
   private void resetEngine(Experiment experiment) throws IOException, ScriptException {
+    Logger.debug("resetEngine");
     if (engine != null) {
       //just in case
       playerActions.turnAIOff();
@@ -105,12 +107,36 @@ public class ScriptBoard extends UntypedActor {
     Object g = engine.get("g");
     graphInterface = inv.getInterface(g, BreadboardGraphInterface.class);
 
-    BreadboardGraphChangedListener oldGraphChangedListener = graphChangedListener;
+    if (graphChangedListener == null) {
+      Logger.debug("graphChangedListener == null");
+      graphChangedListener = new IteratedBreadboardGraphChangedListener((Graph) g);
+    } else {
+      Logger.debug("graphChangedListener != null");
+      graphChangedListener.setGraph((Graph) g);
+    }
 
-    graphChangedListener = new BreadboardGraphChangedListener((Graph) g);
+    /*
+    TODO: Why would we need to recreate the graph listener here?
+    IteratedBreadboardGraphChangedListener oldGraphChangedListener = graphChangedListener;
+    if (oldGraphChangedListener != null) {
+      // Stop the old executor before starting the new one
+      oldGraphChangedListener.stopExecutor();
+      try {
+        Logger.debug("Awaiting termination");
+        oldGraphChangedListener.getExecutor().awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+      } catch (InterruptedException e) {
+        Logger.debug("InterruptedException: " + e.getLocalizedMessage());
+      }
+      Logger.debug("Executor terminated");
+    }
+
+    graphChangedListener = new IteratedBreadboardGraphChangedListener((Graph) g);
+
+    //graphChangedListener.getExecutor().get
 
     // if there are any existing adminListeners they need to be added as listeners to the new graph
     if (oldGraphChangedListener != null) {
+      Logger.debug("oldGraphChangedListener.getClientListeners().size(): " + oldGraphChangedListener.getClientListeners().size());
       for (ClientListener listener : oldGraphChangedListener.getAdminListeners()) {
         graphChangedListener.addAdminListener(listener);
       }
@@ -120,6 +146,9 @@ public class ScriptBoard extends UntypedActor {
         graphChangedListener.addClientListener(client);
       }
     }
+
+    Logger.debug("graphChangedListener.getClientListeners().size(): " + graphChangedListener.getClientListeners().size());
+    */
 
     graphInterface.addListener(graphChangedListener);
 
@@ -248,7 +277,8 @@ public class ScriptBoard extends UntypedActor {
         Graph wholeGraph = (Graph) engine.get("g");
         Vertex clientVertex = wholeGraph.getVertex(clientId);
         if (clientVertex != null) {
-          client.updateGraph(clientVertex);
+          // TODO: Only update graph through iterated single threaded process
+          //client.updateGraph(clientVertex);
         }
       }
 
@@ -503,7 +533,7 @@ public class ScriptBoard extends UntypedActor {
           ExperimentInstance instance = ExperimentInstance.findById(stopGame.id);
           if (gameListener.experimentInstance != null && gameListener.experimentInstance.equals(instance)) {
             for (Parameter p : breadboardMessage.user.getExperiment().getParameters()) {
-              Logger.debug("Key: " + p.name);
+              //Logger.debug("Key: " + p.name);
               if (engine.getBindings(ScriptContext.ENGINE_SCOPE).containsKey(p.name))
                 engine.getBindings(ScriptContext.ENGINE_SCOPE).remove(p.name);
             }
@@ -550,7 +580,7 @@ public class ScriptBoard extends UntypedActor {
           }
 
         } // END else if(message instanceof Breadboard.RunOnLeaveStep)
-        else if (message instanceof Breadboard.SaveTranslation || message instanceof Breadboard.CreateContent) {
+        else if (message instanceof Breadboard.SaveContent || message instanceof Breadboard.CreateContent) {
           breadboardMessage.user.selectedExperiment.refresh();
           engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", breadboardMessage.user.selectedExperiment.contentFetcher);
         } // END else if(message instanceof Breadboard.SaveContent || message instanceof Breadboard.CreateContent)

@@ -58,17 +58,15 @@ angular.module('client.services', [], function($provide) {
                 websocket.onmessage = function() {
                     var args = arguments;
 
-                    $rootScope.$apply($timeout(function () {
+                    $rootScope.$apply(function () {
                         callback.apply(websocket, args);
-                    }, 1000));
+                    });
 
                 };
             },
             send: function (message) {
-              $timeout(function() {
                 var jsonMessage = JSON.stringify(message);
                 websocket.send(jsonMessage);
-              }, 1000);
             }
         }
     }]);

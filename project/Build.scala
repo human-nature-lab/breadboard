@@ -21,7 +21,8 @@ object ApplicationBuild extends Build {
       "commons-codec" % "commons-codec" % "1.7",
       "org.imgscalr" % "imgscalr-lib" % "4.2",
       "net.sf.jung" % "jung2" % "2.0.1",
-      "org.mindrot" % "jbcrypt" % "0.3m"
+      "org.mindrot" % "jbcrypt" % "0.3m",
+      "com.google.code.gson" % "gson" % "2.8.2"
     )
 
     val main = play.Project(appName, appVersion, appDependencies).settings(

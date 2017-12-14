@@ -21,7 +21,7 @@ public class Content extends Model {
   @Formats.NonEmpty
   public String name;
 
-  @OneToMany(mappedBy="content")
+  @OneToMany(mappedBy="content", cascade = CascadeType.ALL)
   public List<Translation> translations;
 
   @JsonIgnore
