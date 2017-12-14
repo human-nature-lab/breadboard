@@ -86,7 +86,30 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
             }
 
             @Override
-            void vertexPropertyChanged(Vertex vertex, String s, Object o, Object o1) {}
+            void vertexPropertyChanged(Vertex v, String s, Object o, Object o1) {
+                if (o1 instanceof List && (! (o1 instanceof ObservableList))) {
+                    def observableList = new ObservableList()
+                    observableList.addAll(o1)
+                    observableList.addPropertyChangeListener({ evt ->
+                        if (evt instanceof groovy.util.ObservableList.ElementEvent) {
+                            // Filter out property changes to the list (length changing, etc)
+                            v.onVertexPropertyChanged(v, s, evt.oldValue, evt.newValue)
+                        }
+                    } as PropertyChangeListener)
+                    v.setProperty(s, observableList)
+                }
+                if (o1 instanceof Map && (! (o1 instanceof ObservableMap))) {
+                    def observableMap = new ObservableMap()
+                    observableMap.putAll(o1)
+                    observableMap.addPropertyChangeListener({ evt ->
+                        if (evt instanceof groovy.util.ObservableMap.PropertyEvent) {
+                            // Filter out property changes to the map (length changing, etc)
+                            v.onVertexPropertyChanged(v, s, evt.oldValue, evt.newValue)
+                        }
+                    } as PropertyChangeListener)
+                    v.setProperty(s, observableMap)
+                }
+            }
 
             @Override
             void vertexPropertyRemoved(Vertex vertex, String s, Object o) {}
