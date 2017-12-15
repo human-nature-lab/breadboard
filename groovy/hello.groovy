@@ -1020,21 +1020,21 @@ class PlayerActions {
     }
   }
 
+  def choose(String uid) {
+    choose(uid, "")
+  }
+
   def choose(String uid, String params) {
     PlayerAction action = actions[uid]
-
-    //if (params != null) println("params: " + params)
 
     if (action != null) {
       // Perform the action
       def parsedParams = [:]
-      if (params != null) {
-        //println("params: ${params}")
+      if (params != null && params != "") {
         def jsonSlurper = new JsonSlurper()
-        parsedParams = jsonSlurper.parseText(params)
-        //println("parsedParams: ${parsedParams}")
-        choose(uid, parsedParams)
+        parsedParams = jsonSlurper.parseText(params) as Map
       }
+      choose(uid, parsedParams)
     }
   }
 
