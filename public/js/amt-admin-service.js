@@ -96,8 +96,11 @@ function AMTAdminSrv($http, $q, $timeout) {
         });
   }
 
-  function rejectAssignment(assignmentId) {
-    return $http.get('/amtadmin/rejectAssignment/' + assignmentId + ((sandbox) ? '?sandbox=true' : ''))
+  function rejectAssignment(assignmentId, requesterFeedback) {
+    var payload = {
+      'requesterFeedback': requesterFeedback
+    };
+    return $http.post('/amtadmin/rejectAssignment/' + assignmentId + ((sandbox) ? '?sandbox=true' : ''), payload)
       .then(function (response) {
           return $q.when(response);
         },

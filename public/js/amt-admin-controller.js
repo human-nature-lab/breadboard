@@ -1,6 +1,6 @@
 'use strict';
 
-function AMTAdminCtrl($scope, AMTAdminSrv, $q) {
+function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter) {
   $scope.accountBalance = null;
   $scope.tokens = [null];
   $scope.curToken = 0;
@@ -8,19 +8,20 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q) {
   $scope.selectedHIT = null;
   $scope.showManageHITs = false;
   $scope.showCreateDummyHITs = false;
-  $scope.dummyHITsSubmitted = false;
   $scope.sandbox = AMTAdminSrv.isSandbox();
   $scope.maxAssignments = 20;
 
   $scope.dummyHIT = {
-    'workerIDs' : '',
-    'reason' : '',
-    'reward' : 0.01,
-    'submitted' : []
+    'workerIDs' : 'ABC123\nDEF456\nGHI789',
+    'reason' : 'We could not pay you through the normal means',
+    'reward' : 1.00,
+    'submitted' : [],
+    'nPending' : 0
   };
 
   $scope.globals = {
-    bonusReason : "Final game score."
+    bonusReason : "Final game score.",
+    rejectionReason : "You failed to complete the task correctly."
   };
   $scope.listHITs = listHITs;
   $scope.moreAssignmentsForHIT = moreAssignmentsForHIT;
@@ -36,6 +37,8 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q) {
   $scope.showAll = showAll;
   $scope.toggleSandbox = toggleSandbox;
   $scope.submitDummyHITs = submitDummyHITs;
+  $scope.clearDummyHITs = clearDummyHITs;
+  $scope.getAssignmentsCSV = getAssignmentsCSV;
   getAccountBalance();
   listHITs();
 
@@ -175,7 +178,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q) {
         assignment.rejectionError = null;
         assignment.rejectionPending = true;
         assignment.reject = false;
-        AMTAdminSrv.rejectAssignment(assignment.assignmentId).then(function() {
+        AMTAdminSrv.rejectAssignment(assignment.assignmentId, $scope.globals.rejectionReason).then(function() {
           assignment.rejectionPending = null;
           assignment.rejectionTime = Date.now();
           hit.numberOfAssignmentsCompleted++;
@@ -287,19 +290,87 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q) {
   }
 
   function submitDummyHITs() {
-    console.log('dummyHITWorkerIDs', $scope.dummyHIT.workerIDs);
-    console.log('dummyHITReason', $scope.dummyHIT.reason);
-    console.log('dummyHITReward', $scope.dummyHIT.reward);
     var workerIDs = $scope.dummyHIT.workerIDs.split('\n');
     for (var i = 0; i < workerIDs.length; i++) {
       var submission = {};
       var workerID = workerIDs[i].trim();
       if (workerID.length > 0) {
         submission.workerId = workerIDs[i].trim();
-        submission.status = "Pending...";
+        submission.status = 'Pending...';
+        $scope.dummyHIT.nPending++;
+        $scope.dummyHIT.submitted.push(submission);
+        (function(workerID, submission) {
+          AMTAdminSrv.createDummyHIT(workerID, $scope.dummyHIT.reward, $scope.dummyHIT.reason).then(
+            function() {
+              submission.status = 'Created';
+              $scope.dummyHIT.nPending--;
+            },
+            function(error) {
+              submission.status = 'Error: ' + error.data;
+              $scope.dummyHIT.nPending--;
+            });
+        })(workerID, submission);
       }
+    }
+  }
+
+  function setStatusByWorkerID(workerID, status) {
+    for (var i = 0; i < $scope.dummyHIT.submitted.length; i++) {
+      var submission = $scope.dummyHIT.submitted[i];
+      if (submission.workerId === workerID) {
+        submission.status = status;
+      }
+    }
+
+  }
+
+  function clearDummyHITs() {
+    $scope.dummyHIT.submitted = [];
+  }
+
+  function getAssignmentsCSV(hit) {
+    var headerRow = '"hitId","hitTitle","creationTime","assignmentId","workerId","approvalTime","rejectionTime","bonusGranted"';
+    var rows = [];
+    var answerKeys = [];
+    angular.forEach(hit.assignments, function (assignment) {
+      angular.forEach(assignment.answer, function (value, key) {
+        if (answerKeys.indexOf(key) === -1) {
+          headerRow += ',"' + key + '"';
+          answerKeys.push(key);
+        }
+      });
+    });
+
+    angular.forEach(hit.assignments, function (assignment) {
+      var row = '"' + hit.hitid + '","' + hit.title + '","' + ($filter('date')(hit.creationTime, "yyyy-MM-dd")) + '","' + assignment.assignmentId + '","' + assignment.workerId + '","' + ((assignment.approvalTime) ? ($filter('date')(assignment.approvalTime, "yyyy-MM-dd")) : '') + '","' + ((assignment.rejectionTime) ? ($filter('date')(assignment.rejectionTime, "yyyy-MM-dd")) : '') + '","' + assignment.bonusGranted + '"';
+      for (var i = 0; i < answerKeys.length; i++) {
+        if (assignment.answer.hasOwnProperty(answerKeys[i])) {
+          row += ',"' + assignment.answer[answerKeys[i]].replace(/"/g, '""') + '"';
+        } else {
+          row += ',""'
+        }
+      }
+      rows.push(row);
+    });
+    var csvString = headerRow + '\n' + rows.join('\n');
+    console.log('csvString', csvString);
+    var filename = hit.hitid + '.csv';
+    var blob = new Blob([csvString], {type: 'text/csv'});
+
+    if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+      window.navigator.msSaveOrOpenBlob(blob, filename);
+    } else {
+      var e = document.createEvent('MouseEvents'),
+        a = document.createElement('a');
+
+      a.download = filename;
+      a.href = window.URL.createObjectURL(blob);
+      a.dataset.downloadurl = ['text/csv', a.download, a.href].join(':');
+      e.initEvent('click', true, false, window,
+        0, 0, 0, 0, 0, false, false, false, false, 0, null);
+      a.dispatchEvent(e);
     }
   }
 }
 
-AMTAdminCtrl.$inject = ['$scope', 'AMTAdminSrv', '$q'];
+AMTAdminCtrl.$inject = ['$scope', 'AMTAdminSrv', '$q', '$filter'];

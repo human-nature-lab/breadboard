@@ -10,6 +10,7 @@ import com.amazonaws.services.mturk.AmazonMTurkClientBuilder;
 import com.amazonaws.services.mturk.model.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -22,6 +23,8 @@ import play.libs.*;
 import play.mvc.Controller;
 import play.mvc.Result;
 import views.html.*;
+
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.*;
 
@@ -164,12 +167,25 @@ public class AMTAdmin extends Controller {
   }
 
   public static Result rejectAssignment(String assignmentId, Boolean sandbox) {
+    String requesterFeedback = null;
+    JsonNode json = request().body().asJson();
+    if(json == null) {
+      return badRequest("Expecting Json data");
+    } else {
+      requesterFeedback = json.findPath("requesterFeedback").textValue();
+    }
+
+    if (requesterFeedback == null) {
+      return badRequest("Please provide requester feedback.");
+    }
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
       AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
       builder.setEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration((sandbox ? SANDBOX_ENDPOINT : PRODUCTION_ENDPOINT), SIGNING_REGION));
       AmazonMTurk mTurk = builder.build();
-      RejectAssignmentRequest rejectAssignmentRequest= new RejectAssignmentRequest().withAssignmentId(assignmentId);
+      RejectAssignmentRequest rejectAssignmentRequest= new RejectAssignmentRequest()
+          .withAssignmentId(assignmentId)
+          .withRequesterFeedback(requesterFeedback);
       mTurk.rejectAssignment(rejectAssignmentRequest);
       return ok();
     } catch (AmazonServiceException ase) {
@@ -214,6 +230,10 @@ public class AMTAdmin extends Controller {
     String workerId = null;
     String reason = null;
     String reward = null;
+    String paymentHitHtml = getDummyHitHTML();
+    if (paymentHitHtml == null) {
+      return badRequest("Unable to read 'payment-hit.html' file in conf directory.");
+    }
     JsonNode json = request().body().asJson();
     if(json == null) {
       return badRequest("Expecting Json data");
@@ -242,15 +262,25 @@ public class AMTAdmin extends Controller {
           .withAutoGrantedValue(1)
           .withQualificationTypeStatus(QualificationTypeStatus.Active);
       CreateQualificationTypeResult createQualificationTypeResult = mTurk.createQualificationType(createQualificationTypeRequest);
+
+      AssociateQualificationWithWorkerRequest associateQualificationWithWorkerRequest = new AssociateQualificationWithWorkerRequest()
+          .withQualificationTypeId(createQualificationTypeResult.getQualificationType().getQualificationTypeId())
+          .withWorkerId(workerId);
+
+      mTurk.associateQualificationWithWorker(associateQualificationWithWorkerRequest);
+
       QualificationRequirement qualificationRequirement = new QualificationRequirement()
-          .withQualificationTypeId(createQualificationTypeResult.getQualificationType().getQualificationTypeId());
+          .withQualificationTypeId(createQualificationTypeResult.getQualificationType().getQualificationTypeId())
+          .withRequiredToPreview(true)
+          .withComparator("EqualTo")
+          .withIntegerValues(1);
 
       // Create Dummy/Payment HIT
       CreateHITRequest createHITRequest = new CreateHITRequest()
           .withTitle("HIT for " + workerId)
           .withDescription(reason)
           .withMaxAssignments(1)
-          .withQuestion(getDummyHitHTML(sandbox, reason))
+          .withQuestion(paymentHitHtml)
           .withQualificationRequirements(qualificationRequirement)
           .withLifetimeInSeconds(31536000L)
           .withAssignmentDurationInSeconds(5400L)
@@ -267,30 +297,18 @@ public class AMTAdmin extends Controller {
     }
   }
 
-  private static String getDummyHitHTML(boolean sandbox, String reason) {
-    return "<HTMLQuestion xmlns=\"http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2011-11-11/HTMLQuestion.xsd\">" +
-        "<HTMLContent><![CDATA[\n" +
-        "<!DOCTYPE html>\n" +
-        "<html>\n" +
-        " <head>\n" +
-        "  <meta http-equiv='Content-Type' content='text/html; charset=UTF-8'/>\n" +
-        "  <script type='text/javascript' src='https://s3.amazonaws.com/mturk-public/externalHIT_v1.js'></script>\n" +
-        " </head>\n" +
-        " <body>\n" +
-        "  <form name='mturk_form' method='post' id='mturk_form' action='" +
-        ((sandbox) ? "https://workersandbox.mturk.com/mturk/externalSubmit" : "https://www.mturk.com/mturk/externalSubmit")  + "'>\n" +
-        "  <input type='hidden' name='submitted' value='true' />\n" +
-        "  <input type='hidden' value='' name='assignmentId' id='assignmentId'/>\n" +
-        "  <p>We have created this HIT for you because:</p>\n" +
-        "  <p>" + reason + "</p>\n" +
-			  "  <p>Please click the \"Submit\" button below.</p>\n" +
-        "  <p><input type='submit' id='submitButton' value='Submit' /></p></form>\n" +
-        "  <script language='Javascript'>turkSetAssignmentID();</script>\n" +
-        " </body>\n" +
-        "</html>\n" +
-        "]]></HTMLContent>\n" +
-        "<FrameHeight>600</FrameHeight>\n" +
-        "</HTMLQuestion>";
+  private static String getDummyHitHTML() {
+    String returnString = null;
+    try {
+      returnString = "<HTMLQuestion xmlns=\"http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2011-11-11/HTMLQuestion.xsd\">\n" +
+                     "  <HTMLContent><![CDATA[" +
+                     IOUtils.toString(Play.application().resourceAsStream("payment-hit.html")) +
+                     "]]>\n" +
+                     "  </HTMLContent>\n" +
+                     "  <FrameHeight>600</FrameHeight>\n" +
+                     "</HTMLQuestion>";
+    } catch (IOException ioe) { }
+    return returnString;
   }
 
   /*

@@ -24,7 +24,7 @@ GET         /amtadmin/listHITs                                                  
 GET         /amtadmin/listAssignmentsForHIT/:hitId                               controllers.AMTAdmin.listAssignmentsForHIT(hitId: String, maxResults: Integer ?= 20, nextToken: String ?= null, sandbox: Boolean ?= false)
 GET         /amtadmin/listBonusPaymentsForHIT/:hitId                             controllers.AMTAdmin.listBonusPaymentsForHIT(hitId: String, maxResults: Integer ?= 20, nextToken: String ?= null, sandbox: Boolean ?= false)
 GET         /amtadmin/approveAssignment/:assignmentId                            controllers.AMTAdmin.approveAssignment(assignmentId: String, sandbox: Boolean ?= false)
-GET         /amtadmin/rejectAssignment/:assignmentId                             controllers.AMTAdmin.rejectAssignment(assignmentId: String, sandbox: Boolean ?= false)
+POST        /amtadmin/rejectAssignment/:assignmentId                             controllers.AMTAdmin.rejectAssignment(assignmentId: String, sandbox: Boolean ?= false)
 POST        /amtadmin/sendBonus/:assignmentId                                    controllers.AMTAdmin.sendBonus(assignmentId: String, sandbox: Boolean ?= false)
 
 # Dummy HITs

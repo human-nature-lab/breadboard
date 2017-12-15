@@ -966,6 +966,15 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     buttons: {}
   };
 
+  $scope.amtAdminDialogOptions = {
+    title: 'AMT Admin',
+    autoOpen: true,
+    width: windowWidth,
+    height: windowHeight,
+    position: ['left', topDivHeight],
+    buttons: {}
+  };
+
   $scope.parametersDialogOptions = {
     title: 'Parameters',
     autoOpen: false,
