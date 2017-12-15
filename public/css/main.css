@@ -24,6 +24,10 @@ select option {
     font-size: 12pt;
 }
 
+#amtAdminDiv {
+    padding: 0;
+}
+
 .ui-dialog-titlebar {
     font-size: .8em;
 }
