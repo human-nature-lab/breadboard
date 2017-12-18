@@ -5,6 +5,7 @@ import play.mvc.*;
 import views.html.*;
 import com.fasterxml.jackson.databind.*;
 import models.*;
+import java.io.*;
 
 // TODO: Why does this always redirect to login?
 //@Security.Authenticated(SecuredClient.class)
@@ -23,8 +24,9 @@ public class ClientController extends Controller
         if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
           return ok( amtError.render() );
         }
-      
-        return ok(client.render(experimentId, experimentInstanceId, clientId, connectionSpeed, experiment.clientHtml, experiment.clientGraph));
+        final File file = play.Play.application().getFile("frontend/app/templates/client.html");
+        return ok(file, true);
+//        return ok(client.render(experimentId, experimentInstanceId, clientId, connectionSpeed, experiment.clientHtml, experiment.clientGraph));
     }
 
     /**

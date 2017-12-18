@@ -22,7 +22,21 @@ angular.module('breadboard.services', ['ui.utils'], function($provide) {
 
     $provide.factory('breadboardFactory', ['websocketFactory', '$rootScope', function($websocketFactory, $rootScope) {
 
-        var websocket = $websocketFactory(routes.connectSocket);
+        function websocketRoute(){
+          var uri = '';
+          if(window.location.protocol = 'https:'){
+            uri = 'wss:';
+          } else {
+            uri = 'ws:';
+          }
+          uri += "//" + loc.host + '/connect';
+          // uri += window.location.pathname;
+          return uri;
+        }
+
+        // websocketRoute will work once the javascript application is serving from the same port
+        var websocket = $websocketFactory('ws://localhost:9000/connect');
+        var sessionId;
         websocket.onopen = function (evt) {
             websocket.send(JSON.stringify( {"action" : "LogIn", "uid" : sessionId }) );
         };

@@ -23,3 +23,5 @@ Breadboard.iml
 .DS_Store
 install
 experiments
+dev.bat
+node_modules

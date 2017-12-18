@@ -1,3 +1,22 @@
+import angular from 'angular';
+import 'jquery';
+import 'jquery-ui';
+import 'underscore';
+// import 'd3';
+import 'angular-route';
+import 'angular-sanitize';
+// import 'angular-ui-bootstrap';
+
+
+import './client/client-services';
+import './client/client-controllers';
+import './client/client-directives';
+import './client/client-filters';
+import './client/client-timer';
+
+angular.module('client', ['client.services', 'client.controllers', 'breadboard.timer', 'ngSanitize', 'ngRoute', 'ui.bootstrap', 'client.filters', 'client.directives','angular-bind-html-compile']);
+
+
 // Source:  http://stackoverflow.com/questions/6312993/javascript-seconds-to-time-with-format-hhmmss 
 String.prototype.toHHMMSS = function () {
     var ms_num = parseInt(this, 10); // don't forget the second parm
@@ -14,5 +33,3 @@ String.prototype.toHHMMSS = function () {
     if (hours > 0) time = hours + ':' + time;
     return time;
 };
-
-
