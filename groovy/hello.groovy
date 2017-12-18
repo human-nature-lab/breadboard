@@ -186,15 +186,6 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         player.timers = [:]
       }
 
-      def timer = new Timer().runAfter(time * 1000) {
-        if (player.timers) {
-          player.timers.remove(name)
-        }
-        if (result != null) {
-          result(player)
-        }
-      }
-
       /*
       // TODO: Adding a reference to the timer here, although useful, is causing an exception on JSON serialization:
       java.lang.IllegalArgumentException: No serializer found for class org.codehaus.groovy.runtime.DefaultGroovyMethods$3
@@ -210,14 +201,32 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
                              "timer":timer]
       */
 
-      player.timers[name] = ["startTime"     : startTime,
+          player.timers[name] = ["startTime"     : startTime,
                              "endTime"       : endTime,
                              "timerType"     : type,
+                             "elapsed"       : 0,
+                             "duration"      : time * 1000,
                              "timerText"     : timerText,
                              "direction"     : direction,
                              "currencyAmount": currencyAmount,
-                             "appearance"    : appearance]
+                             "appearance"    : appearance,
+                             "order"         : player.timers.size()]
 
+      // Update the elapsed time for this timer
+      def timerUpdateRate = 1000
+      def timer = new Timer()
+      timer.scheduleAtFixedRate({
+        player.timers[name].elapsed += 1000
+      } as GroovyTimerTask, timerUpdateRate, timerUpdateRate)
+      timer.runAfter(time * timerUpdateRate) {
+        if (player.timers) {
+          player.timers.remove(name)
+        }
+        if (result != null) {
+          result(player)
+        }
+        timer.cancel()
+      }
     }
     //println("""startTime: ${startTime}, endTime: ${endTime}, name: ${name}, timerText: ${timerText}, direction: ${direction}, type: ${type}, player: ${player}""")
   }
@@ -731,12 +740,17 @@ class PlayerAI {
   @JsonIgnore
   def defaultBehavior = { player ->
     def randomDelay = 1000 + r.nextInt(3000)
-    def task = timer.runAfter(randomDelay) {
-      if (player.getProperty("choices")) {
-        def choices = player.getProperty("choices")
-        def choice = choices[r.nextInt(choices.size())]
-        playerActions.choose(choice.uid, null)
+    try {
+      def task = new Timer().runAfter(randomDelay) {
+        if (player.getProperty("choices")) {
+          def choices = player.getProperty("choices")
+          def choice = choices[r.nextInt(choices.size())]
+          playerActions.choose(choice.uid, null)
+        }
       }
+    } catch (IllegalStateException e) {
+      // This is most likely a side effect of a.remove()
+      println "Caught side effect of a.remove(): " + e
     }
   }
 
@@ -745,18 +759,18 @@ class PlayerAI {
 
   // Is the AI behavior globally turned on?
   // Changed to default to true
-  def on = true
+  def isOn = true
 
   // We have the ability to assign custom AI behavior for each ai player
   // Map of Vertex player : Closure behavior
   def behaviors = [:]
 
   def off() {
-    this.on = false
+    this.isOn = false
   }
 
   def on() {
-    this.on = true
+    this.isOn = true
   }
 
   def add(Vertex player, Closure behavior = defaultBehavior) {
@@ -791,7 +805,7 @@ class PlayerAI {
   }
 
   def choose(Vertex player) {
-    if (!this.on)
+    if (!this.isOn)
       return;
 
     if (behaviors.containsKey(player)) {

@@ -31,16 +31,22 @@ function TimersCtrl($scope, $filter, $interval) {
           timer.appearance = curTimer.appearance;
           timer.startTime = curTimer.startTime;
           timer.endTime = curTimer.endTime;
+          timer.elapsed = curTimer.elapsed;
+          timer.duration = curTimer.duration;
           timer.direction = curTimer.direction;
           timer.timerType = curTimer.timerType;
           timer.baseText = curTimer.timerText;
-          var totalTime = curTimer.endTime - curTimer.startTime;
-          var time = curTimer.endTime - Date.now();
+
+          var totalTime = curTimer;
+          var percent = Math.round(((timer.duration - timer.elapsed) / timer.duration)*100);
+          // var time = curTimer.endTime - Date.now();
+          var time = curTimer.endTime - curTimer.elapsed;
+
           console.log("Date.now()", Date.now());
           console.log("curTimer.startTime", curTimer.startTime);
           console.log("curTimer.endTime", curTimer.endTime);
           console.log("time", time);
-          var percent = timer.timerValue = (curTimer.direction == "up") ? (Math.round(( ((totalTime - time) / totalTime) * 100))) : (Math.round(( (time / totalTime) * 100)));
+
           var currencyAmount = parseInt(curTimer.currencyAmount);
           timer.currencyAmount = currencyAmount;
 
@@ -66,18 +72,22 @@ function TimersCtrl($scope, $filter, $interval) {
             if ($scope.timers.hasOwnProperty(key)) {
 
               var curTimer = $scope.timers[key];
-              var totalTime = curTimer.endTime - curTimer.startTime;
-              var time = curTimer.endTime - Date.now();
-              var percent = $scope.timers[key].timerValue = (curTimer.direction == "up") ? (Math.round(( ((totalTime - time) / totalTime) * 100))) : (Math.round(( (time / totalTime) * 100)));
+              curTimer.elapsed += 500;
+              var p = (curTimer.duration - curTimer.elapsed) / curTimer.duration;
+              var time = curTimer.elapsed;
+              var percent = p;
+              $scope.timers[key].timerValue = (curTimer.direction == "up") ? (curTimer.elapsed / curTimer.duration) * 100: p * 100;
 
               if (curTimer.timerType == "currency") {
-                var amount = (curTimer.direction == "up") ? (curTimer.currencyAmount * (((totalTime - time) / totalTime) / 100)) : (curTimer.currencyAmount * ((time / totalTime) / 100));
+
+                var amount = (curTimer.direction == "up") ? (curTimer.currencyAmount * (((curTimer.duration - curTimer.elapsed) / curTimer.duration) / 100)) : (curTimer.currencyAmount * ((curTimer.elapsed / curTimer.duration) / 100));
+
                 var formattedAmount = $filter('currency')(amount, "$");
                 $scope.timers[key].timerText = curTimer.baseText + " " + formattedAmount;
               } else if (curTimer.timerType == "percent") {
                 $scope.timers[key].timerText = curTimer.baseText + " " + percent + "%";
               } else if (curTimer.timerType == "time") {
-                var formattedTime = (curTimer.direction == "up") ? ((totalTime - time).toString().toHHMMSS()) : (time.toString().toHHMMSS());
+                var formattedTime = (curTimer.direction == "up") ? (time.toString().toHHMMSS()) : ((curTimer.duration - curTimer.elapsed).toString().toHHMMSS());
                 $scope.timers[key].timerText = curTimer.baseText + " " + formattedTime;
               }
 
@@ -86,7 +96,7 @@ function TimersCtrl($scope, $filter, $interval) {
               }
             }
           } // for (var key in newValue)
-        }, 500); // $scope.timerId = setInterval(function() {
+        }, 500); // $scope.timerId = $interval(function() {
       }
     } // if (typeof newValue === "object) {
   }, true); // END $scope.$watch('client.player.timers')...
