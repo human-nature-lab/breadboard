@@ -22,7 +22,6 @@ import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
-
 public class Application extends Controller {
   public static Result login() {
     if (User.findRowCount() == 0) {
@@ -133,7 +132,8 @@ public class Application extends Controller {
         return redirect(routes.Application.login());
       }
     } else {
-      return ok(breadboard.render());
+      final File file = play.Play.application().getFile("frontend/app/templates/breadboard.html");
+      return ok(file, true);
     }
   }
 

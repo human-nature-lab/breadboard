@@ -340,3 +340,5 @@ function Graph(_width, _height, parentScope) {
   }
 
 }
+
+window.Graph = Graph;

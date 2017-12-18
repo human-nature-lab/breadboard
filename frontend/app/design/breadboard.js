@@ -1,6 +1,6 @@
 'use strict';
 
-var resizeTiny = function () {
+window.resizeTiny = function () {
   if (!tinyMCE) return;
   var contentDiv = document.getElementById("contentDiv");
   var contentTabsDiv = document.getElementById("contentTabsDiv");
@@ -20,7 +20,7 @@ var resizeTiny = function () {
 $(document).on('dialogresizestop', '.contentDialog', resizeTiny);
 
 // Function to dock dialogs at the bottom of the window
-var dockWindow = function (dialog, title) {
+window.dockWindow = function (dialog, title) {
   var link = $("<button type='button' class='ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only' role='button' aria-disabled='false' id='closed-dialog-" + title + "'><span class='ui-button-text'>" + title + "</span></button>");
   $(link).click(function () {
     $(dialog).dialog('open');
@@ -31,7 +31,7 @@ var dockWindow = function (dialog, title) {
 };
 
 // Set up the iframe for the images dialog form
-var iframe = $("#imageUploadIframe");
+window.iframe = $("#imageUploadIframe");
 
 $("#imageUploadForm").submit(function () {
   this.target = iframe.attr("name");

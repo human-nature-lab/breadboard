@@ -2,7 +2,7 @@
 
 /* Services */
 
-angular.module('client.services', [], function($provide) {
+export default angular.module('client.services', [], function($provide) {
     $provide.factory('websocketFactory', function($window) {
         var wsClass;
 

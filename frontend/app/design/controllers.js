@@ -1,8 +1,8 @@
 'use strict';
 
 /* Controllers */
-
-function AppCtrl($scope, $breadboardFactory, $timeout) {
+angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout',
+function ($scope, $breadboardFactory, $timeout) {
   $scope.$watch('selectedLanguage', function(newValue) {
     console.log('selectedLanguage', newValue);
   });
@@ -957,10 +957,8 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     statusbar: false,
     menubar: false,
     convert_urls: false,
-    content_css: routes.tinymceCSS,
+    // content_css: routes.tinymceCSS,
     valid_elements: '*[*]',
     resize: true
   }
-}
-
-AppCtrl.$inject = ['$scope', 'breadboardFactory', '$timeout'];
+}])
