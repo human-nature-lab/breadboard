@@ -36,14 +36,17 @@ function TimersCtrl($scope, $filter, $interval) {
           timer.direction = curTimer.direction;
           timer.timerType = curTimer.timerType;
           timer.baseText = curTimer.timerText;
+
           var totalTime = curTimer;
           var percent = Math.round(((timer.duration - timer.elapsed) / timer.duration)*100);
           // var time = curTimer.endTime - Date.now();
           var time = curTimer.endTime - curTimer.elapsed;
+
           console.log("Date.now()", Date.now());
           console.log("curTimer.startTime", curTimer.startTime);
           console.log("curTimer.endTime", curTimer.endTime);
           console.log("time", time);
+
           var currencyAmount = parseInt(curTimer.currencyAmount);
           timer.currencyAmount = currencyAmount;
 
@@ -76,7 +79,9 @@ function TimersCtrl($scope, $filter, $interval) {
               $scope.timers[key].timerValue = (curTimer.direction == "up") ? (curTimer.elapsed / curTimer.duration) * 100: p * 100;
 
               if (curTimer.timerType == "currency") {
+
                 var amount = (curTimer.direction == "up") ? (curTimer.currencyAmount * (((curTimer.duration - curTimer.elapsed) / curTimer.duration) / 100)) : (curTimer.currencyAmount * ((curTimer.elapsed / curTimer.duration) / 100));
+
                 var formattedAmount = $filter('currency')(amount, "$");
                 $scope.timers[key].timerText = curTimer.baseText + " " + formattedAmount;
               } else if (curTimer.timerType == "percent") {

@@ -2,6 +2,7 @@ package models;
 
 import akka.actor.ActorRef;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
@@ -18,6 +19,7 @@ public class Admin implements ClientListener {
   private User user;
   private ActorRef scriptBoardController;
   private ThrottledWebSocketOut out;
+  private static final Gson gson = new Gson();
 
   public Admin(User user, ActorRef scriptBoardController, ThrottledWebSocketOut out) {
     this.user = user;
@@ -26,8 +28,6 @@ public class Admin implements ClientListener {
   }
 
   public void graphChanged(Graph wholeGraph) {
-    //Logger.debug("graphChanged");
-
     ObjectNode jsonOutput = Json.newObject();
 
     ObjectNode graph = D3Utils.graphToJsonString(wholeGraph);
@@ -41,7 +41,6 @@ public class Admin implements ClientListener {
   }
 
   public void vertexAdded(Vertex vertex, Boolean runOnJoin) {
-    //Logger.debug("Admin.vertexAdded");
     user.refresh();
 
     if (runOnJoin) {
@@ -68,7 +67,6 @@ public class Admin implements ClientListener {
   }
 
   public void vertexRemoved(Vertex vertex, Boolean runOnLeave) {
-    //Logger.debug("vertexRemoved");
     user.refresh();
 
     if (runOnLeave) {
@@ -95,19 +93,17 @@ public class Admin implements ClientListener {
          * TODO: oldValue and setValue don't seem to be Maps, is there any way to only send the changed private variables?
 				Map oldMap = new HashMap();
 				if (oldValue instanceof Map) {
-					Logger.debug("oldValue instanceof Map");
 					oldMap = (Map) oldValue;
 				}
 				*/
 
         // Find the changed Property and write it out
         for (Object k : newMap.keySet()) {
-          //Logger.debug("k.toString() = " + k.toString());
           jsonOutput = Json.newObject();
           jsonOutput.put("action", "nodePropertyChanged");
           jsonOutput.put("id", vertex.getId().toString());
           jsonOutput.put("key", k.toString());
-          jsonOutput.put("value", Json.toJson(newMap.get(k)));
+          jsonOutput.put("value", gson.toJson(newMap.get(k)));
           out.write(jsonOutput);
         }
       }
@@ -115,14 +111,12 @@ public class Admin implements ClientListener {
       jsonOutput.put("action", "nodePropertyChanged");
       jsonOutput.put("id", vertex.getId().toString());
       jsonOutput.put("key", key);
-      jsonOutput.put("value", Json.toJson(setValue));
+      jsonOutput.put("value", gson.toJson(setValue));
       out.write(jsonOutput);
     }
   }
 
   public void vertexPropertyRemoved(Vertex vertex, String key) {
-    //Logger.debug("vertexPropertyRemoved");
-
     ObjectNode jsonOutput = Json.newObject();
 
     jsonOutput.put("action", "nodePropertyRemoved");
@@ -133,8 +127,6 @@ public class Admin implements ClientListener {
   }
 
   public void edgeAdded(Edge edge) {
-    //Logger.debug("edgeAdded");
-
     ObjectNode jsonOutput = Json.newObject();
 
     jsonOutput.put("action", "addLink");
@@ -152,8 +144,6 @@ public class Admin implements ClientListener {
   }
 
   public void edgeRemoved(Edge edge) {
-    //Logger.debug("edgeRemoved");
-
     ObjectNode jsonOutput = Json.newObject();
 
     jsonOutput.put("action", "removeLink");
@@ -165,8 +155,6 @@ public class Admin implements ClientListener {
   }
 
   public void edgePropertyChanged(Edge edge, String key, Object setValue) {
-    //Logger.debug("edgePropertyChanged");
-
     ObjectNode jsonOutput = Json.newObject();
 
     jsonOutput.put("action", "linkPropertyChanged");
@@ -178,8 +166,6 @@ public class Admin implements ClientListener {
   }
 
   public void edgePropertyRemoved(Edge edge, String key) {
-    //Logger.debug("edgePropertyRemoved");
-
     ObjectNode jsonOutput = Json.newObject();
 
     jsonOutput.put("action", "linkPropertyRemoved");

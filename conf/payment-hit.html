@@ -1,9 +1,11 @@
-@(reason: String, sandbox: Boolean)
 <!DOCTYPE html>
 <html lang="en">
-  <head>
+<head>
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
     <title>Payment HIT</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap-theme.min.css" integrity="sha384-rHyoN1iRsVXV4nD0JutlnGaslCJuC7uwjduW9SVrLvRYooPp2bWYgmgJQIXwl/Sp" crossorigin="anonymous">
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
     <script>
       /**
        * Gets a URL parameter from the query string
@@ -65,17 +67,31 @@
           form.action = turkGetSubmitToHost() + "/mturk/externalSubmit";
         }
       }
-		</script>
-  </head>
-  <body>
-    <form name='mturk_form' method='post' id='mturk_form' action=''>
-      <input type='hidden' name='submitted' value='true' />
-      <input type='hidden' value='' name='assignmentId' id='assignmentId'/>
-      <p>We have created this HIT for you because:</p>
-      <p>@reason</p>
-      <p>Please accept this HIT and click the "Submit" button below.</p>
-      <p><input type='submit' id='submitButton' value='Submit' /></p></form>
-    <script language='Javascript'>turkSetAssignmentID();</script>
-  </body>
+    </script>
+</head>
+<body>
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">&nbsp;</div>
+    </div>
+    <div class="row">
+        <div class="col-md-1"></div>
+        <div class="col-md-10">
+            <div class="panel panel-default">
+                <div class="panel-body">
+                    <form class="form" name="mturk_form" method="post" id="mturk_form" action="">
+                        <input type="hidden" name="submitted" value="true"/>
+                        <input type="hidden" value="" name="assignmentId" id="assignmentId"/>
+                        <p class="form-control-static">We have created this HIT for you to pay you for work you have done previously.</p>
+                        <p class="form-control-static">Please accept this HIT and click the "Submit" button below.</p>
+                        <p><input class="btn btn-default" type="submit" id="submitButton" value="Submit"/></p>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-1"></div>
+    </div>
+</div>
+<script language="Javascript">turkSetAssignmentID();</script>
+</body>
 </html>
-

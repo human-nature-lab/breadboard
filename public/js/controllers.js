@@ -96,14 +96,6 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     return "text";
   };
 
-  $scope.dropPlayer = function (pid) {
-    $breadboardFactory.send(
-      {
-        "action": "DropPlayer",
-        "pid": pid
-      });
-  };
-
   $scope.newParameter = function () {
     $breadboardFactory.send(
       {
@@ -138,20 +130,10 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   };
 
   $scope.makeChoice = function (i) {
-    //console.log("Making choice: " + $scope.breadboard.graph.nodes[$scope.selectedNodeIndex].choices[i].uid);
     $breadboardFactory.send(
       {
         "action": "MakeChoice",
         "choiceUID": $scope.selectedNode.choices[i].uid
-      });
-  };
-
-  $scope.makeChoiceOld = function (i) {
-    //console.log("Making choice: " + $scope.breadboard.graph.nodes[$scope.selectedNodeIndex].choices[i].uid);
-    $breadboardFactory.send(
-      {
-        "action": "MakeChoice",
-        "choiceUID": $scope.breadboard.graph.nodes[$scope.selectedNodeIndex].choices[i].uid
       });
   };
 
@@ -287,7 +269,6 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   };
 
   $scope.createExperiment = function () {
-    //console.log("createExperiment: " + $scope.newExperimentName);
     $('#newExperimentDialog').dialog('close');
     $breadboardFactory.send(
       {
@@ -346,62 +327,6 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
       "action": "DeleteImage",
       "imageId": imageId
     });
-  };
-
-  $scope.grantBonus = function (workerId, assignmentId, score) {
-    $breadboardFactory.send(
-      {
-        "action": "GrantBonus",
-        "workerId": workerId,
-        "assignmentId": assignmentId,
-        "bonus": score
-      });
-  };
-
-  $scope.approveAssignment = function (assignmentId) {
-    $breadboardFactory.send(
-      {
-        "action": "ApproveAssignment",
-        "assignmentId": assignmentId
-      });
-  };
-
-  $scope.rejectAssignment = function (assignmentId) {
-    $breadboardFactory.send(
-      {
-        "action": "RejectAssignment",
-        "assignmentId": assignmentId
-      });
-  };
-
-  $scope.blockWorker = function (assignmentId) {
-    $breadboardFactory.send(
-      {
-        "action": "BlockWorker",
-        "assignmentId": assignmentId
-      });
-  };
-
-  $scope.markCompleted = function (assignmentId) {
-    $breadboardFactory.send(
-      {
-        "action": "MarkCompleted",
-        "assignmentId": assignmentId
-      });
-  };
-
-  $scope.curAssignments = function () {
-    if ($scope.selectedHIT == undefined) {
-      return new Array();
-    }
-    for (var i = 0; i < $scope.breadboard.experiment.instances.length; i++) {
-      for (var j = 0; j < $scope.breadboard.experiment.instances[i].hits.length; j++) {
-        if ($scope.breadboard.experiment.instances[i].hits[j].id == $scope.selectedHIT) {
-          return $scope.breadboard.experiment.instances[i].hits[j].assignments;
-        }
-      }
-    }
-    return new Array();
   };
 
   $scope.showUserSettings = function () {
@@ -502,14 +427,6 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
         }
       ]
     });
-  };
-
-  $scope.testInstance = function (id) {
-    $breadboardFactory.send(
-      {
-        "action": "TestInstance",
-        "id": id
-      });
   };
 
   var clearScript = function () {
@@ -793,15 +710,16 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   var dialogMargin = 10,
     topDivHeight = 50,
     bottomDivHeight = 50,
+    margin = 5,
     windowHeight = ($(window).innerHeight() - topDivHeight - bottomDivHeight - dialogMargin),
-    windowWidth = ($(window).innerWidth() - 5);
+    windowWidth = ($(window).innerWidth() - (margin * 2));
 
   $scope.outputDialogOptions = {
     title: 'Output',
     autoOpen: true,
     width: ((windowWidth * .5) - dialogMargin),
     height: ((windowHeight * .25) - dialogMargin),
-    position: ['left', (topDivHeight + dialogMargin + (.75 * windowHeight))],
+    position: [margin, (topDivHeight + dialogMargin + (.75 * windowHeight))],
     buttons: {}
   };
 
@@ -811,7 +729,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     autoOpen: true,
     width: ((windowWidth * .5) - dialogMargin),
     height: ((windowHeight * .75) - dialogMargin),
-    position: ['left', topDivHeight],
+    position: [margin, topDivHeight],
     buttons: [
       {
         text: 'Run',
@@ -842,7 +760,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     title: 'Content',
     width: ((windowWidth * .5) - dialogMargin),
     height: ((windowHeight * .75) - dialogMargin),
-    position: ['left', topDivHeight],
+    position: [margin, topDivHeight],
     autoOpen: false,
     buttons: {
       'Save': function () {
@@ -935,7 +853,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     autoOpen: false,
     width: ((windowWidth * .5) - dialogMargin),
     height: windowHeight,
-    position: ['left', topDivHeight],
+    position: [margin, topDivHeight],
     buttons: {}
   };
 
@@ -944,7 +862,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     autoOpen: false,
     width: ((windowWidth * .5) - dialogMargin),
     height: windowHeight,
-    position: ['left', topDivHeight],
+    position: [margin, topDivHeight],
     buttons: {}
   };
 
@@ -957,12 +875,12 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     buttons: {}
   };
 
-  $scope.amtAssignmentsDialogOptions = {
-    title: 'AMT Assignments',
+  $scope.amtAdminDialogOptions = {
+    title: 'AMT Admin',
     autoOpen: false,
-    width: ((windowWidth * .5) - dialogMargin),
+    width: windowWidth,
     height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight],
+    position: [margin, topDivHeight],
     buttons: {}
   };
 

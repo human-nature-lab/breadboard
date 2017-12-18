@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit;
 import akka.actor.*;
 import scala.concurrent.duration.Duration;
 
-public class IteratedBreadboardGraphChangedListener implements GraphChangedListener {
+public class IteratedBreadboardGraphChangedListener implements BreadboardGraphChangedListener {
   private Graph graph;
   private Long updateIteration = 0L;
   private ArrayList<ClientListener> adminListeners = new ArrayList<ClientListener>();
@@ -130,7 +130,7 @@ public class IteratedBreadboardGraphChangedListener implements GraphChangedListe
 
   @Override
   public void edgeAdded(Edge edge) {
-    //Logger.debug("BreadboardGraphChangedListener edgeAdded");
+    //Logger.debug("EventGraphChangedListener edgeAdded");
     for (ClientListener al : adminListeners)
       al.edgeAdded(edge);
 

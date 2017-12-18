@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
+import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener;
 import com.tinkerpop.gremlin.groovy.GremlinGroovyPipeline;
 import groovy.util.ObservableMap;
 import org.apache.commons.io.FileUtils;
@@ -25,7 +26,6 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
 
 public class ScriptBoard extends UntypedActor {
   private static ObjectMapper mapper = new ObjectMapper();
@@ -36,7 +36,7 @@ public class ScriptBoard extends UntypedActor {
   private static Map results = new HashMap();
   private static PlayerActionsInterface playerActions;
   private static BreadboardGraphInterface graphInterface;
-  private static IteratedBreadboardGraphChangedListener graphChangedListener;
+  private static BreadboardGraphChangedListener graphChangedListener;
   private static EventTracker eventTracker = new EventTracker();
 
   private static Random rand = new Random();
@@ -109,7 +109,15 @@ public class ScriptBoard extends UntypedActor {
 
     if (graphChangedListener == null) {
       Logger.debug("graphChangedListener == null");
-      graphChangedListener = new IteratedBreadboardGraphChangedListener((Graph) g);
+      Long clientUpdateRate = play.Play.application().configuration().getMilliseconds("breadboard.clientUpdateRate");
+      if (clientUpdateRate == null || clientUpdateRate == 0) {
+        Logger.debug("clientUpdateRate not found or 0, using event based updating");
+        graphChangedListener = new EventGraphChangedListener((Graph) g);
+
+      } else {
+        Logger.debug("clientUpdateRate found, using polling");
+        graphChangedListener = new IteratedBreadboardGraphChangedListener((Graph) g);
+      }
     } else {
       Logger.debug("graphChangedListener != null");
       graphChangedListener.setGraph((Graph) g);
@@ -277,8 +285,9 @@ public class ScriptBoard extends UntypedActor {
         Graph wholeGraph = (Graph) engine.get("g");
         Vertex clientVertex = wholeGraph.getVertex(clientId);
         if (clientVertex != null) {
-          // TODO: Only update graph through iterated single threaded process
-          //client.updateGraph(clientVertex);
+          if (graphChangedListener instanceof EventGraphChangedListener) {
+            client.updateGraph(clientVertex);
+          }
         }
       }
 
@@ -440,16 +449,6 @@ public class ScriptBoard extends UntypedActor {
           }
 
           Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
-        } else if (message instanceof Breadboard.DropPlayer) {
-          Breadboard.DropPlayer dropPlayer = (Breadboard.DropPlayer) message;
-          Logger.debug("dropPlayer:" + dropPlayer.pid);
-          if (playerActions != null) {
-            playerActions.remove(dropPlayer.pid);
-          }
-
-          if (graphInterface != null) {
-            graphInterface.removePlayer(dropPlayer.pid);
-          }
         } else if (message instanceof Breadboard.LaunchGame) {
           Breadboard.LaunchGame launchGame = (Breadboard.LaunchGame) message;
 
@@ -474,30 +473,6 @@ public class ScriptBoard extends UntypedActor {
           Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
 
         } // END else if(message instanceof Breadboard.LaunchGame)
-        else if (message instanceof Breadboard.TestGame) {
-          Breadboard.TestGame testGame = (Breadboard.TestGame) message;
-          if (breadboardMessage.user.selectedExperiment != null) {
-            rebuildScriptBoard(breadboardMessage.user.selectedExperiment);
-            eventTracker.disable();
-            ExperimentInstance testInstance = breadboardMessage.user.selectedExperiment.getTestInstance();
-
-            gameListener.experimentInstance = testInstance;
-            testInstance.name = testGame.name;
-            testInstance.creationDate = new Date();
-            gameListener.start();
-            breadboardMessage.user.experimentInstanceId = Experiment.TEST_INSTANCE_ID;
-            testInstance.data.clear();
-            initAllParam(testGame.parameters, breadboardMessage.user.selectedExperiment, testInstance);
-
-            // Re-run the Steps
-            for (Step step : testInstance.experiment.steps) {
-              Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, step.source, breadboardMessage.out), null);
-            }
-          }
-          // Update User JSON
-          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
-
-        } // END else if(message instanceof Breadboard.TestGame)
         else if (message instanceof Breadboard.SelectInstance) {
           Breadboard.SelectInstance selectInstance = (Breadboard.SelectInstance) message;
 
