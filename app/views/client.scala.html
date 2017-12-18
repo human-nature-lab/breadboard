@@ -4,9 +4,15 @@
         @Html(clientHtml)
     } else {
         <div id="mainDiv" ng-controller="ClientCtrl">
-            <div id="statusDiv" ng-controller="TimersCtrl" ng-show="isTimer()">
-                <progressbar ng-repeat="timer in timers" type="{{timer.appearance}}" value="timer.timerValue">
-                    {{timer.timerText}}</progressbar>
+            <!--<div id="statusDiv" ng-controller="TimersCtrl" ng-show="isTimer()">-->
+                <!--<progressbar ng-repeat="timer in timers" type="{{timer.appearance}}" value="timer.timerValue">-->
+                    <!--{{timer.timerText}}</progressbar>-->
+            <!--</div>-->
+            <div class="timers">
+                <bb-timer ng-repeat="timer in client.player.timers"
+                          elapsed="timer.elapsed"
+                          duration="timer.duration"
+                ></bb-timer>
             </div>
             <div id="gameDiv">
                 <div id="graph">

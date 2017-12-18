@@ -165,16 +165,16 @@ public class Experiment extends Model {
 
   public static String defaultClientHTML() {
     String contents = "";
-    try{
-      contents = FileUtils.readFileToString(new File("conf/defaults/client-html.html"), "UTF-8");
+    try {
+      contents = FileUtils.readFileToString(new File("conf/defaults/default-client-html.html"), "UTF-8");
     } catch(IOException e){}
     return contents;
   }
 
   public static String defaultClientGraph() {
     String contents = "";
-    try{
-      contents = FileUtils.readFileToString(new File("conf/defaults/client-graph.js"), "UTF-8");
+    try {
+      contents = FileUtils.readFileToString(new File("conf/defaults/default-client-graph.js"), "UTF-8");
     } catch(IOException e){}
     return contents;
   }

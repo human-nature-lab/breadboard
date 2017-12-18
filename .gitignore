@@ -24,4 +24,4 @@ Breadboard.iml
 install
 experiments
 dev.bat
-node_modules
+dev.sh
