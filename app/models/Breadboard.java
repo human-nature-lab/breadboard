@@ -3,10 +3,12 @@ package models;
 import akka.actor.ActorRef;
 import akka.actor.Props;
 import akka.actor.UntypedActor;
+import com.fasterxml.jackson.annotation.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
 import com.tinkerpop.blueprints.Vertex;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
@@ -14,19 +16,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.imgscalr.Scalr;
 import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import play.Logger;
 import play.Play;
 import play.libs.*;
 import play.libs.F.Callback;
 import play.mvc.WebSocket;
-
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.*;
 import java.math.BigDecimal;
-import java.nio.file.Files;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
@@ -81,7 +79,6 @@ public class Breadboard extends UntypedActor {
             } else if (action.equals("DeleteExperiment")) {
               String selectedExperimentName = jsonInput.get("selectedExperiment").toString();
               instances.get(user.email).tell(new DeleteExperiment(user, selectedExperimentName, out), null);
-              //breadboardController.tell(new DeleteExperiment(user, selectedExperimentName, out));
             } else if (action.equals("ExportExperiment")) {
               String selectedExperimentName = jsonInput.get("selectedExperiment").toString();
               Experiment experiment = user.getExperimentByName(selectedExperimentName);
@@ -117,45 +114,6 @@ public class Breadboard extends UntypedActor {
                 Logger.debug("Some other exception: " + e.getMessage());
                 e.printStackTrace();
               }
-            } else if (action.equals("GetAssignmentsForHIT")) {
-              try {
-                String amtHitIdString = jsonInput.get("amtHitId").toString();
-                Logger.debug("amtHitIdString = " + amtHitIdString);
-                Long amtHitId = Long.parseLong(amtHitIdString);
-                breadboardController.tell(new GetAssignmentsForHIT(user, amtHitId, out), null);
-              } catch (NumberFormatException nfe) {
-                Logger.error("Invalid number provided for amtHitId.");
-              }
-            } else if (action.equals("ExtendHit")) {
-              try {
-                String amtHitIdString = jsonInput.get("amtHitId").toString();
-                Logger.debug("amtHitIdString = " + amtHitIdString);
-                Long amtHitId = Long.parseLong(amtHitIdString);
-                breadboardController.tell(new ExtendHit(user, amtHitId, out), null);
-              } catch (NumberFormatException nfe) {
-                Logger.error("Invalid number provided for amtHitId.");
-              }
-            } else if (action.equals("GrantBonus")) {
-              String workerId = jsonInput.get("workerId").toString();
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              String bonus = jsonInput.get("bonus").toString();
-
-              breadboardController.tell(new GrantBonus(user, workerId, assignmentId, bonus, out), null);
-            } else if (action.equals("ApproveAssignment")) {
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new ApproveAssignment(user, assignmentId, out), null);
-            } else if (action.equals("RejectAssignment")) {
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new RejectAssignment(user, assignmentId, out), null);
-            } else if (action.equals("BlockWorker")) {
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new BlockWorker(user, assignmentId, out), null);
-            } else if (action.equals("MarkCompleted")) {
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new MarkCompleted(user, assignmentId, out), null);
-            } else if (action.equals("AssignQualification")) {
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new AssignQualification(user, assignmentId, out), null);
             } else if (action.equals("RunGame")) {
               if (instances.containsKey(user.email)) {
                 instances.get(user.email).tell(new RunGame(user, out), null);
@@ -167,20 +125,27 @@ public class Breadboard extends UntypedActor {
               }
             } else if (action.equals("AddLanguage")) {
               Long experimentId = Long.parseLong(jsonInput.get("experimentId").toString());
-              String contentName = jsonInput.get("contentName").toString();
-              String language = jsonInput.get("newLanguage").toString();
-              breadboardController.tell(new AddLanguage(user, experimentId, contentName, language, out), null);
+              String languageCode = jsonInput.get("code").toString();
+              breadboardController.tell(new AddLanguage(user, experimentId, languageCode, out), null);
             } else if (action.equals("CreateContent")) {
               String name = jsonInput.get("name").toString();
               breadboardController.tell(new CreateContent(user, name, out), null);
-            } else if (action.equals("SaveTranslation")) {
+            } else if (action.equals("SaveContent")) {
+              Logger.debug("SaveContent");
               try {
-                Long contentId = Long.parseLong(jsonInput.get("contentId").toString());
-                String language = jsonInput.get("language").toString();
-                String html = jsonInput.get("html").toString();
-                breadboardController.tell(new SaveTranslation(user, contentId, language, html, out), null);
+                try {
+                  Gson gson = new Gson();
+                  SaveContentObject saveContentObject = gson.fromJson(event.toString(), SaveContentObject.class);
+                  breadboardController.tell(new SaveContent(user, saveContentObject.getContentId(), saveContentObject.getName(), saveContentObject.getTranslations(), out), null);
+                } catch (Exception e) {
+                  StringWriter sw = new StringWriter();
+                  e.printStackTrace(new PrintWriter(sw));
+                  String exceptionAsString = sw.toString();
+                  Logger.debug(exceptionAsString);
+                }
+
               } catch (NumberFormatException nfe) {
-                Logger.debug("SaveTranslation threw NumberFormatException at Long.parseLong parsing: " + jsonInput.get("contentId").toString());
+                Logger.debug("SaveContent threw NumberFormatException at Long.parseLong parsing: " + jsonInput.get("contentId").toString());
               }
             } else if (action.equals("MakeChoice")) {
               // TODO: Player client will not be logged in with email and will
@@ -207,7 +172,6 @@ public class Breadboard extends UntypedActor {
               breadboardController.tell(new DeleteStep(user, id, out), null);
             } else if (action.equals("DeleteContent")) {
               Long id = Long.valueOf(jsonInput.get("id").toString());
-              //Logger.debug("action.equals(DeleteContent), id=" + id.toString());
               breadboardController.tell(new DeleteContent(user, id, out), null);
             } else if (action.equals("SendStep")) {
               if (instances.containsKey(user.email)) {
@@ -221,11 +185,6 @@ public class Breadboard extends UntypedActor {
                   Logger.debug("Long.parseLong threw NumberFormatException, input: " + jsonInput.get("id").toString());
                 }
               }
-            } else if (action.equals("DropPlayer")) {
-              if (instances.containsKey(user.email)) {
-                String pid = jsonInput.get("pid").toString();
-                instances.get(user.email).tell(new DropPlayer(user, pid, out), null);
-              }
             } else if (action.equals("LaunchGame")) {
               if (instances.containsKey(user.email)) {
                 String name = jsonInput.get("name").toString();
@@ -234,16 +193,6 @@ public class Breadboard extends UntypedActor {
                 if (parameters instanceof LinkedHashMap) {
                   LinkedHashMap params = (LinkedHashMap) parameters;
                   instances.get(user.email).tell(new LaunchGame(user, name, params, out), null);
-                }
-              }
-            } else if (action.equals("TestGame")) {
-              if (instances.containsKey(user.email)) {
-                String name = jsonInput.get("name").toString();
-                Object parameters = jsonInput.get("parameters");
-                Logger.debug("parameters.getClass().toString() = " + parameters.getClass().toString());
-                if (parameters instanceof LinkedHashMap) {
-                  LinkedHashMap params = (LinkedHashMap) parameters;
-                  instances.get(user.email).tell(new TestGame(user, name, params, out), null);
                 }
               }
             } else if (action.equals("StopGame")) {
@@ -472,8 +421,20 @@ public class Breadboard extends UntypedActor {
                 // For each file in the language directory with an extension equal to ".html"
                 // The language is the same as the name of the containing directory
                 if (languageFile.isFile() && FilenameUtils.getExtension(languageFile.getName()).equals("html")) {
+                  // First, check if the language is in the database
                   Language language = Language.find.where().eq("code", contentFile.getName()).findUnique();
+
                   if (language == null) {
+                    // Next, check if the language is in importedExperiment.languages
+                    for (Language l : importedExperiment.languages) {
+                      if (l.code.equals(contentFile.getName())) {
+                        language = l;
+                      }
+                    }
+                  }
+
+                  if (language == null) {
+                    // Language not found in database or importedExperiment.languages, create new language
                     Logger.debug("No language found, creating new language.");
                     language = new Language();
                     language.code = contentFile.getName();
@@ -481,8 +442,16 @@ public class Breadboard extends UntypedActor {
                     language.name = new Locale(contentFile.getName()).getDisplayLanguage();
                     Logger.debug("The language based on the code " + contentFile.getName() + " is " + language.name);
                   }
-                  if (importedExperiment.languages.indexOf(language) == -1) {
+
+                  boolean hasLanguage = false;
+                  for (Language l : importedExperiment.languages) {
+                    if (l.code.equals(contentFile.getName())) {
+                      hasLanguage = true;
+                    }
+                  }
+                  if (!hasLanguage) {
                     importedExperiment.languages.add(language);
+                    importedExperiment.save();
                   }
 
                   Translation translation = new Translation();
@@ -490,25 +459,43 @@ public class Breadboard extends UntypedActor {
                   String html = FileUtils.readFileToString(languageFile);
                   translation.html = html;
 
-                  Content content = new Content();
                   String contentName = FilenameUtils.removeExtension(languageFile.getName());
-                  content.name = contentName;
-                  content.translations.add(translation);
-                  importedExperiment.content.add(content);
+                  Content content = null;
+                  for (Content c : importedExperiment.content) {
+                    if (c.name.equals(contentName)) {
+                      content = c;
+                    }
+                  }
+                  if (content == null) {
+                    content = new Content();
+                    content.name = contentName;
+                    importedExperiment.content.add(content);
+                  }
                   Logger.debug("Adding content: " + contentName + " with language " + contentFile.getName());
+                  content.translations.add(translation);
                 }
               }
             } else if(contentFile.isFile() && FilenameUtils.getExtension(contentFile.getName()).equals("html")) {
               // Import from a v2.2.4 or earlier DB, let's assume the content is in English
+              // First, check if english is in the database
               Language english = Language.find.where().eq("code", "en").findUnique();
+
               if (english == null) {
-                // Create the English Language
+                // Next, check if the language is in importedExperiment.languages
+                for (Language l : importedExperiment.languages) {
+                  if (l.code.equals("en") && l.name.equals("English")) {
+                    english = l;
+                  }
+                }
+              }
+
+              if (english == null) {
+                // Not in the database or importedExperiment.languages, create a new language
                 english = new Language();
                 english.code = "en";
                 english.name = "English";
-              }
-              if (importedExperiment.languages.indexOf(english) == -1) {
                 importedExperiment.languages.add(english);
+                importedExperiment.save();
               }
 
               Translation translation = new Translation();
@@ -534,6 +521,7 @@ public class Breadboard extends UntypedActor {
         if (parametersLines.length > 1) {
           for (int i = 1; i < parametersLines.length; i++) {
             String parameterLine = parametersLines[i];
+            // TODO: Let's properly handle commas in the short description
             String[] parameterValues = parameterLine.split(",");
             if (parameterValues.length == 6) {
               Parameter parameter = new Parameter();
@@ -717,330 +705,24 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
             breadboardMessage.out.write(jsonOutput);
           }
         }
-      } else if (message instanceof GetAssignmentsForHIT) {
-/*
-<?xml version="1.0"?>
-<GetAssignmentsForHITResponse>
-    <OperationRequest>
-        <RequestId>6d6deab2-eeea-4dd3-906c-f54de61b3ea2</RequestId>
-    </OperationRequest>
-    <GetAssignmentsForHITResult>
-        <Request>
-            <IsValid>True</IsValid>
-        </Request>
-        <NumResults>1</NumResults>
-        <TotalNumResults>1</TotalNumResults>
-        <PageNumber>1</PageNumber>
-        <Assignment>
-            <AssignmentId>2W0JIA0RYNJ96AMKK3WBPJTUI5G272</AssignmentId>
-            <WorkerId>ARK0ERORKQBS1</WorkerId>
-            <HITId>22H6R70G5R98HVM3THYWVSTN7SXAQ6</HITId>
-            <AssignmentStatus>Submitted</AssignmentStatus>
-            <AutoApprovalTime>2013-06-23T14:26:35Z</AutoApprovalTime>
-            <AcceptTime>2013-05-24T13:47:18Z</AcceptTime>
-            <SubmitTime>2013-05-24T14:26:35Z</SubmitTime>
-            <Answer>&lt;? xml version="1.0" encoding="UTF-8" standalone="no"?&gt;&lt;QuestionFormAnswers xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2005-10-01/QuestionFormAnswers.xsd"&gt;&lt;Answer&gt;&lt;QuestionIdentifier&gt;bonus&lt;/QuestionIdentifier&gt;&lt;FreeText&gt;0.5&lt;/FreeText&gt;&lt;/Answer&gt;&lt;/QuestionFormAnswers&gt;</Answer>
-        </Assignment>
-    </GetAssignmentsForHITResult>
-</GetAssignmentsForHITResponse>
-*/
-        GetAssignmentsForHIT getAssignmentsForHIT = (GetAssignmentsForHIT) message;
-
-        AMTHit hit = AMTHit.findById(getAssignmentsForHIT.amtHitId);
-
-        if (hit != null) {
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.getAssignmentsForHIT(hit.hitId, hit.sandbox);
-
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              ObjectNode jsonOutput = Json.newObject();
-
-              NodeList assignmentNodes = XPath.selectNodes("//Assignment", dom);
-
-              for (int i = 0; i < assignmentNodes.getLength(); i++) {
-                Node assignmentNode = assignmentNodes.item(i);
-
-                String assignmentId = XPath.selectText("AssignmentId", assignmentNode);
-                String workerId = XPath.selectText("WorkerId", assignmentNode);
-                String assignmentStatus = XPath.selectText("AssignmentStatus", assignmentNode);
-                String autoApprovalTime = XPath.selectText("AutoApprovalTime", assignmentNode);
-                String acceptTime = XPath.selectText("AcceptTime", assignmentNode);
-                String submitTime = XPath.selectText("SubmitTime", assignmentNode);
-                String answer = XPath.selectText("Answer", assignmentNode);
-                //String unescapedAnswer = StringEscapeUtils.unescapeXml(answer);
-                Document answerDom = XML.fromString(answer);
-                //Logger.debug("answerDom.getElementsByTagName(\"FreeText\").getLength() = " + answerDom.getElementsByTagName("FreeText").getLength());
-
-                //Logger.debug("answer = " + answer);
-                //Logger.debug("unescapedAnswer = " + unescapedAnswer);
-/*
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<QuestionFormAnswers xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2005-10-01/QuestionFormAnswers.xsd">
-<Answer>
-<QuestionIdentifier>bonus</QuestionIdentifier>
-<FreeText>0.85</FreeText>
-</Answer>
-</QuestionFormAnswers>
-*/
-                //String bonus = XPath.selectText("/QuestionFormAnswers/Answer/FreeText", answerDom);
-                String strategy = "";
-                String bonus = "";
-                String reason = "";
-                NodeList questionIdentifiers = answerDom.getElementsByTagName("QuestionIdentifier");
-
-                for (int j = 0; j < questionIdentifiers.getLength(); j++) {
-                  if (questionIdentifiers.item(j).getTextContent().equals("bonus")) {
-                    if (questionIdentifiers.item(j).getNextSibling().getNextSibling() != null) {
-                      bonus = questionIdentifiers.item(j).getNextSibling().getNextSibling().getTextContent();
-                    }
-                  }
-                  if (questionIdentifiers.item(j).getTextContent().equals("reason")) {
-                    if (questionIdentifiers.item(j).getNextSibling().getNextSibling() != null) {
-                      reason = questionIdentifiers.item(j).getNextSibling().getNextSibling().getTextContent();
-                    }
-                  }
-                }
-
-                Logger.debug("AssignmentId = " + assignmentId);
-                Logger.debug("WorkerId = " + workerId);
-                Logger.debug("AssignmentStatus = " + assignmentStatus);
-                Logger.debug("AutoApprovalTime = " + autoApprovalTime);
-                Logger.debug("AcceptTime = " + acceptTime);
-                Logger.debug("SubmitTime = " + submitTime);
-                //Logger.debug("Answer = " + answer);
-                Logger.debug("Bonus = " + bonus);
-                Logger.debug("Reason = " + reason);
-
-                //AMTAssignment assignment = AMTAssignment.findByAssignmentId(assignmentId);
-                AMTAssignment assignment = hit.getAMTAssignmentById(assignmentId);
-                boolean update = true;
-
-                if (assignment == null) {
-                  assignment = new AMTAssignment();
-                  update = false;
-                }
-
-                assignment.assignmentId = assignmentId;
-                assignment.workerId = workerId;
-                assignment.assignmentStatus = assignmentStatus;
-                assignment.autoApprovalTime = autoApprovalTime;
-                assignment.acceptTime = acceptTime;
-                assignment.submitTime = submitTime;
-                assignment.answer = answer;
-                assignment.score = bonus;
-                assignment.reason = reason;
-
-                if (!update) {
-                  hit.amtAssignments.add(assignment);
-                }
-                hit.save();
-              }
-              jsonOutput.put("output", "Assignments Retrieved.");
-              breadboardMessage.out.write(jsonOutput);
-            } // if (dom != null)
-          } // if (response != null)
-        } // if (hit != null)
-      } else if (message instanceof ExtendHit) {
-        ExtendHit extendHit = (ExtendHit) message;
-
-        AMTHit hit = AMTHit.findById(extendHit.amtHitId);
-
-        if (hit != null) {
-          Logger.debug("ExtendHit: " + hit);
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.extendHit(hit.hitId, 31536000, hit.sandbox);
-
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              String isValid = XPath.selectText("//IsValid", dom);
-              if (isValid.equals("True")) {
-                hit.setExtended(true);
-                hit.update();
-              }
-            }
-          }
-        }
-      } else if (message instanceof GrantBonus) {
-        GrantBonus grantBonus = (GrantBonus) message;
-
-        Logger.debug("GrantBonus: " + grantBonus.assignmentId);
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(grantBonus.assignmentId);
-
-        if (assignment != null) {
-          boolean sandbox = assignment.amtHit.sandbox;
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.grantBonus(grantBonus.workerId, grantBonus.assignmentId, grantBonus.bonus, sandbox);
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              String isValid = XPath.selectText("//IsValid", dom);
-              if (isValid.equals("True")) {
-                assignment.bonusGranted = true;
-                assignment.save();
-                ObjectNode jsonOutput = Json.newObject();
-                jsonOutput.put("output", "Bonus Granted: " + grantBonus.bonus);
-                breadboardMessage.out.write(jsonOutput);
-              }
-            } //if (dom != null)
-          } //if (response != null)
-        } //if (assignment != null)
-      } else if (message instanceof ApproveAssignment) {
-        ApproveAssignment approveAssignment = (ApproveAssignment) message;
-
-        Logger.debug("ApproveAssignment: " + approveAssignment.assignmentId);
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(approveAssignment.assignmentId);
-
-        if (assignment != null) {
-          boolean sandbox = assignment.amtHit.sandbox;
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.approveAssignment(approveAssignment.assignmentId, sandbox);
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              String isValid = XPath.selectText("//IsValid", dom);
-              if (isValid.equals("True")) {
-                assignment.assignmentStatus = "Approved";
-                assignment.save();
-                ObjectNode jsonOutput = Json.newObject();
-                jsonOutput.put("output", "Assignment Approved: " + approveAssignment.assignmentId);
-                breadboardMessage.out.write(jsonOutput);
-                // Refresh the assignment status
-                // TODO: why doesn't the status update when approve or reject assignment?
-                //breadboardController.tell(new GetAssignmentsForHIT(breadboardMessage.user, assignment.amtHit.id, breadboardMessage.out));
-              }
-            } //if (dom != null)
-          } //if (response != null)
-        } //if (assignment != null)
-      } else if (message instanceof RejectAssignment) {
-        RejectAssignment rejectAssignment = (RejectAssignment) message;
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(rejectAssignment.assignmentId);
-
-        if (assignment != null) {
-          boolean sandbox = assignment.amtHit.sandbox;
-          Logger.debug("controllers.MechanicalTurk.rejectAssignment(" + rejectAssignment.assignmentId + ", " + sandbox + ")");
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.rejectAssignment(rejectAssignment.assignmentId, sandbox);
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              String isValid = XPath.selectText("//IsValid", dom);
-              if (isValid.equals("True")) {
-                assignment.assignmentStatus = "Rejected";
-                assignment.save();
-                ObjectNode jsonOutput = Json.newObject();
-                jsonOutput.put("output", "Assignment Rejected: " + rejectAssignment.assignmentId);
-                breadboardMessage.out.write(jsonOutput);
-                // Refresh the assignment status
-                //breadboardController.tell(new GetAssignmentsForHIT(breadboardMessage.user, assignment.amtHit.id, breadboardMessage.out));
-              }
-            } //if (dom != null)
-          } //if (response != null)
-        } //if (assignment != null)
-      } else if (message instanceof BlockWorker) {
-        BlockWorker blockWorker = (BlockWorker) message;
-
-        Logger.debug("BlockWorker: " + blockWorker.assignmentId);
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(blockWorker.assignmentId);
-
-        if (assignment != null) {
-          boolean sandbox = assignment.amtHit.sandbox;
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.blockWorker(assignment.workerId, sandbox);
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              String isValid = XPath.selectText("//IsValid", dom);
-              if (isValid.equals("True")) {
-                assignment.workerBlocked = true;
-                assignment.save();
-                ObjectNode jsonOutput = Json.newObject();
-                jsonOutput.put("output", "Worker Blocked: " + assignment.workerId);
-                breadboardMessage.out.write(jsonOutput);
-              }
-            } //if (dom != null)
-          } //if (response != null)
-        } //if (assignment != null)
-      } else if (message instanceof MarkCompleted) {
-        MarkCompleted markCompleted = (MarkCompleted) message;
-
-        Logger.debug("MarkCompleted: " + markCompleted.assignmentId);
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(markCompleted.assignmentId);
-
-        if (assignment != null) {
-          assignment.assignmentCompleted = true;
-          assignment.save();
-          ObjectNode jsonOutput = Json.newObject();
-          jsonOutput.put("output", "Assignment marked as completed: " + markCompleted.assignmentId);
-          breadboardMessage.out.write(jsonOutput);
-        } //if (assignment != null)
-      } else if (message instanceof AssignQualification) {
-        AssignQualification assignQualification = (AssignQualification) message;
-
-        Logger.debug("AssignQualification: " + assignQualification.assignmentId);
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(assignQualification.assignmentId);
-
-        if (assignment != null) {
-          AMTHit amtHit = assignment.amtHit;
-          if (amtHit != null) {
-            ExperimentInstance experimentInstance = amtHit.experimentInstance;
-            if (experimentInstance != null) {
-              Experiment experiment = experimentInstance.experiment;
-              if (experiment != null) {
-                boolean sandbox = assignment.amtHit.sandbox;
-
-                String generalQualificationTypeId = (sandbox) ? "2IO7WGKCCVLL7ZD31P8ASQ4C9QO4U5" : "23ADM25L8I9N3J9HC2XOL4QW7W9HR7";
-                String experimentQualificationTypeId = (sandbox) ? experiment.qualificationTypeIdSandbox : experiment.qualificationTypeId;
-
-                boolean generalSuccess = controllers.MechanicalTurk.assignOrUpdateQualification(generalQualificationTypeId, assignment.workerId, "1", sandbox);
-                boolean experimentSuccess = controllers.MechanicalTurk.assignOrUpdateQualification(experimentQualificationTypeId, assignment.workerId, "1", sandbox);
-
-                if (generalSuccess && experimentSuccess) {
-                  assignment.qualificationAssigned = true;
-                  assignment.save();
-                  ObjectNode jsonOutput = Json.newObject();
-                  jsonOutput.put("output", "Qualification Assigned to " + assignment.workerId);
-                  breadboardMessage.out.write(jsonOutput);
-                } else {
-                  if (!generalSuccess) {
-                    Logger.debug("Failed assigning and updating general qualification type.");
-                  }
-
-                  if (!experimentSuccess) {
-                    Logger.debug("Failed assigning and updating experiment specific qualification type.");
-                  }
-                }
-              } //if (experiment != null)
-            } //if (experimentInstance != null)
-          } //if (amtHit != null)
-        } //if (assignment != null)
       } else if (message instanceof AddLanguage) {
         AddLanguage addLanguage = (AddLanguage) message;
-        Language language = Language.find.where().eq("code", addLanguage.languageCode).eq("name", addLanguage.languageName).findUnique();
+        Language language = Language.find.where().eq("code", addLanguage.languageCode).findUnique();
         if (language == null) {
           // New language, create it
           language = new Language();
           language.code = addLanguage.languageCode;
-          language.name = addLanguage.languageName;
-          language.save();
+          language.name = new Locale(addLanguage.languageCode).getDisplayLanguage();
         }
         // Add the language to the currently selected Experiment, if it doesn't already exist
         Experiment selectedExperiment = Experiment.findById(addLanguage.experimentId);
-        if (selectedExperiment.languages.indexOf(language) == -1) {
+        boolean hasLanguage = false;
+        for (Language l : selectedExperiment.languages) {
+          if (l.id.equals(language.id)) {
+            hasLanguage = true;
+          }
+        }
+        if (!hasLanguage) {
           selectedExperiment.languages.add(language);
           selectedExperiment.save();
         }
@@ -1053,11 +735,9 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         if (selectedExperiment != null) {
           Content newContent = new Content();
           newContent.name = createContent.name;
-          //newContent.save();
 
           selectedExperiment.content.add(newContent);
           selectedExperiment.save();
-          //selectedExperiment.saveManyToManyAssociations("content");
           instances.get(breadboardMessage.user.email).tell(message, null);
         }
       } else if (message instanceof CreateStep) {
@@ -1075,11 +755,9 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
               nameVariableName + ".done = {\n" +
               "\tprintln \"" + nameVariableName + ".done\"\n" +
               "}\n";
-          //newStep.save();
 
           selectedExperiment.steps.add(newStep);
           selectedExperiment.save();
-          //selectedExperiment.saveManyToManyAssociations("steps");
         }
       } else if (message instanceof DeleteStep) {
         DeleteStep deleteStep = (DeleteStep) message;
@@ -1088,39 +766,27 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
       } else if (message instanceof DeleteContent) {
         DeleteContent deleteContent = (DeleteContent) message;
         Content content = Content.find.byId(deleteContent.id);
-        //Logger.debug("message instanceof DeleteContent, content=" + content);
         content.delete();
-      } else if (message instanceof SaveTranslation) {
-        SaveTranslation saveTranslation = (SaveTranslation) message;
+      } else if (message instanceof SaveContent) {
+        SaveContent saveContent = (SaveContent) message;
         Experiment selectedExperiment = breadboardMessage.user.getExperiment();
         if (selectedExperiment != null) {
-          Content content = selectedExperiment.getContent(saveTranslation.contentId);
+          Content content = selectedExperiment.getContent(saveContent.contentId);
           if (content != null) {
-            Translation translation = null;
-            for (Translation t : content.translations) {
-              if (t.language.code.equals(saveTranslation.language)) {
-                translation = t;
+            for (Translation t : saveContent.translations) {
+              if (t.id == null) {
+                // New translation, create it
+                Translation newTranslation = new Translation();
+                newTranslation.language = t.getLanguage();
+                newTranslation.html = t.getHtml();
+                content.translations.add(newTranslation);
+                content.save();
+              } else {
+                // Existing translation, update it
+                Translation translation = Translation.find.byId(t.id);
+                translation.setHtml(t.getHtml());
+                translation.update();
               }
-            }
-
-            if (translation == null) {
-              // New translation, create it
-              translation = new Translation();
-              Language language = Language.find.where().eq("code", saveTranslation.language).findUnique();
-              if (language == null) {
-                language = new Language();
-                language.code = saveTranslation.language;
-                language.name = new Locale(saveTranslation.language).getDisplayLanguage();
-                selectedExperiment.languages.add(language);
-                selectedExperiment.save();
-              }
-              translation.language = language;
-              content.translations.add(translation);
-              content.save();
-            } else {
-              // Update existing translation
-              translation.html = saveTranslation.html;
-              translation.save();
             }
 
             instances.get(breadboardMessage.user.email).tell(message, null);
@@ -1180,11 +846,9 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
           parameter.maxVal = (parameter.type.equals("Text") || parameter.type.equals("Boolean")) ? "" : newParameter.maxVal;
           parameter.defaultVal = newParameter.defaultVal;
           parameter.description = newParameter.description;
-          //parameter.save();
 
           selectedExperiment.parameters.add(parameter);
           selectedExperiment.save();
-          //selectedExperiment.saveManyToManyAssociations("parameters");
         }
       } else if (message instanceof RemoveParameter) {
         RemoveParameter removeParameter = (RemoveParameter) message;
@@ -1195,7 +859,6 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
           Parameter parameter = Parameter.find.byId(removeParameter.id);
           if (parameter != null) {
             selectedExperiment.parameters.remove(parameter);
-            //selectedExperiment.saveManyToManyAssociations("parameters");
             selectedExperiment.update();
             parameter.delete();
           }
@@ -1253,7 +916,6 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         Image.findById(imageId).delete();
       }
 
-      //Logger.debug("breadboardMessage.out.write(breadboardMessage.user.toJson()); " + breadboardMessage.user.toJson());
       breadboardMessage.out.write(breadboardMessage.user.toJson());
 
     } // END if(message instanceof BreadboardMessage)
@@ -1397,82 +1059,6 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
     }
   }
 
-  public static class GetAssignmentsForHIT extends BreadboardMessage {
-    final Long amtHitId;
-
-    public GetAssignmentsForHIT(User user, Long amtHitId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.amtHitId = amtHitId;
-    }
-  }
-
-  public static class ExtendHit extends BreadboardMessage {
-    final Long amtHitId;
-
-    public ExtendHit(User user, Long amtHitId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.amtHitId = amtHitId;
-    }
-  }
-
-  public static class GrantBonus extends BreadboardMessage {
-    final String workerId;
-    final String assignmentId;
-    final String bonus;
-
-    public GrantBonus(User user, String workerId, String assignmentId, String bonus, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.workerId = workerId;
-      this.assignmentId = assignmentId;
-      this.bonus = bonus;
-    }
-  }
-
-  public static class ApproveAssignment extends BreadboardMessage {
-    final String assignmentId;
-
-    public ApproveAssignment(User user, String assignmentId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.assignmentId = assignmentId;
-    }
-  }
-
-  public static class RejectAssignment extends BreadboardMessage {
-    final String assignmentId;
-
-    public RejectAssignment(User user, String assignmentId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.assignmentId = assignmentId;
-    }
-  }
-
-  public static class MarkCompleted extends BreadboardMessage {
-    final String assignmentId;
-
-    public MarkCompleted(User user, String assignmentId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.assignmentId = assignmentId;
-    }
-  }
-
-  public static class BlockWorker extends BreadboardMessage {
-    final String assignmentId;
-
-    public BlockWorker(User user, String assignmentId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.assignmentId = assignmentId;
-    }
-  }
-
-  public static class AssignQualification extends BreadboardMessage {
-    final String assignmentId;
-
-    public AssignQualification(User user, String assignmentId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.assignmentId = assignmentId;
-    }
-  }
-
   public static class CreateContent extends BreadboardMessage {
     final String name;
 
@@ -1485,13 +1071,11 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
   public static class AddLanguage extends BreadboardMessage {
     final Long experimentId;
     final String languageCode;
-    final String languageName;
 
-    public AddLanguage(User user, Long experimentId, String languageCode, String languageName, ThrottledWebSocketOut out) {
+    public AddLanguage(User user, Long experimentId, String languageCode, ThrottledWebSocketOut out) {
       super(user, out);
       this.experimentId = experimentId;
       this.languageCode = languageCode;
-      this.languageName = languageName;
     }
   }
 
@@ -1522,16 +1106,87 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
     }
   }
 
-  public static class SaveTranslation extends BreadboardMessage {
+  public static class SaveContent extends BreadboardMessage {
     final Long contentId;
-    final String language;
-    final String html;
+    final String name;
+    final List<Translation> translations;
 
-    public SaveTranslation(User user, Long contentId, String language, String html, ThrottledWebSocketOut out) {
+    public SaveContent(User user, Long contentId, String name, List<Translation> translations, ThrottledWebSocketOut out) {
       super(user, out);
       this.contentId = contentId;
-      this.language = language;
-      this.html = html;
+      this.name = name;
+      this.translations = translations;
+    }
+  }
+
+  public class SaveContentObject implements Serializable {
+    @JsonCreator
+    public SaveContentObject(@JsonProperty("action") String action,
+                             @JsonProperty("uid") String uid,
+                             @JsonProperty("contentId") long contentId,
+                             @JsonProperty("name") String name,
+                             @JsonProperty("translations") List<Translation> translations) {
+      this.action = action;
+      this.uid = uid;
+      this.contentId = contentId;
+      this.name = name;
+      this.translations = translations;
+    }
+    private String action;
+    private String uid;
+    private long contentId;
+    private String name;
+    @JsonProperty("translations")
+    private List<Translation> translations;
+
+    @JsonGetter("action")
+    public String getAction() {
+      return action;
+    }
+
+    @JsonSetter("action")
+    public void setAction(String action) {
+      this.action = action;
+    }
+
+    @JsonGetter("uid")
+    public String getUid() {
+      return uid;
+    }
+
+    @JsonSetter("uid")
+    public void setUid(String uid) {
+      this.uid = uid;
+    }
+
+    @JsonGetter("contentId")
+    public long getContentId() {
+      return contentId;
+    }
+
+    @JsonSetter("contentId")
+    public void setContentId(long contentId) {
+      this.contentId = contentId;
+    }
+
+    @JsonGetter("name")
+    public String getName() {
+      return name;
+    }
+
+    @JsonSetter("name")
+    public void setName(String name) {
+      this.name = name;
+    }
+
+    @JsonGetter("translations")
+    public List<Translation> getTranslations() {
+      return translations;
+    }
+
+    @JsonSetter("translations")
+    public void setTranslations(List<Translation> translations) {
+      this.translations = translations;
     }
   }
 
@@ -1610,31 +1265,11 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
     }
   }
 
-  public static class DropPlayer extends BreadboardMessage {
-    final String pid;
-
-    public DropPlayer(User user, String pid, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.pid = pid;
-    }
-  }
-
   public static class LaunchGame extends BreadboardMessage {
     final String name;
     final LinkedHashMap parameters;
 
     public LaunchGame(User user, String name, LinkedHashMap parameters, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.name = name;
-      this.parameters = parameters;
-    }
-  }
-
-  public static class TestGame extends BreadboardMessage {
-    final LinkedHashMap parameters;
-    final String name;
-
-    public TestGame(User user, String name, LinkedHashMap parameters, ThrottledWebSocketOut out) {
       super(user, out);
       this.name = name;
       this.parameters = parameters;

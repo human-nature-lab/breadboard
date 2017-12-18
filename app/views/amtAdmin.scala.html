@@ -1,62 +1,408 @@
 <html>
-    <head>
-        <title>AMT Admin</title>
-        <link rel="stylesheet" href="@routes.Assets.at("css/main.css")">
-        <link rel="stylesheet" href="@routes.Assets.at("css/redmond/jquery-ui-1.8.21.custom.css")">
-        <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
-        <style>
-			#mainDiv {
-				margin: 1em;
-			}
-            .message-box {
-                padding: .7em;
-                margin: .7em;
-            }
-            textarea, input {
-                font-family: Lucida Grande,Lucida Sans,Arial,sans-serif;
-            }
-        </style>
-		<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
-		<script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.2/jquery-ui.min.js"></script>
-    </head>
-    <body>
-        <div id="mainDiv">
-            <h2>Create Dummy HITs</h2>
-            <p>
-                This is the future home of the AMT Administrator Interface.  For now there is just one function: creating dummy HITs.  
-            </p>
-            <p>
-                Below, enter a list of AMT Worker IDs (one per line, space separated, or comma separated), a description of the reason for the payment, and a reward in dollars.  The app will create dummy HITs for each worker with the specified reward and assign a required qualification.  
-            </p>
-
-            <form action="@routes.AMTAdmin.createDummyHit" onsubmit="jQuery('#success_div').hide();jQuery('#error_div').hide();jQuery('#wait_div').show();">
-                <table>
-                    <tr><td><label for="amt_ids">AMT IDs</label></td><td><textarea rows="20" cols="60" name="amt_ids" placeholder="AMT Worker IDs" required></textarea></td></tr>
-                    <tr><td><label for="reason">Reason</label></td><td><textarea rows="2" cols="60" name="reason" placeholder="Reason" required></textarea></td></tr>
-                    <tr><td><label for="reward">Reward</label></td><td><input type="text" pattern="(0\.((0[1-9]{1})|([1-9]{1}([0-9]{1})?)))|(([1-9]+[0-9]*)(\.([0-9]{1,2}))?)" name="reward" placeholder="Reward" required></td></tr>
-                    <tr><td><label for="sandbox">Sandbox?</label></td><td><input type="checkbox" name="sandbox"></td></tr>
-                    <tr><td colspan="2"><input type="submit" value="Create Dummy HITs"></td></tr>
-                </table>
-            </form>
-
-            <div id="wait_div" style="display: none;" class="message-box ui-state-active ui-corner-all">
-                <h3>Please wait...</h3>
-            </div>
-
-            @if(flash.containsKey("success")) {
-                <div id="success_div" class="message-box ui-state-highlight ui-corner-all">
-                    <h3>Done!</h3> 
-                    <p>@Html(flash.get("success"))</p>
+  <head>
+    <title>AMT Admin</title>
+    <link rel="stylesheet" href="@routes.Assets.at("css/main.css")">
+    <link rel="stylesheet" href="@routes.Assets.at("lib/bootstrap/css/bootstrap.css")">
+    <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
+    <script src="@routes.Assets.at("lib/jquery3/jquery.min.js")"></script>
+    <script src="@routes.Assets.at("lib/angular/angular.js")"></script>
+    <script src="@routes.Assets.at("lib/bootstrap/js/bootstrap.js")"></script>
+    <script src="@routes.Assets.at("js/amt-admin-app.js")" type="text/javascript"></script>
+    <script src="@routes.Assets.at("js/amt-admin-service.js")" type="text/javascript"></script>
+    <script src="@routes.Assets.at("js/amt-admin-controller.js")" type="text/javascript"></script>
+    <script src="@routes.Assets.at("js/util.js")" type="text/javascript"></script>
+  </head>
+  <body ng-app='AmtAdmin' ng-controller="AMTAdminCtrl" >
+    <div class="container-fluid" ng-class="{'bg-info': !sandbox, 'bg-warning': sandbox}">
+      <div class="pull-right">
+        <p class="text-right">
+        Account Balance: {{ (accountBalance == null) ? "Loading" : accountBalance | currency:"$" }}
+        </p>
+        <h3>
+        {{(sandbox) ? "Developer Sandbox" : "Production Mode"}}
+          <button ng-click="toggleSandbox()" type="button" class="btn btn-default">
+          {{(!sandbox) ? "Switch to Sandbox" : "Switch to Production"}}
+          </button>
+        </h3>
+      </div>
+    </div>
+    <div class="container-fluid">
+      <h3>
+        Manage HITs
+        <button ng-click="showManageHITs = !showManageHITs" type="button" class="btn btn-default btn-sm">
+          <span
+          class="glyphicon"
+          ng-class="{ 'glyphicon-minus' : showManageHITs, 'glyphicon-plus' : !showManageHITs}"
+          aria-hidden="true">
+          </span>
+        </button>
+      </h3>
+      <table class="table table-hover table-condensed" ng-show="showManageHITs">
+        <thead>
+          <tr>
+            <th colspan="7" class="text-center">
+              <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm">
+                  <li ng-class="{'disabled' : (curToken < 1)}">
+                    <a ng-click="pageHITs(curToken - 1)" aria-label="Previous">
+                      <span aria-hidden="true">&laquo;</span>
+                    </a>
+                  </li>
+                  <li ng-class="{'active' : ($index === curToken)}" ng-repeat="t in tokens"><a ng-click="pageHITs($index)">{{ ($index + 1) }}</a></li>
+                  <li ng-class="{'disabled' : (tokens.length === 0 || curToken === (tokens.length - 1))}">
+                    <a ng-click="pageHITs(curToken + 1)" aria-label="Next">
+                      <span aria-hidden="true">&raquo;</span>
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+            </th>
+          </tr>
+          <tr>
+            <th></th>
+            <th></th>
+            <th></th>
+            <th colspan="4" class="active">Assignments</th>
+          </tr>
+          <tr>
+            <th>Title</th>
+            <th>Creation Date</th>
+            <th>Reward</th>
+            <th class="active">Requested</th>
+            <th class="active">Pending Review</th>
+            <th class="active">Reviewed</th>
+            <th class="active">Remaining</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr ng-repeat-start="hit in hits" ng-click="selectHIT(hit)" ng-class="{'info' : (selectedHIT == hit)}">
+            <td>{{ hit.title }}</td>
+            <td>{{ hit.creationTime | date: "yyyy-MM-dd" }} </td>
+            <td>{{ hit.reward | currency:"$" }}</td>
+            <td class="active">{{ hit.maxAssignments }} </td>
+            <td class="active">{{ hit.maxAssignments - hit.numberOfAssignmentsAvailable - hit.numberOfAssignmentsCompleted }} </td>
+            <td class="active">{{ hit.numberOfAssignmentsCompleted }} </td>
+            <td class="active">{{ hit.numberOfAssignmentsAvailable }} </td>
+          </tr>
+          <tr ng-show="selectedHIT == hit" ng-repeat-end>
+            <td colspan="7">
+              <div class="row">
+                <div class="col-md-12">
+                  <div class="panel panel-default">
+                    <div class="panel-heading">
+                      Description
+                    </div>
+                    <div class="panel-body">
+                      {{ hit.description }}
+                    </div>
+                  </div>
                 </div>
-            }
+                <div class="col-md-12">
+                  <div class="panel panel-default">
+                    <div class="panel-heading">
+                      Assignments
+                    </div>
+                    <div class="panel-body">
+                      <span ng-show="hit.assignments == null">Loading...</span>
+                      <table class="table table-condensed" ng-show="hit.assignments !== null">
+                        <thead>
+                          <tr>
+                            <th>Assignment ID</th>
+                            <th>Worker ID</th>
+                            <th><span class="glyphicon glyphicon-check" ng-click="approveAll(hit)" title="Select all"></span> Approve</th>
+                            <th><span class="glyphicon glyphicon-check" ng-click="rejectAll(hit)" title="Select all"></span> Reject</th>
+                            <th><span class="glyphicon glyphicon-check" ng-click="grantAll(hit)" title="Select all"></span> Bonus</th>
+                            <th>Completed</th>
+                            <th><span class="glyphicon glyphicon-collapse-down" ng-click="showAll(hit)" title="Show all"></span> Answers</th>
+                          </tr>
+                          <tr>
+                            <td></td>
+                            <td></td>
+                            <td>
+                              <button class="btn btn-default" ng-if="hit.approveCount > 0" ng-click="approveAssignments(hit)">Approve {{ hit.approveCount }}</button>
+                            </td>
+                            <td>
+                              <div class="form-inline" ng-if="hit.rejectCount > 0">
+                                <div class="form-group">
+                                  <label class="control-label" for="rejectReasonInput">Reason</label>
+                                  <input type="text" ng-model="globals.rejectionReason" class="form-control" id="rejectReasonInput" placeholder="Reason">
+                                </div>
+                                <button class="btn btn-default" ng-disabled="globals.rejectionReason.length == 0" ng-click="rejectAssignments(hit)">Reject {{ hit.rejectCount }}</button>
+                              </div>
+                            </td>
+                            <td>
+                              <div class="form-inline" ng-if="hit.bonusTotal > 0">
+                                <div class="form-group">
+                                  <label class="control-label" for="bonusReasonInput">Reason</label>
+                                  <input type="text" ng-model="globals.bonusReason" class="form-control" id="bonusReasonInput" placeholder="Reason">
+                                </div>
+                                <button ng-disabled="globals.bonusReason.length == 0" class="btn btn-default" ng-click="grantBonuses(hit)">Grant {{ hit.bonusTotal | currency:"$" }}</button>
+                              </div>
+                            </td>
+                            <td></td>
+                            <td>
+                              <button class="btn btn-default" ng-click="getAssignmentsCSV(hit)">Download CSV</button>
+                            </td>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr ng-repeat="assignment in hit.assignments">
+                            <td>{{ assignment.assignmentId }}</td>
+                            <td>{{ assignment.workerId }}</td>
 
-            @if(flash.containsKey("error")) {
-                <div id="error_div" class="message-box ui-state-error ui-corner-all">
-                    <h3>There was a problem with this request:</h3> 
-                    <p>@Html(flash.get("error"))</p>
+                            <td>
+                              <span ng-if="assignment.approvalTime !== null">
+                                <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                {{ assignment.approvalTime | date: "yyyy-MM-dd" }}
+                              </span>
+
+                              <span ng-if="assignment.approvalPending !== null">
+                                Approval pending...
+                              </span>
+
+                              <span ng-if="assignment.approvalError !== null">
+                                Error: {{ assignment.approvalError  }}
+                              </span>
+
+                              <span ng-if="assignment.approvalPending === null && assignment.rejectionPending === null && assignment.approvalTime === null && assignment.rejectionTime === null && assignment.approvalError === null && assignment.rejectionError === null">
+                                <input type="checkbox" ng-model="assignment.approve" ng-disabled="assignment.reject" ng-change="updateAssignmentCounts(hit)"> Approve
+                              </span>
+                            </td>
+
+                            <td>
+                              <span ng-if="assignment.rejectionTime !== null">
+                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                {{ assignment.rejectionTime | date: "yyyy-MM-dd" }}
+                              </span>
+
+                              <span ng-if="assignment.rejectionPending !== null">
+                                Rejection pending...
+                              </span>
+
+                              <span ng-if="assignment.rejectionError !== null">
+                                Error: {{ assignment.rejectionError  }}
+                              </span>
+
+                              <span ng-if="assignment.rejectionPending === null && assignment.approvalPending === null && assignment.rejectionTime === null && assignment.approvalTime === null && assignment.rejectionError === null && assignment.approvalError === null">
+                                <input type="checkbox" ng-model="assignment.reject" ng-disabled="assignment.approve" ng-change="updateAssignmentCounts(hit)"> Reject
+                              </span>
+                            </td>
+
+                            <td>
+                              <span ng-if="assignment.bonusGranted === null">Loading...</span>
+
+                              <span ng-if="assignment.bonusGranted !== null && assignment.bonusGranted > 0">
+                                <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                {{ assignment.bonusGranted | currency:"$" }}
+                              </span>
+
+                              <span ng-if="assignment.bonusPending !== null">
+                                Bonus pending...
+                              </span>
+
+                              <span ng-if="assignment.bonusError !== null">
+                                Error: {{ assignment.bonusError  }}
+                              </span>
+
+                              <span ng-if="assignment.bonusPending === null && assignment.bonusGranted === 0 && assignment.bonusError === null && assignment.bonus !== null && assignment.bonus > 0">
+                                <input type="checkbox" ng-model="assignment.grantBonus" ng-change="updateAssignmentCounts(hit)">
+                                {{ assignment.bonus | currency:"$" }}
+                              </span>
+
+                              <span ng-if="assignment.bonusPending === null && assignment.bonusGranted === 0 && assignment.bonusError === null && assignment.bonus !== null && (isNaN(assignment.bonus) || assignment.bonus <= 0)">
+                                {{ assignment.bonus | currency:"$" }}
+                              </span>
+                            </td>
+
+                            <td>
+                              <input type="checkbox" ng-class="{'disabled' : (assignment.completedPending)}" ng-model="assignment.assignmentCompleted" ng-change="updateAssignmentCompleted(assignment)">
+
+                              <span ng-if="assignment.completedError !== null">
+                                Error: {{ assignment.completedError  }}
+                              </span>
+
+                              <span ng-if="assignment.completedSuccess">
+                                <span class="text-success glyphicon glyphicon-ok" aria-hidden="true"></span>
+                              </span>
+                            </td>
+
+                            <td>
+                              <button ng-if="!assignment.showAnswers" ng-click="assignment.showAnswers = !assignment.showAnswers" type="button" class="btn btn-sm">
+                                <span
+                                class="glyphicon"
+                                ng-class="{ 'glyphicon-collapse-down' : assignment.showAnswers, 'glyphicon-expand' : !assignment.showAnswers}"
+                                aria-hidden="true">
+                                </span>
+                              </button>
+                              <table class="table table-condensed" ng-if="assignment.showAnswers">
+                                <thead>
+                                  <tr>
+                                    <th colspan="2">
+                                      <button ng-click="assignment.showAnswers = !assignment.showAnswers" type="button" class="btn btn-sm">
+                                        <span
+                                        class="glyphicon"
+                                        ng-class="{ 'glyphicon-collapse-down' : assignment.showAnswers, 'glyphicon-expand' : !assignment.showAnswers}"
+                                        aria-hidden="true">
+                                        </span>
+                                      </button>
+                                    </th>
+                                  </tr>
+                                </thead>
+                                <tbody ng-show="assignment.showAnswers">
+                                  <tr ng-repeat="(key, value) in assignment.answer">
+                                    <td class="col-md-3">{{ key }}:</td><td class="col-md-9">{{ value }}</td>
+                                  </tr>
+                                </tbody>
+                              </table>
+                            </td>
+                          </tr>
+                        </tbody>
+                        <tfoot>
+                          <tr ng-if="hit.assignmentsNextToken !== null">
+                            <th colspan="6" class="text-center">
+                              <nav aria-label="More Assignments">
+                                <ul class="pager">
+                                  <li><a ng-click="moreAssignmentsForHIT(hit)">More</a></li>
+                                </ul>
+                              </nav>
+                            </th>
+                          </tr>
+                          <tr>
+                            <td></td>
+                            <td></td>
+                            <td>
+                              <button class="btn btn-default" ng-if="hit.approveCount > 0" ng-click="approveAssignments(hit)">Approve {{ hit.approveCount }}</button>
+                            </td>
+                            <td>
+                              <div class="form-inline" ng-if="hit.rejectCount > 0">
+                                <div class="form-group">
+                                  <label class="control-label" for="rejectReasonInput">Reason</label>
+                                  <input type="text" ng-model="globals.rejectionReason" class="form-control" id="rejectReasonInput" placeholder="Reason">
+                                </div>
+                                <button class="btn btn-default" ng-disabled="globals.rejectionReason.length == 0" ng-click="rejectAssignments(hit)">Reject {{ hit.rejectCount }}</button>
+                              </div>
+                            </td>
+                            <td>
+                              <div class="form-inline" ng-if="hit.bonusTotal > 0">
+                                <div class="form-group">
+                                  <label class="control-label" for="bonusReasonInput">Reason</label>
+                                  <input type="text" ng-model="globals.bonusReason" class="form-control" id="bonusReasonInput" placeholder="Reason">
+                                </div>
+                                <button ng-disabled="bonusReason.length == 0" class="btn btn-default" ng-click="grantBonuses(hit)">Grant {{ hit.bonusTotal | currency:"$" }}</button>
+                              </div>
+                            </td>
+                            <td></td>
+                            <td>
+                              <button class="btn btn-default" ng-click="getAssignmentsCSV(hit)">Download CSV</button>
+                            </td>
+                          </tr>
+                          <tr>
+                            <th>Assignment ID</th>
+                            <th>Worker ID</th>
+                            <th><span class="glyphicon glyphicon-check" ng-click="approveAll(hit)" title="Select all"></span> Approve</th>
+                            <th><span class="glyphicon glyphicon-check" ng-click="rejectAll(hit)" title="Select all"></span> Reject</th>
+                            <th><span class="glyphicon glyphicon-check" ng-click="grantAll(hit)" title="Select all"></span> Bonus</th>
+                            <th>Completed</th>
+                            <th><span class="glyphicon glyphicon-collapse-down" ng-click="showAll(hit)" title="Show all"></span> Answers</th>
+                          </tr>
+                        </tfoot>
+                      </table>
+                    </div>
+                  </div>
                 </div>
-            }
+              </div>
+            </td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <th colspan="7" class="text-center">
+              <nav aria-label="Page navigation">
+                <ul class="pagination pagination-sm">
+                  <li ng-class="{'disabled' : (curToken < 1)}">
+                    <a ng-click="pageHITs(curToken - 1)" aria-label="Previous">
+                      <span aria-hidden="true">&laquo;</span>
+                    </a>
+                  </li>
+                  <li ng-class="{'active' : ($index === curToken)}" ng-repeat="t in tokens"><a ng-click="pageHITs($index)">{{ ($index + 1) }}</a></li>
+                  <li ng-class="{'disabled' : (tokens.length === 0 || curToken === (tokens.length - 1))}">
+                    <a ng-click="pageHITs(curToken + 1)" aria-label="Next">
+                      <span aria-hidden="true">&raquo;</span>
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+            </th>
+          </tr>
+        </tfoot>
+      </table>
+
+      <h3>
+        Create Payment HITs
+        <button ng-click="showCreateDummyHITs = !showCreateDummyHITs" type="button" class="btn btn-default btn-sm">
+          <span
+          class="glyphicon"
+          ng-class="{ 'glyphicon-minus' : showCreateDummyHITs, 'glyphicon-plus' : !showCreateDummyHITs}"
+          aria-hidden="true">
+        </span>
+        </button>
+      </h3>
+
+      <div ng-show="showCreateDummyHITs">
+        <p>
+                A worker can complete a Payment HIT simply by clicking a 'Submit' button. A Payment HIT can only be accepted by the worker specified, and can be found by searching for the worker ID.
+        </p>
+        <p>
+                Enter a list of AMT Worker IDs&mdash;one per line&mdash;the reason for the payment, and a reward in dollars.
+        </p>
+        <form name="dummyHITForm" class="form" ng-if="dummyHIT.submitted.length === 0">
+          <div class="form-group">
+            <label for="workerIDs">Worker IDs</label>
+            <textarea class="form-control" ng-model="dummyHIT.workerIDs" rows="15" id="workerIDs" placeholder="Worker IDs" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="reason">Reason</label>
+            <textarea class="form-control" ng-model="dummyHIT.reason" rows="2" id="reason" placeholder="Reason" required></textarea>
+          </div>
+          <div class="form-group">
+            <label for="reward">Reward</label>
+            <input class="form-control currency" ng-model="dummyHIT.reward" type="number" min="0.01" step="0.01" id="reward" required>
+          </div>
+          <button type="submit" ng-click="submitDummyHITs()" class="btn btn-default" ng-disabled="!dummyHITForm.$valid">Create Payment HITs</button>
+        </form>
+
+        <div ng-if="dummyHIT.submitted.length > 0">
+          <table class="table">
+            <thead>
+              <tr>
+                <th class="col-md-3">Worker ID</th>
+                <th class="col-md-9">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr ng-repeat="s in dummyHIT.submitted">
+                <td>{{ s.workerId }}</td>
+                <td>{{ s.status }}</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="form-group">
+            <label for="reason-view">Reason</label>
+            <p class="form-control-static" id="reason-view">{{ dummyHIT.reason }}</p>
+          </div>
+          <div class="form-group">
+            <label for="reward-view">Reward</label>
+            <p class="form-control-static" id="reward-view">{{ dummyHIT.reward | currency:'$' }}</p>
+          </div>
+          <div class="form-group">
+            <button ng-click="clearDummyHITs()" class="btn btn-default" ng-disabled="dummyHIT.nPending > 0">Create more Payment HITs</button>
+          </div>
+
 
         </div>
-    </body>
+
+      </div>
+
+    </div>
+  </body>
 </html>

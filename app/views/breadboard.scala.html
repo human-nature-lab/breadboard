@@ -123,9 +123,6 @@
             {{choice.name}}
           </button>
         </div>
-        <!--<div id="dropDiv">-->
-          <!--<button ng-click="dropPlayer(selectedNode.id)">Drop Player</button>-->
-        <!--</div>-->
       </div>
     </div>
 
@@ -177,95 +174,10 @@
       </div>
     </div>
 
-      <!-- AMT Assignments -->
+    <!-- AMT Admin -->
     <div>
-      <div ui-jq="dialog" ui-options="amtAssignmentsDialogOptions" id="amtAssignmentsDiv">
-        <table class="instancesTable">
-          <caption>Instances</caption>
-          <thead>
-            <tr>
-              <th>Creation Date</th>
-              <th>ID</th>
-              <th>Name</th>
-              <th>Status</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr ng-repeat="instance in breadboard.experiment.instances" class="selected-{{instance.hitId == selectedHIT}}">
-              <td>{{instance.creationTime}}</td>
-              <td>{{instance.id}}</td>
-              <td>{{instance.name}}</td>
-              <td>{{instance.status}}</td>
-              <td><button ng-hide="instance.hitId==''" title="Get Assignments" ui-jq='button' ng-click='getAssignments(instance.hitId)'>
-                Get Assignments</button></td>
-            </tr>
-          </tbody>
-        </table>
-
-        <table class="instancesTable" ng-hide="selectedHIT == undefined">
-          <caption>Assignments</caption>
-          <thead>
-            <tr>
-              <th>ID</th>
-              <th>Assignment ID</th>
-              <th>Worker ID</th>
-              <th>Accept Time</th>
-              <th>Submit Time</th>
-              <th>Bonus</th>
-              <th>Reason</th>
-              <th>Status</th>
-              <th>Block Worker</th>
-              <th>Assignment Completed?</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr ng-repeat="assignment in curAssignments()">
-              <td>{{assignment.id}}</td>
-              <td>{{assignment.assignmentId}}</td>
-              <td>{{assignment.workerId}}</td>
-              <td>{{assignment.acceptTime}}</td>
-              <td>{{assignment.submitTime}}</td>
-              <td>
-                <div ng-hide="assignment.bonusGranted">
-                  <button title="Grant Bonus" ui-jq='button' ng-click='grantBonus(assignment.workerId, assignment.assignmentId, assignment.score)'>
-                    Grant Bonus: ${{assignment.score}}</button>
-                </div>
-                <div ng-show="assignment.bonusGranted">
-                  Granted ${{assignment.score}}
-                </div>
-              </td>
-              <td>{{assignment.reason}}</td>
-              <td>
-                <div ng-hide="assignment.assignmentStatus != 'Submitted'">
-                  <button title="Approve" ui-jq='button' ng-click='approveAssignment(assignment.assignmentId)'>Approve</button>
-                  <button title="Reject" ui-jq='button' ng-click='rejectAssignment(assignment.assignmentId)'>Reject</button>
-                </div>
-                <div ng-show="assignment.assignmentStatus != 'Submitted'">
-                  {{assignment.assignmentStatus}}
-                </div>
-              </td>
-              <td>
-                <div ng-hide="assignment.workerBlocked">
-                  <button title="Block Worker" ui-jq='button' ng-click='blockWorker(assignment.assignmentId)'>
-                    Block Worker</button>
-                </div>
-                <div ng-show="assignment.workerBlocked">
-                  Blocked
-                </div>
-              </td>
-              <td>
-                <div ng-hide="assignment.assignmentCompleted">
-                  <button title="Mark Completed" ui-jq='button' ng-click='markCompleted(assignment.assignmentId)'>
-                    Mark Completed</button>
-                </div>
-                <div ng-show="assignment.assignmentCompleted">
-                  Completed
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <div ui-jq="dialog" ui-options="amtAdminDialogOptions" id="amtAdminDiv" style="display: flex; width: 100%; height: 100%; flex-direction: column; overflow: hidden;">
+        <iframe src="/amtadmin" style="flex-grow: 1"></iframe>
       </div>
     </div>
 
@@ -274,7 +186,7 @@
       <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
         <div id="stepsTabsDiv">
           <span class="steps-tab selected-{{$parent.selectedStep==step}}"
-          ng-repeat="step in breadboard.experiment.steps" ng-init="initStep(step)"><a
+          ng-repeat="step in breadboard.experiment.steps | orderBy: 'name'" ng-init="initStep(step)"><a
           ng-click="$parent.selectedStep=step">{{step.name}}</a><a title="Delete step"
           ng-click="deleteStep(step)"
           class="step-titlebar-close ui-corner-all"
@@ -297,7 +209,8 @@
     <div class="new-dialog" id="addLanguageDialog" style="display: none;">
       <form ng-submit="addLanguage()">
         <p>
-          <input name="name" ng-model="newLanguage" placeholder="ISO 639-1 Code" required>
+          <input name="code" ng-model="newLanguageCode" placeholder="ISO 639-1 Code" required>
+          <input name="name" ng-model="newLanguageName" placeholder="Display Name" required>
         </p>
       </form>
     </div>
@@ -350,25 +263,16 @@
       <!-- Content w/ Translation support -->
     <div>
       <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
-        <!--div id="contentLanguageDiv">
-          <span class="i-button" ng-click="addLanguage()">Add Language <i class="fa fa-language" aria-hidden="true"></i></span>
-          <select ng-model="selectedLanguage">
-            <option ng-repeat="language in contentLanguages" value="{{language}}">
-              {{language}}
-            </option>
-          </select>
-        </div-->
+        <div id="contentLanguageDiv">
+          <span><i class="fa fa-language" aria-hidden="true"></i></span>
+          <select ng-model="selectedLanguage" ng-options="language as language.name for language in breadboard.experiment.languages track by language.id"></select>
+          <span class="i-button" ng-click="addLanguage()" title="Add Language"><span class="fa fa-plus-circle" aria-hidden="true"></span></span>
+        </div>
         <div id="contentTabsDiv">
-          <span class="steps-tab selected-{{selectedContentName==cName}}"
-               ng-repeat="(cName, cObject) in contentObjects">
-            <a ng-click="selectContentName(cName)">{{cName}}</a>
+          <span class="steps-tab selected-{{selectedContent.id==content.id}}"
+               ng-repeat="content in breadboard.experiment.content | orderBy: 'name'">
+            <a ng-click="selectContent(content)">{{content.name}}</a>
               &nbsp;
-            <span class="i-button" ng-click="addContentLanguage(cName)"><i class="fa fa-language" aria-hidden="true"></i></span>
-              <select ng-model="selectedContentLanguages[cName]">
-                <option ng-repeat="language in contentLanguages" value="{{language}}">
-                  {{language}}
-                </option>
-              </select>
               <a title="Delete step" ng-click="deleteContent(cObject)" class="step-titlebar-close ui-corner-all" role="button">
                 <i class="fa fa-close"></i>
               </a>
@@ -381,8 +285,8 @@
           </span>
 
         </div>
-        <div id="tinymceDiv" ng-if="selectedContentName!==undefined && selectedContentLanguages[selectedContentName]!==undefined">
-          <textarea id="tinymceTextarea" ui-tinymce="tinymceOptions" ng-model="contentObjects[selectedContentName][selectedContentLanguages[selectedContentName]].html"></textarea>
+        <div id="tinymceDiv" ng-if="selectedTranslation !== undefined">
+          <textarea id="tinymceTextarea" ui-tinymce="tinymceOptions" ng-model="selectedTranslation.html"></textarea>
         </div>
       </div>
     </div>

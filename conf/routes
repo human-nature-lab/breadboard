@@ -18,7 +18,18 @@ GET         /game/:experimentId/:experimentInstanceId/:clientId/connect         
 # AMT Admin Page
 GET         /amtadmin                                                            controllers.AMTAdmin.index()
 GET         /amtadmin/login                                                      controllers.AMTAdmin.login()
-GET         /amtadmin/createDummyHit                                             controllers.AMTAdmin.createDummyHit()
+POST        /amtadmin/createDummyHit                                             controllers.AMTAdmin.createDummyHit(sandbox: Boolean ?= false)
+GET         /amtadmin/getAccountBalance                                          controllers.AMTAdmin.getAccountBalance(sandbox: Boolean ?= false)
+GET         /amtadmin/listHITs                                                   controllers.AMTAdmin.listHITs(nextToken: String ?= null, maxResults: Integer ?= 20, sandbox: Boolean ?= false)
+GET         /amtadmin/listAssignmentsForHIT/:hitId                               controllers.AMTAdmin.listAssignmentsForHIT(hitId: String, maxResults: Integer ?= 20, nextToken: String ?= null, sandbox: Boolean ?= false)
+GET         /amtadmin/listBonusPaymentsForHIT/:hitId                             controllers.AMTAdmin.listBonusPaymentsForHIT(hitId: String, maxResults: Integer ?= 20, nextToken: String ?= null, sandbox: Boolean ?= false)
+GET         /amtadmin/approveAssignment/:assignmentId                            controllers.AMTAdmin.approveAssignment(assignmentId: String, sandbox: Boolean ?= false)
+POST        /amtadmin/rejectAssignment/:assignmentId                             controllers.AMTAdmin.rejectAssignment(assignmentId: String, sandbox: Boolean ?= false)
+POST        /amtadmin/sendBonus/:assignmentId                                    controllers.AMTAdmin.sendBonus(assignmentId: String, sandbox: Boolean ?= false)
+POST        /amtadmin/updateAssignmentCompleted/:assignmentId                    controllers.AMTAdmin.updateAssignmentCompleted(assignmentId: String)
+
+# Languages
+GET         /languages                                                           controllers.LanguageController.getLanguages()
 
 # Dummy HITs
 GET         /dummyHit                                                            controllers.ClientLogin.dummyHit(assignmentId: String ?= null, sandbox: String ?= null)

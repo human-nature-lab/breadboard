@@ -770,6 +770,11 @@ public class Experiment extends Model {
       jsonSteps.add(s.toJson());
     }
 
+    ArrayNode jsonLanguages = experiment.putArray("languages");
+    for (Language l : languages) {
+      jsonLanguages.add(l.toJson());
+    }
+
     ArrayNode jsonContent = experiment.putArray("content");
     for (Content c : content) {
       jsonContent.add(c.toJson());

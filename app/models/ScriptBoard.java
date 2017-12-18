@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
+import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener;
 import com.tinkerpop.gremlin.groovy.GremlinGroovyPipeline;
 import groovy.util.ObservableMap;
 import org.apache.commons.io.FileUtils;
@@ -71,6 +72,7 @@ public class ScriptBoard extends UntypedActor {
   }
 
   private void resetEngine(Experiment experiment) throws IOException, ScriptException {
+    Logger.debug("resetEngine");
     if (engine != null) {
       //just in case
       playerActions.turnAIOff();
@@ -105,12 +107,44 @@ public class ScriptBoard extends UntypedActor {
     Object g = engine.get("g");
     graphInterface = inv.getInterface(g, BreadboardGraphInterface.class);
 
-    BreadboardGraphChangedListener oldGraphChangedListener = graphChangedListener;
+    if (graphChangedListener == null) {
+      Logger.debug("graphChangedListener == null");
+      Long clientUpdateRate = play.Play.application().configuration().getMilliseconds("breadboard.clientUpdateRate");
+      if (clientUpdateRate == null || clientUpdateRate == 0) {
+        Logger.debug("clientUpdateRate not found or 0, using event based updating");
+        graphChangedListener = new EventGraphChangedListener((Graph) g);
 
-    graphChangedListener = new BreadboardGraphChangedListener((Graph) g);
+      } else {
+        Logger.debug("clientUpdateRate found, using polling");
+        graphChangedListener = new IteratedBreadboardGraphChangedListener((Graph) g);
+      }
+    } else {
+      Logger.debug("graphChangedListener != null");
+      graphChangedListener.setGraph((Graph) g);
+    }
+
+    /*
+    TODO: Why would we need to recreate the graph listener here?
+    IteratedBreadboardGraphChangedListener oldGraphChangedListener = graphChangedListener;
+    if (oldGraphChangedListener != null) {
+      // Stop the old executor before starting the new one
+      oldGraphChangedListener.stopExecutor();
+      try {
+        Logger.debug("Awaiting termination");
+        oldGraphChangedListener.getExecutor().awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
+      } catch (InterruptedException e) {
+        Logger.debug("InterruptedException: " + e.getLocalizedMessage());
+      }
+      Logger.debug("Executor terminated");
+    }
+
+    graphChangedListener = new IteratedBreadboardGraphChangedListener((Graph) g);
+
+    //graphChangedListener.getExecutor().get
 
     // if there are any existing adminListeners they need to be added as listeners to the new graph
     if (oldGraphChangedListener != null) {
+      Logger.debug("oldGraphChangedListener.getClientListeners().size(): " + oldGraphChangedListener.getClientListeners().size());
       for (ClientListener listener : oldGraphChangedListener.getAdminListeners()) {
         graphChangedListener.addAdminListener(listener);
       }
@@ -120,6 +154,9 @@ public class ScriptBoard extends UntypedActor {
         graphChangedListener.addClientListener(client);
       }
     }
+
+    Logger.debug("graphChangedListener.getClientListeners().size(): " + graphChangedListener.getClientListeners().size());
+    */
 
     graphInterface.addListener(graphChangedListener);
 
@@ -248,7 +285,9 @@ public class ScriptBoard extends UntypedActor {
         Graph wholeGraph = (Graph) engine.get("g");
         Vertex clientVertex = wholeGraph.getVertex(clientId);
         if (clientVertex != null) {
-          client.updateGraph(clientVertex);
+          if (graphChangedListener instanceof EventGraphChangedListener) {
+            client.updateGraph(clientVertex);
+          }
         }
       }
 
@@ -410,16 +449,6 @@ public class ScriptBoard extends UntypedActor {
           }
 
           Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
-        } else if (message instanceof Breadboard.DropPlayer) {
-          Breadboard.DropPlayer dropPlayer = (Breadboard.DropPlayer) message;
-          Logger.debug("dropPlayer:" + dropPlayer.pid);
-          if (playerActions != null) {
-            playerActions.remove(dropPlayer.pid);
-          }
-
-          if (graphInterface != null) {
-            graphInterface.removePlayer(dropPlayer.pid);
-          }
         } else if (message instanceof Breadboard.LaunchGame) {
           Breadboard.LaunchGame launchGame = (Breadboard.LaunchGame) message;
 
@@ -444,30 +473,6 @@ public class ScriptBoard extends UntypedActor {
           Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
 
         } // END else if(message instanceof Breadboard.LaunchGame)
-        else if (message instanceof Breadboard.TestGame) {
-          Breadboard.TestGame testGame = (Breadboard.TestGame) message;
-          if (breadboardMessage.user.selectedExperiment != null) {
-            rebuildScriptBoard(breadboardMessage.user.selectedExperiment);
-            eventTracker.disable();
-            ExperimentInstance testInstance = breadboardMessage.user.selectedExperiment.getTestInstance();
-
-            gameListener.experimentInstance = testInstance;
-            testInstance.name = testGame.name;
-            testInstance.creationDate = new Date();
-            gameListener.start();
-            breadboardMessage.user.experimentInstanceId = Experiment.TEST_INSTANCE_ID;
-            testInstance.data.clear();
-            initAllParam(testGame.parameters, breadboardMessage.user.selectedExperiment, testInstance);
-
-            // Re-run the Steps
-            for (Step step : testInstance.experiment.steps) {
-              Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, step.source, breadboardMessage.out), null);
-            }
-          }
-          // Update User JSON
-          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
-
-        } // END else if(message instanceof Breadboard.TestGame)
         else if (message instanceof Breadboard.SelectInstance) {
           Breadboard.SelectInstance selectInstance = (Breadboard.SelectInstance) message;
 
@@ -503,7 +508,7 @@ public class ScriptBoard extends UntypedActor {
           ExperimentInstance instance = ExperimentInstance.findById(stopGame.id);
           if (gameListener.experimentInstance != null && gameListener.experimentInstance.equals(instance)) {
             for (Parameter p : breadboardMessage.user.getExperiment().getParameters()) {
-              Logger.debug("Key: " + p.name);
+              //Logger.debug("Key: " + p.name);
               if (engine.getBindings(ScriptContext.ENGINE_SCOPE).containsKey(p.name))
                 engine.getBindings(ScriptContext.ENGINE_SCOPE).remove(p.name);
             }
@@ -550,7 +555,7 @@ public class ScriptBoard extends UntypedActor {
           }
 
         } // END else if(message instanceof Breadboard.RunOnLeaveStep)
-        else if (message instanceof Breadboard.SaveTranslation || message instanceof Breadboard.CreateContent) {
+        else if (message instanceof Breadboard.SaveContent || message instanceof Breadboard.CreateContent) {
           breadboardMessage.user.selectedExperiment.refresh();
           engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", breadboardMessage.user.selectedExperiment.contentFetcher);
         } // END else if(message instanceof Breadboard.SaveContent || message instanceof Breadboard.CreateContent)

@@ -24,6 +24,10 @@ select option {
     font-size: 12pt;
 }
 
+#amtAdminDiv {
+    padding: 0;
+}
+
 .ui-dialog-titlebar {
     font-size: .8em;
 }
@@ -250,6 +254,11 @@ label.fixed-width {
 
 #contentDiv {
     overflow: hidden;
+}
+
+#contentLanguageDiv {
+    padding-left: 1em;
+    margin-bottom: 0.5em;
 }
 
 #stepsTabsDiv, #contentTabsDiv {

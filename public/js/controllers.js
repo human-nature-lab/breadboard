@@ -3,6 +3,10 @@
 /* Controllers */
 
 function AppCtrl($scope, $breadboardFactory, $timeout) {
+  $scope.$watch('selectedLanguage', function(newValue) {
+    console.log('selectedLanguage', newValue);
+  });
+
   $breadboardFactory.onmessage(function (data) {
     try {
       if ($scope.breadboard == undefined) {
@@ -28,8 +32,15 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
             }
           }
         }
-
-        // Setup content languages
+        if ($scope.selectedLanguage === undefined) {
+          // Setup default language
+          $scope.selectedLanguage = $scope.breadboard.experiment.languages[0];
+        } else {
+          console.log("$scope.selectedLanguage", $scope.selectedLanguage);
+        }
+        // Setup watch for selectedTranslation
+        $scope.$watch('[selectedLanguage, selectedContent]', $scope.selectTranslation, true);
+        /*
         if ($scope.breadboard.experiment.content != undefined && $scope.contentLanguages == undefined) {
           $scope.contentLanguages = [];
           $scope.selectedContentLanguages = {};
@@ -38,6 +49,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
           setupContentLanguages();
           $scope.$watch($scope.breadboard.experiment.content, setupContentLanguages, true);
         }
+        */
       }
     }
     catch (e) {
@@ -50,6 +62,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   $scope.selectedNode = {};
   $scope.breadboardGraph = new Graph(($(window).width() / 2), ($(window).width() / 2), $scope);
 
+  /*
   function setupContentLanguages() {
     var contentLanguageSet = new Set();
     $scope.breadboard.experiment.content.forEach(function (content) {
@@ -68,8 +81,8 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     console.log("$scope.contentObjects", $scope.contentObjects);
     console.log("$scope.contentLanguages", $scope.contentLanguages);
     console.log("$scope.selectedContentLanguages", $scope.selectedContentLanguages);
-
   }
+  */
 
   $scope.paramType = function (type) {
     if (type == 'Boolean') {
@@ -81,14 +94,6 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     }
 
     return "text";
-  };
-
-  $scope.dropPlayer = function (pid) {
-    $breadboardFactory.send(
-      {
-        "action": "DropPlayer",
-        "pid": pid
-      });
   };
 
   $scope.newParameter = function () {
@@ -125,20 +130,10 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   };
 
   $scope.makeChoice = function (i) {
-    //console.log("Making choice: " + $scope.breadboard.graph.nodes[$scope.selectedNodeIndex].choices[i].uid);
     $breadboardFactory.send(
       {
         "action": "MakeChoice",
         "choiceUID": $scope.selectedNode.choices[i].uid
-      });
-  };
-
-  $scope.makeChoiceOld = function (i) {
-    //console.log("Making choice: " + $scope.breadboard.graph.nodes[$scope.selectedNodeIndex].choices[i].uid);
-    $breadboardFactory.send(
-      {
-        "action": "MakeChoice",
-        "choiceUID": $scope.breadboard.graph.nodes[$scope.selectedNodeIndex].choices[i].uid
       });
   };
 
@@ -168,9 +163,9 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
       $breadboardFactory.send(
         {
           "action": "SaveContent",
-          "id": $scope.selectedContent.id,
+          "contentId": $scope.selectedContent.id,
           "name": $scope.selectedContent.name,
-          "html": $scope.selectedContent.html
+          "translations": $scope.selectedContent.translations
         });
     }
   };
@@ -274,7 +269,6 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   };
 
   $scope.createExperiment = function () {
-    //console.log("createExperiment: " + $scope.newExperimentName);
     $('#newExperimentDialog').dialog('close');
     $breadboardFactory.send(
       {
@@ -333,62 +327,6 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
       "action": "DeleteImage",
       "imageId": imageId
     });
-  };
-
-  $scope.grantBonus = function (workerId, assignmentId, score) {
-    $breadboardFactory.send(
-      {
-        "action": "GrantBonus",
-        "workerId": workerId,
-        "assignmentId": assignmentId,
-        "bonus": score
-      });
-  };
-
-  $scope.approveAssignment = function (assignmentId) {
-    $breadboardFactory.send(
-      {
-        "action": "ApproveAssignment",
-        "assignmentId": assignmentId
-      });
-  };
-
-  $scope.rejectAssignment = function (assignmentId) {
-    $breadboardFactory.send(
-      {
-        "action": "RejectAssignment",
-        "assignmentId": assignmentId
-      });
-  };
-
-  $scope.blockWorker = function (assignmentId) {
-    $breadboardFactory.send(
-      {
-        "action": "BlockWorker",
-        "assignmentId": assignmentId
-      });
-  };
-
-  $scope.markCompleted = function (assignmentId) {
-    $breadboardFactory.send(
-      {
-        "action": "MarkCompleted",
-        "assignmentId": assignmentId
-      });
-  };
-
-  $scope.curAssignments = function () {
-    if ($scope.selectedHIT == undefined) {
-      return new Array();
-    }
-    for (var i = 0; i < $scope.breadboard.experiment.instances.length; i++) {
-      for (var j = 0; j < $scope.breadboard.experiment.instances[i].hits.length; j++) {
-        if ($scope.breadboard.experiment.instances[i].hits[j].id == $scope.selectedHIT) {
-          return $scope.breadboard.experiment.instances[i].hits[j].assignments;
-        }
-      }
-    }
-    return new Array();
   };
 
   $scope.showUserSettings = function () {
@@ -491,14 +429,6 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     });
   };
 
-  $scope.testInstance = function (id) {
-    $breadboardFactory.send(
-      {
-        "action": "TestInstance",
-        "id": id
-      });
-  };
-
   var clearScript = function () {
     $scope.breadboard.user.currentScript = '';
     $scope.$apply();
@@ -599,8 +529,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   $scope.selectedContent = undefined;
   */
 
-  $scope.addContentLanguage = function(contentName) {
-    console.log("addContentLanguage", contentName);
+  $scope.addLanguage = function() {
     // Reset the language dialog
     $("#addLanguageDialog input").each(function (index, element) {
       $(element).val("");
@@ -611,26 +540,15 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
       buttons: {
         'Submit': function () {
           var experimentId = $scope.breadboard.experiment.id;
-          console.log("scope.newLanguage", $scope.newLanguage);
-          console.log("contentName", contentName);
+          console.log("scope.newLanguage", $scope.newLanguageCode);
           console.log("experimentId", experimentId);
 
           $breadboardFactory.send({
             "action": "AddLanguage",
             "experimentId": experimentId,
-            "contentName": contentName,
-            "newLanguage": $scope.newLanguage
+            "code": $scope.newLanguageCode
           });
-          // If the added language doesn't exist, add it
-          if ($scope.contentLanguages.indexOf($scope.newLanguage) == -1) {
-            $scope.contentLanguages.push($scope.newLanguage);
-          }
 
-          // Add a placeholder object for the new language
-          $scope.contentObjects[contentName][$scope.newLanguage] = { 'html':'' };
-
-          // Select the new language
-          $scope.selectedContentLanguages[contentName] = $scope.newLanguage;
           $(this).dialog("close");
         }
       }
@@ -658,6 +576,38 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     }
     */
     $timeout(resizeTiny, 10);
+  };
+
+  $scope.selectContent = function (content) {
+    $scope.selectedContent = content;
+    /*
+     if ($scope.selectedContentLanguages[contentName] !== undefined) {
+     $scope.selectedContent = $scope.breadboard.experiment.content[contentName][$scope.selectedContentLanguages[contentName]];
+     }
+     */
+    $timeout(resizeTiny, 10);
+  };
+
+  $scope.selectTranslation = function() {
+    if ($scope.selectedLanguage !== undefined && $scope.selectedContent !== undefined) {
+      $scope.selectedTranslation = undefined;
+      angular.forEach($scope.selectedContent.translations, function(translation) {
+        if (translation.language.id == $scope.selectedLanguage.id) {
+          $scope.selectedTranslation = translation;
+        }
+      });
+      if ($scope.selectedTranslation == undefined) {
+        // No translation for the selected language
+        var length = $scope.selectedContent.translations.push(
+          {
+            'id' : null,
+            'html' : "<p>No translation found.</p>",
+            'language' : $scope.selectedLanguage
+          }
+        );
+        $scope.selectedTranslation = $scope.selectedContent.translations[(length - 1)];
+      }
+    }
   };
 
   $scope.deleteContent = function (content) {
@@ -760,15 +710,16 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
   var dialogMargin = 10,
     topDivHeight = 50,
     bottomDivHeight = 50,
+    margin = 5,
     windowHeight = ($(window).innerHeight() - topDivHeight - bottomDivHeight - dialogMargin),
-    windowWidth = ($(window).innerWidth() - 5);
+    windowWidth = ($(window).innerWidth() - (margin * 2));
 
   $scope.outputDialogOptions = {
     title: 'Output',
     autoOpen: true,
     width: ((windowWidth * .5) - dialogMargin),
     height: ((windowHeight * .25) - dialogMargin),
-    position: ['left', (topDivHeight + dialogMargin + (.75 * windowHeight))],
+    position: [margin, (topDivHeight + dialogMargin + (.75 * windowHeight))],
     buttons: {}
   };
 
@@ -778,7 +729,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     autoOpen: true,
     width: ((windowWidth * .5) - dialogMargin),
     height: ((windowHeight * .75) - dialogMargin),
-    position: ['left', topDivHeight],
+    position: [margin, topDivHeight],
     buttons: [
       {
         text: 'Run',
@@ -809,7 +760,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     title: 'Content',
     width: ((windowWidth * .5) - dialogMargin),
     height: ((windowHeight * .75) - dialogMargin),
-    position: ['left', topDivHeight],
+    position: [margin, topDivHeight],
     autoOpen: false,
     buttons: {
       'Save': function () {
@@ -902,7 +853,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     autoOpen: false,
     width: ((windowWidth * .5) - dialogMargin),
     height: windowHeight,
-    position: ['left', topDivHeight],
+    position: [margin, topDivHeight],
     buttons: {}
   };
 
@@ -911,7 +862,7 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     autoOpen: false,
     width: ((windowWidth * .5) - dialogMargin),
     height: windowHeight,
-    position: ['left', topDivHeight],
+    position: [margin, topDivHeight],
     buttons: {}
   };
 
@@ -924,12 +875,12 @@ function AppCtrl($scope, $breadboardFactory, $timeout) {
     buttons: {}
   };
 
-  $scope.amtAssignmentsDialogOptions = {
-    title: 'AMT Assignments',
+  $scope.amtAdminDialogOptions = {
+    title: 'AMT Admin',
     autoOpen: false,
-    width: ((windowWidth * .5) - dialogMargin),
+    width: windowWidth,
     height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight],
+    position: [margin, topDivHeight],
     buttons: {}
   };
 

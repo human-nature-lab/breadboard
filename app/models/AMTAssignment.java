@@ -27,6 +27,7 @@ public class AMTAssignment extends Model {
   public String score;
   public String reason;
   public String completion;
+  public String bonusAmount;
 
   public Boolean assignmentCompleted;
   public Boolean bonusGranted;
@@ -71,6 +72,7 @@ public class AMTAssignment extends Model {
     amtAssignment.put("completion", completion);
     amtAssignment.put("assignmentCompleted", assignmentCompleted);
     amtAssignment.put("bonusGranted", bonusGranted);
+    amtAssignment.put("bonusAmount", bonusAmount);
     amtAssignment.put("workerBlocked", workerBlocked);
     amtAssignment.put("qualificationAssigned", qualificationAssigned);
 
