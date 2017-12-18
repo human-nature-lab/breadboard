@@ -7,18 +7,19 @@ AMTAdminSrv.$inject = ['$http', '$q', '$timeout'];
 
 function AMTAdminSrv($http, $q, $timeout) {
   var service = {
-    getAccountBalance: getAccountBalance,
-    listHITs: listHITs,
-    listAssignmentsForHIT: listAssignmentsForHIT,
-    listBonusPaymentsForHIT: listBonusPaymentsForHIT,
-    approveAssignment: approveAssignment,
-    rejectAssignment: rejectAssignment,
-    sendBonus: sendBonus,
-    isSandbox: isSandbox,
-    setSandbox: setSandbox,
-    createDummyHIT: createDummyHIT
-  },
-  sandbox = false;
+      getAccountBalance: getAccountBalance,
+      listHITs: listHITs,
+      listAssignmentsForHIT: listAssignmentsForHIT,
+      listBonusPaymentsForHIT: listBonusPaymentsForHIT,
+      approveAssignment: approveAssignment,
+      rejectAssignment: rejectAssignment,
+      sendBonus: sendBonus,
+      isSandbox: isSandbox,
+      setSandbox: setSandbox,
+      createDummyHIT: createDummyHIT,
+      updateAssignmentCompleted: updateAssignmentCompleted
+    },
+    sandbox = false;
 
   return service;
 
@@ -41,7 +42,7 @@ function AMTAdminSrv($http, $q, $timeout) {
   }
 
   function listHITs(nextToken) {
-    var url = '/amtadmin/listHITs' + buildQueryStringParameters({'sandbox' : sandbox, 'nextToken' : nextToken });
+    var url = '/amtadmin/listHITs' + buildQueryStringParameters({'sandbox': sandbox, 'nextToken': nextToken});
     return $http.get(url)
       .then(function (response) {
           return $q.when(response);
@@ -52,7 +53,11 @@ function AMTAdminSrv($http, $q, $timeout) {
   }
 
   function listAssignmentsForHIT(hitId, nextToken, maxResults) {
-    var url = '/amtadmin/listAssignmentsForHIT/' + hitId + buildQueryStringParameters({'sandbox' : sandbox, 'nextToken' : nextToken, 'maxResults' : maxResults });
+    var url = '/amtadmin/listAssignmentsForHIT/' + hitId + buildQueryStringParameters({
+      'sandbox': sandbox,
+      'nextToken': nextToken,
+      'maxResults': maxResults
+    });
     console.log('listAssignmentsForHIT', url);
     return $http.get(url)
       .then(function (response) {
@@ -64,7 +69,11 @@ function AMTAdminSrv($http, $q, $timeout) {
   }
 
   function listBonusPaymentsForHIT(hitId, nextToken, maxResults) {
-    var url = '/amtadmin/listBonusPaymentsForHIT/' + hitId + buildQueryStringParameters({'sandbox' : sandbox, 'nextToken' : nextToken, 'maxResults' : maxResults });
+    var url = '/amtadmin/listBonusPaymentsForHIT/' + hitId + buildQueryStringParameters({
+      'sandbox': sandbox,
+      'nextToken': nextToken,
+      'maxResults': maxResults
+    });
     console.log('listBonusPaymentsForHIT', url);
     return $http.get(url)
       .then(function (response) {
@@ -133,6 +142,20 @@ function AMTAdminSrv($http, $q, $timeout) {
     };
 
     return $http.post('/amtadmin/createDummyHit' + ((sandbox) ? '?sandbox=true' : ''), payload)
+      .then(function (response) {
+          return $q.when(response);
+        },
+        function (response) {
+          return $q.reject(response);
+        });
+  }
+
+  function updateAssignmentCompleted(assignmentId, completed) {
+    var payload = {
+      'completed': completed
+    };
+
+    return $http.post('/amtadmin/updateAssignmentCompleted/' + assignmentId, payload)
       .then(function (response) {
           return $q.when(response);
         },

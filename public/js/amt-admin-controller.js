@@ -1,6 +1,6 @@
 'use strict';
 
-function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter) {
+function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.accountBalance = null;
   $scope.tokens = [null];
   $scope.curToken = 0;
@@ -12,7 +12,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter) {
   $scope.maxAssignments = 20;
 
   $scope.dummyHIT = {
-    'workerIDs' : 'ABC123\nDEF456\nGHI789',
+    'workerIDs' : '',
     'reason' : 'We could not pay you through the normal means',
     'reward' : 1.00,
     'submitted' : [],
@@ -28,6 +28,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter) {
   $scope.pageHITs = pageHITs;
   $scope.selectHIT = selectHIT;
   $scope.updateAssignmentCounts = updateAssignmentCounts;
+  $scope.updateAssignmentCompleted = updateAssignmentCompleted;
   $scope.grantBonuses = grantBonuses;
   $scope.approveAssignments = approveAssignments;
   $scope.rejectAssignments = rejectAssignments;
@@ -199,6 +200,23 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter) {
     });
   }
 
+  function updateAssignmentCompleted(assignment) {
+    assignment.completedPending = true;
+    AMTAdminSrv.updateAssignmentCompleted(assignment.assignmentId, assignment.assignmentCompleted)
+      .then(function() {
+        assignment.completedPending = false;
+        assignment.completedSuccess = true;
+        $timeout(function() {
+          assignment.completedSuccess = false;
+        }, 1500);
+      },
+      function(error) {
+        assignment.completedPending = false;
+        assignment.completedSuccess = false;
+        assignment.completedError = error.data;
+      });
+  }
+
   function updateBonusPaymentsForHIT(hit, nextToken) {
     // Limitation, this will not return more than 100 applied bonuses for a single HIT per request
     AMTAdminSrv.listBonusPaymentsForHIT(hit.hitid, nextToken, 100).then(function(response) {
@@ -242,6 +260,10 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter) {
         assignment.rejectionPending = null;
         assignment.bonusPending = null;
         assignment.bonusError = null;
+        assignment.completedSuccess = false;
+        assignment.completedPending = false;
+        assignment.completedError = null;
+
         if (assignment.answer.hasOwnProperty('bonus')) {
           assignment.bonus = parseFloat(assignment.answer.bonus);
         }
@@ -373,4 +395,4 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter) {
   }
 }
 
-AMTAdminCtrl.$inject = ['$scope', 'AMTAdminSrv', '$q', '$filter'];
+AMTAdminCtrl.$inject = ['$scope', 'AMTAdminSrv', '$q', '$filter', '$timeout'];

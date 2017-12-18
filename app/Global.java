@@ -6,7 +6,10 @@ import play.GlobalSettings;
 import play.Logger;
 import play.db.DB;
 import play.libs.Yaml;
+import play.mvc.Action;
+import play.mvc.Http;
 
+import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -18,6 +21,11 @@ import java.util.Map;
 public class Global extends GlobalSettings {
   public void onStart(Application app) {
     //InitialData.insert(app);
+  }
+
+  @Override
+  public Action onRequest(Http.Request request, Method actionMethod) {
+    return super.onRequest(request, actionMethod);
   }
 
   static class InitialData {

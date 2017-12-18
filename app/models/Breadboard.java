@@ -16,8 +16,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.text.WordUtils;
 import org.imgscalr.Scalr;
 import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import play.Logger;
 import play.Play;
 import play.libs.*;
@@ -81,7 +79,6 @@ public class Breadboard extends UntypedActor {
             } else if (action.equals("DeleteExperiment")) {
               String selectedExperimentName = jsonInput.get("selectedExperiment").toString();
               instances.get(user.email).tell(new DeleteExperiment(user, selectedExperimentName, out), null);
-              //breadboardController.tell(new DeleteExperiment(user, selectedExperimentName, out));
             } else if (action.equals("ExportExperiment")) {
               String selectedExperimentName = jsonInput.get("selectedExperiment").toString();
               Experiment experiment = user.getExperimentByName(selectedExperimentName);
@@ -117,45 +114,6 @@ public class Breadboard extends UntypedActor {
                 Logger.debug("Some other exception: " + e.getMessage());
                 e.printStackTrace();
               }
-            } else if (action.equals("GetAssignmentsForHIT")) {
-              try {
-                String amtHitIdString = jsonInput.get("amtHitId").toString();
-                Logger.debug("amtHitIdString = " + amtHitIdString);
-                Long amtHitId = Long.parseLong(amtHitIdString);
-                breadboardController.tell(new GetAssignmentsForHIT(user, amtHitId, out), null);
-              } catch (NumberFormatException nfe) {
-                Logger.error("Invalid number provided for amtHitId.");
-              }
-            } else if (action.equals("ExtendHit")) {
-              try {
-                String amtHitIdString = jsonInput.get("amtHitId").toString();
-                Logger.debug("amtHitIdString = " + amtHitIdString);
-                Long amtHitId = Long.parseLong(amtHitIdString);
-                breadboardController.tell(new ExtendHit(user, amtHitId, out), null);
-              } catch (NumberFormatException nfe) {
-                Logger.error("Invalid number provided for amtHitId.");
-              }
-            } else if (action.equals("GrantBonus")) {
-              String workerId = jsonInput.get("workerId").toString();
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              String bonus = jsonInput.get("bonus").toString();
-
-              breadboardController.tell(new GrantBonus(user, workerId, assignmentId, bonus, out), null);
-            } else if (action.equals("ApproveAssignment")) {
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new ApproveAssignment(user, assignmentId, out), null);
-            } else if (action.equals("RejectAssignment")) {
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new RejectAssignment(user, assignmentId, out), null);
-            } else if (action.equals("BlockWorker")) {
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new BlockWorker(user, assignmentId, out), null);
-            } else if (action.equals("MarkCompleted")) {
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new MarkCompleted(user, assignmentId, out), null);
-            } else if (action.equals("AssignQualification")) {
-              String assignmentId = jsonInput.get("assignmentId").toString();
-              breadboardController.tell(new AssignQualification(user, assignmentId, out), null);
             } else if (action.equals("RunGame")) {
               if (instances.containsKey(user.email)) {
                 instances.get(user.email).tell(new RunGame(user, out), null);
@@ -214,7 +172,6 @@ public class Breadboard extends UntypedActor {
               breadboardController.tell(new DeleteStep(user, id, out), null);
             } else if (action.equals("DeleteContent")) {
               Long id = Long.valueOf(jsonInput.get("id").toString());
-              //Logger.debug("action.equals(DeleteContent), id=" + id.toString());
               breadboardController.tell(new DeleteContent(user, id, out), null);
             } else if (action.equals("SendStep")) {
               if (instances.containsKey(user.email)) {
@@ -228,11 +185,6 @@ public class Breadboard extends UntypedActor {
                   Logger.debug("Long.parseLong threw NumberFormatException, input: " + jsonInput.get("id").toString());
                 }
               }
-            } else if (action.equals("DropPlayer")) {
-              if (instances.containsKey(user.email)) {
-                String pid = jsonInput.get("pid").toString();
-                instances.get(user.email).tell(new DropPlayer(user, pid, out), null);
-              }
             } else if (action.equals("LaunchGame")) {
               if (instances.containsKey(user.email)) {
                 String name = jsonInput.get("name").toString();
@@ -241,16 +193,6 @@ public class Breadboard extends UntypedActor {
                 if (parameters instanceof LinkedHashMap) {
                   LinkedHashMap params = (LinkedHashMap) parameters;
                   instances.get(user.email).tell(new LaunchGame(user, name, params, out), null);
-                }
-              }
-            } else if (action.equals("TestGame")) {
-              if (instances.containsKey(user.email)) {
-                String name = jsonInput.get("name").toString();
-                Object parameters = jsonInput.get("parameters");
-                Logger.debug("parameters.getClass().toString() = " + parameters.getClass().toString());
-                if (parameters instanceof LinkedHashMap) {
-                  LinkedHashMap params = (LinkedHashMap) parameters;
-                  instances.get(user.email).tell(new TestGame(user, name, params, out), null);
                 }
               }
             } else if (action.equals("StopGame")) {
@@ -763,317 +705,6 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
             breadboardMessage.out.write(jsonOutput);
           }
         }
-      } else if (message instanceof GetAssignmentsForHIT) {
-/*
-<?xml version="1.0"?>
-<GetAssignmentsForHITResponse>
-    <OperationRequest>
-        <RequestId>6d6deab2-eeea-4dd3-906c-f54de61b3ea2</RequestId>
-    </OperationRequest>
-    <GetAssignmentsForHITResult>
-        <Request>
-            <IsValid>True</IsValid>
-        </Request>
-        <NumResults>1</NumResults>
-        <TotalNumResults>1</TotalNumResults>
-        <PageNumber>1</PageNumber>
-        <Assignment>
-            <AssignmentId>2W0JIA0RYNJ96AMKK3WBPJTUI5G272</AssignmentId>
-            <WorkerId>ARK0ERORKQBS1</WorkerId>
-            <HITId>22H6R70G5R98HVM3THYWVSTN7SXAQ6</HITId>
-            <AssignmentStatus>Submitted</AssignmentStatus>
-            <AutoApprovalTime>2013-06-23T14:26:35Z</AutoApprovalTime>
-            <AcceptTime>2013-05-24T13:47:18Z</AcceptTime>
-            <SubmitTime>2013-05-24T14:26:35Z</SubmitTime>
-            <Answer>&lt;? xml version="1.0" encoding="UTF-8" standalone="no"?&gt;&lt;QuestionFormAnswers xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2005-10-01/QuestionFormAnswers.xsd"&gt;&lt;Answer&gt;&lt;QuestionIdentifier&gt;bonus&lt;/QuestionIdentifier&gt;&lt;FreeText&gt;0.5&lt;/FreeText&gt;&lt;/Answer&gt;&lt;/QuestionFormAnswers&gt;</Answer>
-        </Assignment>
-    </GetAssignmentsForHITResult>
-</GetAssignmentsForHITResponse>
-*/
-        GetAssignmentsForHIT getAssignmentsForHIT = (GetAssignmentsForHIT) message;
-
-        AMTHit hit = AMTHit.findById(getAssignmentsForHIT.amtHitId);
-
-        if (hit != null) {
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.getAssignmentsForHIT(hit.hitId, hit.sandbox);
-
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              ObjectNode jsonOutput = Json.newObject();
-
-              NodeList assignmentNodes = XPath.selectNodes("//Assignment", dom);
-
-              for (int i = 0; i < assignmentNodes.getLength(); i++) {
-                Node assignmentNode = assignmentNodes.item(i);
-
-                String assignmentId = XPath.selectText("AssignmentId", assignmentNode);
-                String workerId = XPath.selectText("WorkerId", assignmentNode);
-                String assignmentStatus = XPath.selectText("AssignmentStatus", assignmentNode);
-                String autoApprovalTime = XPath.selectText("AutoApprovalTime", assignmentNode);
-                String acceptTime = XPath.selectText("AcceptTime", assignmentNode);
-                String submitTime = XPath.selectText("SubmitTime", assignmentNode);
-                String answer = XPath.selectText("Answer", assignmentNode);
-                //String unescapedAnswer = StringEscapeUtils.unescapeXml(answer);
-                Document answerDom = XML.fromString(answer);
-                //Logger.debug("answerDom.getElementsByTagName(\"FreeText\").getLength() = " + answerDom.getElementsByTagName("FreeText").getLength());
-
-                //Logger.debug("answer = " + answer);
-                //Logger.debug("unescapedAnswer = " + unescapedAnswer);
-/*
-<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<QuestionFormAnswers xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2005-10-01/QuestionFormAnswers.xsd">
-<Answer>
-<QuestionIdentifier>bonus</QuestionIdentifier>
-<FreeText>0.85</FreeText>
-</Answer>
-</QuestionFormAnswers>
-*/
-                //String bonus = XPath.selectText("/QuestionFormAnswers/Answer/FreeText", answerDom);
-                String strategy = "";
-                String bonus = "";
-                String reason = "";
-                NodeList questionIdentifiers = answerDom.getElementsByTagName("QuestionIdentifier");
-
-                for (int j = 0; j < questionIdentifiers.getLength(); j++) {
-                  if (questionIdentifiers.item(j).getTextContent().equals("bonus")) {
-                    if (questionIdentifiers.item(j).getNextSibling().getNextSibling() != null) {
-                      bonus = questionIdentifiers.item(j).getNextSibling().getNextSibling().getTextContent();
-                    }
-                  }
-                  if (questionIdentifiers.item(j).getTextContent().equals("reason")) {
-                    if (questionIdentifiers.item(j).getNextSibling().getNextSibling() != null) {
-                      reason = questionIdentifiers.item(j).getNextSibling().getNextSibling().getTextContent();
-                    }
-                  }
-                }
-
-                Logger.debug("AssignmentId = " + assignmentId);
-                Logger.debug("WorkerId = " + workerId);
-                Logger.debug("AssignmentStatus = " + assignmentStatus);
-                Logger.debug("AutoApprovalTime = " + autoApprovalTime);
-                Logger.debug("AcceptTime = " + acceptTime);
-                Logger.debug("SubmitTime = " + submitTime);
-                //Logger.debug("Answer = " + answer);
-                Logger.debug("Bonus = " + bonus);
-                Logger.debug("Reason = " + reason);
-
-                //AMTAssignment assignment = AMTAssignment.findByAssignmentId(assignmentId);
-                AMTAssignment assignment = hit.getAMTAssignmentById(assignmentId);
-                boolean update = true;
-
-                if (assignment == null) {
-                  assignment = new AMTAssignment();
-                  update = false;
-                }
-
-                assignment.assignmentId = assignmentId;
-                assignment.workerId = workerId;
-                assignment.assignmentStatus = assignmentStatus;
-                assignment.autoApprovalTime = autoApprovalTime;
-                assignment.acceptTime = acceptTime;
-                assignment.submitTime = submitTime;
-                assignment.answer = answer;
-                assignment.score = bonus;
-                assignment.reason = reason;
-
-                if (!update) {
-                  hit.amtAssignments.add(assignment);
-                }
-                hit.save();
-              }
-              jsonOutput.put("output", "Assignments Retrieved.");
-              breadboardMessage.out.write(jsonOutput);
-            } // if (dom != null)
-          } // if (response != null)
-        } // if (hit != null)
-      } else if (message instanceof ExtendHit) {
-        ExtendHit extendHit = (ExtendHit) message;
-
-        AMTHit hit = AMTHit.findById(extendHit.amtHitId);
-
-        if (hit != null) {
-          Logger.debug("ExtendHit: " + hit);
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.extendHit(hit.hitId, 31536000, hit.sandbox);
-
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              String isValid = XPath.selectText("//IsValid", dom);
-              if (isValid.equals("True")) {
-                hit.setExtended(true);
-                hit.update();
-              }
-            }
-          }
-        }
-      } else if (message instanceof GrantBonus) {
-        GrantBonus grantBonus = (GrantBonus) message;
-
-        Logger.debug("GrantBonus: " + grantBonus.assignmentId);
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(grantBonus.assignmentId);
-
-        if (assignment != null) {
-          boolean sandbox = assignment.amtHit.sandbox;
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.grantBonus(grantBonus.workerId, grantBonus.assignmentId, grantBonus.bonus, sandbox);
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              String isValid = XPath.selectText("//IsValid", dom);
-              if (isValid.equals("True")) {
-                assignment.bonusGranted = true;
-                assignment.save();
-                ObjectNode jsonOutput = Json.newObject();
-                jsonOutput.put("output", "Bonus Granted: " + grantBonus.bonus);
-                breadboardMessage.out.write(jsonOutput);
-              }
-            } //if (dom != null)
-          } //if (response != null)
-        } //if (assignment != null)
-      } else if (message instanceof ApproveAssignment) {
-        ApproveAssignment approveAssignment = (ApproveAssignment) message;
-
-        Logger.debug("ApproveAssignment: " + approveAssignment.assignmentId);
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(approveAssignment.assignmentId);
-
-        if (assignment != null) {
-          boolean sandbox = assignment.amtHit.sandbox;
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.approveAssignment(approveAssignment.assignmentId, sandbox);
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              String isValid = XPath.selectText("//IsValid", dom);
-              if (isValid.equals("True")) {
-                assignment.assignmentStatus = "Approved";
-                assignment.save();
-                ObjectNode jsonOutput = Json.newObject();
-                jsonOutput.put("output", "Assignment Approved: " + approveAssignment.assignmentId);
-                breadboardMessage.out.write(jsonOutput);
-                // Refresh the assignment status
-                // TODO: why doesn't the status update when approve or reject assignment?
-                //breadboardController.tell(new GetAssignmentsForHIT(breadboardMessage.user, assignment.amtHit.id, breadboardMessage.out));
-              }
-            } //if (dom != null)
-          } //if (response != null)
-        } //if (assignment != null)
-      } else if (message instanceof RejectAssignment) {
-        RejectAssignment rejectAssignment = (RejectAssignment) message;
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(rejectAssignment.assignmentId);
-
-        if (assignment != null) {
-          boolean sandbox = assignment.amtHit.sandbox;
-          Logger.debug("controllers.MechanicalTurk.rejectAssignment(" + rejectAssignment.assignmentId + ", " + sandbox + ")");
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.rejectAssignment(rejectAssignment.assignmentId, sandbox);
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              String isValid = XPath.selectText("//IsValid", dom);
-              if (isValid.equals("True")) {
-                assignment.assignmentStatus = "Rejected";
-                assignment.save();
-                ObjectNode jsonOutput = Json.newObject();
-                jsonOutput.put("output", "Assignment Rejected: " + rejectAssignment.assignmentId);
-                breadboardMessage.out.write(jsonOutput);
-                // Refresh the assignment status
-                //breadboardController.tell(new GetAssignmentsForHIT(breadboardMessage.user, assignment.amtHit.id, breadboardMessage.out));
-              }
-            } //if (dom != null)
-          } //if (response != null)
-        } //if (assignment != null)
-      } else if (message instanceof BlockWorker) {
-        BlockWorker blockWorker = (BlockWorker) message;
-
-        Logger.debug("BlockWorker: " + blockWorker.assignmentId);
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(blockWorker.assignmentId);
-
-        if (assignment != null) {
-          boolean sandbox = assignment.amtHit.sandbox;
-          F.Promise<WS.Response> response = controllers.MechanicalTurk.blockWorker(assignment.workerId, sandbox);
-          if (response != null) {
-            String responseBody = response.get().getBody();
-            Logger.debug("response: " + responseBody);
-
-            Document dom = XML.fromString(responseBody);
-            if (dom != null) {
-              String isValid = XPath.selectText("//IsValid", dom);
-              if (isValid.equals("True")) {
-                assignment.workerBlocked = true;
-                assignment.save();
-                ObjectNode jsonOutput = Json.newObject();
-                jsonOutput.put("output", "Worker Blocked: " + assignment.workerId);
-                breadboardMessage.out.write(jsonOutput);
-              }
-            } //if (dom != null)
-          } //if (response != null)
-        } //if (assignment != null)
-      } else if (message instanceof MarkCompleted) {
-        MarkCompleted markCompleted = (MarkCompleted) message;
-
-        Logger.debug("MarkCompleted: " + markCompleted.assignmentId);
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(markCompleted.assignmentId);
-
-        if (assignment != null) {
-          assignment.assignmentCompleted = true;
-          assignment.save();
-          ObjectNode jsonOutput = Json.newObject();
-          jsonOutput.put("output", "Assignment marked as completed: " + markCompleted.assignmentId);
-          breadboardMessage.out.write(jsonOutput);
-        } //if (assignment != null)
-      } else if (message instanceof AssignQualification) {
-        AssignQualification assignQualification = (AssignQualification) message;
-
-        Logger.debug("AssignQualification: " + assignQualification.assignmentId);
-        AMTAssignment assignment = AMTAssignment.findByAssignmentId(assignQualification.assignmentId);
-
-        if (assignment != null) {
-          AMTHit amtHit = assignment.amtHit;
-          if (amtHit != null) {
-            ExperimentInstance experimentInstance = amtHit.experimentInstance;
-            if (experimentInstance != null) {
-              Experiment experiment = experimentInstance.experiment;
-              if (experiment != null) {
-                boolean sandbox = assignment.amtHit.sandbox;
-
-                String generalQualificationTypeId = (sandbox) ? "2IO7WGKCCVLL7ZD31P8ASQ4C9QO4U5" : "23ADM25L8I9N3J9HC2XOL4QW7W9HR7";
-                String experimentQualificationTypeId = (sandbox) ? experiment.qualificationTypeIdSandbox : experiment.qualificationTypeId;
-
-                boolean generalSuccess = controllers.MechanicalTurk.assignOrUpdateQualification(generalQualificationTypeId, assignment.workerId, "1", sandbox);
-                boolean experimentSuccess = controllers.MechanicalTurk.assignOrUpdateQualification(experimentQualificationTypeId, assignment.workerId, "1", sandbox);
-
-                if (generalSuccess && experimentSuccess) {
-                  assignment.qualificationAssigned = true;
-                  assignment.save();
-                  ObjectNode jsonOutput = Json.newObject();
-                  jsonOutput.put("output", "Qualification Assigned to " + assignment.workerId);
-                  breadboardMessage.out.write(jsonOutput);
-                } else {
-                  if (!generalSuccess) {
-                    Logger.debug("Failed assigning and updating general qualification type.");
-                  }
-
-                  if (!experimentSuccess) {
-                    Logger.debug("Failed assigning and updating experiment specific qualification type.");
-                  }
-                }
-              } //if (experiment != null)
-            } //if (experimentInstance != null)
-          } //if (amtHit != null)
-        } //if (assignment != null)
       } else if (message instanceof AddLanguage) {
         AddLanguage addLanguage = (AddLanguage) message;
         Language language = Language.find.where().eq("code", addLanguage.languageCode).findUnique();
@@ -1087,7 +718,7 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         Experiment selectedExperiment = Experiment.findById(addLanguage.experimentId);
         boolean hasLanguage = false;
         for (Language l : selectedExperiment.languages) {
-          if (l.id == language.id) {
+          if (l.id.equals(language.id)) {
             hasLanguage = true;
           }
         }
@@ -1104,11 +735,9 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         if (selectedExperiment != null) {
           Content newContent = new Content();
           newContent.name = createContent.name;
-          //newContent.save();
 
           selectedExperiment.content.add(newContent);
           selectedExperiment.save();
-          //selectedExperiment.saveManyToManyAssociations("content");
           instances.get(breadboardMessage.user.email).tell(message, null);
         }
       } else if (message instanceof CreateStep) {
@@ -1126,11 +755,9 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
               nameVariableName + ".done = {\n" +
               "\tprintln \"" + nameVariableName + ".done\"\n" +
               "}\n";
-          //newStep.save();
 
           selectedExperiment.steps.add(newStep);
           selectedExperiment.save();
-          //selectedExperiment.saveManyToManyAssociations("steps");
         }
       } else if (message instanceof DeleteStep) {
         DeleteStep deleteStep = (DeleteStep) message;
@@ -1139,7 +766,6 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
       } else if (message instanceof DeleteContent) {
         DeleteContent deleteContent = (DeleteContent) message;
         Content content = Content.find.byId(deleteContent.id);
-        //Logger.debug("message instanceof DeleteContent, content=" + content);
         content.delete();
       } else if (message instanceof SaveContent) {
         SaveContent saveContent = (SaveContent) message;
@@ -1220,11 +846,9 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
           parameter.maxVal = (parameter.type.equals("Text") || parameter.type.equals("Boolean")) ? "" : newParameter.maxVal;
           parameter.defaultVal = newParameter.defaultVal;
           parameter.description = newParameter.description;
-          //parameter.save();
 
           selectedExperiment.parameters.add(parameter);
           selectedExperiment.save();
-          //selectedExperiment.saveManyToManyAssociations("parameters");
         }
       } else if (message instanceof RemoveParameter) {
         RemoveParameter removeParameter = (RemoveParameter) message;
@@ -1235,7 +859,6 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
           Parameter parameter = Parameter.find.byId(removeParameter.id);
           if (parameter != null) {
             selectedExperiment.parameters.remove(parameter);
-            //selectedExperiment.saveManyToManyAssociations("parameters");
             selectedExperiment.update();
             parameter.delete();
           }
@@ -1293,7 +916,6 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
         Image.findById(imageId).delete();
       }
 
-      //Logger.debug("breadboardMessage.out.write(breadboardMessage.user.toJson()); " + breadboardMessage.user.toJson());
       breadboardMessage.out.write(breadboardMessage.user.toJson());
 
     } // END if(message instanceof BreadboardMessage)
@@ -1434,82 +1056,6 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
       super(user, out);
       this.lifetimeInSeconds = lifetimeInSeconds;
       this.tutorialTime = tutorialTime;
-    }
-  }
-
-  public static class GetAssignmentsForHIT extends BreadboardMessage {
-    final Long amtHitId;
-
-    public GetAssignmentsForHIT(User user, Long amtHitId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.amtHitId = amtHitId;
-    }
-  }
-
-  public static class ExtendHit extends BreadboardMessage {
-    final Long amtHitId;
-
-    public ExtendHit(User user, Long amtHitId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.amtHitId = amtHitId;
-    }
-  }
-
-  public static class GrantBonus extends BreadboardMessage {
-    final String workerId;
-    final String assignmentId;
-    final String bonus;
-
-    public GrantBonus(User user, String workerId, String assignmentId, String bonus, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.workerId = workerId;
-      this.assignmentId = assignmentId;
-      this.bonus = bonus;
-    }
-  }
-
-  public static class ApproveAssignment extends BreadboardMessage {
-    final String assignmentId;
-
-    public ApproveAssignment(User user, String assignmentId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.assignmentId = assignmentId;
-    }
-  }
-
-  public static class RejectAssignment extends BreadboardMessage {
-    final String assignmentId;
-
-    public RejectAssignment(User user, String assignmentId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.assignmentId = assignmentId;
-    }
-  }
-
-  public static class MarkCompleted extends BreadboardMessage {
-    final String assignmentId;
-
-    public MarkCompleted(User user, String assignmentId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.assignmentId = assignmentId;
-    }
-  }
-
-  public static class BlockWorker extends BreadboardMessage {
-    final String assignmentId;
-
-    public BlockWorker(User user, String assignmentId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.assignmentId = assignmentId;
-    }
-  }
-
-  public static class AssignQualification extends BreadboardMessage {
-    final String assignmentId;
-
-    public AssignQualification(User user, String assignmentId, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.assignmentId = assignmentId;
     }
   }
 
@@ -1719,31 +1265,11 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
     }
   }
 
-  public static class DropPlayer extends BreadboardMessage {
-    final String pid;
-
-    public DropPlayer(User user, String pid, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.pid = pid;
-    }
-  }
-
   public static class LaunchGame extends BreadboardMessage {
     final String name;
     final LinkedHashMap parameters;
 
     public LaunchGame(User user, String name, LinkedHashMap parameters, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.name = name;
-      this.parameters = parameters;
-    }
-  }
-
-  public static class TestGame extends BreadboardMessage {
-    final LinkedHashMap parameters;
-    final String name;
-
-    public TestGame(User user, String name, LinkedHashMap parameters, ThrottledWebSocketOut out) {
       super(user, out);
       this.name = name;
       this.parameters = parameters;

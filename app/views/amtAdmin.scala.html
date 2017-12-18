@@ -112,6 +112,7 @@
                             <th><span class="glyphicon glyphicon-check" ng-click="approveAll(hit)" title="Select all"></span> Approve</th>
                             <th><span class="glyphicon glyphicon-check" ng-click="rejectAll(hit)" title="Select all"></span> Reject</th>
                             <th><span class="glyphicon glyphicon-check" ng-click="grantAll(hit)" title="Select all"></span> Bonus</th>
+                            <th>Completed</th>
                             <th><span class="glyphicon glyphicon-collapse-down" ng-click="showAll(hit)" title="Show all"></span> Answers</th>
                           </tr>
                           <tr>
@@ -138,6 +139,7 @@
                                 <button ng-disabled="globals.bonusReason.length == 0" class="btn btn-default" ng-click="grantBonuses(hit)">Grant {{ hit.bonusTotal | currency:"$" }}</button>
                               </div>
                             </td>
+                            <td></td>
                             <td>
                               <button class="btn btn-default" ng-click="getAssignmentsCSV(hit)">Download CSV</button>
                             </td>
@@ -213,6 +215,18 @@
                             </td>
 
                             <td>
+                              <input type="checkbox" ng-class="{'disabled' : (assignment.completedPending)}" ng-model="assignment.assignmentCompleted" ng-change="updateAssignmentCompleted(assignment)">
+
+                              <span ng-if="assignment.completedError !== null">
+                                Error: {{ assignment.completedError  }}
+                              </span>
+
+                              <span ng-if="assignment.completedSuccess">
+                                <span class="text-success glyphicon glyphicon-ok" aria-hidden="true"></span>
+                              </span>
+                            </td>
+
+                            <td>
                               <button ng-if="!assignment.showAnswers" ng-click="assignment.showAnswers = !assignment.showAnswers" type="button" class="btn btn-sm">
                                 <span
                                 class="glyphicon"
@@ -277,6 +291,7 @@
                                 <button ng-disabled="bonusReason.length == 0" class="btn btn-default" ng-click="grantBonuses(hit)">Grant {{ hit.bonusTotal | currency:"$" }}</button>
                               </div>
                             </td>
+                            <td></td>
                             <td>
                               <button class="btn btn-default" ng-click="getAssignmentsCSV(hit)">Download CSV</button>
                             </td>
@@ -287,6 +302,7 @@
                             <th><span class="glyphicon glyphicon-check" ng-click="approveAll(hit)" title="Select all"></span> Approve</th>
                             <th><span class="glyphicon glyphicon-check" ng-click="rejectAll(hit)" title="Select all"></span> Reject</th>
                             <th><span class="glyphicon glyphicon-check" ng-click="grantAll(hit)" title="Select all"></span> Bonus</th>
+                            <th>Completed</th>
                             <th><span class="glyphicon glyphicon-collapse-down" ng-click="showAll(hit)" title="Show all"></span> Answers</th>
                           </tr>
                         </tfoot>

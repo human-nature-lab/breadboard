@@ -9,15 +9,12 @@ import com.amazonaws.services.mturk.AmazonMTurk;
 import com.amazonaws.services.mturk.AmazonMTurkClientBuilder;
 import com.amazonaws.services.mturk.model.*;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import models.AMTAssignment;
+import models.AMTHit;
 import org.apache.commons.io.IOUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
 import play.Play;
-import play.Logger;
-import play.data.DynamicForm;
 import play.data.Form;
 import play.libs.*;
 import play.mvc.Controller;
@@ -25,7 +22,6 @@ import play.mvc.Result;
 import views.html.*;
 
 import java.io.IOException;
-import java.math.BigDecimal;
 import java.util.*;
 
 public class AMTAdmin extends Controller {
@@ -94,6 +90,23 @@ public class AMTAdmin extends Controller {
       if (nextToken != null) listHITsRequest.setNextToken(nextToken);
       ListHITsResult hitResults = mTurk.listHITs(listHITsRequest);
       List<HIT> hits = hitResults.getHITs();
+
+      // Update amt_hits table
+      for (HIT hit : hits) {
+        AMTHit amtHit = AMTHit.findByHitId(hit.getHITId());
+        if (amtHit == null) {
+          amtHit = new AMTHit();
+        }
+        amtHit.hitId = hit.getHITId();
+        amtHit.creationDate = hit.getCreationTime();
+        amtHit.title = hit.getTitle();
+        amtHit.description = hit.getDescription();
+        amtHit.maxAssignments = hit.getMaxAssignments().toString();
+        amtHit.reward = hit.getReward();
+        amtHit.sandbox = sandbox;
+        amtHit.save();
+      }
+
       String next = hitResults.getNextToken();
       ObjectNode returnJson = Json.newObject();
       returnJson.put("hits", Json.toJson(hits));
@@ -113,12 +126,49 @@ public class AMTAdmin extends Controller {
       builder.setEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration((sandbox ? SANDBOX_ENDPOINT : PRODUCTION_ENDPOINT), SIGNING_REGION));
       AmazonMTurk mTurk = builder.build();
       ListAssignmentsForHITRequest listAssignmentsForHITRequest = new ListAssignmentsForHITRequest().withMaxResults(maxResults).withHITId(hitId);
+      ObjectNode returnJson = Json.newObject();
+      ArrayNode jsonAssignments = returnJson.putArray("assignments");
       if (nextToken != null) listAssignmentsForHITRequest.setNextToken(nextToken);
       ListAssignmentsForHITResult assignmentResults = mTurk.listAssignmentsForHIT(listAssignmentsForHITRequest);
       List<Assignment> assignments = assignmentResults.getAssignments();
+
+      // Update amt_assignments table
+      for (Assignment assignment : assignments) {
+        AMTHit hit = AMTHit.findByHitId(assignment.getHITId());
+        AMTAssignment amtAssignment = hit.getAMTAssignmentById(assignment.getAssignmentId());
+        boolean update = true;
+        if (amtAssignment == null) {
+          amtAssignment = new AMTAssignment();
+          // Default to completed, require unchecking completed box to permit repeat play
+          amtAssignment.assignmentCompleted = true;
+          update = false;
+        }
+        amtAssignment.amtHit = hit;
+        amtAssignment.assignmentId = assignment.getAssignmentId();
+        amtAssignment.workerId = assignment.getWorkerId();
+        amtAssignment.assignmentStatus = assignment.getAssignmentStatus();
+        amtAssignment.autoApprovalTime = assignment.getAutoApprovalTime().toString();
+        amtAssignment.acceptTime = (assignment.getAcceptTime() == null) ? null :  assignment.getAcceptTime().toString();
+        amtAssignment.submitTime = (assignment.getSubmitTime() == null) ? null :  assignment.getSubmitTime().toString();
+        amtAssignment.answer = assignment.getAnswer();
+
+        if (!update) {
+          hit.amtAssignments.add(amtAssignment);
+        }
+        hit.save();
+
+        ObjectNode jsonAssignment = Json.newObject();
+        jsonAssignment.put("assignmentId", amtAssignment.assignmentId);
+        jsonAssignment.put("workerId", amtAssignment.workerId);
+        jsonAssignment.put("approvalTime", (assignment.getApprovalTime() == null) ? null : assignment.getApprovalTime().toString());
+        jsonAssignment.put("rejectionTime", (assignment.getRejectionTime() == null) ? null : assignment.getRejectionTime().toString());
+        jsonAssignment.put("answer", amtAssignment.answer);
+        jsonAssignment.put("assignmentCompleted", amtAssignment.assignmentCompleted);
+
+        jsonAssignments.add(jsonAssignment);
+      }
+
       String token = assignmentResults.getNextToken();
-      ObjectNode returnJson = Json.newObject();
-      returnJson.put("assignments", Json.toJson(assignments));
       returnJson.put("nextToken", token);
       return ok(returnJson);
     } catch (AmazonServiceException ase) {
@@ -138,6 +188,15 @@ public class AMTAdmin extends Controller {
       if (nextToken != null) listBonusPaymentsRequest.setNextToken(nextToken);
       ListBonusPaymentsResult bonusPaymentsResults = mTurk.listBonusPayments(listBonusPaymentsRequest);
       List<BonusPayment> bonusPayments = bonusPaymentsResults.getBonusPayments();
+      // Update amt_assignments table
+      for (BonusPayment bonusPayment : bonusPayments) {
+        AMTAssignment amtAssignment = AMTAssignment.findByAssignmentId(bonusPayment.getAssignmentId());
+        if (amtAssignment != null) {
+          amtAssignment.bonusGranted = true;
+          amtAssignment.bonusAmount = bonusPayment.getBonusAmount();
+          amtAssignment.save();
+        }
+      }
       String token = bonusPaymentsResults.getNextToken();
       ObjectNode returnJson = Json.newObject();
       returnJson.put("bonusPayments", Json.toJson(bonusPayments));
@@ -226,6 +285,35 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  public static Result updateAssignmentCompleted(String assignmentId) {
+    String completedText;
+
+    JsonNode json = request().body().asJson();
+
+    if(json == null) {
+      return badRequest("Expecting Json data");
+    } else {
+      completedText = json.findPath("completed").asText();
+    }
+
+    if (completedText == null || (!(completedText.matches("(?i)0|1|true|false")))) {
+      return badRequest("Please provide completed as a boolean value (0, 1, true, false).");
+    }
+
+    AMTAssignment amtAssignment = AMTAssignment.findByAssignmentId(assignmentId);
+
+    if (amtAssignment == null) {
+      return badRequest("Invalid Assignment ID.");
+    }
+
+    Boolean completed = (completedText.matches("(?i)1|true"));
+
+    amtAssignment.assignmentCompleted = completed;
+    amtAssignment.save();
+
+    return ok();
+  }
+
   public static Result createDummyHit(Boolean sandbox) {
     String workerId = null;
     String reason = null;
@@ -311,110 +399,4 @@ public class AMTAdmin extends Controller {
     return returnString;
   }
 
-  /*
-  public static Result createDummyHitOld() {
-    DynamicForm requestData = new DynamicForm().bindFromRequest();
-    String amtIds = requestData.get("amt_ids");
-    String reason = requestData.get("reason");
-    String stringReward = requestData.get("reward");
-    Boolean sandbox = false;
-    if (requestData.get("sandbox") != null && requestData.get("sandbox").equals("on")) {
-      sandbox = true;
-    }
-
-    BigDecimal reward;
-    try {
-      reward = new BigDecimal(stringReward);
-    } catch (NumberFormatException nfe) {
-      flash("error", "Unable to parse reward into valid dollar value.");
-      return redirect(routes.AMTAdmin.index());
-    }
-
-    String[] amtIdsArray = amtIds.split("[,\\s]+");
-
-    String timestamp = new Date().getTime() + "";
-
-    ArrayList<String> successIds = new ArrayList<String>();
-    for (int i = 0; i < amtIdsArray.length; i++) {
-      F.Promise<WS.Response> createQualificationResponse = controllers.MechanicalTurk.createQualification(timestamp + "_" + amtIdsArray[i], reason, false, sandbox);
-      if (createQualificationResponse != null) {
-        String responseBody = createQualificationResponse.get().getBody();
-        Logger.debug("createQualificationResponse: " + responseBody);
-        Document dom = XML.fromString(responseBody);
-        if (dom != null) {
-          String isValid = XPath.selectText("//IsValid", dom);
-          if (isValid.equals("True")) {
-            String qualificationTypeId = XPath.selectText("//QualificationTypeId", dom);
-            Logger.debug("qualificationTypeId = " + qualificationTypeId);
-            F.Promise<WS.Response> assignQualificationResponse = controllers.MechanicalTurk.assignQualification(qualificationTypeId, amtIdsArray[i], "1", sandbox);
-            if (assignQualificationResponse != null) {
-              responseBody = assignQualificationResponse.get().getBody();
-              Logger.debug("assignQualificationResponse: " + responseBody);
-              dom = XML.fromString(responseBody);
-              if (dom != null) {
-                isValid = XPath.selectText("//IsValid", dom);
-                if (isValid.equals("True")) {
-                  String hitTitle = "HIT for " + amtIdsArray[i] + " (Reason: " + reason.trim();
-                  hitTitle = StringUtils.abbreviate(hitTitle, 127);
-                  hitTitle += ")";
-
-                  //String url = (sandbox) ? "http://54.225.223.34:9000/dummyHit?sandbox=true" : "http://54.225.223.34:9000/dummyHit";
-                  String rootURL = play.Play.application().configuration().getString("breadboard.rootUrl");
-                  String url = (sandbox) ? rootURL + "/dummyHit?sandbox=true" : rootURL + "/dummyHit";
-
-                  QualificationRequirement qualificationRequirement = new QualificationRequirement();
-                  qualificationRequirement.qualificationTypeId = qualificationTypeId;
-                  qualificationRequirement.comparator = "Exists";
-                  qualificationRequirement.integerValue = "1";
-                  try {
-                    F.Promise<WS.Response> createAMTHitResponse = controllers.MechanicalTurk.createAMTHit(
-                        hitTitle,
-                        reason,
-                        url,
-                        600,
-                        reward,
-                        31536000,
-                        1,
-                        sandbox,
-                        qualificationRequirement);
-
-                    responseBody = createAMTHitResponse.get().getBody();
-                    Logger.debug("createAMTHitResponse: " + responseBody);
-                    dom = XML.fromString(responseBody);
-                    if (dom != null) {
-                      isValid = XPath.selectText("//IsValid", dom);
-                      if (isValid.equals("True")) {
-                        successIds.add(amtIdsArray[i]);
-                      }
-                    }
-                  } catch (java.io.UnsupportedEncodingException uee) {
-                    Logger.debug("Caught UnsupportedEncodingException: " + uee.getMessage());
-                  }
-                } else {
-                  Logger.debug("assignQualificationResponse IsValid != True");
-                }
-              } else {
-                Logger.debug("assignQualificationResponse dom == null");
-              }
-            } else {
-              Logger.debug("assignQualificationResponse == null");
-            }
-          } else {
-            Logger.debug("createQualificationResponse IsValid != True");
-          }
-        } else {
-          Logger.debug("createQualificationResponse dom == null");
-        }
-      }
-    }
-
-    String amtIdsLog = "";
-    for (String s : successIds) {
-      amtIdsLog += s + " ";
-    }
-
-    flash("success", "<p><strong>Succeeded in creating " + successIds.size() + "/" + amtIdsArray.length + " dummy HITs.</strong></p>  Dummy HITs created:<ul>" + "<li>amtIds: " + amtIdsLog + "</li><li>reason: " + reason + "</li><li>reward: " + reward.toString() + "</li><li>sandbox: " + sandbox.toString() + "</li></ul>");
-    return redirect(routes.AMTAdmin.index());
-  }
-  */
 }

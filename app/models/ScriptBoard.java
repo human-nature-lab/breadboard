@@ -449,16 +449,6 @@ public class ScriptBoard extends UntypedActor {
           }
 
           Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
-        } else if (message instanceof Breadboard.DropPlayer) {
-          Breadboard.DropPlayer dropPlayer = (Breadboard.DropPlayer) message;
-          Logger.debug("dropPlayer:" + dropPlayer.pid);
-          if (playerActions != null) {
-            playerActions.remove(dropPlayer.pid);
-          }
-
-          if (graphInterface != null) {
-            graphInterface.removePlayer(dropPlayer.pid);
-          }
         } else if (message instanceof Breadboard.LaunchGame) {
           Breadboard.LaunchGame launchGame = (Breadboard.LaunchGame) message;
 
@@ -483,30 +473,6 @@ public class ScriptBoard extends UntypedActor {
           Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
 
         } // END else if(message instanceof Breadboard.LaunchGame)
-        else if (message instanceof Breadboard.TestGame) {
-          Breadboard.TestGame testGame = (Breadboard.TestGame) message;
-          if (breadboardMessage.user.selectedExperiment != null) {
-            rebuildScriptBoard(breadboardMessage.user.selectedExperiment);
-            eventTracker.disable();
-            ExperimentInstance testInstance = breadboardMessage.user.selectedExperiment.getTestInstance();
-
-            gameListener.experimentInstance = testInstance;
-            testInstance.name = testGame.name;
-            testInstance.creationDate = new Date();
-            gameListener.start();
-            breadboardMessage.user.experimentInstanceId = Experiment.TEST_INSTANCE_ID;
-            testInstance.data.clear();
-            initAllParam(testGame.parameters, breadboardMessage.user.selectedExperiment, testInstance);
-
-            // Re-run the Steps
-            for (Step step : testInstance.experiment.steps) {
-              Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, step.source, breadboardMessage.out), null);
-            }
-          }
-          // Update User JSON
-          Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);
-
-        } // END else if(message instanceof Breadboard.TestGame)
         else if (message instanceof Breadboard.SelectInstance) {
           Breadboard.SelectInstance selectInstance = (Breadboard.SelectInstance) message;
 
