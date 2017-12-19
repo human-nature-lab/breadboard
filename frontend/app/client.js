@@ -7,14 +7,22 @@ import 'angular-route';
 import 'angular-sanitize';
 // import 'angular-ui-bootstrap';
 
-
 import './client/client-services';
 import './client/client-controllers';
 import './client/client-directives';
 import './client/client-filters';
 import './client/client-timer';
 
-angular.module('client', ['client.services', 'client.controllers', 'breadboard.timer', 'ngSanitize', 'ngRoute', 'ui.bootstrap', 'client.filters', 'client.directives','angular-bind-html-compile']);
+angular.module('client', [
+  'client.services',
+  'client.controllers',
+  'breadboard.timer',
+  'ngSanitize',
+  'ngRoute',
+  'ui.bootstrap',
+  'client.filters',
+  'client.directives',
+  'angular-bind-html-compile']);
 
 
 // Source:  http://stackoverflow.com/questions/6312993/javascript-seconds-to-time-with-format-hhmmss 
