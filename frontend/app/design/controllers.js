@@ -1,4 +1,4 @@
-'use strict';
+import _ from 'underscore';
 
 /* Controllers */
 angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout',
@@ -961,4 +961,10 @@ function ($scope, $breadboardFactory, $timeout) {
     valid_elements: '*[*]',
     resize: true
   }
-}])
+
+  $scope.$on('$destroy', function(){
+    // TODO: Destroy all of the popup windows
+    console.log("TODO: Destroy the popup windows or display the login as a modal");
+  });
+
+}]);

@@ -4,6 +4,7 @@
 
 # Home page
 GET         /                                                                    controllers.Application.index()
+GET         /state                                                               controllers.Application.getState()
 GET         /connect                                                             controllers.Application.connect()
 GET         /csv/data/:experimentId                                              controllers.Application.dataCsv(experimentId: Long)
 GET         /csv/event/:experimentInstanceId                                     controllers.Application.eventCsv(experimentInstanceId: Long)

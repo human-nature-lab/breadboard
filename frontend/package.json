@@ -12,12 +12,15 @@
     "start": "node ./webpack/webpack.server"
   },
   "dependencies": {
+    "@uirouter/angularjs": "^1.0.11",
     "angular": "1.2.32",
     "angular-bind-html-compile-ci-dev": "1.2.2",
+    "angular-cookies": "1.2.32",
     "angular-route": "1.2.32",
     "angular-sanitize": "1.2.32",
     "angular-ui-bootstrap": "0.12.1",
     "angular-ui-codemirror": "^0.3.0",
+    "angular-ui-router": "^0.4.3",
     "angular-ui-utils": "^0.1.1",
     "codemirror": "^5.32.0",
     "d3": "2.10.3",

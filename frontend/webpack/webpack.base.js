@@ -28,7 +28,7 @@ module.exports = {
             },
             {
                 test: /\.html$/,
-                use: ['ngtemplate-loader', 'html-loader'],
+                use: ['ngtemplate-loader?relativeTo=frontend&prefix=files', 'html-loader'],
                 exclude: /node_modules/,
             },
             {

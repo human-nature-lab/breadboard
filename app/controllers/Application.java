@@ -9,12 +9,10 @@ import org.mindrot.jbcrypt.BCrypt;
 import play.Logger;
 import play.data.Form;
 import play.libs.Json;
+import play.mvc.*;
 import play.mvc.Content;
-import play.mvc.Controller;
 import play.mvc.Http.MultipartFormData;
 import play.mvc.Http.MultipartFormData.FilePart;
-import play.mvc.Result;
-import play.mvc.WebSocket;
 import views.html.*;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -23,12 +21,13 @@ import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Application extends Controller {
+
   public static Result login() {
     if (User.findRowCount() == 0) {
       return ok(createFirstUser.render(Form.form(CreateFirstUser.class)));
     } else {
       return ok(login.render(Form.form(Login.class)));
-    }
+  }
   }
 
   public static Result createFirstUser() {
@@ -87,19 +86,22 @@ public class Application extends Controller {
   }
 
 
-
   public static Result authenticate() {
     Form<Login> loginForm = Form.form(Login.class).bindFromRequest();
-
+    ObjectNode result = Json.newObject();
     if (loginForm.hasErrors()) {
-      return badRequest(login.render(loginForm));
+      result.put("message", "Invalid username or password");
+      result.put("status", "error");
+      return badRequest(result);
     } else {
       String email = loginForm.get().email;
 
       session("email", email);
 
       String uid = UUID.randomUUID().toString();
+      String juid = UUID.randomUUID().toString();
       session("uid", uid);
+      session("juid", uid);
 
       User user = User.findByEmail(email);
 
@@ -108,7 +110,11 @@ public class Application extends Controller {
         user.uid = uid;
         user.update();
         if (user.role.equals("admin")) {
-          return redirect(routes.Application.index());
+          result = Json.newObject();
+          result.put("uid", uid);
+          result.put("email", email);
+          result.put("juid", juid);
+          return ok(result);
         } else if (user.role.equals("amt_admin")) {
           return redirect(routes.AMTAdmin.index());
         }
@@ -125,16 +131,17 @@ public class Application extends Controller {
   }
 
   public static Result index() {
-    if (session("email") == null) {
-      if (User.findRowCount() == 0) {
-        return redirect(routes.Application.createFirstUser());
-      } else {
-        return redirect(routes.Application.login());
-      }
-    } else {
-      final File file = play.Play.application().getFile("frontend/app/templates/breadboard.html");
+      final File file = play.Play.application().getFile("frontend/app/breadboard.html");
       return ok(file, true);
-    }
+  }
+
+  @Security.Authenticated(Secured.class)
+  public static Result getState() {
+    ObjectNode result = Json.newObject();
+    result.put("uid", session("uid")); // remove this
+    result.put("juid", session("juid"));
+    result.put("email", session("email"));
+    return ok(result);
   }
 
   public static Result uploadImage() {
@@ -319,7 +326,7 @@ public class Application extends Controller {
    * Handle the websocket.
    */
   public static WebSocket<JsonNode> connect() {
-    return new WebSocket<JsonNode>() {
+    WebSocket socket = new WebSocket<JsonNode>(){
       // Called when the Websocket Handshake is done.
       public void onReady(final WebSocket.In<JsonNode> in, final WebSocket.Out<JsonNode> out) {
         try {
@@ -329,6 +336,7 @@ public class Application extends Controller {
         }
       }
     };
+    return socket;
   }
 
   public static class Login {

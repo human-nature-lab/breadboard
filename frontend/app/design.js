@@ -1,10 +1,12 @@
-
 import 'jquery';
 import angular from 'angular';
 import '../lib/jquery-ui/jquery-ui';
-import 'underscore';
+import _ from 'underscore';
+// window._ = _;
 // import 'd3';
+import 'angular-ui-router';
 import 'angular-route';
+import 'angular-cookies';
 import 'angular-sanitize';
 import '../lib/tinymce/tinymce.min';
 import '../lib/angular-ui/ui-utils';
@@ -27,10 +29,4 @@ import 'codemirror/keymap/emacs';
 // import '../../public/js/amt-admin-app';
 // import '../../public/js/amt-admin-controller';
 // import '../../public/js/amt-admin-service';
-import './design/graph';
-import './design/controllers';
-import './design/breadboard';
-import './design/directives';
-import './design/filters';
 import './design/app';
-import './design/services';
