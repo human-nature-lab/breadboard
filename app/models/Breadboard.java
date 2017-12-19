@@ -10,6 +10,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.google.gson.Gson;
 import com.tinkerpop.blueprints.Vertex;
+import controllers.Secured;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -20,6 +21,7 @@ import play.Logger;
 import play.Play;
 import play.libs.*;
 import play.libs.F.Callback;
+import play.mvc.Security;
 import play.mvc.WebSocket;
 import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
@@ -44,12 +46,15 @@ public class Breadboard extends UntypedActor {
     in.onMessage(new Callback<JsonNode>() {
       public void invoke(JsonNode event) {
         try {
+          Logger.debug(event.toString());
           ObjectMapper mapper = new ObjectMapper();
           // TODO: check if there is a better way to do this with new version of Jackson
           Map<String, Object> jsonInput = mapper.readValue(event.toString(), Map.class);
           String action = jsonInput.get("action").toString();
           String uid = jsonInput.get("uid").toString();
           User user = User.findByUID(uid);
+          ObjectNode result = Json.newObject();
+
           if (user != null) {
             if (action.equals("LogIn")) {
               breadboardController.tell(new LogIn(user, out), null);
