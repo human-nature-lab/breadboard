@@ -19,5 +19,7 @@ config.plugins = [
 
 const clientConfig = Object.assign({}, config, require('./webpack.client.js'));
 const designConfig = Object.assign({}, config, require('./webpack.design.js'));
-
-module.exports = [clientConfig, designConfig];
+module.exports = [clientConfig, designConfig].map(c => {
+    c.entry = ['webpack/hot/dev-server', 'webpack-dev-server/client?http://localhost:8080'].concat(c.entry);
+    return c;
+});
