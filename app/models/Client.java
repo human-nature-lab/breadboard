@@ -10,27 +10,18 @@ import com.tinkerpop.blueprints.impls.tg.TinkerGraph;
 import com.tinkerpop.blueprints.util.wrappers.event.EventGraph;
 import controllers.D3Utils;
 import play.Logger;
-import play.Play;
 import play.db.ebean.Model;
 import play.libs.Json;
 import play.mvc.WebSocket;
 
 import java.util.HashSet;
 import java.util.Map;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class Client extends Model {
   public String id;
   public WebSocket.In<JsonNode> in;
   public ThrottledWebSocketOut out;
   public ExperimentInstance experimentInstance;
-  //private int updates = 0;
-  private long lastWrite = 0;
-  private static final long DELAY = Play.application().configuration().getLong("breadboard.client.messageBuffer");
-  //private static long delay = 250000000;
-  private Timer delayTimer = new Timer();
-  private boolean timerScheduled = false;
 
   public Client(String id, ExperimentInstance experimentInstance, WebSocket.In<JsonNode> in, ThrottledWebSocketOut out) {
     this.id = id;
@@ -39,42 +30,7 @@ public class Client extends Model {
     this.out = out;
   }
 
-  private class DelayTimerTask extends TimerTask {
-    private Vertex me;
-    DelayTimerTask(Vertex me) {
-      this.me = me;
-    }
-    public void run() {
-      //Logger.info("DelayTimer.run()");
-      timerScheduled = false;
-      updateGraph(me);
-    }
-  }
-
   public synchronized void updateGraph(Vertex me) {
-
-    //Logger.debug("updateGraph(" + me + ")");
-    long curTime = System.nanoTime();
-    //Logger.debug("curTime - lastWrite = " + (curTime - lastWrite));
-    //Logger.debug("DELAY = " + DELAY);
-
-    // If we already updated within the past delay nanoseconds, don't update again
-    // Set a timer in case this is the last of a series of updates
-    /*
-    TODO: replacing this performance enhancement with an iterated update
-    if ( (curTime - lastWrite < DELAY) || timerScheduled) {
-      if (! timerScheduled) {
-        //Logger.debug("Timer scheduled for: " + ((DELAY/1000000) + 1) + "ms");
-        delayTimer.schedule(new DelayTimerTask(me), (DELAY/1000000) + 1);
-        timerScheduled = true;
-      }
-      return;
-    }
-    */
-
-    //Logger.debug("Update");
-    // If we get here update the graph
-    lastWrite = curTime;
 
     // Create an in-memory graph to store the sub-graph in
     TinkerGraph inMemoryGraph = new TinkerGraph();
@@ -176,29 +132,10 @@ public class Client extends Model {
       }
     }
 
-    /*
-    long curTime = System.nanoTime();
-    if (curTime - lastWrite > delay) {
-      writeGraph(m, subGraph);
-      lastWrite = curTime;
-      delayTimer.purge();
-      if (timerScheduled) {
-        Logger.info("Timer cancelled");
-        timerScheduled = false;
-      }
-    } else {
-      if (!timerScheduled) {
-        Logger.info("Timer scheduled");
-        delayTimer.schedule(new DelayTimerTask(m, subGraph), delay/1000000);
-        timerScheduled = true;
-      }
-    }
-    */
     writeGraph(m, subGraph);
   }
 
   public void writeGraph(Vertex me, Graph graph) {
-    //Logger.debug("writeGraph(" + me + "," + graph + ")");
     ObjectNode jsonOutput = Json.newObject();
 
     ObjectNode jsonGraph = D3Utils.graphToJsonString(graph);
@@ -213,7 +150,6 @@ public class Client extends Model {
 
     jsonOutput.put("player", client);
 
-    //Logger.info("writeGraph: " + (updates++));
     out.write(jsonOutput);
   }
 
@@ -251,12 +187,12 @@ public class Client extends Model {
     ObjectNode jsonOutput = Json.newObject();
 
     // Only send "text" and "choices" properties to the player whose text or choices is changing
-    if (key == "text") {
+    if (key.equals("text")) {
       if (vertex.getId().toString().equals(id)) {
         jsonOutput.put("text", Json.toJson(setValue));
         out.write(jsonOutput);
       }
-    } else if (key == "choices") {
+    } else if (key.equals("choices")) {
       if (vertex.getId().toString().equals(id)) {
         jsonOutput.put("choices", Json.toJson(setValue));
         out.write(jsonOutput);

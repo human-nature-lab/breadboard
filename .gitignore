@@ -25,3 +25,4 @@ install
 experiments
 dev.bat
 dev.sh
+node_modules
