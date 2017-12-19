@@ -361,8 +361,11 @@
                             <a ng-click="stopGame(breadboard.experimentInstance.id)">stop</a>
                         </td>
                         <td>
-                  <span><a href="game/{{breadboard.experiment.id}}/{{breadboard.experimentInstance.id}}/login">
-                    login</a></span>
+                          <span>
+                              <a href="game/{{breadboard.experiment.id}}/{{breadboard.experimentInstance.id}}/login" target="_blank">
+                                login
+                              </a>
+                            </span>
                         </td>
                     </tr>
 
@@ -379,7 +382,7 @@
                     <a ng-click="selectInstance(instance.id)">launch</a> |
                     <a ng-click="deleteInstance(instance.name, instance.id)">delete</a>
                   </span>
-                            <span ng-switch-when="FINISHED">
+                    <span ng-switch-when="FINISHED">
                     <a ng-click="deleteInstance(instance.name, instance.id)">delete</a>
                   </span>
                             <span ng-switch-default>
@@ -387,8 +390,11 @@
                   </span>
                         </td>
                         <td>
-                  <span ng-show="instance.name == breadboard.experimentInstance.name"><a href="game/{{breadboard.experiment.id}}/{{breadboard.experimentInstance.id}}/login">
-                    login</a></span>
+                  <span ng-show="instance.name == breadboard.experimentInstance.name">
+                      <a href="game/{{breadboard.experiment.id}}/{{breadboard.experimentInstance.id}}/login" target="_blank">
+                        login
+                      </a>
+                  </span>
                         </td>
                         <!--<td ng-switch on="instance.status">-->
                         <!--<a>Test</a>-->
