@@ -1,4 +1,3 @@
-/* global __dirname */
 "use strict";
 const webpack = require('webpack');
 const path = require('path');
@@ -19,12 +18,12 @@ module.exports = {
             {
                 test: /\.css$/,
                 use: ['style-loader','css-loader'],
-                exclude: /node_modules/,
+                // exclude: /node_modules/,
             },
             {
                 test: /\.[sass|scss]$/,
                 use: ['style-loader', 'css-loader', 'sass-loader'],
-                exclude: /node_modules/,
+                // exclude: /node_modules/,
             },
             {
                 test: /\.html$/,
@@ -40,6 +39,10 @@ module.exports = {
                 test: /\.svg$/,
                 use: 'url-loader?limit=10000&mimetype=image/svg+xml',
                 exclude: /node_modules/,
+            },
+            {
+                test: /\.(eot|svg|ttf|woff|woff2)$/,
+                use: 'file-loader?name=public/fonts/[name].[ext]'
             }
         ]
     },

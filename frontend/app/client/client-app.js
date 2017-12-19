@@ -8,4 +8,4 @@ angular.module('client').directive('app', function(){
 		replace: true,
 		templateUrl: clientTemplateUrl
 	}
-})
+});
