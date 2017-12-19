@@ -1,10 +1,6 @@
-'use strict';
-
-if (!String.prototype.trim) {
-  String.prototype.trim = function () {
-    return this.replace(/^[\s\uFEFF\xA0]+|[\s\uFEFF\xA0]+$/g, '');
-  };
-}
+const util = {
+  buildQueryStringParameters: buildQueryStringParameters
+};
 
 function buildQueryStringParameters(parameters) {
   var returnQueryString = "";
@@ -24,3 +20,5 @@ function buildQueryStringParameters(parameters) {
 
   return returnQueryString;
 }
+
+export default util;

@@ -31,6 +31,7 @@ public class AMTAdmin extends Controller {
   private static final String SECRET_KEY = Play.application().configuration().getString("amt.secretKey");
   private static final String ACCESS_KEY = Play.application().configuration().getString("amt.accessKey");
 
+  /*
   public static Result login() {
     return ok(login.render(Form.form(Application.Login.class)));
   }
@@ -58,6 +59,7 @@ public class AMTAdmin extends Controller {
   public static Result index() {
     return ok(amtAdmin.render());
   }
+  */
 
   public static Result getAccountBalance(Boolean sandbox) {
     try {

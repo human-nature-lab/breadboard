@@ -74,11 +74,13 @@ public class Application extends Controller {
         Logger.info("authenticate: uid = " + uid);
         user.uid = uid;
         user.update();
+        return redirect(routes.Application.index());
+        /*
         if (user.role.equals("admin")) {
-          return redirect(routes.Application.index());
         } else if (user.role.equals("amt_admin")) {
           return redirect(routes.AMTAdmin.index());
         }
+        */
       }
 
       return badRequest(createFirstUser.render(createFirstUserForm));
@@ -109,15 +111,17 @@ public class Application extends Controller {
         Logger.info("authenticate: uid = " + uid);
         user.uid = uid;
         user.update();
+        result = Json.newObject();
+        result.put("uid", uid);
+        result.put("email", email);
+        result.put("juid", juid);
+        return ok(result);
+        /*
         if (user.role.equals("admin")) {
-          result = Json.newObject();
-          result.put("uid", uid);
-          result.put("email", email);
-          result.put("juid", juid);
-          return ok(result);
         } else if (user.role.equals("amt_admin")) {
           return redirect(routes.AMTAdmin.index());
         }
+        */
       }
 
       return badRequest(login.render(loginForm));

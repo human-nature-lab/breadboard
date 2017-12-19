@@ -1,4 +1,4 @@
-'use strict';
+
 
 function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.accountBalance = null;
@@ -396,3 +396,5 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
 }
 
 AMTAdminCtrl.$inject = ['$scope', 'AMTAdminSrv', '$q', '$filter', '$timeout'];
+
+export default AMTAdminCtrl;

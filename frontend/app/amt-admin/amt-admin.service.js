@@ -1,6 +1,7 @@
-'use strict';
+import util from '../util/util';
+var buildQueryStringParameters = util.buildQueryStringParameters;
 
-angular.module('amt-admin.services', [])
+angular.module('breadboard.amt-admin.services', [])
   .factory('AMTAdminSrv', AMTAdminSrv);
 
 AMTAdminSrv.$inject = ['$http', '$q', '$timeout'];

@@ -2,8 +2,6 @@ import 'jquery';
 import angular from 'angular';
 import '../lib/jquery-ui/jquery-ui';
 import _ from 'underscore';
-// window._ = _;
-// import 'd3';
 import 'angular-ui-router';
 import 'angular-route';
 import 'angular-cookies';
@@ -23,10 +21,4 @@ import 'codemirror/mode/htmlmixed/htmlmixed';
 import 'codemirror/keymap/vim';
 import 'codemirror/keymap/sublime';
 import 'codemirror/keymap/emacs';
-// import ''
-// import 'angular-ui-bootstrap';
-
-// import '../../public/js/amt-admin-app';
-// import '../../public/js/amt-admin-controller';
-// import '../../public/js/amt-admin-service';
 import './design/app';

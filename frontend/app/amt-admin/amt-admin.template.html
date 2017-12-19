@@ -1,18 +1,4 @@
-<html>
-  <head>
-    <title>AMT Admin</title>
-    <link rel="stylesheet" href="@routes.Assets.at("css/main.css")">
-    <link rel="stylesheet" href="@routes.Assets.at("lib/bootstrap/css/bootstrap.css")">
-    <link rel="shortcut icon" type="image/png" href="@routes.Assets.at("images/favicon.png")">
-    <script src="@routes.Assets.at("lib/jquery3/jquery.min.js")"></script>
-    <script src="@routes.Assets.at("lib/angular/angular.js")"></script>
-    <script src="@routes.Assets.at("lib/bootstrap/js/bootstrap.js")"></script>
-    <script src="@routes.Assets.at("js/amt-admin-app.js")" type="text/javascript"></script>
-    <script src="@routes.Assets.at("js/amt-admin-service.js")" type="text/javascript"></script>
-    <script src="@routes.Assets.at("js/amt-admin-controller.js")" type="text/javascript"></script>
-    <script src="@routes.Assets.at("js/util.js")" type="text/javascript"></script>
-  </head>
-  <body ng-app='AmtAdmin' ng-controller="AMTAdminCtrl" >
+  <div>
     <div class="container-fluid" ng-class="{'bg-info': !sandbox, 'bg-warning': sandbox}">
       <div class="pull-right">
         <p class="text-right">
@@ -404,5 +390,4 @@
       </div>
 
     </div>
-  </body>
-</html>
+  </div>
