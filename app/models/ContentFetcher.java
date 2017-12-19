@@ -5,12 +5,19 @@ import play.Logger;
 
 public class ContentFetcher {
   public Experiment selectedExperiment;
-
+  public String defaultLanguage;
   public ContentFetcher(Experiment selectedExperiment) {
     this.selectedExperiment = selectedExperiment;
   }
 
+  public void setDefaultLanguage(String defaultLanguage) {
+    this.defaultLanguage = defaultLanguage;
+  }
+
   public String get(String name) {
+    if (defaultLanguage != null) {
+      return this.getTranslated(name, defaultLanguage);
+    }
     Content c = selectedExperiment.getContentByName(name);
     Translation t = c.translations.get(0);
     /*
