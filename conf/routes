@@ -29,6 +29,7 @@ GET         /amtadmin/approveAssignment/:assignmentId                           
 POST        /amtadmin/rejectAssignment/:assignmentId                             controllers.AMTAdmin.rejectAssignment(assignmentId: String, sandbox: Boolean ?= false)
 POST        /amtadmin/sendBonus/:assignmentId                                    controllers.AMTAdmin.sendBonus(assignmentId: String, sandbox: Boolean ?= false)
 POST        /amtadmin/updateAssignmentCompleted/:assignmentId                    controllers.AMTAdmin.updateAssignmentCompleted(assignmentId: String)
+POST        /amtadmin/createHIT                                                  controllers.AMTAdmin.createHIT(sandbox: Boolean ?= false)
 
 # Languages
 GET         /languages                                                           controllers.LanguageController.getLanguages()

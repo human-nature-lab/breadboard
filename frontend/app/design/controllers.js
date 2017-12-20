@@ -278,39 +278,15 @@ function ($scope, $breadboardFactory, $timeout) {
       });
   };
 
-  $scope.submitAMTTask = function () {
-    if ($scope.breadboard.experiment == undefined || $scope.breadboard.experimentInstance == undefined || $scope.breadboard.experiment.id == undefined || $scope.breadboard.experimentInstance.id == undefined) {
-      $('#amtErrorDialog').dialog({
-        modal: true
-      }).parent().addClass("ui-state-error");
-    } else {
-      //$('#submitAMTButton').prop("disabled",true).html("Please wait...").attr("class","disabled-button");
-      //console.log("Experiment: " + $scope.breadboard.experiment.id);
-      //console.log("ExperimentInstance: " + $scope.breadboard.experimentInstance.id);
-      //console.log("submitAMTTask:");
-      //console.log($scope.amtTaskReward);
-      //console.log($scope.amtTaskLifetime);
-      //console.log($scope.amtTaskMaxAssignments);
-      //console.log($scope.amtTaskDisallowPrevious);
-      //console.log($scope.amtTaskSandbox);
-      //console.log($scope.breadboard.experiment.id);
-      //console.log($scope.breadboard.experimentInstance.id);
-
-      $breadboardFactory.send(
-        {
-          "action": "SubmitAMTTask",
-          "title": $scope.amtTaskTitle,
-          "description": $scope.amtTaskDescription,
-          "reward": $scope.amtTaskReward,
-          "lifetimeInSeconds": $scope.amtTaskLifetime,
-          "tutorialTime": $scope.amtTaskTutorialTime,
-          "maxAssignments": $scope.amtTaskMaxAssignments,
-          "disallowPrevious": $scope.amtTaskDisallowPrevious,
-          "sandbox": $scope.amtTaskSandbox,
-          "experimentId": $scope.breadboard.experiment.id,
-          "experimentInstanceId": $scope.breadboard.experimentInstance.id
-        });
-    }
+  $scope.submitAMTTask = function (lifetimeInSeconds, tutorialTime) {
+    console.log('submitAMTTask', lifetimeInSeconds, tutorialTime);
+    /*
+    $breadboardFactory.send({
+        "action": "SubmitAMTTask",
+        "lifetimeInSeconds": lifetimeInSeconds,
+        "tutorialTime": tutorialTime
+      });
+      */
   };
 
   $scope.getAssignments = function (id) {

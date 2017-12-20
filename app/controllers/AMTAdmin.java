@@ -8,11 +8,11 @@ import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.mturk.AmazonMTurk;
 import com.amazonaws.services.mturk.AmazonMTurkClientBuilder;
 import com.amazonaws.services.mturk.model.*;
+import com.amazonaws.services.mturk.model.QualificationRequirement;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import models.AMTAssignment;
-import models.AMTHit;
+import models.*;
 import org.apache.commons.io.IOUtils;
 import play.Play;
 import play.data.Form;
@@ -314,6 +314,92 @@ public class AMTAdmin extends Controller {
     amtAssignment.save();
 
     return ok();
+  }
+
+  public static Result createHIT(Boolean sandbox) {
+    String title;
+    String description;
+    String reward;
+    Integer maxAssignments;
+    Long hitLifetime;
+    Long tutorialTime;
+    Long assignmentDuration;
+    String keywords;
+    String disallowPrevious;
+    String experimentId;
+    String experimentInstanceId;
+
+    JsonNode json = request().body().asJson();
+    if (json == null) {
+      return badRequest("Expecting Json data");
+    } else {
+      title = json.findPath("title").textValue();
+      description = json.findPath("description").textValue();
+      reward = json.findPath("reward").textValue();
+      maxAssignments = json.findPath("maxAssignments").asInt(-1);
+      hitLifetime = json.findPath("hitLifetime").asLong(-1L);
+      tutorialTime = json.findPath("tutorialTime").asLong(-1L);
+      assignmentDuration = json.findPath("assignmentDuration").asLong(-1L);
+      keywords = json.findPath("keywords").textValue();
+      disallowPrevious = json.findPath("disallowPrevious").textValue();
+      experimentId = json.findPath("experimentId").textValue();
+      experimentInstanceId = json.findPath("experimentInstanceId").textValue();
+    }
+
+    if (title == null || description == null || reward == null || maxAssignments < 0 || hitLifetime < 0 || tutorialTime < 0 || assignmentDuration < 0 || keywords == null || disallowPrevious == null || experimentId == null || experimentInstanceId == null) {
+      return badRequest("Please provide experiment ID, experiment instance ID, title, description, reward, max assignments, hit lifetime, tutorial time, assignment duration, keywords, and allow repeat play option.");
+    }
+
+    String rootURL = play.Play.application().configuration().getString("breadboard.rootUrl");
+    String gameURL = String.format("/game/%1$s/%2$s/amt", experimentId, experimentInstanceId);
+    String externalURL = rootURL + gameURL;
+    Integer frameHeight = play.Play.application().configuration().getInt("breadboard.amtFrameHeight");
+    String question = "<ExternalQuestion xmlns=\"http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd\">\n" +
+        "  <ExternalURL>" + externalURL + "</ExternalURL>\n" +
+        "  <FrameHeight>" + frameHeight + "</FrameHeight>\n" +
+        "</ExternalQuestion>";
+
+    try {
+      AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
+      AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
+      builder.setEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration((sandbox ? SANDBOX_ENDPOINT : PRODUCTION_ENDPOINT), SIGNING_REGION));
+      AmazonMTurk mTurk = builder.build();
+
+      // Create HIT
+      CreateHITRequest createHITRequest = new CreateHITRequest()
+          .withQuestion(question)
+          .withTitle(title)
+          .withDescription(description)
+          .withMaxAssignments(maxAssignments)
+          .withLifetimeInSeconds(hitLifetime)
+          .withAssignmentDurationInSeconds(assignmentDuration)
+          .withKeywords(keywords)
+          .withReward(reward);
+
+      CreateHITResult createHITResult = mTurk.createHIT(createHITRequest);
+      HIT hit = createHITResult.getHIT();
+      AMTHit amtHit = new AMTHit();
+      amtHit.hitId = hit.getHITId();
+      amtHit.description = hit.getDescription();
+      amtHit.lifetimeInSeconds = hitLifetime.toString();
+      amtHit.tutorialTime = tutorialTime.toString();
+      amtHit.maxAssignments = hit.getMaxAssignments().toString();
+      amtHit.externalURL = externalURL;
+      amtHit.reward = hit.getReward();
+      amtHit.title = hit.getTitle();
+      amtHit.disallowPrevious = disallowPrevious;
+      amtHit.sandbox = sandbox;
+
+      ExperimentInstance experimentInstance = ExperimentInstance.findById(Long.parseLong(experimentInstanceId));
+      experimentInstance.amtHits.add(amtHit);
+      experimentInstance.save();
+
+      return ok();
+    } catch (AmazonServiceException ase) {
+      return badRequest(ase.getMessage());
+    } catch (AmazonClientException ace) {
+      return internalServerError(ace.getMessage());
+    }
   }
 
   public static Result createDummyHit(Boolean sandbox) {

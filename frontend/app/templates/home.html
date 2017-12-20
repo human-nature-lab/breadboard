@@ -127,58 +127,10 @@
         </div>
     </div>
 
-    <!-- AMT -->
-    <div>
-        <div ui-jq="dialog" ui-options="amtDialogOptions" id="amtDiv">
-            <div ng-hide="breadboard.experimentInstance.amtHits.length > 0">
-                <div class="formRow"><label class="fixed-width" for="title">
-                    Title</label><input name="title" ng-model="amtTaskTitle" placeholder="Title" required></div>
-                <div class="formRow"><label class="fixed-width" for="description">
-                    Description</label><textarea name="description" ng-model="amtTaskDescription" placeholder="Description" rows="3" cols="60" required></textarea></div>
-                <div class="formRow"><label class="fixed-width" for="reward">
-                    Reward</label><input type="number" pattern="\d+(\.\d{2})?" name="reward" ng-model="amtTaskReward" placeholder="Reward" required></div>
-                <div class="formRow"><label class="fixed-width" for="lifetimeInSeconds">
-                    HIT lifetime (in seconds)</label><input type="number" name="lifetimeInSeconds" ng-model="amtTaskLifetime" placeholder="HIT lifetime (sec.)" required></div>
-                <div class="formRow"><label class="fixed-width" for="tutorialTime">
-                    Tutorial time (in seconds)</label><input type="number" name="tutorialTime" ng-model="amtTaskTutorialTime" placeholder="Tutorial time (sec.)" required></div>
-                <div class="formRow"><label class="fixed-width" for="maxAssignments">
-                    Max. Assignments</label><input type="number" min="1" max="1000000000" name="maxAssignments" ng-model="amtTaskMaxAssignments" placeholder="Max Assignments" required></div>
-                <div class="formRow"><label class="fixed-width" for="disallowPrevious">
-                    Allow repeat play?</label><select name="disallowPrevious" ng-model="amtTaskDisallowPrevious">
-                    <option value=""></option>
-                    <option value="type">Block previous players of THIS experiment</option>
-                    <option value="any">Block previous players of ANY experiment</option>
-                    <option value="none">Allow repeat play</option>
-                </select></div>
-                <div class="formRow"><label class="fixed-width" for="sandbox">
-                    Sandbox?</label><input type="checkbox" name="sandbox" ng-model="amtTaskSandbox" ng-init="amtTaskSandbox=true"></div>
-                <button title='' ui-jq='button' id='submitAMTButton'
-                        ng-click='submitAMTTask()'>Submit AMT Task
-                </button>
-            </div>
-            <div ng-show="breadboard.experimentInstance.amtHits.length > 0">
-                <table ng-repeat="hit in breadboard.experimentInstance.amtHits">
-                    <tr><td>Creation Time</td><td>{{hit.creationTime}}</td></tr>
-                    <tr><td>Request Id</td><td>{{hit.requestId}}</td></tr>
-                    <tr><td>HIT Id</td><td>{{hit.hitId}}</td></tr>
-                    <tr><td>Is Valid?</td><td>{{hit.isValid}}</td></tr>
-                    <tr><td>Title</td><td>{{hit.title}}</td></tr>
-                    <tr><td>Description</td><td>{{hit.description}}</td></tr>
-                    <tr><td>Reward</td><td>{{hit.reward}}</td></tr>
-                    <tr><td>HIT lifetime (in seconds)</td><td>{{hit.lifetimeInSeconds}}</td></tr>
-                    <tr><td>Tutorial time (in seconds)</td><td>{{hit.tutorialTime}}</td></tr>
-                    <tr><td>Max. Assignments</td><td>{{hit.maxAssignments}}</td></tr>
-                    <tr><td>URL</td><td>{{hit.externalURL}}</td></tr>
-                    <tr><td>Sandbox?</td><td>{{hit.sandbox}}</td></tr>
-                </table>
-            </div>
-        </div>
-    </div>
-
     <!-- AMT Admin -->
     <div>
-        <div ui-jq="dialog" ui-options="amtAdminDialogOptions" id="amtAdminDiv" style="display: flex; width: 100%; height: 100%; flex-direction: column; overflow: hidden;">
-            <amt-admin></amt-admin>
+        <div ui-jq="dialog" ui-options="amtAdminDialogOptions" id="amtAdminDiv">
+            <amt-admin experiment="breadboard.experiment" experiment-instance="breadboard.experimentInstance" on-create-hit="submitAMTTask"></amt-admin>
         </div>
     </div>
 
