@@ -294,7 +294,6 @@ function Graph(_width, _height, parentScope) {
       if (parentScope != undefined) {
         node.on('click', function (d) {
           var selectedNode = d3.select(this);
-          debugger;
           // if the node is currently selected, deselect it and close the player dialog
           if (selectedNode.attr("selected") == "1") {
             d["selected"] = "0";
