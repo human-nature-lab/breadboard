@@ -18,9 +18,10 @@ function AMTAdminSrv($http, $q, $timeout) {
       isSandbox: isSandbox,
       setSandbox: setSandbox,
       createDummyHIT: createDummyHIT,
-      updateAssignmentCompleted: updateAssignmentCompleted
+      updateAssignmentCompleted: updateAssignmentCompleted,
+      createHIT: createHIT
     },
-    sandbox = false;
+    sandbox = true;
 
   return service;
 
@@ -35,7 +36,10 @@ function AMTAdminSrv($http, $q, $timeout) {
   function getAccountBalance() {
     return $http.get('/amtadmin/getAccountBalance' + ((sandbox) ? '?sandbox=true' : ''))
       .then(function (response) {
-          return $q.when(response);
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
         },
         function (response) {
           return $q.reject(response);
@@ -46,7 +50,10 @@ function AMTAdminSrv($http, $q, $timeout) {
     var url = '/amtadmin/listHITs' + buildQueryStringParameters({'sandbox': sandbox, 'nextToken': nextToken});
     return $http.get(url)
       .then(function (response) {
-          return $q.when(response);
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
         },
         function (response) {
           return $q.reject(response);
@@ -62,7 +69,10 @@ function AMTAdminSrv($http, $q, $timeout) {
     console.log('listAssignmentsForHIT', url);
     return $http.get(url)
       .then(function (response) {
-          return $q.when(response);
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
         },
         function (response) {
           return $q.reject(response);
@@ -78,7 +88,10 @@ function AMTAdminSrv($http, $q, $timeout) {
     console.log('listBonusPaymentsForHIT', url);
     return $http.get(url)
       .then(function (response) {
-          return $q.when(response);
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
         },
         function (response) {
           return $q.reject(response);
@@ -99,7 +112,10 @@ function AMTAdminSrv($http, $q, $timeout) {
     */
     return $http.get('/amtadmin/approveAssignment/' + assignmentId + ((sandbox) ? '?sandbox=true' : ''))
       .then(function (response) {
-          return $q.when(response);
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
         },
         function (response) {
           return $q.reject(response);
@@ -112,7 +128,10 @@ function AMTAdminSrv($http, $q, $timeout) {
     };
     return $http.post('/amtadmin/rejectAssignment/' + assignmentId + ((sandbox) ? '?sandbox=true' : ''), payload)
       .then(function (response) {
-          return $q.when(response);
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
         },
         function (response) {
           return $q.reject(response);
@@ -128,7 +147,10 @@ function AMTAdminSrv($http, $q, $timeout) {
 
     return $http.post('/amtadmin/sendBonus/' + assignmentId + ((sandbox) ? '?sandbox=true' : ''), payload)
       .then(function (response) {
-          return $q.when(response);
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
         },
         function (response) {
           return $q.reject(response);
@@ -144,7 +166,10 @@ function AMTAdminSrv($http, $q, $timeout) {
 
     return $http.post('/amtadmin/createDummyHit' + ((sandbox) ? '?sandbox=true' : ''), payload)
       .then(function (response) {
-          return $q.when(response);
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
         },
         function (response) {
           return $q.reject(response);
@@ -158,7 +183,37 @@ function AMTAdminSrv($http, $q, $timeout) {
 
     return $http.post('/amtadmin/updateAssignmentCompleted/' + assignmentId, payload)
       .then(function (response) {
-          return $q.when(response);
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
+        },
+        function (response) {
+          return $q.reject(response);
+        });
+  }
+
+  function createHIT(title, description, reward, maxAssignments, hitLifetime, tutorialTime, assignmentDuration, keywords, disallowPrevious, experimentId, experimentInstanceId) {
+    var payload = {
+      'title': title,
+      'description': description,
+      'reward': reward + '',
+      'maxAssignments': maxAssignments,
+      'hitLifetime': hitLifetime,
+      'assignmentDuration': assignmentDuration,
+      'keywords': keywords,
+      'tutorialTime': tutorialTime,
+      'disallowPrevious': disallowPrevious,
+      'experimentId': experimentId + '',
+      'experimentInstanceId': experimentInstanceId + ''
+    };
+
+    return $http.post('/amtadmin/createHIT' + ((sandbox) ? '?sandbox=true' : ''), payload)
+      .then(function (response) {
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
         },
         function (response) {
           return $q.reject(response);

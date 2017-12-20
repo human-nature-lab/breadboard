@@ -1,11 +1,11 @@
-
-
 function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.accountBalance = null;
   $scope.tokens = [null];
   $scope.curToken = 0;
   $scope.hits = [];
   $scope.selectedHIT = null;
+  $scope.showCreateHIT = false;
+  $scope.creatingHIT = false;
   $scope.showManageHITs = false;
   $scope.showCreateDummyHITs = false;
   $scope.sandbox = AMTAdminSrv.isSandbox();
@@ -17,6 +17,21 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
     'reward' : 1.00,
     'submitted' : [],
     'nPending' : 0
+  };
+
+  $scope.createHitForm = {
+    'disallowPrevious' : 'type',
+    'tutorialTime' : 299,
+    'lifetime' : 301,
+    'assignmentDuration' : 5400,
+    'keywords' : 'decision making task,experiment',
+    'maxAssignments' : 20,
+    'reward' : 1.00,
+    'description' : 'Test Description',
+    'title' : 'Test Title',
+    'autoLaunch' : true,
+    'status' : 0, // 0: Show form, 1: Submitting, 2: Successful, 3: Error
+    'error' : ''
   };
 
   $scope.globals = {
@@ -40,6 +55,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.submitDummyHITs = submitDummyHITs;
   $scope.clearDummyHITs = clearDummyHITs;
   $scope.getAssignmentsCSV = getAssignmentsCSV;
+  $scope.createHIT = createHIT;
   getAccountBalance();
   listHITs();
 
@@ -348,6 +364,42 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
 
   function clearDummyHITs() {
     $scope.dummyHIT.submitted = [];
+  }
+
+  function createHIT(createHitForm) {
+    console.log('sandbox', $scope.sandbox);
+    console.log('createHitForm.disallowPrevious', createHitForm.disallowPrevious);
+    console.log('createHitForm.tutorialTime', createHitForm.tutorialTime);
+    console.log('createHitForm.lifetime', createHitForm.lifetime);
+    console.log('createHitForm.maxAssignments', createHitForm.maxAssignments);
+    console.log('createHitForm.reward', createHitForm.reward);
+    console.log('createHitForm.description', createHitForm.description);
+    console.log('createHitForm.title', createHitForm.title);
+    console.log('experimentInstance', $scope.experimentInstance);
+    console.log('experiment', $scope.experiment);
+    createHitForm.status = 1;
+    AMTAdminSrv.createHIT(
+      createHitForm.title,
+      createHitForm.description,
+      createHitForm.reward,
+      createHitForm.maxAssignments,
+      createHitForm.lifetime,
+      createHitForm.tutorialTime,
+      createHitForm.assignmentDuration,
+      createHitForm.keywords,
+      createHitForm.disallowPrevious,
+      $scope.experiment.id,
+      $scope.experimentInstance.id)
+      .then(function () {
+        createHitForm.status = 2;
+        if (createHitForm.autoLaunch) {
+          $scope.onCreateHit()(createHitForm.lifetime, createHitForm.tutorialTime);
+        }
+      },
+      function(error) {
+        createHitForm.status = 3;
+        createHitForm.error = error.data;
+      });
   }
 
   function getAssignmentsCSV(hit) {

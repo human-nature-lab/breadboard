@@ -100,21 +100,16 @@ public class Breadboard extends UntypedActor {
               }
             } else if (action.equals("SubmitAMTTask")) {
               Logger.debug("action.equals(\"SubmitAMTTask\")");
+              // The submission to AMT is handled by the AMTAdmin createHIT route
+              // This action handles setting the startAt global variable
+              // and setting the timer to start initStep
               try {
-                String title = jsonInput.get("title").toString();
-                String description = jsonInput.get("description").toString();
-                BigDecimal reward = new BigDecimal(jsonInput.get("reward").toString());
                 Integer lifetimeInSeconds = new Integer(jsonInput.get("lifetimeInSeconds").toString());
                 Integer tutorialTime = new Integer(jsonInput.get("tutorialTime").toString());
-                Integer maxAssignments = new Integer(jsonInput.get("maxAssignments").toString());
-                String disallowPrevious = jsonInput.get("disallowPrevious").toString();
-                Boolean sandbox = new Boolean(jsonInput.get("sandbox").toString());
-                String experimentId = jsonInput.get("experimentId").toString();
-                String experimentInstanceId = jsonInput.get("experimentInstanceId").toString();
 
-                breadboardController.tell(new SubmitAMTTask(user, title, description, reward, lifetimeInSeconds, tutorialTime, maxAssignments, disallowPrevious, sandbox, experimentId, experimentInstanceId, out), null);
+                breadboardController.tell(new SubmitAMTTask(user, lifetimeInSeconds, tutorialTime,  out), null);
               } catch (NumberFormatException nfe) {
-                Logger.error("Invalid number provided for reward, lifetimeInSeconds, onInSeconds, or maxAssignments parameter.");
+                Logger.error("Invalid number provided for lifetimeInSeconds, or tutorialTime parameter.");
               } catch (Exception e) {
                 Logger.debug("Some other exception: " + e.getMessage());
                 e.printStackTrace();
@@ -587,129 +582,20 @@ public class Breadboard extends UntypedActor {
         // Select the newly imported experiment
         breadboardController.tell(new SelectExperiment(breadboardMessage.user, importedExperiment, breadboardMessage.out), null);
       } else if (message instanceof SubmitAMTTask) {
-        Logger.debug("message instanceof SubmitAMTTask");
-
         SubmitAMTTask submitAMTTask = (SubmitAMTTask) message;
-        String title = submitAMTTask.title;
-        String description = submitAMTTask.description;
-        BigDecimal reward = submitAMTTask.reward;
         Integer lifetimeInSeconds = submitAMTTask.lifetimeInSeconds;
         Integer tutorialTime = submitAMTTask.tutorialTime;
-        Integer maxAssignments = submitAMTTask.maxAssignments;
-        String disallowPrevious = submitAMTTask.disallowPrevious;
-        Boolean sandbox = submitAMTTask.sandbox;
-        String experimentId = submitAMTTask.experimentId;
-        String experimentInstanceId = submitAMTTask.experimentInstanceId;
 
-        String rootURL = play.Play.application().configuration().getString("breadboard.rootUrl");
-        Logger.debug("rootURL = " + rootURL);
-        String gameURL = String.format("/game/%1$s/%2$s/amt", experimentId, experimentInstanceId);
-        Logger.debug("gameURL = " + gameURL);
-        String externalURL = rootURL + gameURL;
-        Logger.debug("externalURL = " + externalURL);
+        instances.get(breadboardMessage.user.email).tell(new HitCreated(breadboardMessage.user, lifetimeInSeconds, tutorialTime, breadboardMessage.out), null);
 
-        Integer frameHeight = play.Play.application().configuration().getInt("breadboard.amtFrameHeight");
-        Logger.debug("frameHeight = " + frameHeight);
+        // Send 'initStep will automatically start' message to Output
+        ObjectNode jsonOutput = Json.newObject();
+        Double totalSeconds = (double)(lifetimeInSeconds + tutorialTime);
+        Double minutes = Math.floor(totalSeconds / 60);
+        Double seconds = totalSeconds - (minutes * 60);
+        jsonOutput.put("output", "AMT HIT created, initStep will automatically start in " + minutes.toString() + " minutes and " + seconds.toString() + " seconds.");
+        breadboardMessage.out.write(jsonOutput);
 
-        Logger.info("SubmitAMTTask: ");
-        Logger.info("\t title: " + title);
-        Logger.info("\t description: " + description);
-        Logger.info("\t reward: " + reward.toPlainString());
-        Logger.info("\t lifetimeInSeconds: " + lifetimeInSeconds);
-        Logger.info("\t tutorialTime: " + tutorialTime);
-        Logger.info("\t maxAssignments: " + maxAssignments);
-        Logger.info("\t disallowPrevious: " + disallowPrevious);
-        Logger.info("\t sandbox: " + sandbox);
-        Logger.info("\t experimentId: " + experimentId);
-        Logger.info("\t experimentInstanceId: " + experimentInstanceId);
-        Logger.info("\t externalURL: " + externalURL);
-
-        Experiment experiment = Experiment.findById(Long.valueOf(experimentId));
-
-        F.Promise<WS.Response> response = controllers.MechanicalTurk.createAMTHit(
-            title,
-            description,
-            externalURL,
-            frameHeight,
-            reward,
-            lifetimeInSeconds,
-            maxAssignments,
-            sandbox,
-            null);
-
-        String responseBody = response.get().getBody();
-        Logger.debug("response: " + responseBody);
-
-
-/* ResponseGroup: Minimal
-<CreateHITResponse><OperationRequest><RequestId>46d2d2a3-3d07-43d1-9599-f77169c1
-c920</RequestId></OperationRequest><HIT><Request><IsValid>True</IsValid></Reques
-t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
-16Y20R65</HITTypeId></HIT></CreateHITResponse>
-*/
-
-/* ResponseGroup: Request
- <CreateHITResponse>
-     <OperationRequest>
-         <RequestId>74b8a338-1943-4569-93e9-b82aafcc 5c40</RequestId>
-     </OperationRequest>
-
-     <HIT>
-         <Request>
-             <IsValid>True</IsValid>
-             <CreateHITRequest>
-                 <AssignmentDurationInSeconds>900</AssignmentDurationInSeconds>
-                 <Description>Testing</Description>
-                 <LifetimeInSeconds>90</LifetimeInSeconds>
-                 <MaxAssignments>1</MaxAssignments>
-                 <Operation>CreateHIT</Operation>
-                 <Question>&lt;ExternalQuestion xmlns="http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2006-07-14/ExternalQuestion.xsd"&gt;&lt;ExternalURL&gt;http://54.225.223.34:9000/game/34/621/amt&lt;/ExternalURL&gt;&lt;FrameHeight&gt;600&lt;/FrameHeight&gt;&lt;/ExternalQuestion&gt;</Question>
-                 <ResponseGroup>Request</ResponseGroup>
-                 <Reward tag="1"><Amount>1</Amount><CurrencyCode>USD</CurrencyCode></Reward>
-                 <Title>HCP 4:27</Title>
-             </CreateHITRequest>
-         </Request>
-     </HIT>
-</CreateHITResponse>
-*/
-        // TODO: save hitId with ExperimentInstance and use to validate amtClientLogin
-        Document dom = XML.fromString(responseBody);
-        if (dom != null) {
-          String requestId = XPath.selectText("//RequestId", dom);
-          String isValid = XPath.selectText("//IsValid", dom);
-          if (isValid.equals("True")) {
-            String hitId = XPath.selectText("//HITId", dom);
-
-            AMTHit amtHit = new AMTHit();
-            amtHit.requestId = requestId;
-            amtHit.isValid = isValid;
-            amtHit.hitId = hitId;
-            amtHit.description = description;
-            amtHit.lifetimeInSeconds = lifetimeInSeconds.toString();
-            amtHit.tutorialTime = tutorialTime.toString();
-            amtHit.maxAssignments = maxAssignments.toString();
-            amtHit.externalURL = externalURL;
-            amtHit.reward = reward.toString();
-            amtHit.title = title;
-            amtHit.disallowPrevious = disallowPrevious;
-            amtHit.sandbox = sandbox;
-
-            ExperimentInstance experimentInstance = ExperimentInstance.findById(Long.parseLong(experimentInstanceId));
-            experimentInstance.amtHits.add(amtHit);
-            experimentInstance.save();
-
-            instances.get(breadboardMessage.user.email).tell(new HitCreated(breadboardMessage.user, lifetimeInSeconds, tutorialTime, breadboardMessage.out), null);
-
-            ObjectNode jsonOutput = Json.newObject();
-            jsonOutput.put("output", "AMT HIT Created.");
-            breadboardMessage.out.write(jsonOutput);
-          } else {
-            Logger.debug("isValid != True");
-            ObjectNode jsonOutput = Json.newObject();
-            jsonOutput.put("output", "There was a problem creating the HIT with request ID: " + requestId);
-            breadboardMessage.out.write(jsonOutput);
-          }
-        }
       } else if (message instanceof AddLanguage) {
         AddLanguage addLanguage = (AddLanguage) message;
         Language language = Language.find.where().eq("code", addLanguage.languageCode).findUnique();
@@ -1027,29 +913,13 @@ t><HITId>24ASCXKNQY2RG6N612ME6HR0T0SP0C</HITId><HITTypeId>22X2J1LY58B76UP0GJ6KKD
   }
 
   public static class SubmitAMTTask extends BreadboardMessage {
-    final String title;
-    final String description;
-    final BigDecimal reward;
     final Integer lifetimeInSeconds;
     final Integer tutorialTime;
-    final Integer maxAssignments;
-    final String disallowPrevious;
-    final Boolean sandbox;
-    final String experimentId;
-    final String experimentInstanceId;
 
-    public SubmitAMTTask(User user, String title, String description, BigDecimal reward, Integer lifetimeInSeconds, Integer tutorialTime, Integer maxAssignments, String disallowPrevious, Boolean sandbox, String experimentId, String experimentInstanceId, ThrottledWebSocketOut out) {
+    public SubmitAMTTask(User user, Integer lifetimeInSeconds, Integer tutorialTime, ThrottledWebSocketOut out) {
       super(user, out);
-      this.title = title;
-      this.description = description;
-      this.reward = reward;
       this.lifetimeInSeconds = lifetimeInSeconds;
       this.tutorialTime = tutorialTime;
-      this.maxAssignments = maxAssignments;
-      this.disallowPrevious = disallowPrevious;
-      this.sandbox = sandbox;
-      this.experimentId = experimentId;
-      this.experimentInstanceId = experimentInstanceId;
     }
   }
 
