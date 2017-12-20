@@ -507,3 +507,12 @@ circle[color="20"] { fill:#9edae5; }
     border-radius: 5px;
     padding: 1px 5px;
 }
+
+.dialog-link{
+
+}
+
+.dialog-link.open{
+    border-bottom-width: 3px;
+    border-bottom-color: #00356b;
+}

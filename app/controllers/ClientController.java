@@ -1,6 +1,7 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.io.FileUtils;
 import play.*;
 import play.libs.Json;
 import play.mvc.*;
@@ -8,6 +9,7 @@ import views.html.*;
 import com.fasterxml.jackson.databind.*;
 import models.*;
 import java.io.*;
+import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -54,6 +56,8 @@ public class ClientController extends Controller
         result.put("clientId", clientId);
         result.put("experimentId", experimentId);
         result.put("experimentInstanceId", experimentInstanceId);
+        result.put("clientGraph", getClientGraph(experimentId));
+        result.put("clientHtml", getClientHtml(experimentId));
         result.put("connectSocket", routes.ClientController.connectClient(experimentId, experimentInstanceId, clientId).webSocketURL(request(), play.Play.application().configuration().getString("breadboard.wsUrl").contains("wss://")));
         return ok(result);
     }
@@ -62,35 +66,37 @@ public class ClientController extends Controller
      * Return the custom experiement graph if it exists
      * @return
      */
-    public static Result getClientGraph(String experimentId, String experimentInstanceId){
-        ExperimentInstance experimentInstance = null;
+    public static String getClientGraph(String experimentId){
         Experiment experiment = null;
         try {
-            experimentInstance = ExperimentInstance.findById(Long.valueOf(experimentInstanceId));
             experiment = Experiment.findById(Long.valueOf(experimentId));
         } catch (NumberFormatException ignored) {}
 
-        if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
-            return ok( amtError.render() );
+        if (experiment == null) {
+            File file = play.Play.application().getFile("conf/defaults/client-graph.js");
+            try {
+                return FileUtils.readFileToString(file, "UTF-8");
+            } catch(IOException ignored) {}
         }
-        return ok(experiment.clientGraph);
+        return experiment.clientGraph;
     }
 
     /**
      * Return the custom experiment client html if it exists
      */
-    public static Result getClientHtml(String experimentId, String experimentInstanceId){
-        ExperimentInstance experimentInstance = null;
+    public static String getClientHtml(String experimentId){
         Experiment experiment = null;
         try {
-            experimentInstance = ExperimentInstance.findById(Long.valueOf(experimentInstanceId));
             experiment = Experiment.findById(Long.valueOf(experimentId));
         } catch (NumberFormatException ignored) {}
 
-        if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
-            return ok( amtError.render() );
+        if (experiment == null) {
+            File file = play.Play.application().getFile("conf/defaults/client-html.html");
+            try {
+                return FileUtils.readFileToString(file, "UTF-8");
+            } catch(IOException ignored) {}
         }
-        return ok(experiment.clientHtml);
+        return experiment.clientGraph;
     }
 
     /**

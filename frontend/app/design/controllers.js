@@ -1,8 +1,8 @@
 import _ from 'underscore';
 
 /* Controllers */
-angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout',
-function ($scope, $breadboardFactory, $timeout) {
+angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state',
+function ($scope, $breadboardFactory, $timeout, $http, $state) {
   $scope.$watch('selectedLanguage', function(newValue) {
     console.log('selectedLanguage', newValue);
   });
@@ -83,6 +83,12 @@ function ($scope, $breadboardFactory, $timeout) {
     console.log("$scope.selectedContentLanguages", $scope.selectedContentLanguages);
   }
   */
+
+  $scope.logout = function(){
+    $http.get('/logout').then(function(res){
+      $state.go('login');
+    });
+  };
 
   $scope.paramType = function (type) {
     if (type == 'Boolean') {
@@ -450,6 +456,10 @@ function ($scope, $breadboardFactory, $timeout) {
 
   $scope.vim = {vimMode: false};
 
+  $scope.$watch('selectedNode', function(old, newVal){
+
+  });
+
   $scope.$watch('vim', function () {
     $scope.stepCodemirrorOptions.vimMode = $scope.vim.vimMode;
     $scope.cssCodemirrorOptions.vimMode = $scope.vim.vimMode;
@@ -761,7 +771,6 @@ function ($scope, $breadboardFactory, $timeout) {
   $scope.cssDialogOptions = {
     title: 'Style',
     autoOpen: true,
-    open: openCSS,
     buttons: {
       'Save': function () {
         saveStyle();
@@ -797,12 +806,6 @@ function ($scope, $breadboardFactory, $timeout) {
     height: ((windowHeight * .25) - dialogMargin),
     position: [((windowWidth * .5) + dialogMargin), (topDivHeight + dialogMargin + (.75 * windowHeight))]
   };
-
-  $scope.cssDialogIsOpen = false;
-
-  function openCSS() {
-    $scope.cssDialogIsOpen = true;
-  }
 
   $scope.graphDialogOptions = {
     title: 'Graph',
@@ -934,7 +937,7 @@ function ($scope, $breadboardFactory, $timeout) {
     content_css: '/assets/css/tinymce.css',
     valid_elements: '*[*]',
     resize: true
-  }
+  };
 
   $scope.$on('$destroy', function(){
     // TODO: Destroy all of the popup windows

@@ -323,9 +323,11 @@ function Graph(_width, _height, parentScope) {
             parentScope.selectedNode = d;
             parentScope.$apply();
 
-            $('#playerDiv').dialog('open');
-            if ($('#closed-dialog-Player').length > 0)
-              $('#closed-dialog-Player').remove();
+            if($('#playerDiv').dialog('isOpen')){
+              $('#playerDiv').dialog('close');
+            }else {
+              $('#playerDiv').dialog('open');
+            }
           }
         });
       }
