@@ -1,8 +1,8 @@
 import _ from 'underscore';
 
 /* Controllers */
-angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout',
-function ($scope, $breadboardFactory, $timeout) {
+angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state',
+function ($scope, $breadboardFactory, $timeout, $http, $state) {
   $scope.$watch('selectedLanguage', function(newValue) {
     console.log('selectedLanguage', newValue);
   });
@@ -83,6 +83,12 @@ function ($scope, $breadboardFactory, $timeout) {
     console.log("$scope.selectedContentLanguages", $scope.selectedContentLanguages);
   }
   */
+
+  $scope.logout = function(){
+    $http.get('/logout').then(function(res){
+      $state.go('login');
+    });
+  };
 
   $scope.paramType = function (type) {
     if (type == 'Boolean') {
@@ -451,6 +457,10 @@ function ($scope, $breadboardFactory, $timeout) {
   };
 
   $scope.vim = {vimMode: false};
+
+  $scope.$watch('selectedNode', function(old, newVal){
+
+  });
 
   $scope.$watch('vim', function () {
     $scope.stepCodemirrorOptions.vimMode = $scope.vim.vimMode;

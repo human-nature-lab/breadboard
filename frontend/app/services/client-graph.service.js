@@ -6,16 +6,14 @@ export default function ClientGraphService($q, scriptInjector, configService){
    * @returns {Promise<Graph>} A promise that contains the graph constructor
    */
   this.load = function(){
-    let url;
-    return configService.get('graphLocation')
-      .then(uri => {
-        url = uri; // hoisted for error reporting
-        return scriptInjector.injectScript(uri);
+    return configService.get('clientGraph')
+      .then(contents => {
+        console.log("Evaluating in global scope", contents);
+        return scriptInjector.injectScript(contents);
       })
       .then(() => {
         return window.Graph;
       }, err => {
-        console.error("Unable to inject script from", url, "because:", err);
         return DefaultGraph;
       });
   }

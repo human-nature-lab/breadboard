@@ -32,8 +32,8 @@
                     ng-click='toggleVim()'><span class="ui-button ui-icon step-icon vim-icon">Vim</span>
             </button>
         </div>
-        <div id="logoutDiv">You are logged in as <a ng-click="showUserSettings()">@session.get("email")</a>
-            | <a href="@routes.Application.logout()">Log out</a></div>
+        <div id="logoutDiv">You are logged in as <a ng-click="showUserSettings()">{{breadboard.user.email}}</a>
+         | <a ng-click="logout()">Log out</a></div>
     </div>
 
     <div id="bottomDiv">

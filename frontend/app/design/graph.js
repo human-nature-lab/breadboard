@@ -294,6 +294,7 @@ function Graph(_width, _height, parentScope) {
       if (parentScope != undefined) {
         node.on('click', function (d) {
           var selectedNode = d3.select(this);
+          debugger;
           // if the node is currently selected, deselect it and close the player dialog
           if (selectedNode.attr("selected") == "1") {
             d["selected"] = "0";
@@ -323,9 +324,11 @@ function Graph(_width, _height, parentScope) {
             parentScope.selectedNode = d;
             parentScope.$apply();
 
-            $('#playerDiv').dialog('open');
-            if ($('#closed-dialog-Player').length > 0)
-              $('#closed-dialog-Player').remove();
+            if($('#playerDiv').dialog('isOpen')){
+              $('#playerDiv').dialog('close');
+            }else {
+              $('#playerDiv').dialog('open');
+            }
           }
         });
       }
