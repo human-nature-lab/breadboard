@@ -478,7 +478,7 @@ public class AMTAdmin extends Controller {
     try {
       returnString = "<HTMLQuestion xmlns=\"http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2011-11-11/HTMLQuestion.xsd\">\n" +
                      "  <HTMLContent><![CDATA[" +
-                     IOUtils.toString(Play.application().resourceAsStream("payment-hit.html")) +
+                     IOUtils.toString(Play.application().resourceAsStream("conf/defaults/payment-hit.html")) +
                      "]]>\n" +
                      "  </HTMLContent>\n" +
                      "  <FrameHeight>600</FrameHeight>\n" +

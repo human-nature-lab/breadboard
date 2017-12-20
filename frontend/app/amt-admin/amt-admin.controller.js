@@ -34,6 +34,17 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
     'error' : ''
   };
 
+  $scope.$watch('experimentInstance', function(experimentInstance, oldExperimentInstance) {
+    if (experimentInstance && experimentInstance.hits && experimentInstance.hits.length > 0) {
+      $scope.createHitForm.status = 2;
+    } else {
+      if (experimentInstance && oldExperimentInstance && experimentInstance.id !== oldExperimentInstance.id) {
+        // New experiment instance
+        $scope.createHitForm.status = 0;
+      }
+    }
+  });
+
   $scope.globals = {
     bonusReason : "Final game score.",
     rejectionReason : "You failed to complete the task correctly."
@@ -391,8 +402,10 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
       $scope.experiment.id,
       $scope.experimentInstance.id)
       .then(function () {
+        console.log('createHIT returned OK');
         createHitForm.status = 2;
         if (createHitForm.autoLaunch) {
+          console.log('createHitForm.autoLaunch is true');
           $scope.onCreateHit()(createHitForm.lifetime, createHitForm.tutorialTime);
         }
       },

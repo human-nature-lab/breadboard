@@ -35,6 +35,8 @@ let server = new webpackDevServer(compiler, {
     // from the build path.
     publicPath: '/bundles/',
 
+    https: true,
+
     // Configure hot replacement
     hot: true,
 

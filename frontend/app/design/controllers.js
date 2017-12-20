@@ -280,13 +280,11 @@ function ($scope, $breadboardFactory, $timeout) {
 
   $scope.submitAMTTask = function (lifetimeInSeconds, tutorialTime) {
     console.log('submitAMTTask', lifetimeInSeconds, tutorialTime);
-    /*
     $breadboardFactory.send({
         "action": "SubmitAMTTask",
         "lifetimeInSeconds": lifetimeInSeconds,
         "tutorialTime": tutorialTime
       });
-      */
   };
 
   $scope.getAssignments = function (id) {
