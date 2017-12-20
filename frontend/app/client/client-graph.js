@@ -1,4 +1,4 @@
-function Graph(w, h, clientId) {
+export default function Graph(w, h, clientId) {
 
   var width = (w == undefined) ? 600 : w;
   var height = (h == undefined) ? 600 : h;
