@@ -1,11 +1,15 @@
 package controllers;
 
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import play.*;
+import play.libs.Json;
 import play.mvc.*;
 import views.html.*;
 import com.fasterxml.jackson.databind.*;
 import models.*;
 import java.io.*;
+import java.util.HashMap;
+import java.util.Map;
 
 // TODO: Why does this always redirect to login?
 //@Security.Authenticated(SecuredClient.class)
@@ -27,6 +31,66 @@ public class ClientController extends Controller
         final File file = play.Play.application().getFile("frontend/app/client.html");
         return ok(file, true);
 //        return ok(client.render(experimentId, experimentInstanceId, clientId, connectionSpeed, experiment.clientHtml, experiment.clientGraph));
+    }
+
+    public static Result getState(String experimentId, String experimentInstanceId, String clientId, String connectionSpeed){
+        Map<String, String> vals = new HashMap();
+        vals.put("Referer", "referer");
+        vals.put("Connection", "connection");
+        vals.put("Accept", "accept");
+        vals.put("Cache-Control", "cacheControl");
+        vals.put("Accept-Charset", "acceptCharset");
+        vals.put("Cookie", "cookie");
+        vals.put("Accept-Language", "acceptLanguage");
+        vals.put("Accept-Encoding", "acceptEncoding");
+        vals.put("User-Agent", "userAgent");
+        vals.put("Host", "host");
+        ObjectNode result = Json.newObject();
+        for (Map.Entry<String, String> entry : vals.entrySet()) {
+            result.put(entry.getValue(), request().headers().get(entry.getKey()) != null ? request().headers().get(entry.getKey()).toString() : null);
+        }
+        result.put("ipAddress", request().remoteAddress());
+        result.put("requestUri", request().uri());
+        result.put("clientId", clientId);
+        result.put("experimentId", experimentId);
+        result.put("experimentInstanceId", experimentInstanceId);
+        result.put("connectSocket", routes.ClientController.connectClient(experimentId, experimentInstanceId, clientId).webSocketURL(request(), play.Play.application().configuration().getString("breadboard.wsUrl").contains("wss://")));
+        return ok(result);
+    }
+
+    /**
+     * Return the custom experiement graph if it exists
+     * @return
+     */
+    public static Result getClientGraph(String experimentId, String experimentInstanceId){
+        ExperimentInstance experimentInstance = null;
+        Experiment experiment = null;
+        try {
+            experimentInstance = ExperimentInstance.findById(Long.valueOf(experimentInstanceId));
+            experiment = Experiment.findById(Long.valueOf(experimentId));
+        } catch (NumberFormatException ignored) {}
+
+        if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
+            return ok( amtError.render() );
+        }
+        return ok(experiment.clientGraph);
+    }
+
+    /**
+     * Return the custom experiment client html if it exists
+     */
+    public static Result getClientHtml(String experimentId, String experimentInstanceId){
+        ExperimentInstance experimentInstance = null;
+        Experiment experiment = null;
+        try {
+            experimentInstance = ExperimentInstance.findById(Long.valueOf(experimentInstanceId));
+            experiment = Experiment.findById(Long.valueOf(experimentId));
+        } catch (NumberFormatException ignored) {}
+
+        if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
+            return ok( amtError.render() );
+        }
+        return ok(experiment.clientHtml);
     }
 
     /**

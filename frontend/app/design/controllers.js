@@ -933,7 +933,7 @@ function ($scope, $breadboardFactory, $timeout) {
     statusbar: false,
     menubar: false,
     convert_urls: false,
-    // content_css: routes.tinymceCSS,
+    content_css: '/assets/css/tinymce.css',
     valid_elements: '*[*]',
     resize: true
   }

@@ -1,5 +1,5 @@
-angular.module('breadboard.timer', [])
-.controller('TimerCtrl', ['$scope', '$interval', '$filter', function($scope, $interval, $filter){
+TimerCtrl.$inject = ['$scope', '$interval', '$filter'];
+export default function TimerCtrl($scope, $interval, $filter){
   let updateIntervalPromise = null;
   let updateIntervalSpeed = 500;
   $scope.isHidden = false;
@@ -56,4 +56,4 @@ angular.module('breadboard.timer', [])
     }
   }
 
-}]);
+};

@@ -1,3 +1,4 @@
+import _ from 'underscore';
 function Graph(_width, _height, parentScope) {
 
   var width = (_width == undefined) ? 600 : _width;

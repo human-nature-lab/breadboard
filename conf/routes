@@ -12,6 +12,7 @@ GET         /images/:id                                                         
 GET         /thumbs/:id                                                          controllers.Application.getImageThumb(id: Long)
 POST        /uploadImage                                                         controllers.Application.uploadImage()
 GET         /game/:experimentId/:experimentInstanceId/:clientId/connected        controllers.ClientController.index(experimentId: String, experimentInstanceId: String, clientId: String, connectionSpeed: String ?= null)
+GET         /game/:experimentId/:experimentInstanceId/:clientId/state            controllers.ClientController.getState(experimentId: String, experimentInstanceId: String, clientId: String, connectionSpeed: String ?= null)
 GET         /game/:experimentId/:experimentInstanceId/:clientId/connect          controllers.ClientController.connectClient(experimentId: String, experimentInstanceId: String, clientId: String)
 
 # Authentication
