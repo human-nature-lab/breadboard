@@ -763,7 +763,6 @@ function ($scope, $breadboardFactory, $timeout) {
   $scope.cssDialogOptions = {
     title: 'Style',
     autoOpen: true,
-    open: openCSS,
     buttons: {
       'Save': function () {
         saveStyle();
@@ -799,12 +798,6 @@ function ($scope, $breadboardFactory, $timeout) {
     height: ((windowHeight * .25) - dialogMargin),
     position: [((windowWidth * .5) + dialogMargin), (topDivHeight + dialogMargin + (.75 * windowHeight))]
   };
-
-  $scope.cssDialogIsOpen = false;
-
-  function openCSS() {
-    $scope.cssDialogIsOpen = true;
-  }
 
   $scope.graphDialogOptions = {
     title: 'Graph',
