@@ -960,7 +960,7 @@ function ($scope, $breadboardFactory, $timeout) {
     content_css: '/assets/css/tinymce.css',
     valid_elements: '*[*]',
     resize: true
-  }
+  };
 
   $scope.$on('$destroy', function(){
     // TODO: Destroy all of the popup windows

@@ -3,14 +3,38 @@
 /* Services */
 
 angular.module('breadboard.services', ['ui.utils', 'ngCookies'], function($provide) {
-
     $provide.value('uiJqConfig', {
         dialog: {
             closeOnEscape: false,
             width: 500,
             height: 300,
-            close: function(event, ui) { dockWindow($(this), $(this).dialog("option", "title")); },
-            create: function(event, ui) { if (! $(this).dialog("option", "autoOpen") ) dockWindow($(this), $(this).dialog("option", "title")); }
+            open: function(event, ui){
+              $(this.linkElem).addClass('open');
+            },
+            close: function(event, ui) {
+              $(this.linkElem).removeClass('open');
+            },
+            create: function(event, ui) {
+              let _this = this;
+              let title = $(this).dialog('option', 'title');
+              let link = $("<button type='button' class='dialog-link ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only' role='button' aria-disabled='false'><span class='ui-button-text'>" + title + "</span></button>");
+              $(link).click(function () {
+                if($(_this).dialog('isOpen')){
+                  $(_this).dialog('close');
+                } else {
+                  $(_this).dialog('open');
+                  $(_this).dialog('moveToTop');
+                  if (title == "Content") resizeTiny();
+                }
+              });
+              _this.linkElem = link;
+              // $(_this).dialog('open');
+              $('#dockDiv').append(link);
+
+              if($(this).dialog("option", "autoOpen")){
+                $(this).dialog('open');
+              }
+            }
         }
     });
 

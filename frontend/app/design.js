@@ -1,7 +1,6 @@
 import 'jquery';
 import angular from 'angular';
 import '../lib/jquery-ui/jquery-ui';
-import _ from 'underscore';
 import 'angular-ui-router';
 import 'angular-route';
 import 'angular-cookies';
