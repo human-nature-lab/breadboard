@@ -6,6 +6,7 @@ import './filters';
 import './services';
 import './routes';
 import '../amt-admin/amt-admin.directive';
+import '../create-first-user/create-first-user.directive';
 
 angular.module('breadboard', [
   'breadboard.filters',
@@ -15,6 +16,7 @@ angular.module('breadboard', [
   'breadboard.login',
   'breadboard.routes',
   'breadboard.amt-admin',
+  'breadboard.create-first-user',
   'ui.utils',
   'ui.codemirror',
   'ui.tinymce',
