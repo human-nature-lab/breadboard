@@ -320,14 +320,13 @@ function Graph(_width, _height, parentScope) {
               }
             });
 
-            parentScope.selectedNode = d;
-            parentScope.$apply();
-
-            if($('#playerDiv').dialog('isOpen')){
+            if($('#playerDiv').dialog('isOpen') && parentScope.selectedNode.id === nodeId){
               $('#playerDiv').dialog('close');
             }else {
               $('#playerDiv').dialog('open');
             }
+            parentScope.selectedNode = d;
+            parentScope.$apply();
           }
         });
       }

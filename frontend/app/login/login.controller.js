@@ -11,18 +11,24 @@ export default angular.module('breadboard.login', []).controller("LoginCtrl", ['
     password: ''
   };
 
+  function defaultErrorHandler(err){
+    $scope.hasError = true;
+    $scope.errorMessage = err;
+  }
+
   $scope.submit = function(){
     $http.post($scope.path, $scope.vm)
       .then(function(res){
-        $scope.onSuccess({res: res});
+        if(res.status === 200) {
+          $scope.onSuccess({res: res});
+        } else {
+            defaultErrorHandler(res.data.message);
+            $scope.onError({err: res.data.message});
+        }
       }, function(err){
         console.error(err);
-        if($scope.onError) {
-          $scope.onError({err: err});
-        } else {
-          $scope.hasError = true;
-          $scope.errorMessage = "Unable to login at this time";
-        }
+        defaultErrorHandler(err);
+        $scope.onError({err});
       });
   }
 }]);

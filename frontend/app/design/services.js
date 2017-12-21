@@ -19,13 +19,9 @@ angular.module('breadboard.services', ['ui.utils', 'ngCookies'], function($provi
               let title = $(this).dialog('option', 'title');
               let link = $("<button type='button' class='dialog-link ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only' role='button' aria-disabled='false'><span class='ui-button-text'>" + title + "</span></button>");
               $(link).click(function () {
-                if($(_this).dialog('isOpen')){
-                  $(_this).dialog('close');
-                } else {
                   $(_this).dialog('open');
                   $(_this).dialog('moveToTop');
                   if (title == "Content") resizeTiny();
-                }
               });
               _this.linkElem = link;
               // $(_this).dialog('open');

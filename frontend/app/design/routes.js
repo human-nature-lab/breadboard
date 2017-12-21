@@ -2,6 +2,7 @@ import loginTemplateUrl from '../templates/login.html';
 import homeTemplateUrl from '../templates/home.html';
 import '../login/login.directive';
 import './middleware';
+import './services';
 
 angular.module('breadboard.routes', ['ui.router', 'breadboard.middleware', 'ngCookies'])
   .config(['$stateProvider', '$urlRouterProvider', '$httpProvider', function($stateProvider, $urlRouterProvider, $httpProvider){
@@ -10,10 +11,12 @@ angular.module('breadboard.routes', ['ui.router', 'breadboard.middleware', 'ngCo
     .state('login', {
       url: '/login',
       templateUrl: loginTemplateUrl,
-      controller: ['$scope', '$state', '$cookies', function($scope, $state, $cookies){
+      controller: ['$scope', '$state', '$cookieStore', function($scope, $state, $cookieStore){
         $scope.path = '/login';
         $scope.onSuccess = function(res){
-          $cookies.JAVASCRIPT_SESSION = 'email=' + res.data.email + ';juid=' + res.data.juid + ';uid=' + res.data.uid;
+          $cookieStore.put('email', res.data.email);
+          $cookieStore.put('juid', res.data.juid);
+          $cookieStore.put('uid', res.data.uid);
           $state.go('home');
         };
       }]
@@ -21,7 +24,11 @@ angular.module('breadboard.routes', ['ui.router', 'breadboard.middleware', 'ngCo
     .state('home', {
       url: '/',
       controller: 'AppCtrl',
-      templateUrl: homeTemplateUrl
+      templateUrl: homeTemplateUrl,
+      onExit: function(){
+        // remove this hack once we're free of jquery ui dialogs
+        window.location.reload();
+      }
     });
 
     $httpProvider.interceptors.push('AuthorizationMiddleware');

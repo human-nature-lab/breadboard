@@ -88,7 +88,11 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
 
   $scope.logout = function(){
     $http.get('/logout').then(function(res){
-      $state.go('login');
+      // $state.go('login');
+      // Remove this redirect once the application cleans up after itself correctly
+      setTimeout(function(){
+        window.location.reload();
+      });
     });
   };
 
@@ -129,10 +133,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
 
   $scope.playerProperties = function (n) {
     var ignoreProps = ["weight", "x", "y", "px", "fixed", "equals", "py", "text", "choices"];
-    var playerProps = "";
+    var playerProps = {};
     for (var propertyName in n) {
       if ($.inArray(propertyName, ignoreProps) == -1)
-        playerProps += propertyName + ": " + n[propertyName] + "\n";
+        playerProps[propertyName] = n[propertyName];
     }
     return playerProps;
   };
@@ -230,6 +234,29 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
     });
 
     $('#newExperimentDialog').dialog({title: 'Create New Experiment'});
+  };
+
+  $scope.openNewInstanceModal = function(){
+
+    $("#newExperimentInstanceDialog").dialog({
+      title: 'Create New Experiment Instance',
+      width: '600px',
+    });
+
+  };
+
+  $scope.launchParameters = {};
+
+  $scope.launchGame = function () {
+    $('#newExperimentInstanceDialog').dialog('close');
+    $('#launchDiv').dialog('open');
+    $('#graphDiv').dialog('open');
+    $breadboardFactory.send(
+      {
+        "action": "LaunchGame",
+        "name": $scope.experimentInstanceName,
+        "parameters": $scope.launchParameters
+      });
   };
 
   $scope.deleteExperiment = function () {
@@ -389,6 +416,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   };
 
   $scope.deleteInstance = function (name, id) {
+    debugger;
     $('#deleteInstanceDialogDesc').text(name);
     $('#deleteInstanceDialog').dialog({
       modal: true,
@@ -644,19 +672,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
       "name": $scope.newContentName,
       "language": $scope.newContentLanguage
     });
-  };
-
-  $scope.launchParameters = {};
-
-  $scope.launchGame = function () {
-    //console.log($scope.launchParameters);
-
-    $breadboardFactory.send(
-      {
-        "action": "LaunchGame",
-        "name": $scope.experimentInstanceName,
-        "parameters": $scope.launchParameters
-      });
   };
 
   $scope.testGame = function () {
@@ -934,8 +949,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   };
 
   $scope.$on('$destroy', function(){
-    // TODO: Destroy all of the popup windows
-    console.log("TODO: Destroy the popup windows or display the login as a modal");
+    // Destroy all of the popup windows.
+    $("[ui-jq=\"dialog\"]").dialog('destroy');
+
+    // TODO: Disconnect from websockets and other cleanup so that the application can restart without redirect
   });
 
 }]);
