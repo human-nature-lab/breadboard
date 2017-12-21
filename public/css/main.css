@@ -119,23 +119,6 @@ caption {
     line-height: 30px;
 }
 
-#bottomDiv {
-    position: absolute;
-    width: 100%;
-    height: 50px;
-    margin: 0;
-    padding: 0;
-    left: 0;
-    bottom: 0;
-}
-
-#dockDiv {
-    height: 50px;
-    padding: 0;
-    padding-left: 20px;
-    margin: 0;
-}
-
 .disabled-button, .disabled-button:hover, .disabled-button:active {
     font-size: .8em;
     border-bottom-right-radius: 5px;
@@ -512,19 +495,58 @@ circle[color="20"] { fill:#9edae5; }
     padding: 1px 5px;
 }
 
-.dialog-link{
+button.dialog-link{
+    border-width: 0;
+    border: none;
+    border-bottom: 1px solid black;
+    border-right: 1px solid black;
+    border-radius: 0;
+    margin-top: 1px;
+    margin-bottom: -1px;
+}
 
+button.dialog-link:last-child{
+    border-right-width: 0;
 }
 
 .dialog-link.open{
-    border-bottom-width: 3px;
-    border-bottom-color: #00356b;
+    /*border-bottom-width: 3px;*/
+    /*border-bottom-color: #00356b;*/
+    /*border-bottom-color: lightblue;*/
+    box-shadow:  inset 0 -3px #0045b4;
+    /*box-shadow:  inset 0 -3px #3db2e0;*/
 }
 
 #newExperimentInstanceDialog{
     margin: 10px;
     padding: .5em 1em;
 }
+
+
+.footer {
+    position: fixed;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    bottom: 0;
+    padding-bottom: 20px;
+    z-index: 10000;
+    /*background: black;*/
+    background-color: rgba(0, 0, 0, 0.59);
+}
+
+.footer > div {
+    border-top: 1px solid black;
+    background: white;
+}
+
+/*#dockDiv {*/
+    /*height: 50px;*/
+    /*padding: 0;*/
+    /*padding-left: 20px;*/
+    /*margin: 0;*/
+/*}*/
+
 
 /*.centered-container{*/
     /*position: relative;*/
