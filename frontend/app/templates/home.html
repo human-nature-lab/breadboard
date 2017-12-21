@@ -80,8 +80,18 @@
                             onclick="hideTooltips()"
                             ng-disabled="breadboard.experimentInstance.status === 'RUNNING'"
                             ng-click="openNewInstanceModal()">
-                        <span class="glyphyicon glyphicon-plus"
+                        <span class="glyphicon glyphicon-plus"
                             aria-hidden="true"></span>
+                    </button>
+                    <button class="btn btn-default"
+                            title="Delete experiment instance"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
+                            id="removeInstanceButton"
+                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || !breadboard.experimentInstance"
+                            ng-click="deleteInstance(breadboard.experimentInstance.name, breadboard.experimentInstance.id)">
+                        <span class="glyphicon glyphicon-remove"
+                              aria-hidden="true"></span>
                     </button>
                     <button class="btn btn-default"
                             title="Start experiment instance"

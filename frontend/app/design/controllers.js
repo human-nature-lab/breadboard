@@ -416,6 +416,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   };
 
   $scope.deleteInstance = function (name, id) {
+    debugger;
     $('#deleteInstanceDialogDesc').text(name);
     $('#deleteInstanceDialog').dialog({
       modal: true,
