@@ -129,10 +129,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
 
   $scope.playerProperties = function (n) {
     var ignoreProps = ["weight", "x", "y", "px", "fixed", "equals", "py", "text", "choices"];
-    var playerProps = "";
+    var playerProps = {};
     for (var propertyName in n) {
       if ($.inArray(propertyName, ignoreProps) == -1)
-        playerProps += propertyName + ": " + n[propertyName] + "\n";
+        playerProps[propertyName] = n[propertyName];
     }
     return playerProps;
   };
