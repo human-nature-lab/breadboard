@@ -39,52 +39,45 @@ public class Application extends Controller {
   }
 
   public static Result addFirstUser() {
-    Form<CreateFirstUser> createFirstUserForm = Form.form(CreateFirstUser.class).bindFromRequest();
-
-    if (createFirstUserForm.hasErrors()) {
-      return badRequest(createFirstUser.render(createFirstUserForm));
+    String email, password, defaultLanguage;
+    JsonNode json = request().body().asJson();
+    if(json == null) {
+      return badRequest("Expecting Json data");
     } else {
-      String email = createFirstUserForm.get().email;
-      String password = createFirstUserForm.get().newPassword;
-
-      session("email", email);
-
-      String uid = UUID.randomUUID().toString();
-      session("uid", uid);
-
-      User user = new User();
-      user.email = email;
-      user.password = BCrypt.hashpw(password, BCrypt.gensalt());
-      user.role = "admin";
-      user.currentScript = "";
-      user.experimentInstanceId = -1l;
-      user.selectedExperiment = null;
-      user.save();
-
-      // TODO: Make method for creating demo experiments and associating with new user
-      // insert into users_experiments (users_email, experiments_id) values (user.email, 321);
-      Experiment experiment = Experiment.findById(321l);
-      if (experiment != null) {
-        user.ownedExperiments.add(experiment);
-        user.update();
-        user.saveManyToManyAssociations("ownedExperiments");
-      }
-
-      if (user != null) {
-        Logger.info("authenticate: uid = " + uid);
-        user.uid = uid;
-        user.update();
-        return redirect(routes.Application.index());
-        /*
-        if (user.role.equals("admin")) {
-        } else if (user.role.equals("amt_admin")) {
-          return redirect(routes.AMTAdmin.index());
-        }
-        */
-      }
-
-      return badRequest(createFirstUser.render(createFirstUserForm));
+      email = json.findPath("email").textValue();
+      password = json.findPath("password").textValue();
+      defaultLanguage = json.findPath("defaultLanguage").textValue();
     }
+
+    if (email == null || password == null || defaultLanguage == null) {
+      return badRequest("Please provide email, password, and default language.");
+    }
+
+    session("email", email);
+
+    String uid = UUID.randomUUID().toString();
+    session("uid", uid);
+
+    User user = new User();
+    user.email = email;
+    user.password = BCrypt.hashpw(password, BCrypt.gensalt());
+    user.role = "admin";
+    user.currentScript = "";
+    user.experimentInstanceId = -1L;
+    user.selectedExperiment = null;
+    user.uid = uid;
+    user.save();
+
+    // TODO: Make method for creating demo experiments and associating with new user
+    /*
+    Experiment experiment = Experiment.findById(321l);
+    if (experiment != null) {
+      user.ownedExperiments.add(experiment);
+      user.update();
+      user.saveManyToManyAssociations("ownedExperiments");
+    }
+    */
+    return ok();
   }
 
 
