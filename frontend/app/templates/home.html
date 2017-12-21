@@ -77,7 +77,7 @@
                             data-toggle="tooltip"
                             data-placement="bottom"
                             id="runButton"
-                            ng-disabled="breadboard.experimentInstance == '' || breadboard.experimentInstance.status === 'RUNNING'"
+                            ng-disabled="breadboard.experimentInstance == '' || breadboard.experimentInstance.status === 'RUNNING' || breadboard.experimentInstance.status === 'FINISHED'"
                             onclick="hideTooltips()"
                             ng-click="selectInstance(breadboard.experimentInstance.id)">
                     <span class="glyphicon glyphicon-play"
@@ -105,6 +105,12 @@
                     <span class="glyphicon glyphicon-refresh"
                           aria-hidden="true">
                     </span>
+                    </button>
+                    <button class="btn btn-default"
+                            title="Start InitStep"
+                            id="startInitStep"
+                            ng-click="run()">
+                        Start InitStep
                     </button>
                 </div>
             </div>
@@ -283,25 +289,6 @@
     <!-- Experiment Instances -->
     <div>
         <div ui-jq="dialog" ui-options="launchDialogOptions" id="launchDiv">
-            <div ng-hide="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
-                <h4>{{ breadboard.experimentInstance.name }}</h4>
-                <button class="btn btn-default" ng-click="stopGame(breadboard.experimentInstance.id)">Stop Instance</button>
-                <table class="table">
-                    <thead>
-                    <caption>Parameters</caption>
-                    <tr>
-                        <th>Name</th>
-                        <th>Value</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr ng-repeat="d in breadboard.experimentInstance.data">
-                        <td>{{d.name}}</td>
-                        <td>{{d.value}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
             <form name="createExperimentInstanceForm" class="form-horizontal" ng-show="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
                 <h4>Create Experiment Instance</h4>
                 <div class="form-group">
@@ -373,8 +360,8 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr ng-repeat="instance in breadboard.experiment.instances"
-                        class="selected-{{instance.id == breadboard.experimentInstance.id}}">
+                    <tr ng-repeat-start="instance in breadboard.experiment.instances"
+                        class="selected-{{instance.id === breadboard.experimentInstance.id}}">
                         <td>{{instance.id}}</td>
                         <td>{{instance.name}}</td>
                         <td>{{instance.status}}</td>
@@ -397,6 +384,27 @@
                               Login
                             </a>
                           </span>
+                        </td>
+                    </tr>
+                    <tr ng-repeat-end ng-show="instance.id === breadboard.experimentInstance.id">
+                        <td colspan="6">
+                            <table class="table table-condensed">
+                                <thead>
+                                <tr>
+                                    <th>Parameter</th>
+                                    <th>Value</th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr ng-if="breadboard.experimentInstance.data.length == 0">
+                                    <td colspan="2">No parameters</td>
+                                </tr>
+                                <tr ng-repeat="d in breadboard.experimentInstance.data">
+                                    <td>{{d.name}}</td>
+                                    <td>{{d.value}}</td>
+                                </tr>
+                                </tbody>
+                            </table>
                         </td>
                     </tr>
                     </tbody>
