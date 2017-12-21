@@ -1,20 +1,23 @@
-<div class="centered-container">
-    <div class="centered" id="login-form">
-        <form>
+<div class="container-fluid">
+    <div class="row"><div class="col-md-12">&nbsp;</div></div>
+    <div class="row" id="login-form">
+        <div class="col-md-4"></div>
+        <form class="form col-md-4">
             <div class="form-group error" ng-show="hasError">
                 {{errorMessage}}
             </div>
             <div class="form-group">
-                <label for="email">Email</label>
-                <input type="text" id="email" name="email" ng-model="vm.email" autofocus>
+                <label class="control-label" for="email">Email</label>
+                <input class="form-control" type="text" id="email" name="email" ng-model="vm.email" autofocus>
             </div>
             <div class="form-group">
-                <label for="password">Password</label>
-                <input type="password" id="password" name="password" ng-model="vm.password">
+                <label class="control-label" for="password">Password</label>
+                <input class="form-control" type="password" id="password" name="password" ng-model="vm.password">
             </div>
             <div class="form-group">
-                <button class="btn" type="submit" ng-click="submit()">Login</button>
+                <button class="btn btn-default" type="submit" ng-click="submit()">Login</button>
             </div>
         </form>
+        <div class="col-md-4"></div>
     </div>
 </div>

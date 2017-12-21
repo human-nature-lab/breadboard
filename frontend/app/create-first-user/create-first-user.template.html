@@ -1,20 +1,46 @@
-<form class="form" id="create-first-user-form">
-    <div class="form-group error" ng-show="hasError">
-        {{$scope.errorMessage}}
+<div class="container-fluid">
+    <div class="row"><div class="col-md-12">&nbsp;</div></div>
+    <div class="row">
+        <div class="col-md-4">&nbsp;</div>
+        <div class="col-md-4">
+            <h4>Create first user</h4>
+        </div>
+        <div class="col-md-4">&nbsp;</div>
     </div>
-    <div class="form-group">
-        <label for="first-user-email">Email</label>
-        <input type="text" id="first-user-email" name="email" ng-model="vm.email" autofocus>
+    <div class="row">
+        <div class="col-md-4">&nbsp;</div>
+        <div class="col-md-4">
+            <form class="form" id="create-first-user-form" name="createUserForm">
+                <div class="form-group" ng-show="vm.hasError">
+                    <p class="form-control-static error">
+                        {{vm.errorMessage}}
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="first-user-email">Email</label>
+                    <input class="form-control" type="email" id="first-user-email" name="email" ng-model="vm.email" autofocus required>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="first-user-password">Password</label>
+                    <input class="form-control" type="password" id="first-user-password" name="password" ng-model="vm.password" required>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="first-user-confirm-password">Confirm Password</label>
+                    <input class="form-control" type="password" id="first-user-confirm-password" name="password" ng-model="vm.confirmPassword" required>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="first-user-default-language">Default Language</label>
+                    <select class="form-control"
+                            id="first-user-default-language"
+                            ng-options="language as language.name for language in vm.languages | orderBy: 'name' track by language.iso3"
+                            ng-model="vm.defaultLanguage" required>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-default" type="submit" ng-click="submit()" ng-disabled="createUserForm.$invalid">Create</button>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-4">&nbsp;</div>
     </div>
-    <div class="form-group">
-        <label for="first-user-password">Password</label>
-        <input type="password" id="first-user-password" name="password" ng-model="vm.password">
-    </div>
-    <div class="form-group">
-        <label for="first-user-confirm-password">Confirm Password</label>
-        <input type="password" id="first-user-confirm-password" name="password" ng-model="vm.confirmPassword">
-    </div>
-    <div class="form-group">
-        <button class="btn" type="submit" ng-click="submit()">Login</button>
-    </div>
-</form>
+</div>

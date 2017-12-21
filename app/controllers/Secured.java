@@ -23,7 +23,11 @@ public class Secured extends Security.Authenticator {
   @Override
   public Result onUnauthorized(Context ctx) {
     ObjectNode result = Json.newObject();
-    result.put("status", "unauthorized");
+    if (User.findRowCount() == 0) {
+      result.put("status", "create-first-user");
+    } else {
+      result.put("status", "unauthorized");
+    }
     result.put("message", "please login");
     return unauthorized(result);
 //    return redirect(routes.Application.login());

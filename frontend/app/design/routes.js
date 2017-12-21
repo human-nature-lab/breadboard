@@ -1,6 +1,8 @@
 import loginTemplateUrl from '../templates/login.html';
+import createFirstUserTemplateUrl from '../templates/create-first-user.html';
 import homeTemplateUrl from '../templates/home.html';
 import '../login/login.directive';
+import '../create-first-user/create-first-user.directive';
 import './middleware';
 import './services';
 
@@ -29,6 +31,10 @@ angular.module('breadboard.routes', ['ui.router', 'breadboard.middleware', 'ngCo
         // remove this hack once we're free of jquery ui dialogs
         window.location.reload();
       }
+    })
+    .state('create-first-user', {
+      url: '/create-first-user',
+      templateUrl: createFirstUserTemplateUrl
     });
 
     $httpProvider.interceptors.push('AuthorizationMiddleware');
