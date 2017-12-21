@@ -5,7 +5,7 @@ import './directives';
 import './filters';
 import '../services/services.module';
 import './routes';
-import '../providers/providers.module';
+import uiJqConfig from '../providers/ui-jq-config.value';
 import '../amt-admin/amt-admin.directive';
 import '../create-first-user/create-first-user.directive';
 
@@ -14,7 +14,6 @@ angular.module('breadboard', [
   'breadboard.services',
   'breadboard.directives',
   'breadboard.controllers',
-  'breadboard.providers',
   'breadboard.login',
   'breadboard.routes',
   'breadboard.amt-admin',
@@ -23,4 +22,5 @@ angular.module('breadboard', [
   'ui.codemirror',
   'ui.tinymce',
   'ngSanitize',
-  'ngCookies']);
+  'ngCookies'])
+.value('uiJqConfig', uiJqConfig);
