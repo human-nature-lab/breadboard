@@ -13,7 +13,6 @@ angular.module('breadboard.services', ['ui.utils', 'ngCookies'], function($provi
             },
             close: function(event, ui) {
               $(this.linkElem).removeClass('open');
-              $(this).dialog('destroy');
             },
             create: function(event, ui) {
               let _this = this;

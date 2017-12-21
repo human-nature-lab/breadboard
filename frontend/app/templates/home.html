@@ -73,6 +73,17 @@
                 </select>
                 <div class="btn-group btn-group-sm">
                     <button class="btn btn-default"
+                            title="Create experiment instance"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
+                            id="newInstanceButton"
+                            onclick="hideTooltips()"
+                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING'"
+                            ng-click="openNewInstanceModal()">
+                        <span class="glyphyicon glyphicon-plus"
+                            aria-hidden="true"></span>
+                    </button>
+                    <button class="btn btn-default"
                             title="Start experiment instance"
                             data-toggle="tooltip"
                             data-placement="bottom"
@@ -129,6 +140,67 @@
 
 
     <!-- Dialogs -->
+
+    <!-- New Experiment Instance -->
+    <div id="newExperimentInstanceDialog" style="display: none;">
+        <form name="createExperimentInstanceForm" class="form-horizontal" ng-show="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
+            <h4>Create Experiment Instance</h4>
+            <div class="form-group">
+                <label class="col-md-3 control-label"
+                       for="experiment-instance-name">
+                    Name
+                </label>
+                <div class="col-md-4">
+                    <input class="form-control" type="text" id="experiment-instance-name" ng-model="experimentInstanceName" required>
+                </div>
+                <div class="col-md-5"></div>
+            </div>
+            <div class="form-group" ng-repeat="elem in breadboard.experiment.parameters">
+                    <span ng-if="elem.type === 'Text'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_text">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_text" ng-model="launchParameters[elem.name]"
+                                   type="text" ng-init="launchParameters[elem.name] = elem.defaultVal" required>
+                        </div>
+                    </span>
+
+                <span ng-if="elem.type === 'Boolean'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_checkbox">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_checkbox" ng-model="launchParameters[elem.name]"
+                                   type="checkbox" ng-init="launchParameters[elem.name] = (elem.defaultVal === 'true')">
+                        </div>
+                    </span>
+
+                <span ng-if="elem.type === 'Integer'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_integer">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_integer" ng-model="launchParameters[elem.name]"
+                                   type="number" step="1" min="{{elem.minVal}}" max="{{elem.maxVal}}" ng-init="launchParameters[elem.name] = (elem.defaultVal | asNumber)">
+                        </div>
+                    </span>
+
+                <span ng-if="elem.type === 'Decimal'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_decimal">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_decimal" ng-model="launchParameters[elem.name]"
+                                   type="number" step=".01" min="{{elem.minVal}}" max="{{elem.maxVal}}" ng-init="launchParameters[elem.name] = (elem.defaultVal | asNumber)">
+                        </div>
+                    </span>
+
+                <div class="col-md-5">
+                    <span class="note">{{elem.description}}</span>
+                </div>
+            </div>
+            <div class="form-group col-md-12 text-right">
+                <button class="btn btn-default" ng-disabled="createExperimentInstanceForm.$invalid" ng-click="launchGame()">Create</button>
+            </div>
+        </form>
+    </div>
 
     <!-- New Experiment -->
     <div id="newExperimentDialog" style="display: none;">
@@ -283,69 +355,12 @@
                 </tr>
                 </tbody>
             </table>
-        </div>
+     k="shdiv>
     </div>
 
     <!-- Experiment Instances -->
     <div>
         <div ui-jq="dialog" ui-options="launchDialogOptions" id="launchDiv">
-            <form name="createExperimentInstanceForm" class="form-horizontal" ng-show="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
-                <h4>Create Experiment Instance</h4>
-                <div class="form-group">
-                    <label class="col-md-3 control-label"
-                           for="experiment-instance-name">
-                        Name
-                    </label>
-                    <div class="col-md-4">
-                        <input class="form-control" type="text" id="experiment-instance-name" ng-model="experimentInstanceName" required>
-                    </div>
-                    <div class="col-md-5"></div>
-                </div>
-                <div class="form-group" ng-repeat="elem in breadboard.experiment.parameters">
-                    <span ng-if="elem.type === 'Text'">
-                        <label class="col-md-3 control-label" for="{{elem.name}}_text">{{elem.name}}</label>
-
-                        <div class="col-md-4">
-                            <input class="form-control" id="{{elem.name}}_text" ng-model="launchParameters[elem.name]"
-                                   type="text" ng-init="launchParameters[elem.name] = elem.defaultVal" required>
-                        </div>
-                    </span>
-
-                    <span ng-if="elem.type === 'Boolean'">
-                        <label class="col-md-3 control-label" for="{{elem.name}}_checkbox">{{elem.name}}</label>
-
-                        <div class="col-md-4">
-                            <input class="form-control" id="{{elem.name}}_checkbox" ng-model="launchParameters[elem.name]"
-                                   type="checkbox" ng-init="launchParameters[elem.name] = (elem.defaultVal === 'true')">
-                        </div>
-                    </span>
-
-                    <span ng-if="elem.type === 'Integer'">
-                        <label class="col-md-3 control-label" for="{{elem.name}}_integer">{{elem.name}}</label>
-
-                        <div class="col-md-4">
-                            <input class="form-control" id="{{elem.name}}_integer" ng-model="launchParameters[elem.name]"
-                                   type="number" step="1" min="{{elem.minVal}}" max="{{elem.maxVal}}" ng-init="launchParameters[elem.name] = (elem.defaultVal | asNumber)">
-                        </div>
-                    </span>
-
-                    <span ng-if="elem.type === 'Decimal'">
-                        <label class="col-md-3 control-label" for="{{elem.name}}_decimal">{{elem.name}}</label>
-
-                        <div class="col-md-4">
-                            <input class="form-control" id="{{elem.name}}_decimal" ng-model="launchParameters[elem.name]"
-                                   type="number" step=".01" min="{{elem.minVal}}" max="{{elem.maxVal}}" ng-init="launchParameters[elem.name] = (elem.defaultVal | asNumber)">
-                        </div>
-                    </span>
-
-                    <div class="col-md-5">
-                        <span class="note">{{elem.description}}</span>
-                    </div>
-                </div>
-                <div class="form-group col-md-12 text-right">
-                    <button class="btn btn-default" ng-disabled="createExperimentInstanceForm.$invalid" ng-click="launchGame()">Create</button>
-                </div>
-            </form>
             <div>
                 <table class="table" id="instance-table">
                     <caption>Instances</caption>

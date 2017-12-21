@@ -236,6 +236,29 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
     $('#newExperimentDialog').dialog({title: 'Create New Experiment'});
   };
 
+  $scope.openNewInstanceModal = function(){
+
+    $("#newExperimentInstanceDialog").dialog({
+      title: 'Create New Experiment Instance',
+      width: '600px',
+    });
+
+  };
+
+  $scope.launchParameters = {};
+
+  $scope.launchGame = function () {
+    $('#newExperimentInstanceDialog').dialog('close');
+    $('#launchDiv').dialog('open');
+    $('#graphDiv').dialog('open');
+    $breadboardFactory.send(
+      {
+        "action": "LaunchGame",
+        "name": $scope.experimentInstanceName,
+        "parameters": $scope.launchParameters
+      });
+  };
+
   $scope.deleteExperiment = function () {
     var selectedExperiment = $scope.breadboard.user.selectedExperiment;
     $('#deleteExperimentDialog span.deleteExperimentName').html(selectedExperiment);
@@ -648,19 +671,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
       "name": $scope.newContentName,
       "language": $scope.newContentLanguage
     });
-  };
-
-  $scope.launchParameters = {};
-
-  $scope.launchGame = function () {
-    //console.log($scope.launchParameters);
-
-    $breadboardFactory.send(
-      {
-        "action": "LaunchGame",
-        "name": $scope.experimentInstanceName,
-        "parameters": $scope.launchParameters
-      });
   };
 
   $scope.testGame = function () {
