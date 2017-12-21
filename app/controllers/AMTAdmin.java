@@ -22,6 +22,7 @@ import play.mvc.Result;
 import views.html.*;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.*;
 
 public class AMTAdmin extends Controller {
@@ -408,7 +409,7 @@ public class AMTAdmin extends Controller {
     String reward = null;
     String paymentHitHtml = getDummyHitHTML();
     if (paymentHitHtml == null) {
-      return badRequest("Unable to read 'payment-hit.html' file in conf directory.");
+      return badRequest("Unable to read 'payment-hit.html' or 'default-payment-hit.html' file in conf/defaults directory.");
     }
     JsonNode json = request().body().asJson();
     if(json == null) {
@@ -475,10 +476,13 @@ public class AMTAdmin extends Controller {
 
   private static String getDummyHitHTML() {
     String returnString = null;
+    InputStream paymentHitHtml = Play.application().resourceAsStream("defaults/payment-hit.html");
+    if (paymentHitHtml == null) paymentHitHtml = Play.application().resourceAsStream("defaults/default-payment-hit.html");
+    if (paymentHitHtml == null) return null;
     try {
       returnString = "<HTMLQuestion xmlns=\"http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2011-11-11/HTMLQuestion.xsd\">\n" +
                      "  <HTMLContent><![CDATA[" +
-                     IOUtils.toString(Play.application().resourceAsStream("conf/defaults/payment-hit.html")) +
+                     IOUtils.toString(paymentHitHtml) +
                      "]]>\n" +
                      "  </HTMLContent>\n" +
                      "  <FrameHeight>600</FrameHeight>\n" +

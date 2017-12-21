@@ -66,6 +66,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.submitDummyHITs = submitDummyHITs;
   $scope.clearDummyHITs = clearDummyHITs;
   $scope.getAssignmentsCSV = getAssignmentsCSV;
+  $scope.refreshAssignmentsForHIT = refreshAssignmentsForHIT;
   $scope.createHIT = createHIT;
   getAccountBalance();
   listHITs();
@@ -227,6 +228,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
     });
   }
 
+
   function updateAssignmentCompleted(assignment) {
     assignment.completedPending = true;
     AMTAdminSrv.updateAssignmentCompleted(assignment.assignmentId, assignment.assignmentCompleted)
@@ -306,22 +308,25 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
     return deferred.promise;
   }
 
-
   function selectHIT(hit) {
     if (hit === $scope.selectedHIT) {
       $scope.selectedHIT = null;
     } else {
-      hit.assignments = null;
-      if (hit.approveCount === undefined) hit.approveCount = 0;
-      if (hit.rejectCount === undefined) hit.rejectCount = 0;
-      if (hit.bonusTotal === undefined) hit.bonusTotal = 0;
-      $scope.selectedHIT = hit;
-
-      getAssignmentsForHIT(hit, null).then(function(assignments) {
-        hit.assignments = assignments;
-        updateBonusPaymentsForHIT(hit, null);
-      });
+      refreshAssignmentsForHIT(hit);
     }
+  }
+
+  function refreshAssignmentsForHIT(hit) {
+    hit.assignments = null;
+    if (hit.approveCount === undefined) hit.approveCount = 0;
+    if (hit.rejectCount === undefined) hit.rejectCount = 0;
+    if (hit.bonusTotal === undefined) hit.bonusTotal = 0;
+    $scope.selectedHIT = hit;
+
+    getAssignmentsForHIT(hit, null).then(function(assignments) {
+      hit.assignments = assignments;
+      updateBonusPaymentsForHIT(hit, null);
+    });
   }
 
   function parseQuestionFormAnswer(questionFormAnswerString) {

@@ -1,39 +1,120 @@
 <div id="mainDiv" ng-style="breadboard.experiment.style" ng-cloak>
-
-    <div id="topDiv">
-        <div id="experimentSelectDiv">
-            <select ng-hide='breadboard.user.experiments.length == 0'
-                    ng-options='experiment for experiment in breadboard.user.experiments' ng-change='experimentChanged()'
-                    ng-model='breadboard.user.selectedExperiment'
-                    ng-disabled='breadboard.experimentInstance.status === "RUNNING"'>
-            </select>
-            <button jq-button title='New experiment' id='newExperimentButton' ng-click='newExperiment()' jq-button-disabled='breadboard.experimentInstance.status === "RUNNING"'><span
-                    class="step-icon ui-icon-plusthick">New experiment</span></button>
-            <button jq-button title='Delete experiment' id='deleteExperimentButton' jq-button-disabled='breadboard.experimentInstance.status === "RUNNING"'
-                    ng-click='deleteExperiment()'><span class="step-icon ui-icon-closethick">Delete experiment</span>
-            </button>
-            <button title='Export' ui-jq='button' id='exportButton'
-                    ng-click='exportExperiment()'><span class="step-icon ui-icon-triangle-1-s">Export experiment</span>
-            </button>
-            <button title='Import' ui-jq='button' id='importButton'
-                    ng-click='openImportDialog()'><span class="step-icon ui-icon-triangle-1-n">Import experiment</span>
-            </button>
-            <button jq-button title='Run' id='runButton'
-                    ng-click='run()'><span class="step-icon ui-icon-play">Run experiment</span>
-            </button>
-            <button jq-button title='Stop' id='stopButton'
-                    ng-click='stopGame(breadboard.experimentInstance.id)' jq-button-disabled='breadboard.experimentInstance.status !== "RUNNING"'><span class="step-icon ui-icon-stop">
-          Stop experiment</span>
-            </button>
-            <button title='Reload' ui-jq='button' id='reloadButton'
-                    ng-click='reload()'><span class="step-icon ui-icon-refresh">Reload</span>
-            </button>
-            <button title='Vim' ui-jq='button' id='vimButton'
-                    ng-click='toggleVim()'><span class="ui-button ui-icon step-icon vim-icon">Vim</span>
-            </button>
+    <div class="container-fluid">
+        <div class="form-inline row">
+            <div class="form-group experiment-group">
+                <label for="select-experiment"
+                       class="form-control-static">
+                    Experiment
+                </label>
+                <select class="form-control input-sm"
+                        id="select-experiment"
+                        ng-hide="breadboard.user.experiments.length == 0"
+                        ng-options="experiment for experiment in breadboard.user.experiments"
+                        ng-change="experimentChanged()"
+                        ng-model="breadboard.user.selectedExperiment"
+                        ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">
+                </select>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-default"
+                            title="Create a new experiment"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
+                            id="newExperimentButton"
+                            ng-click="newExperiment()"
+                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">
+                    <span class="glyphicon glyphicon-plus"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            title="Delete the selected experiment"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
+                            id="deleteExperimentButton"
+                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING'"
+                            ng-click="deleteExperiment()">
+                    <span class="glyphicon glyphicon-remove"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            title="Export the selected experiment"
+                            id="exportButton"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
+                            ng-click="exportExperiment()">
+                    <span class="glyphicon glyphicon-export"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            title="Import an experiment"
+                            id="importButton"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
+                            ng-click="openImportDialog()">
+                    <span class="glyphicon glyphicon-import"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group experiment-group">
+                <label for="select-experiment-instance"
+                       class="control-label">
+                    Instance
+                </label>
+                <select class="form-control input-sm"
+                        id="select-experiment-instance"
+                        ng-hide="breadboard.user.experiments.length == 0"
+                        ng-options="instance as instance.name for instance in breadboard.experiment.instances track by instance.id"
+                        ng-model="breadboard.experimentInstance"
+                        ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">
+                </select>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-default"
+                            title="Start experiment instance"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
+                            id="runButton"
+                            ng-disabled="breadboard.experimentInstance == '' || breadboard.experimentInstance.status === 'RUNNING'"
+                            onclick="hideTooltips()"
+                            ng-click="selectInstance(breadboard.experimentInstance.id)">
+                    <span class="glyphicon glyphicon-play"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            title="Stop experiment instance"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
+                            id="stopButton"
+                            ng-click="stopGame(breadboard.experimentInstance.id)"
+                            onclick="hideTooltips()"
+                            ng-disabled="breadboard.experimentInstance.status !== 'RUNNING'">
+                    <span class="glyphicon glyphicon-stop"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            title="Reload experiment instance"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
+                            id="reloadButton"
+                            ng-click="reload()">
+                    <span class="glyphicon glyphicon-refresh"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group pull-right">
+                <p class="form-control-static text-right" id="logoutDiv">
+                    You are logged in as <a ng-click="showUserSettings()">{{breadboard.user.email}}</a> | <a
+                        ng-click="logout()">Log out</a>
+                </p>
+            </div>
         </div>
-        <div id="logoutDiv">You are logged in as <a ng-click="showUserSettings()">{{breadboard.user.email}}</a>
-         | <a ng-click="logout()">Log out</a></div>
     </div>
 
     <div id="bottomDiv">
@@ -59,7 +140,8 @@
                 </p>
 
                 <p>
-                    <button jq-button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" style="float: right;" type="submit">
+                    <button jq-button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
+                            style="float: right;" type="submit">
                         <span class="ui-button-text">Create</span>
                     </button>
                 </p>
@@ -72,20 +154,315 @@
         <div class="new-dialog">
             <form ng-submit="importExperiment()">
                 <p>
-                    <label for="importExperimentImportFrom">Import experiment from: <br><small>(breadboard-v2.X/experiments/...)</small></label>
-                    <input id="importExperimentImportFrom" name="importFrom" ng-model="importFrom" placeholder="Directory name" required>
+                    <label for="importExperimentImportFrom">Import experiment from: <br>
+                        <small>(breadboard-v2.X/experiments/...)</small>
+                    </label>
+                    <input id="importExperimentImportFrom" name="importFrom" ng-model="importFrom"
+                           placeholder="Directory name" required>
                 </p>
                 <p>
                     <label for="importExperimentImportTo">Save experiment as:</label>
-                    <input id="importExperimentImportTo" name="importTo" ng-model="importTo" placeholder="Experiment name" required>
+                    <input id="importExperimentImportTo" name="importTo" ng-model="importTo"
+                           placeholder="Experiment name" required>
                 </p>
 
                 <p>
-                    <button jq-button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only" style="float: right;" type="submit">
+                    <button jq-button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
+                            style="float: right;" type="submit">
                         <span class="ui-button-text">Import</span>
                     </button>
                 </p>
             </form>
+        </div>
+    </div>
+
+    <!-- AMT Admin -->
+    <div>
+        <div ui-jq="dialog" ui-options="amtAdminDialogOptions" id="amtAdminDiv">
+            <amt-admin experiment="breadboard.experiment" experiment-instance="breadboard.experimentInstance"
+                       on-create-hit="submitAMTTask"></amt-admin>
+        </div>
+    </div>
+
+    <!-- Client Graph -->
+    <div>
+        <div ui-jq="dialog" ui-options="clientGraphDialogOptions" id="clientGraphDiv">
+        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="clientGraphCodemirrorOptions"
+                  ng-model="breadboard.experiment.clientGraph"></textarea>
+        </div>
+    </div>
+
+    <!-- Client HTML -->
+    <div>
+        <div ui-jq="dialog" ui-options="clientHtmlDialogOptions" id="clientHtmlDiv">
+        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="clientHtmlCodemirrorOptions"
+                  ng-model="breadboard.experiment.clientHtml"></textarea>
+        </div>
+    </div>
+
+
+    <!-- Content w/ Translation support -->
+    <div>
+        <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
+            <div id="contentLanguageDiv">
+                <span><i class="fa fa-language" aria-hidden="true"></i></span>
+                <select ng-model="selectedLanguage"
+                        ng-options="language as language.name for language in breadboard.experiment.languages track by language.id"></select>
+                <span class="i-button" ng-click="addLanguage()" title="Add Language"><span class="fa fa-plus-circle"
+                                                                                           aria-hidden="true"></span></span>
+            </div>
+            <div id="contentTabsDiv">
+          <span class="steps-tab selected-{{selectedContent.id==content.id}}"
+                ng-repeat="content in breadboard.experiment.content | orderBy: 'name'">
+            <a ng-click="selectContent(content)">{{content.name}}</a>
+              &nbsp;
+              <a title="Delete step" ng-click="deleteContent(cObject)" class="step-titlebar-close ui-corner-all"
+                 role="button">
+                <i class="fa fa-close"></i>
+              </a>
+          </span>
+                <span class="steps-tab selected-false">
+            &nbsp;
+            <a ng-click="newContent()" class="ng-binding">
+              <i class="fa fa-3 fa-plus" aria-hidden="true"></i>
+            </a>
+          </span>
+
+            </div>
+            <div id="tinymceDiv" ng-if="selectedTranslation !== undefined">
+                <textarea id="tinymceTextarea" ui-tinymce="tinymceOptions"
+                          ng-model="selectedTranslation.html"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <div class="new-dialog" id="newContentDialog" style="display: none;">
+        <form ng-submit="createContent()">
+            <p>
+                <input name="name" ng-model="newContentName" placeholder="Name" required>
+            </p>
+            <p>
+                <input name="language" ng-model="newContentLanguage" placeholder="Language" required>
+            </p>
+
+            <p>
+                <button style="float: right;" type="submit">Create</button>
+            </p>
+        </form>
+    </div>
+
+    <!-- CSS -->
+    <div>
+        <div ui-jq="dialog" ui-options="cssDialogOptions" id="cssDiv">
+        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="cssCodemirrorOptions"
+                  ui-refresh="cssDialogIsOpen"
+                  ng-model="breadboard.experiment.style"></textarea>
+        </div>
+    </div>
+
+    <!-- Data -->
+    <div>
+        <div ui-jq="dialog" ui-options="dataDialogOptions" id="dataDiv">
+            <table id="data-table">
+                <thead>
+                <tr>
+                    <th>Instance</th>
+                    <th ng-repeat="elem in breadboard.experiment.parameters">{{elem.name}}</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-repeat="instance in breadboard.experiment.instances">
+                    <td><a ng-click="showEvent(instance)">{{instance.name}}</a></td>
+                    <td ng-repeat="data in instance.data">{{data.value}}</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Experiment Instances -->
+    <div>
+        <div ui-jq="dialog" ui-options="launchDialogOptions" id="launchDiv">
+            <div ng-hide="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
+                <h4>{{ breadboard.experimentInstance.name }}</h4>
+                <button class="btn btn-default" ng-click="stopGame(breadboard.experimentInstance.id)">Stop Instance</button>
+                <table class="table">
+                    <thead>
+                    <caption>Parameters</caption>
+                    <tr>
+                        <th>Name</th>
+                        <th>Value</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="d in breadboard.experimentInstance.data">
+                        <td>{{d.name}}</td>
+                        <td>{{d.value}}</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <form name="createExperimentInstanceForm" class="form-horizontal" ng-show="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
+                <h4>Create Experiment Instance</h4>
+                <div class="form-group">
+                    <label class="col-md-3 control-label"
+                           for="experiment-instance-name">
+                        Name
+                    </label>
+                    <div class="col-md-4">
+                        <input class="form-control" type="text" id="experiment-instance-name" ng-model="experimentInstanceName" required>
+                    </div>
+                    <div class="col-md-5"></div>
+                </div>
+                <div class="form-group" ng-repeat="elem in breadboard.experiment.parameters">
+                    <span ng-if="elem.type === 'Text'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_text">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_text" ng-model="launchParameters[elem.name]"
+                                   type="text" ng-init="launchParameters[elem.name] = elem.defaultVal" required>
+                        </div>
+                    </span>
+
+                    <span ng-if="elem.type === 'Boolean'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_checkbox">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_checkbox" ng-model="launchParameters[elem.name]"
+                                   type="checkbox" ng-init="launchParameters[elem.name] = (elem.defaultVal === 'true')">
+                        </div>
+                    </span>
+
+                    <span ng-if="elem.type === 'Integer'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_integer">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_integer" ng-model="launchParameters[elem.name]"
+                                   type="number" step="1" min="{{elem.minVal}}" max="{{elem.maxVal}}" ng-init="launchParameters[elem.name] = (elem.defaultVal | asNumber)">
+                        </div>
+                    </span>
+
+                    <span ng-if="elem.type === 'Decimal'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_decimal">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_decimal" ng-model="launchParameters[elem.name]"
+                                   type="number" step=".01" min="{{elem.minVal}}" max="{{elem.maxVal}}" ng-init="launchParameters[elem.name] = (elem.defaultVal | asNumber)">
+                        </div>
+                    </span>
+
+                    <div class="col-md-5">
+                        <span class="note">{{elem.description}}</span>
+                    </div>
+                </div>
+                <div class="form-group col-md-12 text-right">
+                    <button class="btn btn-default" ng-disabled="createExperimentInstanceForm.$invalid" ng-click="launchGame()">Create</button>
+                </div>
+            </form>
+            <div>
+                <table class="table" id="instance-table">
+                    <caption>Instances</caption>
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Creation Date</th>
+                        <th>Actions</th>
+                        <th>Client URL</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat="instance in breadboard.experiment.instances"
+                        class="selected-{{instance.id == breadboard.experimentInstance.id}}">
+                        <td>{{instance.id}}</td>
+                        <td>{{instance.name}}</td>
+                        <td>{{instance.status}}</td>
+                        <td>{{instance.creationTime}}</td>
+                        <td ng-switch on="instance.status">
+                          <span ng-switch-when="STOPPED">
+                            <button class="btn btn-default btn-xs" ng-click="selectInstance(instance.id)">Start</button>
+                            <button class="btn btn-default btn-xs" ng-click="deleteInstance(instance.name, instance.id)">Delete</button>
+                          </span>
+                          <span ng-switch-when="FINISHED">
+                            <button class="btn btn-default btn-xs" ng-click="deleteInstance(instance.name, instance.id)">Delete</button>
+                          </span>
+                          <span ng-switch-default>
+                            <button class="btn btn-default btn-xs" ng-click="stopGame(instance.id)">Stop</button>
+                          </span>
+                        </td>
+                        <td>
+                          <span ng-show="instance.name == breadboard.experimentInstance.name">
+                            <a href="game/{{breadboard.experiment.id}}/{{breadboard.experimentInstance.id}}/login" target="_blank">
+                              Login
+                            </a>
+                          </span>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graph -->
+    <div>
+        <div ui-jq="dialog" ui-options="graphDialogOptions" id="graphDiv">
+        </div>
+    </div>
+
+    <!-- Images -->
+    <div>
+        <div ui-jq="dialog" ui-options="imagesDialogOptions" id="imagesDiv">
+            <form action="@routes.Application.uploadImage()" method="post" enctype="multipart/form-data"
+                  id="imageUploadForm">
+                <table>
+                    <thead>
+                    <tr>
+                        <td colspan="3">Add Image</td>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <td><input type="file" name="picture"></td>
+                        <td>
+                            <button title='Add image' ui-jq='button' style="float: right;" type="submit"><span
+                                    class="step-icon ui-icon-plusthick">
+                  New image</span></button>
+                        </td>
+                        <td>
+                            <iframe id="imageUploadIframe" name="imageUploadIframe" src=""
+                                    style="display: none;"></iframe>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+                <input type="hidden" name="experimentId" value="{{breadboard.experiment.id}}">
+            </form>
+            <table style="border-collapse: collapse;">
+                <thead>
+                <tr>
+                    <td>File Name</td>
+                    <td>Image</td>
+                    <td>URL</td>
+                    <td>Delete</td>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-repeat="image in breadboard.experiment.images">
+                    <td>{{image.fileName}}</td>
+                    <td><img ng-src="/thumbs/{{image.id}}"></td>
+                    <td>/images/{{image.id}}</td>
+                    <td>
+                        <button title='Delete image' ui-jq='button'
+                                onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
+                                onmouseout="$(this).parent().parent().css('background', '');"
+                                ng-click='deleteImage(image.id)'><span
+                                class="step-icon ui-icon-closethick">Delete image</span></button>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
@@ -97,14 +474,67 @@
         </div>
     </div>
 
-    <!-- Graph -->
-    <!--div><div ui-jq="dialog" ui-options="graphDialogOptions" id="graphDiv">
-  <graph source="breadboard.graph"></graph>
-</div></div-->
-
-    <!-- Graph 2 -->
+    <!-- Parameters -->
     <div>
-        <div ui-jq="dialog" ui-options="graphDialogOptions" id="graphDiv">
+        <div ui-jq="dialog" ui-options="parametersDialogOptions" id="parametersDiv">
+            <form ng-submit="newParameter()">
+                <table id="parametersTable">
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Min.</th>
+                        <th>Max.</th>
+                        <th>Default</th>
+                        <th>Short Description</th>
+                        <th></th>
+                    </tr>
+                    <tr>
+                        <td><input style="width: 8em;" type="text" name="parameterName" ng-model="parameterName"
+                                   placeholder="Name" required></td>
+                        <td>
+                            <select ng-model="parameterType">
+                                <option></option>
+                                <option value="Integer">Integer</option>
+                                <option value="Decimal">Decimal</option>
+                                <option value="Text">Text</option>
+                                <option value="Boolean">Boolean</option>
+                            </select>
+                        </td>
+                        <td><input style="width: 3em;" ng-disabled="parameterType=='Text' || parameterType=='Boolean'"
+                                   type="text" name="parameterMin"
+                                   ng-model="parameterMin" placeholder="Min."></td>
+                        <td><input style="width: 3em;" ng-disabled="parameterType=='Text' || parameterType=='Boolean'"
+                                   type="text" name="parameterMax"
+                                   ng-model="parameterMax" placeholder="Max."></td>
+                        <td><input style="width: 4em;" type="text" name="parameterDefault" ng-model="parameterDefault"
+                                   placeholder="Default"></td>
+                        <td><input style="width: 16em;" type="text" name="parameterDescription"
+                                   ng-model="parameterDescription" placeholder="Short Description"></td>
+                        <td>
+                            <button title='New parameter' ui-jq='button' style="float: right;" type="submit"><span
+                                    class="step-icon ui-icon-plusthick">New parameter</span></button>
+                        </td>
+                    </tr>
+                    <tr class="parameters" ng-repeat="elem in breadboard.experiment.parameters">
+                        <td>{{elem.name}}</td>
+                        <td>{{elem.type}}</td>
+                        <td>{{elem.minVal}}</td>
+                        <td>{{elem.maxVal}}</td>
+                        <td>{{elem.defaultVal}}</td>
+                        <td>{{elem.description}}</td>
+                        <td>
+                            <button title="Delete parameter"
+                                    onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
+                                    onmouseout="$(this).parent().parent().css('background', '');"
+                                    ng-click="removeParameter(elem.id);" type="button" ui-jq='button'
+                                    style="float: right;"><span
+                                    class="step-icon ui-icon-closethick">Delete parameter</span>
+                            </button>
+                        </td>
+
+                    </tr>
+                </table>
+            </form>
         </div>
     </div>
 
@@ -117,7 +547,8 @@
             </div>
             <div id='playerText' ng-bind-html="selectedNode.text | to_trusted"></div>
             <div id='playerChoices'>
-                <button ng-repeat="choice in selectedNode.choices" class="{{choice.class}}" ng-click="makeChoice($index)">
+                <button ng-repeat="choice in selectedNode.choices" class="{{choice.class}}"
+                        ng-click="makeChoice($index)">
                     {{choice.name}}
                 </button>
             </div>
@@ -127,10 +558,11 @@
         </div>
     </div>
 
-    <!-- AMT Admin -->
+    <!-- Script -->
     <div>
-        <div ui-jq="dialog" ui-options="amtAdminDialogOptions" id="amtAdminDiv">
-            <amt-admin experiment="breadboard.experiment" experiment-instance="breadboard.experimentInstance" on-create-hit="submitAMTTask"></amt-admin>
+        <div ui-jq="dialog" ui-options="scriptDialogOptions" id="scriptDiv">
+        <textarea id="scriptTextArea" class="codemirror" ui-codemirror ui-codemirror-opts="scriptCodemirrorOptions"
+                  ng-model="breadboard.user.currentScript"></textarea>
         </div>
     </div>
 
@@ -180,318 +612,11 @@
         </form>
     </div>
 
-    <!-- Style -->
-    <div>
-        <div ui-jq="dialog" ui-options="cssDialogOptions" id="cssDiv">
-        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="cssCodemirrorOptions" ui-refresh="cssDialogIsOpen"
-                  ng-model="breadboard.experiment.style"></textarea>
-        </div>
-    </div>
-
-
-    <!-- Client HTML -->
-    <div>
-        <div ui-jq="dialog" ui-options="clientHtmlDialogOptions" id="clientHtmlDiv">
-        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="clientHtmlCodemirrorOptions"
-                  ng-model="breadboard.experiment.clientHtml"></textarea>
-        </div>
-    </div>
-
-    <!-- Client Graph -->
-    <div>
-        <div ui-jq="dialog" ui-options="clientGraphDialogOptions" id="clientGraphDiv">
-        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="clientGraphCodemirrorOptions"
-                  ng-model="breadboard.experiment.clientGraph"></textarea>
-        </div>
-    </div>
-
-    <!-- Script -->
-    <div>
-        <div ui-jq="dialog" ui-options="scriptDialogOptions" id="scriptDiv">
-        <textarea id="scriptTextArea" class="codemirror" ui-codemirror ui-codemirror-opts="scriptCodemirrorOptions"
-                  ng-model="breadboard.user.currentScript"></textarea>
-        </div>
-    </div>
-
-    <!-- Content w/ Translation support -->
-    <div>
-        <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
-            <div id="contentLanguageDiv">
-                <span><i class="fa fa-language" aria-hidden="true"></i></span>
-                <select ng-model="selectedLanguage" ng-options="language as language.name for language in breadboard.experiment.languages track by language.id"></select>
-                <span class="i-button" ng-click="addLanguage()" title="Add Language"><span class="fa fa-plus-circle" aria-hidden="true"></span></span>
-            </div>
-            <div id="contentTabsDiv">
-          <span class="steps-tab selected-{{selectedContent.id==content.id}}"
-                ng-repeat="content in breadboard.experiment.content | orderBy: 'name'">
-            <a ng-click="selectContent(content)">{{content.name}}</a>
-              &nbsp;
-              <a title="Delete step" ng-click="deleteContent(cObject)" class="step-titlebar-close ui-corner-all" role="button">
-                <i class="fa fa-close"></i>
-              </a>
-          </span>
-                <span class="steps-tab selected-false">
-            &nbsp;
-            <a ng-click="newContent()" class="ng-binding">
-              <i class="fa fa-3 fa-plus" aria-hidden="true"></i>
-            </a>
-          </span>
-
-            </div>
-            <div id="tinymceDiv" ng-if="selectedTranslation !== undefined">
-                <textarea id="tinymceTextarea" ui-tinymce="tinymceOptions" ng-model="selectedTranslation.html"></textarea>
-            </div>
-        </div>
-    </div>
-
-    <div class="new-dialog" id="newContentDialog" style="display: none;">
-        <form ng-submit="createContent()">
-            <p>
-                <input name="name" ng-model="newContentName" placeholder="Name" required>
-            </p>
-            <p>
-                <input name="language" ng-model="newContentLanguage" placeholder="Language" required>
-            </p>
-
-            <p>
-                <button style="float: right;" type="submit">Create</button>
-            </p>
-        </form>
-    </div>
-
-    <!-- Launch -->
-    <div>
-        <div ui-jq="dialog" ui-options="launchDialogOptions" id="launchDiv">
-            <form ng-show="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
-                <div>
-                    <div>
-                        <label for="name">Name: </label><input id="name" name="name" ng-model="experimentInstanceName"
-                                                               required>
-                    </div>
-                    <div ng-repeat="elem in breadboard.experiment.parameters" ng-switch="elem.type">
-                        <label for="{{elem.name}}">{{elem.name}}: </label>
-
-                        <input ng-switch-when="Boolean" id="{{elem.name}}" ng-model="launchParameters[elem.name]" type="checkbox" ng-init="launchParameters[elem.name]=elem.name" required>
-                        <input ng-switch-default="Text" id="{{elem.name}}" ng-model="launchParameters[elem.name]" type="text" required>
-                        <span class="note">{{elem.description}}</span>
-                    </div>
-                    <!--parameterType ng-repeat="elem in breadboard.experiment.parameters">
-                          <label for="{{elem.name}}">{{elem.name}}: </label><input id="{{elem.name}}"
-                                                                                   ng-model="launchParameters[elem.name]"
-                                                                                   type="{{paramType(elem.type)}}"
-                                                                                   required>
-                      </parameterType-->
-                    <div>
-                        <button name="launch" ui-jq='button' type="button" ng-click="launchGame()">Launch
-                        </button>
-                    </div>
-                </div>
-            </form>
-            <div>
-                <table class="instancesTable" id="instance-table">
-                    <caption>Instances</caption>
-                    <thead>
-                    <tr>
-                        <th>Creation Date</th>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Status</th>
-                        <th>Action</th>
-                        <th>Client</th>
-                    </tr>
-                    </thead>
-                    <tbody ng-switch on="breadboard.experimentInstance.status">
-                    <tr ng-switch-when="TESTING" class="selected-true">
-                        <td>{{breadboard.experimentInstance.creationTime}}</td>
-                        <td>0</td>
-                        <td>
-                            {{breadboard.experimentInstance.name}}
-                        </td>
-                        <td>{{breadboard.experimentInstance.status}}</td>
-                        <td>
-                            <a ng-click="stopGame(breadboard.experimentInstance.id)">stop</a>
-                        </td>
-                        <td>
-                          <span>
-                              <a href="game/{{breadboard.experiment.id}}/{{breadboard.experimentInstance.id}}/login" target="_blank">
-                                login
-                              </a>
-                            </span>
-                        </td>
-                    </tr>
-
-                    <tr ng-repeat="instance in breadboard.experiment.instances"
-                        class="selected-{{instance.id == breadboard.experimentInstance.id}}">
-                        <td>{{instance.creationTime}}</td>
-                        <td>{{instance.id}}</td>
-                        <td>
-                            {{instance.name}}
-                        </td>
-                        <td>{{instance.status}}</td>
-                        <td ng-switch on="instance.status">
-                  <span ng-switch-when="STOPPED">
-                    <a ng-click="selectInstance(instance.id)">launch</a> |
-                    <a ng-click="deleteInstance(instance.name, instance.id)">delete</a>
-                  </span>
-                    <span ng-switch-when="FINISHED">
-                    <a ng-click="deleteInstance(instance.name, instance.id)">delete</a>
-                  </span>
-                            <span ng-switch-default>
-                    <a ng-click="stopGame(instance.id)">stop</a>
-                  </span>
-                        </td>
-                        <td>
-                  <span ng-show="instance.name == breadboard.experimentInstance.name">
-                      <a href="game/{{breadboard.experiment.id}}/{{breadboard.experimentInstance.id}}/login" target="_blank">
-                        login
-                      </a>
-                  </span>
-                        </td>
-                        <!--<td ng-switch on="instance.status">-->
-                        <!--<a>Test</a>-->
-                        <!--<a ng-switch-when="STOPPED" ng-click="selectInstance(instance.id)">-->
-
-                        <!--</a>-->
-                        <!--<span ng-switch-default>{{instance.name}}</span>-->
-                        <!--</td>-->
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div ng-hide="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
-                <h3>{{breadboard.experimentInstance.name}}</h3>
-                <table style="border-collapse: collapse;
-            border: 1px solid black;">
-                    <caption>Data</caption>
-                    <tr ng-repeat="d in breadboard.experimentInstance.data">
-                        <td>{{d.name}}:</td>
-                        <td>{{d.value}}</td>
-                    </tr>
-                </table>
-                <div ng-switch on="breadboard.experimentInstance.status">
-            <span ng-switch-when="TESTING">
-              <button ui-jq='button' type="button" ng-click="stopGame()">Stop Test</button>
-            </span>
-                    <span ng-switch-default>
-              <button ui-jq='button' type="button" ng-click="stopGame(breadboard.experimentInstance.id)">Stop</button>
-            </span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Parameters -->
-    <div>
-        <div ui-jq="dialog" ui-options="parametersDialogOptions" id="parametersDiv">
-            <form ng-submit="newParameter()">
-                <table id="parametersTable">
-                    <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Min.</th>
-                        <th>Max.</th>
-                        <th>Default</th>
-                        <th>Short Description</th>
-                        <th></th>
-                    </tr>
-                    <tr>
-                        <td><input style="width: 8em;" type="text" name="parameterName" ng-model="parameterName"
-                                   placeholder="Name" required></td>
-                        <td>
-                            <select ng-model="parameterType">
-                                <option></option>
-                                <option value="Integer">Integer</option>
-                                <option value="Decimal">Decimal</option>
-                                <option value="Text">Text</option>
-                                <option value="Boolean">Boolean</option>
-                            </select>
-                        </td>
-                        <td><input style="width: 3em;" ng-disabled="parameterType=='Text' || parameterType=='Boolean'" type="text" name="parameterMin"
-                                   ng-model="parameterMin" placeholder="Min."></td>
-                        <td><input style="width: 3em;" ng-disabled="parameterType=='Text' || parameterType=='Boolean'" type="text" name="parameterMax"
-                                   ng-model="parameterMax" placeholder="Max."></td>
-                        <td><input style="width: 4em;" type="text" name="parameterDefault" ng-model="parameterDefault"
-                                   placeholder="Default"></td>
-                        <td><input style="width: 16em;" type="text" name="parameterDescription"
-                                   ng-model="parameterDescription" placeholder="Short Description"></td>
-                        <td>
-                            <button title='New parameter' ui-jq='button' style="float: right;" type="submit"><span
-                                    class="step-icon ui-icon-plusthick">New parameter</span></button>
-                        </td>
-                    </tr>
-                    <tr class="parameters" ng-repeat="elem in breadboard.experiment.parameters">
-                        <td>{{elem.name}}</td>
-                        <td>{{elem.type}}</td>
-                        <td>{{elem.minVal}}</td>
-                        <td>{{elem.maxVal}}</td>
-                        <td>{{elem.defaultVal}}</td>
-                        <td>{{elem.description}}</td>
-                        <td>
-                            <button title="Delete parameter"
-                                    onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
-                                    onmouseout="$(this).parent().parent().css('background', '');"
-                                    ng-click="removeParameter(elem.id);" type="button" ui-jq='button'
-                                    style="float: right;"><span class="step-icon ui-icon-closethick">Delete parameter</span>
-                            </button>
-                        </td>
-
-                    </tr>
-                </table>
-            </form>
-        </div>
-    </div>
-
-    <!-- Images -->
-    <div>
-        <div ui-jq="dialog" ui-options="imagesDialogOptions" id="imagesDiv">
-            <form action="@routes.Application.uploadImage()" method="post" enctype="multipart/form-data" id="imageUploadForm">
-                <table>
-                    <thead>
-                    <tr>
-                        <td colspan="3">Add Image</td>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td><input type="file" name="picture"></td>
-                        <td><button title='Add image' ui-jq='button' style="float: right;" type="submit"><span class="step-icon ui-icon-plusthick">
-                  New image</span></button></td>
-                        <td><iframe id="imageUploadIframe" name="imageUploadIframe" src="" style="display: none;"></iframe></td>
-                    </tr>
-                    </tbody>
-                </table>
-                <input type="hidden" name="experimentId" value="{{breadboard.experiment.id}}">
-            </form>
-            <table style="border-collapse: collapse;">
-                <thead>
-                <tr>
-                    <td>File Name</td>
-                    <td>Image</td>
-                    <td>URL</td>
-                    <td>Delete</td>
-                </tr>
-                </thead>
-                <tbody>
-                <tr ng-repeat="image in breadboard.experiment.images">
-                    <td>{{image.fileName}}</td>
-                    <td><img ng-src="/thumbs/{{image.id}}"></td>
-                    <td>/images/{{image.id}}</td>
-                    <td>
-                        <button title='Delete image' ui-jq='button'
-                                onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
-                                onmouseout="$(this).parent().parent().css('background', '');"
-                                ng-click='deleteImage(image.id)'><span class="step-icon ui-icon-closethick">Delete image</span></button>
-                    </td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-
     <!-- Experiment -->
     <div class="delete-dialog" id="deleteExperimentDialog" style="display: none;">
         <p>
-            Are you sure that you want to permanently delete the experiment '<span class="deleteExperimentName"></span>' and
+            Are you sure that you want to permanently delete the experiment '<span class="deleteExperimentName"></span>'
+            and
             all of its associated data and instances?
         </p>
     </div>
@@ -524,36 +649,19 @@
     <!-- Delete instance -->
     <div class="delete-dialog" id="deleteInstanceDialog" title="Delete Instance" style="display: none;">
         <p>
-            Are you sure that you want to permanently delete the instance "<span id="deleteInstanceDialogDesc" class="bold"></span>
+            Are you sure that you want to permanently delete the instance "<span id="deleteInstanceDialogDesc"
+                                                                                 class="bold"></span>
             "
             and all of its associated data?</p>
     </div>
 
-    <!-- Data -->
-    <div>
-        <div ui-jq="dialog" ui-options="dataDialogOptions" id="dataDiv">
-            <table id="data-table">
-                <thead>
-                <tr>
-                    <th>Instance</th>
-                    <th ng-repeat="elem in breadboard.experiment.parameters">{{elem.name}}</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr ng-repeat="instance in breadboard.experiment.instances">
-                    <td><a ng-click="showEvent(instance)">{{instance.name}}</a></td>
-                    <td ng-repeat="data in instance.data">{{data.value}}</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
     <div id="amtErrorDialog" style="display: none;">
         <p>Please select an experiment and launch an instance before posting a HIT.</p>
     </div>
     <div class="event-data-dialog" id="eventDataDialog" style="display: none;">
 
-        <button class="ui-button" style="float: right;" type="button" ng-click="downloadEventCsv(showEvent.experimentInstance)">
+        <button class="ui-button" style="float: right;" type="button"
+                ng-click="downloadEventCsv(showEvent.experimentInstance)">
             <span class="ui-button-text">Download CSV</span>
         </button>
         <div class="bold">Instance - {{breadboard.eventExperimentInstance}}</div>

@@ -269,8 +269,12 @@
                                     Assignments
                                 </div>
                                 <div class="panel-body">
-                                    <span ng-show="hit.assignments == null">Loading...</span>
-                                    <table class="table table-condensed" ng-show="hit.assignments !== null">
+                                    <span ng-show="hit.assignments === null">Loading...</span>
+                                    <span ng-show="hit.assignments !== null && hit.assignments.length === 0">
+                                        <p>No assignments found...</p>
+                                        <button class="btn btn-default" ng-click="refreshAssignmentsForHIT(hit)">Refresh</button>
+                                    </span>
+                                    <table class="table table-condensed" ng-show="hit.assignments !== null && hit.assignments.length > 0">
                                         <thead>
                                         <tr>
                                             <th>Assignment ID</th>

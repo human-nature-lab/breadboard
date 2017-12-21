@@ -25,12 +25,14 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
 
         if ($scope.breadboard.experiment.parameters != undefined) {
           // Set parameters in Launch dialog to default values
+          /*
           for (var i = 0; i < $scope.breadboard.experiment.parameters.length; i++) {
             var parameter = $scope.breadboard.experiment.parameters[i];
             if (!$scope.launchParameters[parameter.name]) {
               $scope.launchParameters[parameter.name] = parameter.defaultVal;
             }
           }
+          */
         }
         if ($scope.selectedLanguage === undefined) {
           // Setup default language
@@ -91,11 +93,11 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   };
 
   $scope.paramType = function (type) {
-    if (type == 'Boolean') {
+    if (type === 'Boolean') {
       return "checkbox";
     }
 
-    if (type == 'Decimal' || type == 'Integer') {
+    if (type === 'Decimal' || type === 'Integer') {
       return "number";
     }
 
@@ -114,7 +116,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
         "description": $scope.parameterDescription
       });
     // Set the default value
-    $scope.launchParameters[$scope.parameterName] = $scope.parameterDefault;
+    //$scope.launchParameters[$scope.parameterName] = $scope.parameterDefault;
   };
 
   $scope.removeParameter = function (id) {
@@ -698,6 +700,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
     windowHeight = ($(window).innerHeight() - topDivHeight - bottomDivHeight - dialogMargin),
     windowWidth = ($(window).innerWidth() - (margin * 2));
 
+  $scope.amtAdminDialogOptions = {
+    title: 'AMT',
+    autoOpen: false,
+    width: windowWidth,
+    height: windowHeight,
+    position: [margin, topDivHeight],
+    buttons: {}
+  };
+
   $scope.outputDialogOptions = {
     title: 'Output',
     autoOpen: true,
@@ -716,9 +727,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
     position: [margin, topDivHeight],
     buttons: [
       {
-        text: 'Run',
+        text: 'Execute Script',
         click: function () {
           sendScript();
+        }
+      },
+      {
+        text: 'Start InitStep',
+        click: function () {
+          run();
         }
       }
     ]
@@ -743,7 +760,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   $scope.contentDialogOptions = {
     title: 'Content',
     width: ((windowWidth * .5) - dialogMargin),
-    height: ((windowHeight * .75) - dialogMargin),
+    height: windowHeight,
     position: [margin, topDivHeight],
     autoOpen: false,
     buttons: {
@@ -769,7 +786,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   };
 
   $scope.cssDialogOptions = {
-    title: 'Style',
+    title: 'CSS',
     autoOpen: true,
     buttons: {
       'Save': function () {
@@ -777,8 +794,8 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
       }
     },
     width: ((windowWidth * .5) - dialogMargin),
-    height: ((windowHeight * .25) - dialogMargin),
-    position: [((windowWidth * .5) + dialogMargin), (topDivHeight + dialogMargin + (.75 * windowHeight))]
+    height: windowHeight,
+    position: [((windowWidth * .5) + dialogMargin), topDivHeight]
   };
 
   $scope.clientHtmlDialogOptions = {
@@ -790,8 +807,8 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
       }
     },
     width: ((windowWidth * .5) - dialogMargin),
-    height: ((windowHeight * .25) - dialogMargin),
-    position: [((windowWidth * .5) + dialogMargin), (topDivHeight + dialogMargin + (.75 * windowHeight))]
+    height: windowHeight,
+    position: [((windowWidth * .5) + dialogMargin), topDivHeight]
   };
 
   $scope.clientGraphDialogOptions = {
@@ -803,15 +820,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
       }
     },
     width: ((windowWidth * .5) - dialogMargin),
-    height: ((windowHeight * .25) - dialogMargin),
-    position: [((windowWidth * .5) + dialogMargin), (topDivHeight + dialogMargin + (.75 * windowHeight))]
+    height: windowHeight,
+    position: [((windowWidth * .5) + dialogMargin), topDivHeight]
   };
 
   $scope.graphDialogOptions = {
     title: 'Graph',
     autoOpen: true,
     width: ((windowWidth * .5) - dialogMargin),
-    height: ((windowHeight * .75) - dialogMargin),
+    height: windowHeight,
     position: [((windowWidth * .5) + dialogMargin), topDivHeight],
     buttons: {}
   };
@@ -826,7 +843,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   };
 
   $scope.launchDialogOptions = {
-    title: 'Launch',
+    title: 'Experiment Instances',
     autoOpen: false,
     width: ((windowWidth * .5) - dialogMargin),
     height: windowHeight,
@@ -843,23 +860,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
     buttons: {}
   };
 
-  $scope.amtDialogOptions = {
-    title: 'AMT',
-    autoOpen: false,
-    width: ((windowWidth * .5) - dialogMargin),
-    height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight],
-    buttons: {}
-  };
-
-  $scope.amtAdminDialogOptions = {
-    title: 'AMT Admin',
-    autoOpen: false,
-    width: windowWidth,
-    height: windowHeight,
-    position: [margin, topDivHeight],
-    buttons: {}
-  };
 
   $scope.parametersDialogOptions = {
     title: 'Parameters',
