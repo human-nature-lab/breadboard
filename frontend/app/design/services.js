@@ -17,7 +17,7 @@ angular.module('breadboard.services', ['ui.utils', 'ngCookies'], function($provi
             create: function(event, ui) {
               let _this = this;
               let title = $(this).dialog('option', 'title');
-              let link = $("<button type='button' class='dialog-link ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only' role='button' aria-disabled='false'><span class='ui-button-text'>" + title + "</span></button>");
+              let link = $("<button type='button' class='dialog-link btn btn-default' role='button' aria-disabled='false'><span class='ui-button-text'>" + title + "</span></button>");
               $(link).click(function () {
                   $(_this).dialog('open');
                   $(_this).dialog('moveToTop');
