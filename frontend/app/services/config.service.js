@@ -11,6 +11,10 @@ export default function ConfigService($http, $q){
       console.error("Unable to load client configuration", err);
     });
 
+  this.hasLoaded = function(){
+    return $q.when(configPromise);
+  };
+
   /**
    * Should be used to access all configuration properties set by the /state route
    * @param {string} key - name of the parameter to get

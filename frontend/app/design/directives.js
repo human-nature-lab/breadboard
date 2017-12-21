@@ -1,5 +1,3 @@
-'use strict';
-
 /* Directives */
 
 angular.module('breadboard.directives', []).

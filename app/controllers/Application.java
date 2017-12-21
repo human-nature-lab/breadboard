@@ -145,6 +145,7 @@ public class Application extends Controller {
     result.put("uid", session("uid")); // remove this
     result.put("juid", session("juid"));
     result.put("email", session("email"));
+    result.put("connectSocket", play.Play.application().configuration().getString("breadboard.wsUrl"));
     return ok(result);
   }
 

@@ -1,5 +1,3 @@
-'use strict';
-
 /* Filters */
 
 angular.module('breadboard.filters', [])

@@ -5,11 +5,13 @@ import ClientGraphService from './client-graph.service';
 import ClientFactory from './client.factory';
 import ConfigService from './config.service';
 import LanguageService from './language.service';
+import BreadboardFactory from './breadboard.factory';
 
-export default angular.module('breadboard.services2', [])
+export default angular.module('breadboard.services', [])
   .service('configService', ConfigService)
   .service('websocketFactory', WebsocketFactory)
   .service('clientGraph', ClientGraphService)
   .service('scriptInjector', ScriptInjector)
   .service('clientFactory', ClientFactory)
   .service('languageService', LanguageService)
+  .factory('breadboardFactory', BreadboardFactory);

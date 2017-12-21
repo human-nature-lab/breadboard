@@ -2,7 +2,7 @@ import loginTemplateUrl from '../templates/login.html';
 import homeTemplateUrl from '../templates/home.html';
 import '../login/login.directive';
 import './middleware';
-import './services';
+import '../services/services.module';
 
 angular.module('breadboard.routes', ['ui.router', 'breadboard.middleware', 'ngCookies'])
   .config(['$stateProvider', '$urlRouterProvider', '$httpProvider', function($stateProvider, $urlRouterProvider, $httpProvider){
