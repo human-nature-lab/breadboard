@@ -731,12 +731,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
         click: function () {
           sendScript();
         }
-      },
-      {
-        text: 'Start InitStep',
-        click: function () {
-          run();
-        }
       }
     ]
   };

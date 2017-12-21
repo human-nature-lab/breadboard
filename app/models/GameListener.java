@@ -42,16 +42,18 @@ public class GameListener {
       this.experimentInstance.finish();
     }
     if (user != null && engine != null) {
+      /*
       for (Parameter p : user.getExperiment().getParameters()) {
         if (engine.getBindings(ScriptContext.ENGINE_SCOPE).containsKey(p.name))
           engine.getBindings(ScriptContext.ENGINE_SCOPE).remove(p.name);
       }
+      */
       this.out.write(user.toJson());
 
       // Set User ExperimentInstance to -1 here.
-      user.setExperimentInstanceId(-1L);
-      user.update();
-      Breadboard.instances.get(user.email).tell(new Breadboard.GameFinish(user, out), null);
+      // user.setExperimentInstanceId(-1L);
+      // user.update();
+      // Breadboard.instances.get(user.email).tell(new Breadboard.GameFinish(user, out), null);
     }
 
   }
