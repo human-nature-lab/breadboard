@@ -3,6 +3,7 @@ import './login.controller';
 angular.module('breadboard.login').directive('login', function(){
   return {
     restrict: 'E',
+    replace: true,
     scope: {
       path: '=',
       onSuccess: '&',

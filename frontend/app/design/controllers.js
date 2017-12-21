@@ -88,7 +88,11 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
 
   $scope.logout = function(){
     $http.get('/logout').then(function(res){
-      $state.go('login');
+      // $state.go('login');
+      // Remove this redirect once the application cleans up after itself correctly
+      setTimeout(function(){
+        window.location.reload();
+      });
     });
   };
 
@@ -934,8 +938,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   };
 
   $scope.$on('$destroy', function(){
-    // TODO: Destroy all of the popup windows
-    console.log("TODO: Destroy the popup windows or display the login as a modal");
+    // Destroy all of the popup windows.
+    $("[ui-jq=\"dialog\"]").dialog('destroy');
+
+    // TODO: Disconnect from websockets and other cleanup so that the application can restart without redirect
   });
 
 }]);
