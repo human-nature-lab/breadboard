@@ -375,9 +375,19 @@
     <div>
         <div ui-jq="dialog" ui-options="launchDialogOptions" id="launchDiv">
             <div>
-                <table class="table" id="instance-table">
+                <table class="table table-hover" id="instance-table">
                     <caption>Instances</caption>
                     <thead>
+                    <tr>
+                        <td colspan="6">
+                            <button class="btn btn-default btn-sm pull-right"
+                                    onclick="hideTooltips()"
+                                    ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
+                                    ng-click="openNewInstanceModal()">
+                                Create
+                            </button>
+                        </td>
+                    </tr>
                     <tr>
                         <th>ID</th>
                         <th>Name</th>
@@ -388,6 +398,7 @@
                     </tr>
                     </thead>
                     <tbody>
+                    <tr ng-show="breadboard.experiment.instances.length == 0"><td colspan="6">No instances</td></tr>
                     <tr ng-repeat-start="instance in breadboard.experiment.instances"
                         class="selected-{{instance.id === breadboard.experimentInstance.id}}">
                         <td>{{instance.id}}</td>
@@ -436,6 +447,26 @@
                         </td>
                     </tr>
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Status</th>
+                        <th>Creation Date</th>
+                        <th>Actions</th>
+                        <th>Client URL</th>
+                    </tr>
+                    <tr>
+                        <td colspan="6">
+                            <button class="btn btn-default btn-sm pull-right"
+                                    onclick="hideTooltips()"
+                                    ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
+                                    ng-click="openNewInstanceModal()">
+                                Create
+                            </button>
+                        </td>
+                    </tr>
+                    </tfoot>
                 </table>
             </div>
         </div>

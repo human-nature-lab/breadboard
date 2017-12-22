@@ -150,19 +150,9 @@ public class ExperimentInstance extends Model {
   public ObjectNode toJson() {
     ObjectNode experimentInstance = this.toJsonStub();
 
-    ArrayNode jsonData = experimentInstance.putArray("data");
-    for (Data d : data) {
-      jsonData.add(d.toJson());
-    }
-
     ArrayNode jsonEvents = experimentInstance.putArray("events");
     for (Event e : events) {
       jsonEvents.add(e.toJson());
-    }
-
-    ArrayNode jsonAmtHits = experimentInstance.putArray("hits");
-    for (AMTHit a : amtHits) {
-      jsonAmtHits.add(a.toJson());
     }
 
     return experimentInstance;
@@ -177,7 +167,6 @@ public class ExperimentInstance extends Model {
     experimentInstance.put("name", name);
     experimentInstance.put("hitId", (amtHits.size() > 0) ? amtHits.get(0).id.toString() : "");
 
-    /*
     ArrayNode jsonHits = experimentInstance.putArray("hits");
     for (AMTHit h : amtHits) {
       jsonHits.add(h.toJson());
@@ -187,7 +176,6 @@ public class ExperimentInstance extends Model {
     for (Data d : data) {
       jsonData.add(d.toJson());
     }
-    */
 
     return experimentInstance;
   }

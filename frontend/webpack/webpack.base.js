@@ -4,6 +4,7 @@ const path = require('path');
 console.log(__dirname);
 const buildPath = path.resolve(__dirname, '../../../public/bundles/');
 const nodeModulesPath = path.resolve(__dirname, 'node_modules');
+const LiveReloadPlugin = require('webpack-livereload-plugin');
 
 /**
  * Base configuration object for Webpack
@@ -61,6 +62,7 @@ module.exports = {
         ),
         new webpack.ProvidePlugin({
             'fetch': 'imports?this=>global!exports?global.fetch!whatwg-fetch'
-        })
+        }),
+        new LiveReloadPlugin()
     ]
 };
