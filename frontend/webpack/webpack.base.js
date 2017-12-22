@@ -21,6 +21,11 @@ module.exports = {
                 // exclude: /node_modules/,
             },
             {
+                test: /\.js$/,
+                use: ['babel-loader'],
+                exclude: /node_modules/,
+            },
+            {
                 test: /\.[sass|scss]$/,
                 use: ['style-loader', 'css-loader', 'sass-loader'],
                 // exclude: /node_modules/,
@@ -47,7 +52,7 @@ module.exports = {
         ]
     },
     resolve: {
-        extensions: ['.js','.json','.css','.html']
+        extensions: ['.js','.json','.css','.html', '.jsx']
     },
     plugins: [
         new webpack.ContextReplacementPlugin(
