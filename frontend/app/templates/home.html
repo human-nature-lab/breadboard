@@ -351,10 +351,10 @@
         </div>
     </div>
 
-    <!-- Data -->
+    <!--
     <div>
         <div ui-jq="dialog" ui-options="dataDialogOptions" id="dataDiv">
-            <table id="data-table">
+            <table class="table table-condensed">
                 <thead>
                 <tr>
                     <th>Instance</th>
@@ -368,29 +368,31 @@
                 </tr>
                 </tbody>
             </table>
-     k="shdiv>
     </div>
+    -->
 
     <!-- Experiment Instances -->
     <div>
         <div ui-jq="dialog" ui-options="launchDialogOptions" id="launchDiv">
             <div>
                 <table class="table table-hover" id="instance-table">
-                    <caption>Instances</caption>
                     <thead>
                     <tr>
                         <td colspan="6">
                             <button class="btn btn-default btn-sm pull-right"
-                                    onclick="hideTooltips()"
+                                    ng-click="downloadExperimentCsv()">
+                                Download List
+                            </button>
+                            <button class="btn btn-default btn-sm pull-right"
                                     ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
                                     ng-click="openNewInstanceModal()">
-                                Create
+                                Create Instance
                             </button>
                         </td>
                     </tr>
                     <tr>
                         <th>ID</th>
-                        <th>Name</th>
+                        <th>Instance</th>
                         <th>Status</th>
                         <th>Creation Date</th>
                         <th>Actions</th>
@@ -400,57 +402,78 @@
                     <tbody>
                     <tr ng-show="breadboard.experiment.instances.length == 0"><td colspan="6">No instances</td></tr>
                     <tr ng-repeat-start="instance in breadboard.experiment.instances"
-                        class="selected-{{instance.id === breadboard.experimentInstance.id}}">
+                        class="selected-{{instance.id === breadboard.experimentInstance.id}}"
+                        ng-click="breadboard.experimentInstance = instance">
                         <td>{{instance.id}}</td>
                         <td>{{instance.name}}</td>
                         <td>{{instance.status}}</td>
                         <td>{{instance.creationTime}}</td>
-                        <td ng-switch on="instance.status">
-                          <span ng-switch-when="STOPPED">
-                            <button class="btn btn-default btn-xs" ng-click="selectInstance(instance.id)">Start</button>
-                            <button class="btn btn-default btn-xs" ng-click="deleteInstance(instance.name, instance.id)">Delete</button>
-                          </span>
-                          <span ng-switch-when="FINISHED">
-                            <button class="btn btn-default btn-xs" ng-click="deleteInstance(instance.name, instance.id)">Delete</button>
-                          </span>
-                          <span ng-switch-default>
-                            <button class="btn btn-default btn-xs" ng-click="stopGame(instance.id)">Stop</button>
-                          </span>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-default"
+                                        title="Start the selected experiment instance"
+                                        data-toggle="tooltip"
+                                        data-placement="bottom"
+                                        ng-disabled="instance.status === 'RUNNING' || instance.status === 'FINISHED'"
+                                        onclick="hideTooltips()"
+                                        ng-click="selectInstance(instance.id)">
+                                    <span class="glyphicon glyphicon-play"
+                                          aria-hidden="true">
+                                    </span>
+                                </button>
+                                <button class="btn btn-default"
+                                        title="Stop the selected experiment instance"
+                                        data-toggle="tooltip"
+                                        data-placement="bottom"
+                                        ng-click="stopGame(instance.id)"
+                                        onclick="hideTooltips()"
+                                        ng-disabled="instance.status !== 'RUNNING'">
+                                    <span class="glyphicon glyphicon-stop"
+                                          aria-hidden="true">
+                                    </span>
+                                </button>
+                                <button class="btn btn-default"
+                                        title="Delete the selected experiment instance"
+                                        data-toggle="tooltip"
+                                        data-placement="bottom"
+                                        ng-disabled="instance.status === 'RUNNING'"
+                                        ng-click="deleteInstance(instance.name, instance.id)">
+                                    <span class="glyphicon glyphicon-remove"
+                                          aria-hidden="true">
+                                    </span>
+                                </button>
+                                <button class="btn btn-default"
+                                        title="Download experiment data"
+                                        data-toggle="tooltip"
+                                        data-placement="bottom"
+                                        ng-click="downloadEventCsv(instance)">
+                                    <span class="glyphicon glyphicon-save"
+                                          aria-hidden="true">
+                                    </span>
+                                </button>
+                            </div>
                         </td>
                         <td>
-                          <span ng-show="instance.name == breadboard.experimentInstance.name">
-                            <a href="game/{{breadboard.experiment.id}}/{{breadboard.experimentInstance.id}}/login" target="_blank">
-                              Login
+                          <span ng-show="instance.name === breadboard.experimentInstance.name">
+                            <a href="{{ getClientURL(breadboard.experiment.id,instance.id) }}" target="_blank">
+                              {{ getClientURL(breadboard.experiment.id,instance.id) }}
                             </a>
+                          </span>
+                            <span ng-show="instance.name !== breadboard.experimentInstance.name">
+                              {{ getClientURL(breadboard.experiment.id,instance.id) }}
                           </span>
                         </td>
                     </tr>
                     <tr ng-repeat-end ng-show="instance.id === breadboard.experimentInstance.id">
                         <td colspan="6">
-                            <table class="table table-condensed">
-                                <thead>
-                                <tr>
-                                    <th>Parameter</th>
-                                    <th>Value</th>
-                                </tr>
-                                </thead>
-                                <tbody>
-                                <tr ng-if="breadboard.experimentInstance.data.length == 0">
-                                    <td colspan="2">No parameters</td>
-                                </tr>
-                                <tr ng-repeat="d in breadboard.experimentInstance.data">
-                                    <td>{{d.name}}</td>
-                                    <td>{{d.value}}</td>
-                                </tr>
-                                </tbody>
-                            </table>
+                            <instance-parameters instance="breadboard.experimentInstance"></instance-parameters>
                         </td>
                     </tr>
                     </tbody>
                     <tfoot>
                     <tr>
                         <th>ID</th>
-                        <th>Name</th>
+                        <th>Instance</th>
                         <th>Status</th>
                         <th>Creation Date</th>
                         <th>Actions</th>
@@ -459,10 +482,13 @@
                     <tr>
                         <td colspan="6">
                             <button class="btn btn-default btn-sm pull-right"
-                                    onclick="hideTooltips()"
+                                    ng-click="downloadExperimentCsv()">
+                                Download List
+                            </button>
+                            <button class="btn btn-default btn-sm pull-right"
                                     ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
                                     ng-click="openNewInstanceModal()">
-                                Create
+                                Create Instance
                             </button>
                         </td>
                     </tr>

@@ -1,0 +1,17 @@
+<table class="table table-condensed">
+    <thead>
+    <tr>
+        <th>Parameter</th>
+        <th>Value</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr ng-if="!instance.data || instance.data.length == 0">
+        <td colspan="2">No parameters</td>
+    </tr>
+    <tr ng-repeat="d in instance.data">
+        <td>{{d.name}}</td>
+        <td>{{d.value}}</td>
+    </tr>
+    </tbody>
+</table>

@@ -3,6 +3,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.tokens = [null];
   $scope.curToken = 0;
   $scope.hits = [];
+  $scope.selectedTab = 'manage';
   $scope.selectedHIT = null;
   $scope.showCreateHIT = false;
   $scope.creatingHIT = false;
@@ -13,22 +14,22 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
 
   $scope.dummyHIT = {
     'workerIDs' : '',
-    'reason' : 'We could not pay you through the normal means',
-    'reward' : 1.00,
+    'reason' : '',
+    'reward' : 1,
     'submitted' : [],
     'nPending' : 0
   };
 
   $scope.createHitForm = {
     'disallowPrevious' : 'type',
-    'tutorialTime' : 299,
-    'lifetime' : 301,
+    'tutorialTime' : 300,
+    'lifetime' : 300,
     'assignmentDuration' : 5400,
-    'keywords' : 'decision making task,experiment',
+    'keywords' : '',
     'maxAssignments' : 20,
-    'reward' : 1.00,
-    'description' : 'Test Description',
-    'title' : 'Test Title',
+    'reward' : 1,
+    'description' : '',
+    'title' : '',
     'autoLaunch' : true,
     'status' : 0, // 0: Show form, 1: Submitting, 2: Successful, 3: Error
     'error' : ''

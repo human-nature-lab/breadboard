@@ -7,6 +7,7 @@ import '../services/services.module';
 import './routes';
 import uiJqConfig from '../providers/ui-jq-config.value';
 import '../amt-admin/amt-admin.directive';
+import '../directives/instance-parameters/instance-parameters.directive';
 import '../create-first-user/create-first-user.directive';
 
 angular.module('breadboard', [
@@ -18,6 +19,7 @@ angular.module('breadboard', [
   'breadboard.routes',
   'breadboard.amt-admin',
   'breadboard.create-first-user',
+  'breadboard.instance-parameters',
   'ui.utils',
   'ui.codemirror',
   'ui.tinymce',

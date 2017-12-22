@@ -159,6 +159,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
     return playerProps;
   };
 
+  $scope.getClientURL = function(experimentId, experimentInstanceId) {
+    return window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/game/" + experimentId + "/" + experimentInstanceId + "/login"
+  };
+
   $scope.makeChoice = function (i) {
     $breadboardFactory.send(
       {
@@ -726,6 +730,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
     location.href = '/csv/event/' + experimentInstance.id;
   };
 
+  $scope.downloadExperimentCsv = function(experiment) {
+    location.href = '/csv/data/' + $scope.breadboard.experiment.id;
+  };
+
   var dialogMargin = 10,
     topDivHeight = 50,
     bottomDivHeight = 50,
@@ -768,6 +776,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
     ]
   };
 
+  /*
   $scope.dataDialogOptions = {
     title: 'Data',
     autoOpen: false,
@@ -783,6 +792,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
       }
     ]
   };
+  */
 
   $scope.contentDialogOptions = {
     title: 'Content',
@@ -872,7 +882,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   $scope.launchDialogOptions = {
     title: 'Experiment Instances',
     autoOpen: false,
-    width: ((windowWidth * .5) - dialogMargin),
+    width: windowWidth,
     height: windowHeight,
     position: [margin, topDivHeight],
     buttons: {}

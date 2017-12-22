@@ -13,17 +13,20 @@
         </div>
     </div>
     <div class="container-fluid">
-        <h3>
-            Create HIT
-            <button ng-click="showCreateHIT = !showCreateHIT" type="button" class="btn btn-default btn-sm">
-          <span
-                  class="glyphicon"
-                  ng-class="{ 'glyphicon-minus' : showCreateHIT, 'glyphicon-plus' : !showCreateHIT}"
-                  aria-hidden="true">
-          </span>
-            </button>
-        </h3>
-        <div ng-show="showCreateHIT">
+        <div class="row"><div class="col-md-12">&nbsp;</div></div>
+        <ul class="nav nav-tabs">
+            <li role="presentation" ng-class="{'active': (selectedTab === 'manage') }">
+                <a ng-click="selectedTab = 'manage'">Manage HITs</a>
+            </li>
+            <li role="presentation" ng-class="{'active': (selectedTab === 'create') }">
+                <a ng-click="selectedTab = 'create'">Create HIT</a>
+            </li>
+            <li role="presentation" ng-class="{'active': (selectedTab === 'payment') }">
+                <a ng-click="selectedTab = 'payment'">Create Payment HITs</a>
+            </li>
+        </ul>
+        <div ng-show="selectedTab === 'create'">
+            <div>&nbsp;</div>
             <div ng-show="createHitForm.status !== 2 && (!experimentInstance || experimentInstance.status !== 'RUNNING')">
                 <div class="panel panel-default">
                     <div class="panel-heading">
@@ -120,10 +123,10 @@
                             </div>
                         </div>
                     </div>
-                    <div class="form-group">
+                    <div class="form-group col-md-12">
                         <button ng-disabled="hitForm.$invalid || createHitForm.status == 1" class="btn btn-default" id="submitAMTButton"
-                                ng-click="createHIT(createHitForm)">Submit AMT
-                            Task
+                                ng-click="createHIT(createHitForm)">
+                            Create HIT
                         </button>
                     </div>
                 </div>
@@ -192,17 +195,7 @@
         </div>
     </div>
     <div class="container-fluid">
-        <h3>
-            Manage HITs
-            <button ng-click="showManageHITs = !showManageHITs" type="button" class="btn btn-default btn-sm">
-          <span
-                  class="glyphicon"
-                  ng-class="{ 'glyphicon-minus' : showManageHITs, 'glyphicon-plus' : !showManageHITs}"
-                  aria-hidden="true">
-          </span>
-            </button>
-        </h3>
-        <table class="table table-hover table-condensed" ng-show="showManageHITs">
+        <table class="table table-hover table-condensed" ng-show="selectedTab === 'manage'">
             <thead>
             <tr>
                 <th colspan="7" class="text-center">
@@ -572,18 +565,8 @@
             </tfoot>
         </table>
 
-        <h3>
-            Create Payment HITs
-            <button ng-click="showCreateDummyHITs = !showCreateDummyHITs" type="button" class="btn btn-default btn-sm">
-          <span
-                  class="glyphicon"
-                  ng-class="{ 'glyphicon-minus' : showCreateDummyHITs, 'glyphicon-plus' : !showCreateDummyHITs}"
-                  aria-hidden="true">
-        </span>
-            </button>
-        </h3>
-
-        <div ng-show="showCreateDummyHITs">
+        <div ng-show="selectedTab === 'payment'">
+            <div>&nbsp;</div>
             <p>
                 A worker can complete a Payment HIT simply by clicking a 'Submit' button. A Payment HIT can only be
                 accepted by the worker specified, and can be found by searching for the worker ID.
@@ -593,24 +576,26 @@
                 dollars.
             </p>
             <form name="dummyHITForm" class="form" ng-if="dummyHIT.submitted.length === 0">
-                <div class="form-group">
+                <div class="form-group col-md-6">
                     <label for="workerIDs">Worker IDs</label>
                     <textarea class="form-control" ng-model="dummyHIT.workerIDs" rows="15" id="workerIDs"
                               placeholder="Worker IDs" required></textarea>
                 </div>
-                <div class="form-group">
+                <div class="form-group col-md-6">
                     <label for="reason">Reason</label>
                     <textarea class="form-control" ng-model="dummyHIT.reason" rows="2" id="reason" placeholder="Reason"
                               required></textarea>
                 </div>
-                <div class="form-group">
+                <div class="form-group col-md-6">
                     <label for="reward">Reward</label>
                     <input class="form-control currency" ng-model="dummyHIT.reward" type="number" min="0.01" step="0.01"
                            id="reward" required>
                 </div>
-                <button type="submit" ng-click="submitDummyHITs()" class="btn btn-default"
-                        ng-disabled="!dummyHITForm.$valid">Create Payment HITs
-                </button>
+                <div class="form-group col-md-12">
+                    <button type="submit" ng-click="submitDummyHITs()" class="btn btn-default"
+                            ng-disabled="!dummyHITForm.$valid">Create Payment HITs
+                    </button>
+                </div>
             </form>
 
             <div ng-if="dummyHIT.submitted.length > 0">
@@ -641,11 +626,7 @@
                         Create more Payment HITs
                     </button>
                 </div>
-
-
             </div>
-
         </div>
-
     </div>
 </div>
