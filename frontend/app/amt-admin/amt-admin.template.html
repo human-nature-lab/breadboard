@@ -35,8 +35,10 @@
                     </div>
                 </div>
             </div>
-            <div id="amtDiv" class="form"
-                 ng-show="createHitForm.status < 2 && experimentInstance && experimentInstance.status === 'RUNNING'">
+            <form name="hitForm"
+                  id="amtDiv"
+                  class="form"
+                  ng-show="createHitForm.status < 2 && experimentInstance && experimentInstance.status === 'RUNNING'">
                 <div>
                     <div class="form-group">
                         <label class="control-label" for="title">Title</label>
@@ -59,7 +61,7 @@
                             <label class="control-label col-md-3" for="maxAssignments">Max. Assignments</label>
                             <div class="col-md-3">
                                 <input ng-disabled="createHitForm.status == 1" class="form-control" type="number"
-                                       min="1" max="1000000000" id="maxAssignments"
+                                       min="1" id="maxAssignments"
                                        ng-model="createHitForm.maxAssignments" placeholder="Max Assignments" required>
                             </div>
                         </div>
@@ -70,13 +72,13 @@
                                 seconds)</label>
                             <div class="col-md-3">
                                 <input ng-disabled="createHitForm.status == 1" class="form-control" type="number"
-                                       id="lifetimeInSeconds" ng-model="createHitForm.lifetime"
+                                       id="lifetimeInSeconds" ng-model="createHitForm.lifetime" min="0"
                                        placeholder="HIT lifetime (sec.)" required>
                             </div>
                             <label class="control-label col-md-3" for="tutorialTime">Tutorial time (in seconds)</label>
                             <div class="col-md-3">
                                 <input ng-disabled="createHitForm.status == 1" class="form-control" type="number"
-                                       id="tutorialTime" ng-model="createHitForm.tutorialTime"
+                                       id="tutorialTime" ng-model="createHitForm.tutorialTime" min="0"
                                        placeholder="Tutorial time (sec.)" required>
                             </div>
                         </div>
@@ -87,7 +89,7 @@
                                 seconds)</label>
                             <div class="col-md-3">
                                 <input ng-disabled="createHitForm.status == 1" class="form-control" type="number"
-                                       id="assignmentDuration" ng-model="createHitForm.assignmentDuration"
+                                       id="assignmentDuration" ng-model="createHitForm.assignmentDuration" min="0"
                                        placeholder="Assignment duration (sec.)" required>
                             </div>
                             <label class="control-label col-md-3" for="tutorialTime">Keywords (for HIT search)</label>
@@ -103,7 +105,7 @@
                             <label class="control-label col-md-3" for="disallowPrevious">Allow repeat play?</label>
                             <div class="col-md-3">
                                 <select ng-disabled="createHitForm.status == 1" class="form-control"
-                                        id="disallowPrevious" ng-model="createHitForm.disallowPrevious">
+                                        id="disallowPrevious" ng-model="createHitForm.disallowPrevious" required>
                                     <option value=""></option>
                                     <option value="type">Block previous players of THIS experiment</option>
                                     <option value="any">Block previous players of ANY experiment</option>
@@ -119,13 +121,13 @@
                         </div>
                     </div>
                     <div class="form-group">
-                        <button ng-disabled="createHitForm.status == 1" class="btn btn-default" id="submitAMTButton"
+                        <button ng-disabled="hitForm.$invalid || createHitForm.status == 1" class="btn btn-default" id="submitAMTButton"
                                 ng-click="createHIT(createHitForm)">Submit AMT
                             Task
                         </button>
                     </div>
                 </div>
-            </div>
+            </form>
             <div ng-show="createHitForm.status == 2">
                 <table class="table" ng-repeat="hit in experimentInstance.hits">
                     <thead>
