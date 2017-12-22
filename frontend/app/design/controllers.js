@@ -108,17 +108,35 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
     return "text";
   };
 
+  $scope.clearParameterFields = function () {
+      $scope.parameterMin = '';
+      $scope.parameterMax = '';
+      $scope.parameterDefaultInteger = '';
+      $scope.parameterDefaultDecimal = '';
+      $scope.parameterDefaultText = '';
+  };
+
   $scope.newParameter = function () {
+    var parameterDefault = '';
+    if ($scope.parameterType === 'Integer') parameterDefault = $scope.parameterDefaultInteger + '';
+    if ($scope.parameterType === 'Decimal') parameterDefault = $scope.parameterDefaultDecimal + '';
+    if ($scope.parameterType === 'Boolean') parameterDefault = $scope.parameterDefaultBoolean;
+    if ($scope.parameterType === 'Text') parameterDefault = $scope.parameterDefaultText;
     $breadboardFactory.send(
       {
         "action": "NewParameter",
         "name": $scope.parameterName,
         "type": $scope.parameterType,
-        "minVal": $scope.parameterMin,
-        "maxVal": $scope.parameterMax,
-        "defaultVal": $scope.parameterDefault,
+        "minVal": $scope.parameterMin + '',
+        "maxVal": $scope.parameterMax + '',
+        "defaultVal": parameterDefault,
         "description": $scope.parameterDescription
       });
+    // Clear values
+    $scope.clearParameterFields();
+    $scope.parameterName = '';
+    $scope.parameterType = '';
+    $scope.parameterDescription = '';
     // Set the default value
     //$scope.launchParameters[$scope.parameterName] = $scope.parameterDefault;
   };
@@ -239,8 +257,9 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   $scope.openNewInstanceModal = function(){
 
     $("#newExperimentInstanceDialog").dialog({
-      title: 'Create New Experiment Instance',
+      title: 'Create an experiment instance',
       width: '600px',
+      modal: 'true'
     });
 
   };

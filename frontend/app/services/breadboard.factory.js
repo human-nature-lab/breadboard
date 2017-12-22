@@ -89,8 +89,10 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
         })
     },
     send: function (message) {
-      message.uid = sessionId;
-      websocket.send(JSON.stringify(message));
+      configService.get('uid').then(function(uid) {
+        message.uid = uid;
+        websocket.send(JSON.stringify(message));
+      });
     }
   };
 

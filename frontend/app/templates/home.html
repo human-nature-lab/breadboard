@@ -9,7 +9,7 @@
                 <select class="form-control input-sm"
                         id="select-experiment"
                         ng-hide="breadboard.user.experiments.length == 0"
-                        ng-options="experiment for experiment in breadboard.user.experiments"
+                        ng-options="experiment for experiment in breadboard.user.experiments track by experiment.name"
                         ng-change="experimentChanged()"
                         ng-model="breadboard.user.selectedExperiment"
                         ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">
@@ -31,7 +31,7 @@
                             data-toggle="tooltip"
                             data-placement="bottom"
                             id="deleteExperimentButton"
-                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING'"
+                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
                             ng-click="deleteExperiment()">
                     <span class="glyphicon glyphicon-remove"
                           aria-hidden="true">
@@ -42,6 +42,7 @@
                             id="exportButton"
                             data-toggle="tooltip"
                             data-placement="bottom"
+                            ng-disabled="breadboard.experiment === undefined || breadboard.experiment === ''"
                             ng-click="exportExperiment()">
                     <span class="glyphicon glyphicon-export"
                           aria-hidden="true">
@@ -66,25 +67,25 @@
                 </label>
                 <select class="form-control input-sm"
                         id="select-experiment-instance"
-                        ng-hide="breadboard.user.experiments.length == 0"
+                        ng-hide="breadboard.user.experiments.length === 0 || breadboard.experiment.instances.length === 0"
                         ng-options="instance as instance.name for instance in breadboard.experiment.instances track by instance.id"
                         ng-model="breadboard.experimentInstance"
                         ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">
                 </select>
                 <div class="btn-group btn-group-sm">
                     <button class="btn btn-default"
-                            title="Create experiment instance"
+                            title="Create an experiment instance"
                             data-toggle="tooltip"
                             data-placement="bottom"
                             id="newInstanceButton"
                             onclick="hideTooltips()"
-                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING'"
+                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
                             ng-click="openNewInstanceModal()">
                         <span class="glyphicon glyphicon-plus"
                             aria-hidden="true"></span>
                     </button>
                     <button class="btn btn-default"
-                            title="Delete experiment instance"
+                            title="Delete the selected experiment instance"
                             data-toggle="tooltip"
                             data-placement="bottom"
                             id="removeInstanceButton"
@@ -94,7 +95,7 @@
                               aria-hidden="true"></span>
                     </button>
                     <button class="btn btn-default"
-                            title="Start experiment instance"
+                            title="Start the selected experiment instance"
                             data-toggle="tooltip"
                             data-placement="bottom"
                             id="runButton"
@@ -106,7 +107,7 @@
                     </span>
                     </button>
                     <button class="btn btn-default"
-                            title="Stop experiment instance"
+                            title="Stop the selected experiment instance"
                             data-toggle="tooltip"
                             data-placement="bottom"
                             id="stopButton"
@@ -118,7 +119,7 @@
                     </span>
                     </button>
                     <button class="btn btn-default"
-                            title="Reload experiment instance"
+                            title="Reload the script engine"
                             data-toggle="tooltip"
                             data-placement="bottom"
                             id="reloadButton"
@@ -128,7 +129,9 @@
                     </span>
                     </button>
                     <button class="btn btn-default"
-                            title="Start InitStep"
+                            title="Execute initStep.start()"
+                            data-toggle="tooltip"
+                            data-placement="bottom"
                             id="startInitStep"
                             ng-click="run()">
                         Start InitStep
@@ -154,7 +157,7 @@
     <!-- New Experiment Instance -->
     <div id="newExperimentInstanceDialog" style="display: none;">
         <form name="createExperimentInstanceForm" class="form-horizontal" ng-show="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
-            <h4>Create Experiment Instance</h4>
+            <h4>Instance</h4>
             <div class="form-group">
                 <label class="col-md-3 control-label"
                        for="experiment-instance-name">
@@ -510,62 +513,119 @@
     <!-- Parameters -->
     <div>
         <div ui-jq="dialog" ui-options="parametersDialogOptions" id="parametersDiv">
-            <form ng-submit="newParameter()">
-                <table id="parametersTable">
+            <form name="createParameter" >
+                <table class="table" id="parametersTable">
+                    <thead>
                     <tr>
                         <th>Name</th>
                         <th>Type</th>
-                        <th>Min.</th>
-                        <th>Max.</th>
+                        <th>Min</th>
+                        <th>Max</th>
                         <th>Default</th>
                         <th>Short Description</th>
                         <th></th>
                     </tr>
+                    </thead>
+                    <tbody>
                     <tr>
-                        <td><input style="width: 8em;" type="text" name="parameterName" ng-model="parameterName"
+                        <td><input class="form-control input-sm" style="width: 8em;" type="text" name="parameterName" ng-model="parameterName"
                                    placeholder="Name" required></td>
                         <td>
-                            <select ng-model="parameterType">
+                            <select class="form-control input-sm" ng-change="clearParameterFields()" style="width: 7em;" ng-model="parameterType" required>
                                 <option></option>
-                                <option value="Integer">Integer</option>
-                                <option value="Decimal">Decimal</option>
-                                <option value="Text">Text</option>
                                 <option value="Boolean">Boolean</option>
+                                <option value="Decimal">Decimal</option>
+                                <option value="Integer">Integer</option>
+                                <option value="Text">Text</option>
                             </select>
                         </td>
-                        <td><input style="width: 3em;" ng-disabled="parameterType=='Text' || parameterType=='Boolean'"
-                                   type="text" name="parameterMin"
-                                   ng-model="parameterMin" placeholder="Min."></td>
-                        <td><input style="width: 3em;" ng-disabled="parameterType=='Text' || parameterType=='Boolean'"
-                                   type="text" name="parameterMax"
-                                   ng-model="parameterMax" placeholder="Max."></td>
-                        <td><input style="width: 4em;" type="text" name="parameterDefault" ng-model="parameterDefault"
-                                   placeholder="Default"></td>
-                        <td><input style="width: 16em;" type="text" name="parameterDescription"
-                                   ng-model="parameterDescription" placeholder="Short Description"></td>
+                        <td><input class="form-control input-sm" style="width: 5em;" ng-disabled="parameterType!=='Decimal' && parameterType!=='Integer'"
+                                   type="number" name="parameterMin"
+                                   max="{{parameterMax}}"
+                                   ng-model="parameterMin"
+                                   placeholder="min"
+                                   ng-required="parameterType === 'Decimal' || parameterType === 'Integer'" required></td>
+                        <td><input class="form-control input-sm" style="width: 5em;" ng-disabled="parameterType!=='Decimal' && parameterType!=='Integer'"
+                                   type="number" name="parameterMax"
+                                   min="{{parameterMin}}"
+                                   ng-model="parameterMax" placeholder="max"
+                                   ng-required="parameterType === 'Decimal' || parameterType === 'Integer'"></td>
+                        <td ng-show="!parameterType">
+                            <input class="form-control input-sm"
+                                   style="width: 6em;"
+                                   type="text"
+                                   placeholder="Default"
+                                   disabled>
+                        </td>
+                        <td ng-show="parameterType === 'Integer'">
+                            <input class="form-control input-sm"
+                                   style="width: 6em;"
+                                   type="number"
+                                   min="{{parameterMin}}"
+                                   max="{{parameterMax}}"
+                                   step="1"
+                                   ng-model="parameterDefaultInteger"
+                                   placeholder="Default"
+                                   ng-required="parameterType === 'Integer'">
+                        </td>
+                        <td ng-show="parameterType === 'Decimal'">
+                            <input class="form-control input-sm"
+                                   style="width: 6em;"
+                                   type="number"
+                                   min="{{parameterMin}}"
+                                   max="{{parameterMax}}"
+                                   step="0.01"
+                                   ng-model="parameterDefaultDecimal"
+                                   placeholder="Default"
+                                   ng-required="parameterType === 'Decimal'">
+                        </td>
+                        <td ng-show="parameterType === 'Text'">
+                            <input class="form-control input-sm"
+                                   style="width: 6em;"
+                                   type="text"
+                                   ng-model="parameterDefaultText"
+                                   placeholder="Default"
+                                   ng-required="parameterType === 'Text'">
+                        </td>
+                        <td ng-show="parameterType === 'Boolean'">
+                            <select class="form-control input-sm" ng-model="parameterDefaultBoolean" ng-required="parameterType === 'Boolean'">
+                                <option value="true">true</option>
+                                <option value="false">false</option>
+                            </select>
+                        </td>
+                        <td><input class="form-control input-sm" style="width: 16em;" type="text" name="parameterDescription"
+                                   ng-model="parameterDescription" placeholder="Short Description" required></td>
                         <td>
-                            <button title='New parameter' ui-jq='button' style="float: right;" type="submit"><span
-                                    class="step-icon ui-icon-plusthick">New parameter</span></button>
+                            <button class="btn btn-default btn-sm" title="Create parameter" type="submit" ng-disabled="createParameter.$invalid" ng-click="newParameter()">
+                                <span class="glyphicon glyphicon-plus"
+                                      aria-hidden="true">
+                                </span>
+                            </button>
                         </td>
                     </tr>
                     <tr class="parameters" ng-repeat="elem in breadboard.experiment.parameters">
-                        <td>{{elem.name}}</td>
-                        <td>{{elem.type}}</td>
-                        <td>{{elem.minVal}}</td>
-                        <td>{{elem.maxVal}}</td>
-                        <td>{{elem.defaultVal}}</td>
-                        <td>{{elem.description}}</td>
+                        <td><p class="form-control-static">{{elem.name}}</p></td>
+                        <td><p class="form-control-static">{{elem.type}}</p></td>
+                        <td><p class="form-control-static">{{elem.minVal}}</p></td>
+                        <td><p class="form-control-static">{{elem.maxVal}}</p></td>
+                        <td><p class="form-control-static">{{elem.defaultVal}}</p></td>
+                        <td><p class="form-control-static">{{elem.description}}</p></td>
                         <td>
-                            <button title="Delete parameter"
+                            <button type="button"
                                     onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
                                     onmouseout="$(this).parent().parent().css('background', '');"
-                                    ng-click="removeParameter(elem.id);" type="button" ui-jq='button'
-                                    style="float: right;"><span
-                                    class="step-icon ui-icon-closethick">Delete parameter</span>
+                                    class="btn btn-default btn-sm"
+                                    title="Delete parameter"
+                                    ng-click="removeParameter(elem.id)">
+                                <span class="glyphicon glyphicon-remove"
+                                      aria-hidden="true">
+                                </span>
                             </button>
                         </td>
 
                     </tr>
+
+                    </tbody>
                 </table>
             </form>
         </div>
