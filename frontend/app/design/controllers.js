@@ -1,8 +1,8 @@
 import _ from 'underscore';
 
 /* Controllers */
-angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state',
-function ($scope, $breadboardFactory, $timeout, $http, $state) {
+angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state', 'csvService',
+function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
   $scope.$watch('selectedLanguage', function(newValue) {
     console.log('selectedLanguage', newValue);
   });
@@ -727,11 +727,54 @@ function ($scope, $breadboardFactory, $timeout, $http, $state) {
   };
 
   $scope.downloadEventCsv = function (experimentInstance) {
-    location.href = '/csv/event/' + experimentInstance.id;
+    csvService.getInstanceData(experimentInstance.id)
+      .then(function(success) {
+          let filename = experimentInstance.name + '.csv';
+          let blob = new Blob([success.data], {type: 'text/csv'});
+
+          if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+            window.navigator.msSaveOrOpenBlob(blob, filename);
+          } else {
+            let e = document.createEvent('MouseEvents'),
+              a = document.createElement('a');
+
+            a.download = filename;
+            a.href = window.URL.createObjectURL(blob);
+            a.dataset.downloadurl = ['text/csv', a.download, a.href].join(':');
+            e.initEvent('click', true, false, window,
+              0, 0, 0, 0, 0, false, false, false, false, 0, null);
+            a.dispatchEvent(e);
+          }
+        },
+        function(error) {
+          console.error(error.data);
+        });
   };
 
   $scope.downloadExperimentCsv = function(experiment) {
-    location.href = '/csv/data/' + $scope.breadboard.experiment.id;
+    console.log('experiment', experiment);
+    csvService.getExperimentInstances(experiment.id)
+      .then(function(success) {
+          let filename = experiment.name + '.csv';
+          let blob = new Blob([success.data], {type: 'text/csv'});
+
+          if (window.navigator && window.navigator.msSaveOrOpenBlob) {
+            window.navigator.msSaveOrOpenBlob(blob, filename);
+          } else {
+            let e = document.createEvent('MouseEvents'),
+                a = document.createElement('a');
+
+            a.download = filename;
+            a.href = window.URL.createObjectURL(blob);
+            a.dataset.downloadurl = ['text/csv', a.download, a.href].join(':');
+            e.initEvent('click', true, false, window,
+              0, 0, 0, 0, 0, false, false, false, false, 0, null);
+            a.dispatchEvent(e);
+          }
+      },
+      function(error) {
+        console.error(error.data);
+      });
   };
 
   var dialogMargin = 10,

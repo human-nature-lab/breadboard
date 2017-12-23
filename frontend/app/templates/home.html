@@ -351,26 +351,6 @@
         </div>
     </div>
 
-    <!--
-    <div>
-        <div ui-jq="dialog" ui-options="dataDialogOptions" id="dataDiv">
-            <table class="table table-condensed">
-                <thead>
-                <tr>
-                    <th>Instance</th>
-                    <th ng-repeat="elem in breadboard.experiment.parameters">{{elem.name}}</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr ng-repeat="instance in breadboard.experiment.instances">
-                    <td><a ng-click="showEvent(instance)">{{instance.name}}</a></td>
-                    <td ng-repeat="data in instance.data">{{data.value}}</td>
-                </tr>
-                </tbody>
-            </table>
-    </div>
-    -->
-
     <!-- Experiment Instances -->
     <div>
         <div ui-jq="dialog" ui-options="launchDialogOptions" id="launchDiv">
@@ -380,7 +360,7 @@
                     <tr>
                         <td colspan="6">
                             <button class="btn btn-default btn-sm pull-right"
-                                    ng-click="downloadExperimentCsv()">
+                                    ng-click="downloadExperimentCsv(breadboard.experiment)">
                                 Download List
                             </button>
                             <button class="btn btn-default btn-sm pull-right"
@@ -454,12 +434,12 @@
                             </div>
                         </td>
                         <td>
-                          <span ng-show="instance.name === breadboard.experimentInstance.name">
+                          <span ng-show="instance.status === 'RUNNING'">
                             <a href="{{ getClientURL(breadboard.experiment.id,instance.id) }}" target="_blank">
                               {{ getClientURL(breadboard.experiment.id,instance.id) }}
                             </a>
                           </span>
-                            <span ng-show="instance.name !== breadboard.experimentInstance.name">
+                            <span ng-show="instance.status !== 'RUNNING'">
                               {{ getClientURL(breadboard.experiment.id,instance.id) }}
                           </span>
                         </td>
@@ -482,7 +462,7 @@
                     <tr>
                         <td colspan="6">
                             <button class="btn btn-default btn-sm pull-right"
-                                    ng-click="downloadExperimentCsv()">
+                                    ng-click="downloadExperimentCsv(breadboard.experiment)">
                                 Download List
                             </button>
                             <button class="btn btn-default btn-sm pull-right"
