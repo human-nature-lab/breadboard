@@ -1,4 +1,4 @@
-<div id="mainDiv" ng-style="breadboard.experiment.style" ng-cloak>
+<div id="mainDiv" ng-cloak>
     <div class="container-fluid">
         <div class="form-inline row">
             <div class="form-group experiment-group">
@@ -275,7 +275,8 @@
         </div>
     </div>
 
-    <!-- Client Graph -->
+
+    <!-- Client Graph
     <div>
         <div ui-jq="dialog" ui-options="clientGraphDialogOptions" id="clientGraphDiv">
         <textarea class="codemirror" ui-codemirror ui-codemirror-opts="clientGraphCodemirrorOptions"
@@ -283,7 +284,7 @@
         </div>
     </div>
 
-    <!-- Client HTML -->
+    <!-- Client HTML
     <div>
         <div ui-jq="dialog" ui-options="clientHtmlDialogOptions" id="clientHtmlDiv">
         <textarea class="codemirror" ui-codemirror ui-codemirror-opts="clientHtmlCodemirrorOptions"
@@ -342,14 +343,49 @@
         </form>
     </div>
 
-    <!-- CSS -->
+    <!-- Customize -->
+    <div>
+        <div ui-jq="dialog" ui-options="customizeDialogOptions" id="customizeDiv">
+            <ul class="nav nav-tabs">
+                <li role="presentation" ng-class="{'active': (customizeSelectedTab === 'style') }">
+                    <a ng-click="selectTab('style', 'styleTab')">Style</a>
+                </li>
+                <li role="presentation" ng-class="{'active': (customizeSelectedTab === 'graph') }">
+                    <a ng-click="selectTab('graph', 'graphTab')">Client Graph</a>
+                </li>
+                <li role="presentation" ng-class="{'active': (customizeSelectedTab === 'html') }">
+                    <a ng-click="selectTab('html', 'htmlTab')">Client HTML</a>
+                </li>
+            </ul>
+            <div ng-show="customizeSelectedTab === 'style'" id="styleTab">
+                <textarea class="codemirror"
+                          ui-codemirror
+                          ui-codemirror-opts="cssCodemirrorOptions"
+                          ng-model="breadboard.experiment.style"></textarea>
+            </div>
+            <div ng-show="customizeSelectedTab === 'graph'" id="graphTab">
+                <textarea class="codemirror"
+                          ui-codemirror
+                          ui-codemirror-opts="clientGraphCodemirrorOptions"
+                          ng-model="breadboard.experiment.clientGraph"></textarea>
+            </div>
+            <div ng-show="customizeSelectedTab === 'html'" id="htmlTab">
+                <textarea class="codemirror"
+                          ui-codemirror
+                          ui-codemirror-opts="clientHtmlCodemirrorOptions"
+                          ng-model="breadboard.experiment.clientHtml"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <!-- CSS
     <div>
         <div ui-jq="dialog" ui-options="cssDialogOptions" id="cssDiv">
         <textarea class="codemirror" ui-codemirror ui-codemirror-opts="cssCodemirrorOptions"
                   ui-refresh="cssDialogIsOpen"
                   ng-model="breadboard.experiment.style"></textarea>
         </div>
-    </div>
+    </div-->
 
     <!-- Experiment Instances -->
     <div>
@@ -668,7 +704,7 @@
         </div>
     </div>
 
-    <!-- Player -->
+    <!-- Players -->
     <div>
         <div ui-jq="dialog" ui-options="playerDialogOptions" id="playerDiv">
             <div class="container-fluid">
@@ -802,37 +838,7 @@
     <div id="amtErrorDialog" style="display: none;">
         <p>Please select an experiment and launch an instance before posting a HIT.</p>
     </div>
-    <div class="event-data-dialog" id="eventDataDialog" style="display: none;">
 
-        <button class="ui-button" style="float: right;" type="button"
-                ng-click="downloadEventCsv(showEvent.experimentInstance)">
-            <span class="ui-button-text">Download CSV</span>
-        </button>
-        <div class="bold">Instance - {{breadboard.eventExperimentInstance}}</div>
-        <div class="clearBoth">
-            <br/>
-            <table id="event-table">
-                <thead>
-                <tr>
-                    <th>id</th>
-                    <th>event</th>
-                    <th>event data(s)</th>
-                    <th>datetime</th>
-                </tr>
-                </thead>
-                <tbody>
-                <tr ng-repeat="event in breadboard.events">
-                    <td>{{event.id}}</td>
-                    <td>{{event.name}}</td>
-                    <td>
-                        <span ng-repeat="data in event.data">{{data.name}}-{{data.value}}<span ng-show="!$last">,</span> </span>
-                    </td>
-                    <td>{{event.datetime}}</td>
-                </tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
     <style id="styleTag"></style>
 </div>
 <!-- END mainDiv -->

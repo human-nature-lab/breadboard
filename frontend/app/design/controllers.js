@@ -67,6 +67,24 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
   $scope.selectedNode = {};
   $scope.breadboardGraph = new Graph(($(window).width() / 2), ($(window).width() / 2), $scope);
 
+  $scope.customizeSelectedTab = 'style';
+
+  $scope.selectTab = function(name, tabId) {
+    $scope.customizeSelectedTab = name;
+
+    // Refresh CodeMirror instance when clicking tab
+    $timeout(function() {
+      var tab = document.getElementById(tabId);
+      var byClass = tab.getElementsByClassName("CodeMirror");
+      for (var i = 0; i < byClass.length; i++) {
+        var cm = byClass[i].CodeMirror;
+        if (cm) {
+          cm.refresh();
+        }
+      }
+    }, 100);
+  };
+
   $breadboardFactory.addNodeChangeListener(function(nodes) {
       $scope.nodes = nodes;
   });
@@ -230,6 +248,16 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
 
   var applyStyle = function () {
     $('#styleTag').text($scope.breadboard.experiment.style);
+  };
+
+  var saveCustomize = function() {
+    if ($scope.customizeSelectedTab === 'style') {
+      saveStyle();
+    } else if ($scope.customizeSelectedTab === 'html') {
+      saveClientHtml();
+    } else if ($scope.customizeSelectedTab === 'graph') {
+      saveClientGraph();
+    }
   };
 
   var saveStyle = function () {
@@ -907,6 +935,19 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
     position: [((windowWidth * .5) + dialogMargin), topDivHeight]
   };
 
+  $scope.customizeDialogOptions = {
+    title: 'Customize',
+    autoOpen: false,
+    width: ((windowWidth * .5) - dialogMargin),
+    height: windowHeight,
+    position: [((windowWidth * .5) + dialogMargin), topDivHeight],
+    buttons: {
+      'Save': function () {
+        saveCustomize();
+      }
+    },
+  };
+
   $scope.clientGraphDialogOptions = {
     title: 'Client Graph',
     autoOpen: true,
@@ -989,6 +1030,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
   };
 
   $scope.cssCodemirrorOptions = {
+    autoRefresh: true,
     lineNumbers: true,
     matchBrackets: true,
     mode: 'text/css',
@@ -1000,6 +1042,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
   };
 
   $scope.clientHtmlCodemirrorOptions = {
+    autoRefresh: true,
     lineNumbers: true,
     matchBrackets: true,
     mode: 'text/html',
@@ -1011,6 +1054,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
   };
 
   $scope.clientGraphCodemirrorOptions = {
+    autoRefresh: true,
     lineNumbers: true,
     matchBrackets: true,
     mode: 'text/javascript',
