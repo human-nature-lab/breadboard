@@ -359,6 +359,10 @@ label.fixed-width {
     overflow: auto;
 }
 
+.nav>li>a.pill-condensed {
+    padding: 3px 15px;
+}
+
 #prettyPrintDiv {
     overflow: auto;
 }
@@ -417,6 +421,7 @@ table.mceLayout {
 
 /* Default style for svg elements here */
 circle {
+    fill: #ccc;
     stroke: #333;
     stroke-width: 1px;
 }
@@ -432,7 +437,7 @@ line[selected="1"] {
 }
 
 line {
-    stroke: #333;
+    stroke: #ccc;
     stroke-width: 2px;
 }
 

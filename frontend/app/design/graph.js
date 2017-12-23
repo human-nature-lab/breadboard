@@ -84,6 +84,25 @@ function Graph(_width, _height, parentScope) {
       });
   });
 
+  this.getNodes = function() {
+    return nodes;
+  };
+
+  this.selectNode = function(node) {
+    //console.log('select node', node);
+    vis.selectAll("line.link").attr("selected", function (d) {
+      if (node.id === d.source.id || node.id === d.target.id) {
+        return "1";
+      } else {
+        return "0";
+      }
+    });
+
+    vis.selectAll("circle.node").attr("selected", function (d) {
+      return d.selected;
+    });
+  };
+
   this.addNode = function (id, properties) {
     try {
       var node = {"id": id};
@@ -96,7 +115,7 @@ function Graph(_width, _height, parentScope) {
       nodes.push(nodeHash[id]);
       update();
     } catch (e) {
-      console.log("Error in addNode: " + e.toString());
+      console.error("Error in addNode: " + e.toString());
     }
   }
 
@@ -117,7 +136,7 @@ function Graph(_width, _height, parentScope) {
       delete nodeHash[id];
       update();
     } catch (e) {
-      console.log("Error in removeNode: " + e.toString());
+      console.error("Error in removeNode: " + e.toString());
     }
   }
 
@@ -174,7 +193,7 @@ function Graph(_width, _height, parentScope) {
       links.push(linkHash[id]);
       update();
     } catch (e) {
-      console.log("Error in addLink: " + e.toString());
+      console.error("Error in addLink: " + e.toString());
     }
   }
 
@@ -193,7 +212,7 @@ function Graph(_width, _height, parentScope) {
       delete linkHash[id];
       update();
     } catch (e) {
-      console.log("Error in removeLink: " + e.toString());
+      console.error("Error in removeLink: " + e.toString());
     }
   }
 
@@ -237,7 +256,7 @@ function Graph(_width, _height, parentScope) {
         }
       }
     } catch (e) {
-      console.log("Error in findNodeIndex: " + e.toString());
+      console.error("Error in findNodeIndex: " + e.toString());
     }
   }
 
@@ -253,7 +272,7 @@ function Graph(_width, _height, parentScope) {
         }
       }
     } catch (e) {
-      console.log("Error in findLinkIndex: " + e.toString());
+      console.error("Error in findLinkIndex: " + e.toString());
     }
   }
 
@@ -299,7 +318,7 @@ function Graph(_width, _height, parentScope) {
             d["selected"] = "0";
             selectedNode.attr("selected", "0");
             vis.selectAll("line.link").attr("selected", "0");
-            $('#playerDiv').dialog('close');
+            //$('#playerDiv').dialog('close');
             // TODO:  When a node is deselected, the Player dialog should be emptied
             //parentScope.selectedNodeIndex = -1;
           } else {
@@ -321,7 +340,7 @@ function Graph(_width, _height, parentScope) {
             });
 
             if($('#playerDiv').dialog('isOpen') && parentScope.selectedNode.id === nodeId){
-              $('#playerDiv').dialog('close');
+              //$('#playerDiv').dialog('close');
             }else {
               $('#playerDiv').dialog('open');
             }
@@ -336,7 +355,7 @@ function Graph(_width, _height, parentScope) {
         .links(links)
         .start();
     } catch (e) {
-      console.log("Error in update: " + e.toString());
+      console.error("Error in update: " + e.toString());
     }
 
   }

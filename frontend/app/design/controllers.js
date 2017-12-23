@@ -3,9 +3,11 @@ import _ from 'underscore';
 /* Controllers */
 angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state', 'csvService',
 function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
+  /*
   $scope.$watch('selectedLanguage', function(newValue) {
     console.log('selectedLanguage', newValue);
   });
+  */
 
   $breadboardFactory.onmessage(function (data) {
     try {
@@ -38,7 +40,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
           // Setup default language
           $scope.selectedLanguage = $scope.breadboard.experiment.languages[0];
         } else {
-          console.log("$scope.selectedLanguage", $scope.selectedLanguage);
+          //console.log("$scope.selectedLanguage", $scope.selectedLanguage);
         }
         // Setup watch for selectedTranslation
         $scope.$watch('[selectedLanguage, selectedContent]', $scope.selectTranslation, true);
@@ -56,13 +58,27 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
     }
     catch (e) {
       // TODO: add error object to scope and handle error client-side
-      console.log("Parse error: " + e.toString());
+      console.error("Parse error: " + e.toString());
     }
   });
 
   /* Graph here */
+  $scope.nodes = [];
   $scope.selectedNode = {};
   $scope.breadboardGraph = new Graph(($(window).width() / 2), ($(window).width() / 2), $scope);
+
+  $breadboardFactory.addNodeChangeListener(function(nodes) {
+      $scope.nodes = nodes;
+  });
+
+  $scope.selectNode = function(node) {
+    for (let i = 0; i < $scope.nodes.length; i++) {
+      $scope.nodes[i].selected = "0";
+    }
+    node.selected = "1";
+    $scope.breadboardGraph.selectNode(node);
+    $scope.selectedNode = node;
+  };
 
   /*
   function setupContentLanguages() {
@@ -175,7 +191,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
     var returnContent = {};
     returnContent.languages = {};
     returnContent.contentObject = {};
-    console.log("content", content);
+    //console.log("content", content);
     for (var i = 0; i < content.length; i++) {
       var c = content[i];
       returnContent.languages[c.language] = true;
@@ -193,7 +209,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
 
   var saveContent = function () {
     if ($scope.selectedContent != undefined) {
-      console.log("saveContent: ", $scope.selectedContent);
+      //console.log("saveContent: ", $scope.selectedContent);
       $breadboardFactory.send(
         {
           "action": "SaveContent",
@@ -337,7 +353,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
   };
 
   $scope.submitAMTTask = function (lifetimeInSeconds, tutorialTime) {
-    console.log('submitAMTTask', lifetimeInSeconds, tutorialTime);
+    //console.log('submitAMTTask', lifetimeInSeconds, tutorialTime);
     $breadboardFactory.send({
         "action": "SubmitAMTTask",
         "lifetimeInSeconds": lifetimeInSeconds,
@@ -576,8 +592,8 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
       buttons: {
         'Submit': function () {
           var experimentId = $scope.breadboard.experiment.id;
-          console.log("scope.newLanguage", $scope.newLanguageCode);
-          console.log("experimentId", experimentId);
+          //console.log("scope.newLanguage", $scope.newLanguageCode);
+          //console.log("experimentId", experimentId);
 
           $breadboardFactory.send({
             "action": "AddLanguage",
@@ -752,7 +768,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
   };
 
   $scope.downloadExperimentCsv = function(experiment) {
-    console.log('experiment', experiment);
+    //console.log('experiment', experiment);
     csvService.getExperimentInstances(experiment.id)
       .then(function(success) {
           let filename = experiment.name + '.csv';
@@ -932,7 +948,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
   };
 
   $scope.playerDialogOptions = {
-    title: 'Player',
+    title: 'Players',
     autoOpen: false,
     width: ((windowWidth * .5) - dialogMargin),
     height: windowHeight,

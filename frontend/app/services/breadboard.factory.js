@@ -5,6 +5,7 @@ BreadboardFactory.$inject = ['websocketFactory', '$rootScope', '$cookieStore', '
 export default function BreadboardFactory($websocketFactory, $rootScope, $cookieStore, $http, $q, configService) {
 
   let websocket;
+  let nodeChangeListeners = [];
 
   function websocketRoute(){
     let uri = '';
@@ -19,6 +20,7 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
   }
 
   function processMessage(data, callback) {
+    //console.log('processMessage', data);
     if (data.action !== undefined) {
       const g = $rootScope.$$childHead.breadboardGraph;
       if(data.action === "addNode")
@@ -29,10 +31,11 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
 
       if(data.action === "nodePropertyChanged") {
         // TODO: Do we ever send node property values as JSON?
+        let value = "";
         try {
-          let value = JSON.parse(data.value);
+          value = JSON.parse(data.value);
         } catch(e) {
-          let value = data.value;
+          value = data.value;
         }
         g.nodePropertyChanged(data.id, data.key, value);
       }
@@ -52,9 +55,19 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
       if (data.action === "linkPropertyRemoved") {
         g.linkPropertyRemoved(data.id, data.key);
       }
+      if (data.action === 'addNode' ||
+          data.action === 'removeNode' ||
+          data.action === 'nodePropertyChanged' ||
+          data.action === 'nodePropertyRemoved') {
+        for (let i = 0; i < nodeChangeListeners.length; i++) {
+          let nodes = g.getNodes();
+          //console.log('nodes', nodes);
+          nodeChangeListeners[i].call(window, nodes);
+        }
+      }
     } else {
       $rootScope.$apply(function () {
-        console.log("data", data);
+        //console.log("data", data);
         callback(data);
       });
     }
@@ -93,6 +106,10 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
         message.uid = uid;
         websocket.send(JSON.stringify(message));
       });
+    },
+    addNodeChangeListener: function(listener) {
+      //console.log('listener added', listener);
+      nodeChangeListeners.push(listener);
     }
   };
 

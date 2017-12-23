@@ -671,16 +671,33 @@
     <!-- Player -->
     <div>
         <div ui-jq="dialog" ui-options="playerDialogOptions" id="playerDiv">
-            <div id="playerStatusDiv">
-                <h3>Player {{selectedNode.id}}</h3>
-                <pre>{{playerProperties(selectedNode) | json}}</pre>
-            </div>
-            <div id='playerText' ng-bind-html="selectedNode.text | to_trusted"></div>
-            <div id='playerChoices'>
-                <button ng-repeat="choice in selectedNode.choices" class="{{choice.class}}"
-                        ng-click="makeChoice($index)">
-                    {{choice.name}}
-                </button>
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-md-3">
+                        <ul class="nav nav-pills nav-stacked">
+                            <li ng-repeat="node in nodes | orderBy:'id'"
+                                role="presentation"
+                                ng-class="{'active':(node.id === selectedNode.id)}">
+                                <a class="pill-condensed" ng-click="selectNode(node)">{{node.id | shortId}}</a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-9">
+                        <div ng-show="selectedNode">
+                            <div id="playerStatusDiv">
+                                <h3>Player {{selectedNode.id | shortId}}</h3>
+                                <pre>{{playerProperties(selectedNode) | json}}</pre>
+                            </div>
+                            <div id='playerText' ng-bind-html="selectedNode.text | to_trusted"></div>
+                            <div id='playerChoices'>
+                                <button ng-repeat="choice in selectedNode.choices" class="{{choice.class}}"
+                                        ng-click="makeChoice($index)">
+                                    {{choice.name}}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
