@@ -1,4 +1,4 @@
-function CreateFirstUserCtrl($scope, languageService, CreateFirstUserSrv) {
+function CreateFirstUserCtrl($scope, languageService, CreateFirstUserSrv, $state) {
   $scope.vm = {
     languages:  [],
     defaultLanguage: '',
@@ -24,32 +24,22 @@ function CreateFirstUserCtrl($scope, languageService, CreateFirstUserSrv) {
     } else {
       CreateFirstUserSrv.createFirstUser($scope.vm.email, $scope.vm.password, $scope.vm.defaultLanguage.iso3)
         .then(function(res) {
-          console.log('res', res);
           if(res.status === 200) {
-            if ($scope.onSuccess) {
-              $scope.onSuccess({res: res});
-            }
+            $state.go('login');
           } else {
             $scope.vm.hasError = true;
             $scope.vm.errorMessage = res.data;
-            if ($scope.onError) {
-              $scope.onError({err: res.data});
-            }
           }
         },
         function(error) {
-          console.log('error', error);
           $scope.vm.hasError = true;
           $scope.vm.errorMessage = error.data;
-          if ($scope.onError) {
-            $scope.onError({err: error.data});
-          }
         });
     }
   }
 }
 
-CreateFirstUserCtrl.$inject = ['$scope', 'languageService', 'CreateFirstUserSrv'];
+CreateFirstUserCtrl.$inject = ['$scope', 'languageService', 'CreateFirstUserSrv', '$state'];
 
 export default CreateFirstUserCtrl;
 

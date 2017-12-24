@@ -53,19 +53,21 @@ public class Application extends Controller {
       return badRequest("Please provide email, password, and default language.");
     }
 
+    /*
     session("email", email);
-
     String uid = UUID.randomUUID().toString();
     session("uid", uid);
+    */
 
     User user = new User();
     user.email = email;
     user.password = BCrypt.hashpw(password, BCrypt.gensalt());
     user.role = "admin";
     user.currentScript = "";
+    user.defaultLanguage = defaultLanguage;
     user.experimentInstanceId = -1L;
     user.selectedExperiment = null;
-    user.uid = uid;
+    //user.uid = uid;
     user.save();
 
     // TODO: Make method for creating demo experiments and associating with new user

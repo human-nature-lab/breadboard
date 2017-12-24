@@ -29,7 +29,7 @@ POST        /amtadmin/sendBonus/:assignmentId                                   
 POST        /amtadmin/updateAssignmentCompleted/:assignmentId                    controllers.AMTAdmin.updateAssignmentCompleted(assignmentId: String)
 POST        /amtadmin/createHIT                                                  controllers.AMTAdmin.createHIT(sandbox: Boolean ?= false)
 
-# CustomizeController Dialog
+# Customize Dialog
 GET         /customize/clientHtml/:experimentId                                  controllers.CustomizeController.getClientHtml(experimentId: Long)
 GET         /customize/clientGraph/:experimentId                                 controllers.CustomizeController.getClientGraph(experimentId: Long)
 GET         /customize/style/:experimentId                                       controllers.CustomizeController.getStyle(experimentId: Long)

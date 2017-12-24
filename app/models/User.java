@@ -31,6 +31,8 @@ public class User extends Model {
 
   public String uid;
 
+  public String defaultLanguage;
+
   /*
    * Currently role can be admin or amt_admin, should expand this to include experiment runners vs.
    * experiment designers.
@@ -115,6 +117,8 @@ public class User extends Model {
     }
 
     user.put("email", this.email);
+
+    user.put("defaultLanguage", this.defaultLanguage);
 
     user.put("experiments", Json.toJson(experimentNames));
 
