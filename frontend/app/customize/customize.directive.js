@@ -16,6 +16,7 @@ angular.module('breadboard.customize').directive('customize', function(){
         }
       });
     },
+    controllerAs: 'vm',
     controller: CustomizeCtrl,
     templateUrl: templateUrl
   }

@@ -1,150 +1,153 @@
 function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
+  let vm = this;
+
   const TAB = {
     'HTML': 1,
     'GRAPH': 2,
     'STYLE': 3
   };
 
-  $scope.TAB = TAB;
-  $scope.selectTab = selectTab;
-  $scope.vm = {
-    selectedTab: 0,
-    clientHtml: {
-      status: STATUS.UNLOADED,
-      errorMessage: '',
-      serverValue: '',
-      clientValue: '',
-      codeMirrorOptions: {
-        lineNumbers: true,
-        matchBrackets: true,
-        mode: 'text/html',
-        extraKeys: {
-          "Ctrl-Enter": updateClientHtml
-        },
-        vimMode: false,
-        showCursorWhenSelecting: true
-      }
-    },
-    clientGraph: {
-      status: STATUS.UNLOADED,
-      errorMessage: '',
-      serverValue: '',
-      clientValue: '',
-      codeMirrorOptions: {
-        lineNumbers: true,
-        matchBrackets: true,
-        mode: 'text/javascript',
-        extraKeys: {
-          "Ctrl-Enter": updateClientGraph
-        },
-        vimMode: false,
-        showCursorWhenSelecting: true
-      }
-    },
-    style: {
-      status: STATUS.UNLOADED,
-      errorMessage: '',
-      serverValue: '',
-      clientValue: '',
-      codeMirrorOptions: {
-        lineNumbers: true,
-        matchBrackets: true,
-        mode: 'text/css',
-        extraKeys: {
-          "Ctrl-Enter": updateStyle
-        },
-        vimMode: false,
-        showCursorWhenSelecting: true
-      }
+  const savedTime = 1000;
+
+  vm.experimentId = $scope.experimentId;
+  vm.TAB = TAB;
+  vm.selectTab = selectTab;
+  vm.selectedTab = 0;
+
+  vm.clientHtml = {
+    status: STATUS.UNLOADED,
+    errorMessage: '',
+    serverValue: '',
+    clientValue: '',
+    codeMirrorOptions: {
+      lineNumbers: true,
+      matchBrackets: true,
+      mode: 'text/html',
+      extraKeys: {
+        "Ctrl-Enter": updateClientHtml
+      },
+      vimMode: false,
+      showCursorWhenSelecting: true
     }
   };
 
-  const savedTime = 1000;
+  vm.clientGraph = {
+    status: STATUS.UNLOADED,
+    errorMessage: '',
+    serverValue: '',
+    clientValue: '',
+    codeMirrorOptions: {
+      lineNumbers: true,
+      matchBrackets: true,
+      mode: 'text/javascript',
+      extraKeys: {
+        "Ctrl-Enter": updateClientGraph
+      },
+      vimMode: false,
+      showCursorWhenSelecting: true
+    }
+  };
+
+  vm.style = {
+    status: STATUS.UNLOADED,
+    errorMessage: '',
+    serverValue: '',
+    clientValue: '',
+    codeMirrorOptions: {
+      lineNumbers: true,
+      matchBrackets: true,
+      mode: 'text/css',
+      extraKeys: {
+        "Ctrl-Enter": updateStyle
+      },
+      vimMode: false,
+      showCursorWhenSelecting: true
+    }
+  };
 
   selectTab(TAB.STYLE, 'styleTab');
 
   function getClientHtml() {
-    $scope.vm.clientHtml.status = STATUS.LOADING;
-    CustomizeSrv.getClientHtml($scope.experimentId)
+    vm.clientHtml.status = STATUS.LOADING;
+    CustomizeSrv.getClientHtml(vm.experimentId)
       .then(
         function(success){
-          $scope.vm.clientHtml.status = STATUS.UNCHANGED;
-          $scope.vm.clientHtml.serverValue = success.data.clientHtml;
-          $scope.vm.clientHtml.clientValue = success.data.clientHtml;
+          vm.clientHtml.status = STATUS.UNCHANGED;
+          vm.clientHtml.serverValue = success.data.clientHtml;
+          vm.clientHtml.clientValue = success.data.clientHtml;
           $scope.$watch('vm.clientHtml.clientValue', function(newValue) {
             if (newValue !== $scope.vm.clientHtml.serverValue) {
-              $scope.vm.clientHtml.status = STATUS.MODIFIED;
+              vm.clientHtml.status = STATUS.MODIFIED;
             } else {
-              if (!($scope.vm.clientHtml.status === STATUS.SAVED)) {
-                $scope.vm.clientHtml.status = STATUS.UNCHANGED;
+              if (!(vm.clientHtml.status === STATUS.SAVED)) {
+                vm.clientHtml.status = STATUS.UNCHANGED;
               }
             }
           });
         },
         function(error){
-          $scope.vm.clientHtml.status = STATUS.ERROR;
-          $scope.vm.clientHtml.errorMessage = error.data;
+          vm.clientHtml.status = STATUS.ERROR;
+          vm.clientHtml.errorMessage = error.data;
         });
   }
 
   function getClientGraph() {
-    $scope.vm.clientGraph.status = STATUS.LOADING;
-    CustomizeSrv.getClientGraph($scope.experimentId)
+    vm.clientGraph.status = STATUS.LOADING;
+    CustomizeSrv.getClientGraph(vm.experimentId)
       .then(
         function(success){
-          $scope.vm.clientGraph.status = STATUS.UNCHANGED;
-          $scope.vm.clientGraph.serverValue = success.data.clientGraph;
-          $scope.vm.clientGraph.clientValue = success.data.clientGraph;
+          vm.clientGraph.status = STATUS.UNCHANGED;
+          vm.clientGraph.serverValue = success.data.clientGraph;
+          vm.clientGraph.clientValue = success.data.clientGraph;
           $scope.$watch('vm.clientGraph.clientValue', function(newValue) {
-            if (newValue !== $scope.vm.clientGraph.serverValue) {
-              $scope.vm.clientGraph.status = STATUS.MODIFIED;
+            if (newValue !== vm.clientGraph.serverValue) {
+              vm.clientGraph.status = STATUS.MODIFIED;
             } else {
-              if (!($scope.vm.clientGraph.status === STATUS.SAVED)) {
-                $scope.vm.clientGraph.status = STATUS.UNCHANGED;
+              if (!(vm.clientGraph.status === STATUS.SAVED)) {
+                vm.clientGraph.status = STATUS.UNCHANGED;
               }
             }
           });
         },
         function(error){
-          $scope.vm.clientGraph.status = STATUS.ERROR;
-          $scope.vm.clientGraph.errorMessage = error.data;
+          vm.clientGraph.status = STATUS.ERROR;
+          vm.clientGraph.errorMessage = error.data;
         });
   }
 
   function getStyle() {
-    $scope.vm.style.status = STATUS.LOADING;
-    CustomizeSrv.getStyle($scope.experimentId)
+    vm.style.status = STATUS.LOADING;
+    CustomizeSrv.getStyle(vm.experimentId)
       .then(
         function(success){
-          $scope.vm.style.status = STATUS.UNCHANGED;
-          $scope.vm.style.serverValue = success.data.style;
-          $scope.vm.style.clientValue = success.data.style;
+          vm.style.status = STATUS.UNCHANGED;
+          vm.style.serverValue = success.data.style;
+          vm.style.clientValue = success.data.style;
           $scope.$watch('vm.style.clientValue', function(newValue) {
-            if (newValue !== $scope.vm.style.serverValue) {
-              $scope.vm.style.status = STATUS.MODIFIED;
+            if (newValue !== vm.style.serverValue) {
+              vm.style.status = STATUS.MODIFIED;
             } else {
-              if (!($scope.vm.style.status === STATUS.SAVED)) {
-                $scope.vm.style.status = STATUS.UNCHANGED;
+              if (!(vm.style.status === STATUS.SAVED)) {
+                vm.style.status = STATUS.UNCHANGED;
               }
             }
           });
         },
         function(error){
-          $scope.vm.style.status = STATUS.ERROR;
-          $scope.vm.style.errorMessage = error.data;
+          vm.style.status = STATUS.ERROR;
+          vm.style.errorMessage = error.data;
         });
   }
 
-
   function selectTab(tab, tabId) {
-    if (tab === $scope.vm.selectedTab) return;
+    if (tab === vm.selectedTab) return;
 
-    $scope.vm.selectedTab = tab;
+    vm.selectedTab = tab;
 
     // If we haven't already retrieved the content, get it now
-    if (tab === TAB.HTML && $scope.vm.clientHtml.status === STATUS.UNLOADED) getClientHtml();
-    if (tab === TAB.GRAPH && $scope.vm.clientGraph.status === STATUS.UNLOADED) getClientGraph();
-    if (tab === TAB.STYLE && $scope.vm.style.status === STATUS.UNLOADED) getStyle();
+    if (tab === TAB.HTML && vm.clientHtml.status === STATUS.UNLOADED) getClientHtml();
+    if (tab === TAB.GRAPH && vm.clientGraph.status === STATUS.UNLOADED) getClientGraph();
+    if (tab === TAB.STYLE && vm.style.status === STATUS.UNLOADED) getStyle();
 
     // Refresh CodeMirror instance when clicking tab
     $timeout(function() {
@@ -159,67 +162,70 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
   }
 
   $scope.saveCustomize = function() {
-    if ($scope.vm.clientHtml.status === STATUS.MODIFIED) {
+    if (vm.clientHtml.status === STATUS.MODIFIED) {
       updateClientHtml();
     }
-    if ($scope.vm.clientGraph.status === STATUS.MODIFIED) {
+    if (vm.clientGraph.status === STATUS.MODIFIED) {
       updateClientGraph();
     }
-    if ($scope.vm.style.status === STATUS.MODIFIED) {
+    if (vm.style.status === STATUS.MODIFIED) {
       updateStyle();
     }
   };
 
   function updateClientHtml() {
-    $scope.vm.clientHtml.status = STATUS.SAVING;
-    CustomizeSrv.updateClientHtml($scope.experimentId, $scope.vm.clientHtml.clientValue)
+    vm.clientHtml.status = STATUS.SAVING;
+    CustomizeSrv.updateClientHtml(vm.experimentId, vm.clientHtml.clientValue)
       .then(
         function() {
-          $scope.vm.clientHtml.status = STATUS.SAVED;
+          vm.clientHtml.status = STATUS.SAVED;
           $timeout(function() {
-            $scope.vm.clientHtml.status = STATUS.UNCHANGED;
+            vm.clientHtml.status = STATUS.UNCHANGED;
           }, savedTime);
-          $scope.vm.clientHtml.serverValue = $scope.vm.clientHtml.clientValue;
+          vm.clientHtml.serverValue = vm.clientHtml.clientValue;
         },
         function(error) {
-          $scope.vm.clientHtml.status = STATUS.ERROR;
-          $scope.vm.clientHtml.errorMessage = error.data;
+          vm.clientHtml.status = STATUS.ERROR;
+          vm.clientHtml.errorMessage = error.data;
         }
       );
   }
 
   function updateClientGraph() {
-    $scope.vm.clientGraph.status = STATUS.SAVING;
-    CustomizeSrv.updateClientGraph($scope.experimentId, $scope.vm.clientGraph.clientValue)
+    vm.clientGraph.status = STATUS.SAVING;
+    CustomizeSrv.updateClientGraph(vm.experimentId, vm.clientGraph.clientValue)
       .then(
         function() {
-          $scope.vm.clientGraph.status = STATUS.SAVED;
+          vm.clientGraph.status = STATUS.SAVED;
           $timeout(function() {
-            $scope.vm.clientGraph.status = STATUS.UNCHANGED;
+            vm.clientGraph.status = STATUS.UNCHANGED;
           }, savedTime);
-          $scope.vm.clientGraph.serverValue = $scope.vm.clientGraph.clientValue;
+          vm.clientGraph.serverValue = vm.clientGraph.clientValue;
         },
         function(error) {
-          $scope.vm.clientGraph.status = STATUS.ERROR;
-          $scope.vm.clientGraph.errorMessage = error.data;
+          vm.clientGraph.status = STATUS.ERROR;
+          vm.clientGraph.errorMessage = error.data;
         }
       );
   }
 
   function updateStyle() {
-    $scope.vm.style.status = STATUS.SAVING;
-    CustomizeSrv.updateStyle($scope.experimentId, $scope.vm.style.clientValue)
+    vm.style.status = STATUS.SAVING;
+    CustomizeSrv.updateStyle(vm.experimentId, vm.style.clientValue)
       .then(
         function() {
-          $scope.vm.style.status = STATUS.SAVED;
+          vm.style.status = STATUS.SAVED;
           $timeout(function() {
-            $scope.vm.style.status = STATUS.UNCHANGED;
+            vm.style.status = STATUS.UNCHANGED;
           }, savedTime);
-          $scope.vm.style.serverValue = $scope.vm.style.clientValue;
+          vm.style.serverValue = vm.style.clientValue;
+
+          // Update Style
+          $('#styleTag').text(vm.style.clientValue);
         },
         function(error) {
-          $scope.vm.style.status = STATUS.ERROR;
-          $scope.vm.style.errorMessage = error.data;
+          vm.style.status = STATUS.ERROR;
+          vm.style.errorMessage = error.data;
         }
       );
   }

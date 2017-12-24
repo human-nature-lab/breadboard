@@ -363,7 +363,7 @@
                     <tbody>
                     <tr ng-show="breadboard.experiment.instances.length == 0"><td colspan="6">No instances</td></tr>
                     <tr ng-repeat-start="instance in breadboard.experiment.instances"
-                        class="selected-{{instance.id === breadboard.experimentInstance.id}}"
+                        ng-class="{'info':(instance.id === breadboard.experimentInstance.id)}"
                         ng-click="breadboard.experimentInstance = instance">
                         <td>{{instance.id}}</td>
                         <td>{{instance.name}}</td>

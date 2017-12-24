@@ -67,27 +67,11 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
   $scope.selectedNode = {};
   $scope.breadboardGraph = new Graph(($(window).width() / 2), ($(window).width() / 2), $scope);
 
-  $scope.customizeSelectedTab = 'style';
+  // This links the 'Save' button of the Customize dialog with the customize directive
   $scope.customizeActions = {};
   function saveCustomize() {
     $scope.customizeActions.saveCustomize();
   }
-
-  $scope.selectTab = function(name, tabId) {
-    $scope.customizeSelectedTab = name;
-
-    // Refresh CodeMirror instance when clicking tab
-    $timeout(function() {
-      var tab = document.getElementById(tabId);
-      var byClass = tab.getElementsByClassName("CodeMirror");
-      for (var i = 0; i < byClass.length; i++) {
-        var cm = byClass[i].CodeMirror;
-        if (cm) {
-          cm.refresh();
-        }
-      }
-    }, 100);
-  };
 
   $breadboardFactory.addNodeChangeListener(function(nodes) {
       $scope.nodes = nodes;
@@ -100,6 +84,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
     node.selected = "1";
     $scope.breadboardGraph.selectNode(node);
     $scope.selectedNode = node;
+  };
+
+  var applyStyle = function () {
+    $('#styleTag').text($scope.breadboard.experiment.style);
   };
 
   /*
@@ -250,35 +238,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
       });
   };
 
-  var applyStyle = function () {
-    $('#styleTag').text($scope.breadboard.experiment.style);
-  };
-
-  var saveStyle = function () {
-    applyStyle();
-    $breadboardFactory.send(
-      {
-        "action": "SaveStyle",
-        "style": $scope.breadboard.experiment.style
-      });
-  };
-
-  var saveClientHtml = function () {
-    $breadboardFactory.send(
-      {
-        "action": "SaveClientHtml",
-        "clientHtml": $scope.breadboard.experiment.clientHtml
-      });
-  };
-
-  var saveClientGraph = function () {
-    $breadboardFactory.send(
-      {
-        "action": "SaveClientGraph",
-        "clientGraph": $scope.breadboard.experiment.clientGraph
-      });
-  };
-
   $scope.experimentChanged = function () {
     $breadboardFactory.send(
       {
@@ -371,24 +330,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
         "action": "CreateExperiment",
         "name": $scope.newExperimentName,
         "copyExperimentName": $scope.copyExperimentName
-      });
-  };
-
-  $scope.submitAMTTask = function (lifetimeInSeconds, tutorialTime) {
-    //console.log('submitAMTTask', lifetimeInSeconds, tutorialTime);
-    $breadboardFactory.send({
-        "action": "SubmitAMTTask",
-        "lifetimeInSeconds": lifetimeInSeconds,
-        "tutorialTime": tutorialTime
-      });
-  };
-
-  $scope.getAssignments = function (id) {
-    $scope.selectedHIT = id;
-    $breadboardFactory.send(
-      {
-        "action": "GetAssignmentsForHIT",
-        "amtHitId": id
       });
   };
 
@@ -546,16 +487,12 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
 
   $scope.vim = {vimMode: false};
 
-  $scope.$watch('selectedNode', function(old, newVal){
-
-  });
-
   $scope.$watch('vim', function () {
     $scope.stepCodemirrorOptions.vimMode = $scope.vim.vimMode;
-    $scope.cssCodemirrorOptions.vimMode = $scope.vim.vimMode;
+    //$scope.cssCodemirrorOptions.vimMode = $scope.vim.vimMode;
     $scope.scriptCodemirrorOptions.vimMode = $scope.vim.vimMode;
-    $scope.clientHtmlCodemirrorOptions.vimMode = $scope.vim.vimMode;
-    $scope.clientGraphCodemirrorOptions.vimMode = $scope.vim.vimMode;
+    //$scope.clientHtmlCodemirrorOptions.vimMode = $scope.vim.vimMode;
+    //$scope.clientGraphCodemirrorOptions.vimMode = $scope.vim.vimMode;
   }, true);
 
   $scope.toggleVim = function () {
@@ -734,17 +671,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
     });
   };
 
-  $scope.testGame = function () {
-    //console.log($scope.launchParameters);
-
-    $breadboardFactory.send(
-      {
-        "action": "TestGame",
-        "name": $scope.experimentInstanceName,
-        "parameters": $scope.launchParameters
-      });
-  };
-
   $scope.stopGame = function (id) {
     $breadboardFactory.send(
       {
@@ -752,16 +678,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
         "id": id
         //$scope.breadboard.experimentInstance.id
       });
-  };
-
-  $scope.showEvent = function (experimentInstance) {
-    $scope.showEvent.experimentInstance = experimentInstance;
-    $breadboardFactory.send(
-      {
-        "action": "ShowEvent",
-        "id": experimentInstance.id
-      });
-    $('#eventDataDialog').dialog({title: 'Event Data', width: 800, height: 660, modal: true});
   };
 
   $scope.downloadEventCsv = function (experimentInstance) {
@@ -840,7 +756,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
     buttons: {}
   };
 
-
   $scope.scriptDialogOptions = {
     title: 'Script',
     autoOpen: true,
@@ -856,24 +771,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
       }
     ]
   };
-
-  /*
-  $scope.dataDialogOptions = {
-    title: 'Data',
-    autoOpen: false,
-    width: ((windowWidth * .5) - dialogMargin),
-    height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight],
-    buttons: [
-      {
-        text: 'Download CSV',
-        click: function () {
-          location.href = '/csv/data/' + $scope.breadboard.experiment.id;
-        }
-      }
-    ]
-  };
-  */
 
   $scope.contentDialogOptions = {
     title: 'Content',
@@ -903,56 +800,17 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
     }
   };
 
-  $scope.cssDialogOptions = {
-    title: 'CSS',
-    autoOpen: true,
-    buttons: {
-      'Save': function () {
-        saveStyle();
-      }
-    },
-    width: ((windowWidth * .5) - dialogMargin),
-    height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight]
-  };
-
-  $scope.clientHtmlDialogOptions = {
-    title: 'Client HTML',
-    autoOpen: true,
-    buttons: {
-      'Save': function () {
-        saveClientHtml();
-      }
-    },
-    width: ((windowWidth * .5) - dialogMargin),
-    height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight]
-  };
-
   $scope.customizeDialogOptions = {
     title: 'Customize',
     autoOpen: false,
     width: ((windowWidth * .5) - dialogMargin),
     height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight],
+    position: [margin, topDivHeight],
     buttons: {
       'Save': function () {
         saveCustomize();
       }
     },
-  };
-
-  $scope.clientGraphDialogOptions = {
-    title: 'Client Graph',
-    autoOpen: true,
-    buttons: {
-      'Save': function () {
-        saveClientGraph();
-      }
-    },
-    width: ((windowWidth * .5) - dialogMargin),
-    height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight]
   };
 
   $scope.graphDialogOptions = {
@@ -991,7 +849,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
     buttons: {}
   };
 
-
   $scope.parametersDialogOptions = {
     title: 'Parameters',
     autoOpen: false,
@@ -1018,42 +875,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
     mode: 'text/x-groovy',
     extraKeys: {
       "Ctrl-Enter": sendScript
-    },
-    vimMode: false,
-    showCursorWhenSelecting: true
-  };
-
-  $scope.cssCodemirrorOptions = {
-    autoRefresh: true,
-    lineNumbers: true,
-    matchBrackets: true,
-    mode: 'text/css',
-    extraKeys: {
-      "Ctrl-Enter": saveStyle
-    },
-    vimMode: false,
-    showCursorWhenSelecting: true
-  };
-
-  $scope.clientHtmlCodemirrorOptions = {
-    autoRefresh: true,
-    lineNumbers: true,
-    matchBrackets: true,
-    mode: 'text/html',
-    extraKeys: {
-      "Ctrl-Enter": saveClientHtml
-    },
-    vimMode: false,
-    showCursorWhenSelecting: true
-  };
-
-  $scope.clientGraphCodemirrorOptions = {
-    autoRefresh: true,
-    lineNumbers: true,
-    matchBrackets: true,
-    mode: 'text/javascript',
-    extraKeys: {
-      "Ctrl-Enter": saveClientGraph
     },
     vimMode: false,
     showCursorWhenSelecting: true
