@@ -68,6 +68,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
   $scope.breadboardGraph = new Graph(($(window).width() / 2), ($(window).width() / 2), $scope);
 
   $scope.customizeSelectedTab = 'style';
+  $scope.customizeActions = {};
+  function saveCustomize() {
+    $scope.customizeActions.saveCustomize();
+  }
 
   $scope.selectTab = function(name, tabId) {
     $scope.customizeSelectedTab = name;
@@ -248,16 +252,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
 
   var applyStyle = function () {
     $('#styleTag').text($scope.breadboard.experiment.style);
-  };
-
-  var saveCustomize = function() {
-    if ($scope.customizeSelectedTab === 'style') {
-      saveStyle();
-    } else if ($scope.customizeSelectedTab === 'html') {
-      saveClientHtml();
-    } else if ($scope.customizeSelectedTab === 'graph') {
-      saveClientGraph();
-    }
   };
 
   var saveStyle = function () {

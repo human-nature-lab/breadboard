@@ -17,9 +17,7 @@ GET         /game/:experimentId/:experimentInstanceId/:clientId/connect         
 
 # Authentication
 
-# AMT Admin Page
-#GET         /amtadmin                                                            controllers.AMTAdmin.index()
-#GET         /amtadmin/login                                                      controllers.AMTAdmin.login()
+# AMT Admin Dialog
 POST        /amtadmin/createDummyHit                                             controllers.AMTAdmin.createDummyHit(sandbox: Boolean ?= false)
 GET         /amtadmin/getAccountBalance                                          controllers.AMTAdmin.getAccountBalance(sandbox: Boolean ?= false)
 GET         /amtadmin/listHITs                                                   controllers.AMTAdmin.listHITs(nextToken: String ?= null, maxResults: Integer ?= 20, sandbox: Boolean ?= false)
@@ -30,6 +28,14 @@ POST        /amtadmin/rejectAssignment/:assignmentId                            
 POST        /amtadmin/sendBonus/:assignmentId                                    controllers.AMTAdmin.sendBonus(assignmentId: String, sandbox: Boolean ?= false)
 POST        /amtadmin/updateAssignmentCompleted/:assignmentId                    controllers.AMTAdmin.updateAssignmentCompleted(assignmentId: String)
 POST        /amtadmin/createHIT                                                  controllers.AMTAdmin.createHIT(sandbox: Boolean ?= false)
+
+# CustomizeController Dialog
+GET         /customize/clientHtml/:experimentId                                  controllers.CustomizeController.getClientHtml(experimentId: Long)
+GET         /customize/clientGraph/:experimentId                                 controllers.CustomizeController.getClientGraph(experimentId: Long)
+GET         /customize/style/:experimentId                                       controllers.CustomizeController.getStyle(experimentId: Long)
+POST        /customize/clientHtml/:experimentId                                  controllers.CustomizeController.updateClientHtml(experimentId: Long)
+POST        /customize/clientGraph/:experimentId                                 controllers.CustomizeController.updateClientGraph(experimentId: Long)
+POST        /customize/style/:experimentId                                       controllers.CustomizeController.updateStyle(experimentId: Long)
 
 # Languages
 GET         /languages                                                           controllers.LanguageController.getLanguages()

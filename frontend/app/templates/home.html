@@ -275,24 +275,6 @@
         </div>
     </div>
 
-
-    <!-- Client Graph
-    <div>
-        <div ui-jq="dialog" ui-options="clientGraphDialogOptions" id="clientGraphDiv">
-        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="clientGraphCodemirrorOptions"
-                  ng-model="breadboard.experiment.clientGraph"></textarea>
-        </div>
-    </div>
-
-    <!-- Client HTML
-    <div>
-        <div ui-jq="dialog" ui-options="clientHtmlDialogOptions" id="clientHtmlDiv">
-        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="clientHtmlCodemirrorOptions"
-                  ng-model="breadboard.experiment.clientHtml"></textarea>
-        </div>
-    </div>
-
-
     <!-- Content w/ Translation support -->
     <div>
         <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
@@ -343,49 +325,12 @@
         </form>
     </div>
 
-    <!-- Customize -->
+    <!-- CustomizeController -->
     <div>
         <div ui-jq="dialog" ui-options="customizeDialogOptions" id="customizeDiv">
-            <ul class="nav nav-tabs">
-                <li role="presentation" ng-class="{'active': (customizeSelectedTab === 'style') }">
-                    <a ng-click="selectTab('style', 'styleTab')">Style</a>
-                </li>
-                <li role="presentation" ng-class="{'active': (customizeSelectedTab === 'graph') }">
-                    <a ng-click="selectTab('graph', 'graphTab')">Client Graph</a>
-                </li>
-                <li role="presentation" ng-class="{'active': (customizeSelectedTab === 'html') }">
-                    <a ng-click="selectTab('html', 'htmlTab')">Client HTML</a>
-                </li>
-            </ul>
-            <div ng-show="customizeSelectedTab === 'style'" id="styleTab">
-                <textarea class="codemirror"
-                          ui-codemirror
-                          ui-codemirror-opts="cssCodemirrorOptions"
-                          ng-model="breadboard.experiment.style"></textarea>
-            </div>
-            <div ng-show="customizeSelectedTab === 'graph'" id="graphTab">
-                <textarea class="codemirror"
-                          ui-codemirror
-                          ui-codemirror-opts="clientGraphCodemirrorOptions"
-                          ng-model="breadboard.experiment.clientGraph"></textarea>
-            </div>
-            <div ng-show="customizeSelectedTab === 'html'" id="htmlTab">
-                <textarea class="codemirror"
-                          ui-codemirror
-                          ui-codemirror-opts="clientHtmlCodemirrorOptions"
-                          ng-model="breadboard.experiment.clientHtml"></textarea>
-            </div>
+            <customize ng-if="breadboard.experiment" actions="customizeActions" experiment-id="breadboard.experiment.id"></customize>
         </div>
     </div>
-
-    <!-- CSS
-    <div>
-        <div ui-jq="dialog" ui-options="cssDialogOptions" id="cssDiv">
-        <textarea class="codemirror" ui-codemirror ui-codemirror-opts="cssCodemirrorOptions"
-                  ui-refresh="cssDialogIsOpen"
-                  ng-model="breadboard.experiment.style"></textarea>
-        </div>
-    </div-->
 
     <!-- Experiment Instances -->
     <div>

@@ -32,36 +32,6 @@ public class AMTAdmin extends Controller {
   private static final String SECRET_KEY = Play.application().configuration().getString("amt.secretKey");
   private static final String ACCESS_KEY = Play.application().configuration().getString("amt.accessKey");
 
-  /*
-  public static Result login() {
-    return ok(login.render(Form.form(Application.Login.class)));
-  }
-
-  public static Result authenticate() {
-    Form<Application.Login> loginForm = Form.form(Application.Login.class).bindFromRequest();
-
-    if (loginForm.hasErrors()) {
-      return badRequest(login.render(loginForm));
-    } else {
-      String email = loginForm.get().email;
-
-      session("email", email);
-
-      return redirect(routes.AMTAdmin.index());
-    }
-  }
-
-  public static Result logout() {
-    session().clear();
-    flash("success", "You've been logged out");
-    return redirect(routes.AMTAdmin.login());
-  }
-
-  public static Result index() {
-    return ok(amtAdmin.render());
-  }
-  */
-
   public static Result getAccountBalance(Boolean sandbox) {
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));

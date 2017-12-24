@@ -1,0 +1,44 @@
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <ul class="nav nav-tabs">
+                <li role="presentation" ng-class="{'active': (vm.selectedTab === TAB.STYLE) }">
+                    <a ng-click="selectTab(TAB.STYLE, 'styleTab')">
+                        Style
+                        <tab-status status="vm.style.status"></tab-status>
+                    </a>
+                </li>
+                <li role="presentation" ng-class="{'active': (vm.selectedTab === TAB.GRAPH) }">
+                    <a ng-click="selectTab(TAB.GRAPH, 'graphTab')">
+                        Client Graph
+                        <tab-status status="vm.clientGraph.status"></tab-status>
+                    </a>
+                </li>
+                <li role="presentation" ng-class="{'active': (vm.selectedTab === TAB.HTML) }">
+                    <a ng-click="selectTab(TAB.HTML, 'htmlTab')">
+                        Client HTML
+                        <tab-status status="vm.clientHtml.status"></tab-status>
+                    </a>
+                </li>
+            </ul>
+            <div ng-show="vm.selectedTab === TAB.STYLE" id="styleTab">
+                <textarea class="codemirror"
+                          ui-codemirror
+                          ui-codemirror-opts="vm.style.codeMirrorOptions"
+                          ng-model="vm.style.clientValue"></textarea>
+            </div>
+            <div ng-show="vm.selectedTab === TAB.GRAPH" id="graphTab">
+                <textarea class="codemirror"
+                          ui-codemirror
+                          ui-codemirror-opts="vm.clientGraph.codeMirrorOptions"
+                          ng-model="vm.clientGraph.clientValue"></textarea>
+            </div>
+            <div ng-show="vm.selectedTab === TAB.HTML" id="htmlTab">
+                <textarea class="codemirror"
+                          ui-codemirror
+                          ui-codemirror-opts="vm.clientHtml.codeMirrorOptions"
+                          ng-model="vm.clientHtml.clientValue"></textarea>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,17 @@
+<span>
+    <i ng-show="status === STATUS.UNCHANGED"
+       class="fa fa-circle text-transparent"
+       aria-hidden="true"></i>
+    <i ng-show="status === STATUS.ERROR"
+       class="fa fa-info-circle text-danger"
+       aria-hidden="true"></i>
+    <i ng-show="status === STATUS.MODIFIED"
+       class="fa fa-circle text-warning"
+       aria-hidden="true"></i>
+    <i ng-show="status === STATUS.SAVED"
+       class="fa fa-check-circle text-success"
+       aria-hidden="true"></i>
+    <i ng-show="status === STATUS.SAVING || status === STATUS.LOADING"
+       class="fa fa-refresh fa-spin text-info"
+       aria-hidden="true"></i>
+</span>
