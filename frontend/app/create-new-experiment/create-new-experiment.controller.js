@@ -7,10 +7,8 @@ function CreateNewExperimentCtrl($scope, CreateNewExperimentSrv, $timeout) {
   vm.success = false;
 
   function createNewExperiment() {
-    console.log('createNewExperiment', vm.newExperimentName, vm.copyExperimentId);
     CreateNewExperimentSrv.createNewExperiment(vm.newExperimentName, vm.copyExperimentId)
       .then(function(success) {
-        console.log('success', success);
         let newExperiment = success.data;
         $scope.userExperiments.push(newExperiment);
         vm.success = true;
