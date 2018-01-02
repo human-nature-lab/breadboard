@@ -1,13 +1,45 @@
 import _ from 'underscore';
+import 'ng-file-upload';
 
 /* Controllers */
-angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state', 'csvService',
-function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
+angular.module('breadboard.controllers', ['ngFileUpload']).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state', 'csvService', 'configService', 'Upload',
+function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, configService, Upload) {
   /*
   $scope.$watch('selectedLanguage', function(newValue) {
     console.log('selectedLanguage', newValue);
   });
   */
+  $scope.image = {
+    file: null,
+    path: ''
+  };
+
+  configService.get('imageUploadRoute').then(imageUploadRoute => {
+    $scope.image.path = imageUploadRoute;
+  });
+
+  $scope.uploadImage = function(){
+    if(!$scope.image.file) return;
+    Upload.upload({
+      url: $scope.image.path,
+      data: {
+        picture: $scope.image.file,
+        experimentId: $scope.breadboard.experiment.id
+      }
+    }).then(function(resp){
+      if(resp.data === 'Error uploading'){
+        alert("Unable to upload the photo. Please select a new photo.");
+      } else {
+        $scope.update();
+      }
+      $scope.image.file = null;
+    }, function(err){
+      console.error(err);
+      $scope.image.file = null;
+    }, function(evt){
+      console.log("progress", evt);
+    });
+  };
 
   $breadboardFactory.onmessage(function (data) {
     try {
