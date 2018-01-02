@@ -141,6 +141,7 @@ public class Application extends Controller {
     result.put("juid", session("juid"));
     result.put("email", session("email"));
     result.put("connectSocket", play.Play.application().configuration().getString("breadboard.wsUrl"));
+    result.put("imageUploadRoute", routes.Application.uploadImage().toString());
     return ok(result);
   }
 

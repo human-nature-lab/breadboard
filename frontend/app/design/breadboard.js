@@ -30,30 +30,3 @@ window.dockWindow = function (dialog, title) {
   $('#dockDiv').append(link);
 };
 
-// Set up the iframe for the images dialog form
-window.iframe = $("#imageUploadIframe");
-
-$("#imageUploadForm").submit(function () {
-  this.target = iframe.attr("name");
-  iframe.get(0).processContent = true;
-});
-
-$("#imageUploadIframe").load(function () {
-  if (!this.processContent)
-    return;
-
-  var iframeDocument = this.contentWindow || this.contentDocument;
-  iframeDocument = iframeDocument.document ? iframeDocument.document : iframeDocument;
-  var iframeBodyElement = iframeDocument.body;
-
-  var returnText = $(iframeBodyElement).get(0).innerText;
-
-  if (returnText === "File uploaded") {
-    console.log('Upload successful');
-    // TODO: possibly create an 'updateImage' method that only refreshes the images
-    angular.element("#mainDiv").scope().update();
-  } else {
-    console.log('Upload failed!');
-  }
-});
-

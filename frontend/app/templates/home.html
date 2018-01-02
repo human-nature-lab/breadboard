@@ -478,38 +478,43 @@
     <!-- Images -->
     <div>
         <div ui-jq="dialog" ui-options="imagesDialogOptions" id="imagesDiv">
-            <form action="@routes.Application.uploadImage()" method="post" enctype="multipart/form-data"
-                  id="imageUploadForm">
-                <table>
-                    <thead>
+            <table class="table">
+                <thead>
                     <tr>
-                        <td colspan="3">Add Image</td>
+                        <th colspan="3">Add Image</th>
                     </tr>
-                    </thead>
-                    <tbody>
+                </thead>
+                <tbody>
                     <tr>
-                        <td><input type="file" name="picture"></td>
                         <td>
-                            <button title='Add image' ui-jq='button' style="float: right;" type="submit"><span
-                                    class="step-icon ui-icon-plusthick">
-                  New image</span></button>
+                            <!--<input type="file" name="picture">-->
+                            <button ngf-select
+                                    class="btn btn-default"
+                                    ngf-pattern="'image/*'"
+                                    ng-model="image.file">
+                                Select an image
+                            </button>
                         </td>
                         <td>
-                            <iframe id="imageUploadIframe" name="imageUploadIframe" src=""
-                                    style="display: none;"></iframe>
+                            {{image.file.name}}
+                        </td>
+                        <td>
+                            <button title='Add image'
+                                    class="btn btn-default"
+                                    ng-click="uploadImage()">
+                                <span class="step-icon ui-icon-plusthick">Upload image</span>
+                            </button>
                         </td>
                     </tr>
-                    </tbody>
-                </table>
-                <input type="hidden" name="experimentId" value="{{breadboard.experiment.id}}">
-            </form>
-            <table style="border-collapse: collapse;">
+                </tbody>
+            </table>
+            <table class="table">
                 <thead>
                 <tr>
-                    <td>File Name</td>
-                    <td>Image</td>
-                    <td>URL</td>
-                    <td>Delete</td>
+                    <th>File Name</th>
+                    <th>Image</th>
+                    <th>URL</th>
+                    <th>Delete</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -518,9 +523,8 @@
                     <td><img ng-src="/thumbs/{{image.id}}"></td>
                     <td>/images/{{image.id}}</td>
                     <td>
-                        <button title='Delete image' ui-jq='button'
-                                onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
-                                onmouseout="$(this).parent().parent().css('background', '');"
+                        <button title='Delete image'
+                                class="btn btn-default"
                                 ng-click='deleteImage(image.id)'><span
                                 class="step-icon ui-icon-closethick">Delete image</span></button>
                     </td>
