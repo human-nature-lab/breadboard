@@ -360,9 +360,11 @@ public class Experiment extends Model {
       jsonImages.add(i.toJson());
     }
 
+    /*
     experiment.put("style", style);
     experiment.put("clientHtml", clientHtml);
     experiment.put("clientGraph", clientGraph);
+    */
 
     return experiment;
   }

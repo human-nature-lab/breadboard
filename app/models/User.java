@@ -2,6 +2,7 @@ package models;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.mindrot.jbcrypt.BCrypt;
 import play.Logger;
@@ -112,15 +113,21 @@ public class User extends Model {
 
     ArrayList<String> experimentNames = new ArrayList<String>();
 
+    /*
     for (Experiment experiment : ownedExperiments) {
       experimentNames.add(experiment.name);
     }
+    */
 
     user.put("email", this.email);
 
     user.put("defaultLanguage", this.defaultLanguage);
 
-    user.put("experiments", Json.toJson(experimentNames));
+    //user.put("experiments", Json.toJson(experimentNames));
+    ArrayNode experiments = user.putArray("experiments");
+    for (Experiment experiment: ownedExperiments) {
+      experiments.add(experiment.toJson());
+    }
 
     if (selectedExperiment != null) {
       user.put("selectedExperiment", selectedExperiment.name);
