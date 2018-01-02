@@ -317,6 +317,10 @@ label.fixed-width {
     margin: 0;
 }
 
+.CodeMirror-scroll {
+    min-height: 4em;
+}
+
 #stepSourceDiv .CodeMirror-scroll, #contentHTMLDiv .CodeMirror-scroll {
     height: auto;
     overflow-y: hidden;
