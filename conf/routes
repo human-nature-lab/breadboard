@@ -37,6 +37,9 @@ POST        /customize/clientHtml/:experimentId                                 
 POST        /customize/clientGraph/:experimentId                                 controllers.CustomizeController.updateClientGraph(experimentId: Long)
 POST        /customize/style/:experimentId                                       controllers.CustomizeController.updateStyle(experimentId: Long)
 
+# Create New Experiment
+PUT         /experiment                                                          controllers.ExperimentController.createExperiment()
+
 # Languages
 GET         /languages                                                           controllers.LanguageController.getLanguages()
 

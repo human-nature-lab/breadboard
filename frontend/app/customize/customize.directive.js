@@ -1,5 +1,5 @@
 import './customize.app';
-import './tab-status.directive';
+import '../directives/tab-status/tab-status.directive';
 import templateUrl from './customize.template.html';
 import CustomizeCtrl from './customize.controller';
 angular.module('breadboard.customize').directive('customize', function(){

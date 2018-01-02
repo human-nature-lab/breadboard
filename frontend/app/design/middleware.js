@@ -3,7 +3,7 @@ angular
     $provide.factory('AuthorizationMiddleware', ['$q', '$injector', function($q, $injector){
 
       function response(res){
-        console.log('res interceptor', res);
+        //console.log('res interceptor', res);
         return res;
       }
 

@@ -242,7 +242,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
     $breadboardFactory.send(
       {
         "action": "SelectExperiment",
-        "experiment": $scope.breadboard.user.selectedExperiment
+        "experimentId": $scope.breadboard.experiment.id
       });
   };
 
@@ -252,7 +252,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService) {
       $(element).val("");
     });
 
-    $('#newExperimentDialog').dialog({title: 'Create New Experiment'});
+    $('#newExperimentDialog').dialog({
+      title: 'Create a new experiment',
+      modal: true
+    });
   };
 
   $scope.openNewInstanceModal = function(){
