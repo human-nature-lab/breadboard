@@ -66,10 +66,8 @@ public class Breadboard extends UntypedActor {
               breadboardController.tell(new SaveUserSettings(user, currentPassword, newPassword, confirmPassword, out), null);
 
             } else if (action.equals("SelectExperiment")) {
-              //String experimentName = jsonInput.get("experiment").toString();
               Long experimentId = Long.parseLong(jsonInput.get("experimentId").toString());
               Experiment experiment = Experiment.findById(experimentId);
-              Logger.debug("SelectExperiment");
 
               if (experiment != null)
                 breadboardController.tell(new SelectExperiment(user, experiment, out), null);

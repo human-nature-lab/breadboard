@@ -79,7 +79,6 @@
                             tooltip="Create an experiment instance"
                             tooltip-placement="bottom"
                             id="newInstanceButton"
-                            onclick="hideTooltips()"
                             ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
                             ng-click="openNewInstanceModal()">
                         <span class="glyphicon glyphicon-plus"
@@ -101,7 +100,6 @@
                             tooltip-placement="bottom"
                             id="runButton"
                             ng-disabled="breadboard.experimentInstance == '' || breadboard.experimentInstance.status === 'RUNNING' || breadboard.experimentInstance.status === 'FINISHED'"
-                            onclick="hideTooltips()"
                             ng-click="selectInstance(breadboard.experimentInstance.id)">
                     <span class="glyphicon glyphicon-play"
                           aria-hidden="true">
@@ -113,7 +111,6 @@
                             tooltip-placement="bottom"
                             id="stopButton"
                             ng-click="stopGame(breadboard.experimentInstance.id)"
-                            onclick="hideTooltips()"
                             ng-disabled="breadboard.experimentInstance.status !== 'RUNNING'">
                     <span class="glyphicon glyphicon-stop"
                           aria-hidden="true">
@@ -157,7 +154,7 @@
 
     <!-- New Experiment Instance -->
     <div id="newExperimentInstanceDialog" style="display: none;">
-        <form name="createExperimentInstanceForm" class="form-horizontal" ng-show="breadboard.experimentInstance=='' || breadboard.experimentInstance.status == 'FINISHED'">
+        <form name="createExperimentInstanceForm" class="form-horizontal">
             <h4>Instance</h4>
             <div class="form-group">
                 <label class="col-md-3 control-label"
@@ -357,7 +354,7 @@
                             <button class="btn btn-default btn-sm pull-right"
                                     ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
                                     ng-click="openNewInstanceModal()">
-                                Create Instance
+                                Create instance
                             </button>
                         </td>
                     </tr>
@@ -386,7 +383,6 @@
                                         uib-tooltip
                                         tooltip-placement="bottom"
                                         ng-disabled="instance.status === 'RUNNING' || instance.status === 'FINISHED'"
-                                        onclick="hideTooltips()"
                                         ng-click="selectInstance(instance.id)">
                                     <span class="glyphicon glyphicon-play"
                                           aria-hidden="true">
@@ -397,7 +393,6 @@
                                         tooltip="Stop the selected experiment instance"
                                         tooltip-placement="bottom"
                                         ng-click="stopGame(instance.id)"
-                                        onclick="hideTooltips()"
                                         ng-disabled="instance.status !== 'RUNNING'">
                                     <span class="glyphicon glyphicon-stop"
                                           aria-hidden="true">
@@ -459,7 +454,7 @@
                             <button class="btn btn-default btn-sm pull-right"
                                     ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
                                     ng-click="openNewInstanceModal()">
-                                Create Instance
+                                Create instance
                             </button>
                         </td>
                     </tr>
