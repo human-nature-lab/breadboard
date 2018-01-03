@@ -8,6 +8,7 @@ export default function Graph(w, h, clientId) {
   var graphPadding = 10;
   var linkDistance = (Math.min(width, height) / 2) - alterNodeR - (2 * graphPadding);
 
+
   var ignoreProps = ["$$hashKey", "text", "choices", "x", "y", "px", "py"];
 
   // set up initial svg object

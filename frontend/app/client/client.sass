@@ -1,0 +1,193 @@
+html, body
+  height: 100%
+  width: 100%
+  padding: 0
+  margin: 0
+  /*font-family: Lucida Grande,Lucida Sans,Arial,sans-serif*/
+  /*font-family: 'Lora', serif*/
+  font-family: 'Open Sans', sans-serif
+  font-size: 12pt
+  line-height: 1em
+
+
+svg
+  margin: auto
+  display: block
+
+
+circle
+  &.client
+    stroke: #333
+    stroke-width: 3px
+    fill-opacity: 1
+line
+  &.client
+    stroke: #333
+    stroke-width: 3px
+text
+  &.client
+    fill: #000
+    stroke: none
+    /*font-family: "Open Sans","Times","Helvetica", sans-serif*/
+    font-family: 'Open Sans', sans-serif
+    font-weight: bold
+
+#text
+  font-size: 13pt
+  line-height: 1.3em
+  font-size: medium
+  line-height: normal
+  text-align: justify
+  /*font-family: "Open Sans","Times","Helvetica", sans-serif*/
+  font-family: 'Open Sans', sans-serif
+
+
+button
+  font-family: 'Open Sans', sans-serif
+  font-weight: bold
+  margin: .5em
+  font-size: 1.5em
+  min-width: 110px
+  line-height: 100%
+  color: #464646
+  margin: .5em
+  padding: 10px 10px
+  border-style: none
+  text-align: center
+  box-shadow: 2px 2px 3px 1px #666
+  -moz-box-shadow: 2px 2px 3px 1px #666
+  -webkit-box-shadow: 2px 2px 3px 1px #666
+
+
+button[disabled]
+  border-color: #eaeaea
+  background: #fafafa
+  cursor: default
+  position: static
+  color: #999
+  box-shadow: none
+  text-shadow: none
+
+.main
+  height: 100%
+
+#mainDiv
+  display: flex
+  flex-direction: column
+
+.game
+  margin: 0
+  height: 100%
+  position: relative
+  overflow: hidden
+  display: flex
+  flex-direction: row
+  >div
+    flex-grow: 0
+    flex-shrink: 0
+    width: 50%
+    overflow: auto
+
+#error
+  display: none
+
+#graph
+  margin: 0
+  border: none
+  position: relative
+  svg
+    position: absolute
+    margin: auto
+    max-width: 100%
+    max-height: 100%
+    top: 0
+    bottom: 0
+    right: 0
+    left: 0
+
+#status
+  position: static /*fixed*/
+  top: 0
+  left: 0
+  /*font-size: 20pt*/
+  width: 100%
+  //padding: 5px
+  text-align: center
+  /* margin-top: 30px */
+  line-height: 0
+  .message
+    border-bottom: 2px solid #DDD
+    background-color: #FBEC88
+  .warning
+    border-bottom: 2px solid #CD0A0A
+    background-color: #FEF1EC
+    color: #CD0A0A
+
+.progress
+  height: 24px
+  /* margin-top: 24px */
+  margin: 0px
+
+.progress-bar
+  font-size: 16px
+  line-height: 24px
+  transition-duration: 0.1s
+
+#browserTests
+  padding-top: 1em
+
+#rightDiv
+  background: #EEE
+  padding: 0
+  padding-left: 1em /*2.5em*/
+  padding-right: 1em /*2.5em*/
+  border: none
+  border-left: 2px solid #DDD
+  border-right: 2px solid #DDD
+
+#dropped
+  padding-left: 1em
+
+#properties
+  margin: 10px
+
+#text
+  margin: 5px /*10*/
+  padding-top: 0em /*.5em*/
+
+#text.drop
+  text-align: center
+
+#choices
+  margin: 10px
+
+#signalBtn
+  text-align: center
+
+hr.style-one
+  border: 0
+  height: 1px
+  background: #333
+  background-image: -o-linear-gradient(left, #ccc, #333, #ccc)
+  margin-top: 5px
+  margin-bottom: 5px
+
+/* Default style for svg elements here */
+$colors: (#1f77b4 #aec7e8 #ff7f0e #ffbb78 #2ca02c #98df8a #d62728 #ff9896 #9467bd #c5b0d5 #8c564b #c49c94 #e377c2 #f7b6d2 #7f7f7f #c7c7c7 #bcbd22 #dbdb8d #17becf #9edae5)
+@for $i from 1 through length($colors)
+  $c: nth($colors, $i)
+  circle:nth-of-type(20n+ #{$i})
+    fill: $c
+
+
+
+@media screen and (max-width: 800px)
+  .game
+    height: 100%
+    flex-direction: column
+    >div
+      width: 100%
+    #graph
+      height: 30%
+    #rightDiv
+      height: 70%

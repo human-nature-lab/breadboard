@@ -41,6 +41,8 @@
     "file-loader": "^1.1.6",
     "html-loader": "^0.5.1",
     "ngtemplate-loader": "^2.0.1",
+    "node-sass": "^4.7.2",
+    "sass-loader": "^6.0.6",
     "style-loader": "^0.19.1",
     "webpack": "3.0.0",
     "webpack-dev-server": "2.5.0",
