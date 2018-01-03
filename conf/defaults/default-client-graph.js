@@ -1,20 +1,32 @@
-function Graph(w, h, clientId) {
+function Graph(clientId, parentElement) {
 
-  var width = (w == undefined) ? 600 : w;
-  var height = (h == undefined) ? 600 : h;
+  var width = parentElement ? parentElement.clientWidth : 600;
+  var height = parentElement ? parentElement.clientHeight : 600;
   var egoNodeR = 50;
   var alterNodeR = 30;
   var arrowPadding = 7;
   var graphPadding = 10;
   var linkDistance = (Math.min(width, height) / 2) - alterNodeR - (2 * graphPadding);
+  //var linkDistance = 10;
+  console.log('parent', parentElement, width, height);
 
   var ignoreProps = ["$$hashKey", "text", "choices", "x", "y", "px", "py"];
 
+  //setInterval(function(){
+  //  width = parentElement ? parentElement.clientWidth : 600;
+  //	height = parentElement ? parentElement.clientHeight : 600;
+  //  force.size([width, height]);
+  //}, 1000);
+
   // set up initial svg object
-  var div = d3.select("#graph");
+  var div = parentElement ? d3.select(parentElement) : d3.select("#graph");
   var vis = div.append("svg:svg")
-    .attr("width", width)
-    .attr("height", height);
+    .attr("viewBox", "0 0 600 600")
+  //.attr("width", "100%")
+  //.attr("height", "100%")
+  //.attr("preserveAspectRatio", "xMinYMin meet");
+  //.attr("width", width)
+  //.attr("height", height);
 
   // set up arrow markers for graph links
   // Thanks to rkirsling for the example here: http://bl.ocks.org/rkirsling/5001347
@@ -144,7 +156,7 @@ function Graph(w, h, clientId) {
 
     vis.selectAll("g.node")
       .attr("transform", function (d) {
-        return "translate(" + d.x + "","" + d.y + ")"
+        return "translate(" + d.x + "," + d.y + ")"
       });
   });
 
@@ -309,6 +321,7 @@ function Graph(w, h, clientId) {
 
     gEnter.append("svg:text")
       .attr("class", "node client")
+      .attr("r", 50)
       .style("text-anchor", "middle")
       .style("font-size", function (d) {
         return (d.id == clientId) ? "18pt" : "14pt"
@@ -360,7 +373,7 @@ function Graph(w, h, clientId) {
 
       for (var propertyName in d) {
         if (propertyName == "arrow") {
-          var arrowParams = d.arrow.split("","");
+          var arrowParams = d.arrow.split(",");
           if (arrowParams.length < 1) {
             return;
           }
@@ -396,7 +409,7 @@ function Graph(w, h, clientId) {
       link.each(function (d) {
         var animate = d3.select(this).attr("animate");
         if (animate != undefined) {
-          var params = animate.split("","");
+          var params = animate.split(",");
           if (params.length > 3) {
             var round = params[0];
             var amount = params[1];

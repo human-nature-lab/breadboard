@@ -91,7 +91,7 @@ public class ClientController extends Controller
         } catch (NumberFormatException ignored) {}
 
         if (experiment == null) {
-            File file = play.Play.application().getFile("conf/defaults/client-html.html");
+            File file = play.Play.application().getFile("conf/defaults/default-client-html.html");
             try {
                 return FileUtils.readFileToString(file, "UTF-8");
             } catch(IOException ignored) {}
