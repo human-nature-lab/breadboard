@@ -1,0 +1,43 @@
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-12">
+            <ul class="nav nav-tabs">
+                <step ng-repeat="step in vm.steps"
+                      step="step"
+                      select-step="vm.selectStep"
+                      delete-step="vm.deleteStep"
+                      selected-step="vm.selectedStep"></step>
+                <li role="presentation" class="dropdown">
+                    <a class="dropdown-toggle"
+                       role="button"
+                       aria-haspopup="true"
+                       aria-expanded="false">
+                        Create
+                        <span class="caret"></span>
+                    </a>
+                    <ul class="dropdown-menu">
+                        <li><a href="#" ng-click="vm.createStep(0)">Synchronous step</a></li>
+                        <li><a href="#" ng-click="vm.createStep(1)">Asynchronous step</a></li>
+                        <li><a href="#" ng-click="vm.createStep(2)">Empty step</a></li>
+                    </ul>
+                </li>
+            </ul>
+            <div id="stepTab">
+                <div class="panel panel-danger" ng-show="vm.selectedStep.error && vm.selectedStep.error.length > 0">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Error</h3>
+                    </div>
+                    <div class="panel-body">
+                        {{ vm.selectedStep.error }}
+                    </div>
+                </div>
+
+                <textarea class="codemirror"
+                          ui-codemirror
+                          ui-codemirror-opts="vm.codeMirrorOptions"
+                          ng-model="vm.selectedStep.clientSource"></textarea>
+            </div>
+        </div>
+
+    </div>
+</div>

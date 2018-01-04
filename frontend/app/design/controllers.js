@@ -105,6 +105,13 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     $scope.customizeActions.saveCustomize();
   }
 
+  $scope.stepsActions = {
+    'sendStep': sendStep
+  };
+  function saveSteps() {
+    $scope.stepsActions.saveSteps();
+  }
+
   $breadboardFactory.addNodeChangeListener(function(nodes) {
       $scope.nodes = nodes;
   });
@@ -509,8 +516,18 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       });
   };
 
+  function sendStep(step) {
+    console.log('sendStep', step);
+    $breadboardFactory.send({
+      'action': 'SendStep',
+      'id': step.id,
+      'name': step.name,
+      'source': step.source
+    });
+  }
+
+  /*
   var sendStep = function () {
-    //console.log("sendScript sending: " + $scope.breadboard.user.currentScript);
     $breadboardFactory.send(
       {
         "action": "SendStep",
@@ -519,6 +536,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
         "source": $scope.selectedStep.source
       });
   };
+  */
 
   $scope.vim = {vimMode: false};
 
@@ -823,14 +841,14 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.stepsDialogOptions = {
     title: 'Steps',
-    width: ((windowWidth * .5) - dialogMargin),
+    width: windowWidth,
     height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight],
+    position: [margin, topDivHeight],
     autoOpen: false,
     dialogClass: 'steps-dialog',
     buttons: {
       'Save': function () {
-        sendStep();
+        saveSteps();
       }
     }
   };

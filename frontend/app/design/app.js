@@ -9,6 +9,7 @@ import uiJqConfig from '../providers/ui-jq-config.value';
 import '../amt-admin/amt-admin.directive';
 import '../create-new-experiment/create-new-experiment.directive';
 import '../customize/customize.directive';
+import '../steps/steps.directive';
 import '../directives/instance-parameters/instance-parameters.directive';
 import '../create-first-user/create-first-user.directive';
 
@@ -24,6 +25,7 @@ angular.module('breadboard', [
   'breadboard.create-first-user',
   'breadboard.create-new-experiment',
   'breadboard.instance-parameters',
+  'breadboard.steps',
   'ui.utils',
   'ui.codemirror',
   'ui.tinymce',

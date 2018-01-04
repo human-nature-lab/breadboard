@@ -1,0 +1,13 @@
+.text-transparent {
+    opacity: 0;
+}
+
+a {
+    cursor:pointer;
+}
+
+.btn-xxs {
+    font-size: 10px;
+    line-height: 1;
+    padding: 1px 5px;
+}

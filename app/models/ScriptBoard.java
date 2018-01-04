@@ -366,12 +366,14 @@ public class ScriptBoard extends UntypedActor {
 
           if (breadboardMessage.user != null && breadboardMessage.user.selectedExperiment != null) {
             Logger.debug("SendStep: " + sendStep.id + ", " + sendStep.name + ", " + sendStep.source);
+            /*
             Step step = breadboardMessage.user.selectedExperiment.getStep(sendStep.id);
             if (step != null) {
               step.setSource(sendStep.source);
               step.update();
             }
-            // Now run the step
+            */
+            // Now we only run the step
             Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, sendStep.source, breadboardMessage.out), null);
           }
         } else if (message instanceof Breadboard.RunStep) {

@@ -214,7 +214,7 @@ public class Experiment extends Model {
   public static Step generateInitStep() {
     Step init = new Step();
     init.name = "InitStep";
-    init.source = "initStep = stepFactory.createStep()\n" +
+    init.source = "initStep = stepFactory.createStep(\"InitStep\")\n" +
         "\n" +
         "initStep.run = {\n" +
         "  println \"initStep.run\"\n" +

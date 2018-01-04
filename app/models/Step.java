@@ -35,6 +35,11 @@ public class Step extends Model {
     return find.all();
   }
 
+  @JsonIgnore
+  public static Step findById(Long id) {
+    return find.where().eq("id", id).findUnique();
+  }
+
   public Step() {
   }
 
@@ -45,6 +50,10 @@ public class Step extends Model {
 
   public void setSource(String source) {
     this.source = source;
+  }
+
+  public void setName(String name) {
+    this.name = name;
   }
 
   public static Step findByName(String name) {

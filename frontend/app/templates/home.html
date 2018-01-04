@@ -16,46 +16,46 @@
                 </select>
                 <div class="btn-group btn-group-sm">
                     <button class="btn btn-default"
-                            title="Create a new experiment"
-                            tooltip="Create a new experiment"
-                            tooltip-placement="bottom"
                             ng-disabled="instance.status === 'RUNNING' || instance.status === 'FINISHED'"
                             id="newExperimentButton"
                             ng-click="newExperiment()"
                             ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">
                     <span class="glyphicon glyphicon-plus"
+                          tooltip="Create a new experiment"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
                           aria-hidden="true">
                     </span>
                     </button>
                     <button class="btn btn-default"
-                            title="Delete the selected experiment"
-                            tooltip="Delete the selected experiment"
-                            tooltip-placement="bottom"
                             id="deleteExperimentButton"
                             ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
                             ng-click="deleteExperiment()">
                     <span class="glyphicon glyphicon-remove"
+                          tooltip="Delete the selected experiment"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
                           aria-hidden="true">
                     </span>
                     </button>
                     <button class="btn btn-default"
-                            title="Export the selected experiment"
-                            tooltip="Export the selected experiment"
-                            tooltip-placement="bottom"
                             id="exportButton"
                             ng-disabled="breadboard.experiment === undefined || breadboard.experiment === ''"
                             ng-click="exportExperiment()">
                     <span class="glyphicon glyphicon-export"
+                          tooltip="Export the selected experiment"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
                           aria-hidden="true">
                     </span>
                     </button>
                     <button class="btn btn-default"
-                            title="Import an experiment"
-                            tooltip="Import an experiment"
-                            tooltip-placement="bottom"
                             id="importButton"
                             ng-click="openImportDialog()">
                     <span class="glyphicon glyphicon-import"
+                          tooltip="Import an experiment"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
                           aria-hidden="true">
                     </span>
                     </button>
@@ -75,61 +75,61 @@
                 </select>
                 <div class="btn-group btn-group-sm">
                     <button class="btn btn-default"
-                            title="Create an experiment instance"
-                            tooltip="Create an experiment instance"
-                            tooltip-placement="bottom"
                             id="newInstanceButton"
                             ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
                             ng-click="openNewInstanceModal()">
                         <span class="glyphicon glyphicon-plus"
-                            aria-hidden="true"></span>
+                              tooltip="Create an experiment instance"
+                              tooltip-placement="bottom"
+                              tooltip-append-to-body="true"
+                              aria-hidden="true"></span>
                     </button>
                     <button class="btn btn-default"
-                            title="Delete the selected experiment instance"
-                            tooltip="Delete the selected experiment instance"
-                            tooltip-placement="bottom"
                             id="removeInstanceButton"
                             ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || !breadboard.experimentInstance"
                             ng-click="deleteInstance(breadboard.experimentInstance.name, breadboard.experimentInstance.id)">
                         <span class="glyphicon glyphicon-remove"
+                              tooltip="Delete the selected experiment instance"
+                              tooltip-placement="bottom"
+                              tooltip-append-to-body="true"
                               aria-hidden="true"></span>
                     </button>
                     <button class="btn btn-default"
-                            title="Start the selected experiment instance"
-                            tooltip="Start the selected experiment instance"
-                            tooltip-placement="bottom"
                             id="runButton"
                             ng-disabled="breadboard.experimentInstance == '' || breadboard.experimentInstance.status === 'RUNNING' || breadboard.experimentInstance.status === 'FINISHED'"
                             ng-click="selectInstance(breadboard.experimentInstance.id)">
                     <span class="glyphicon glyphicon-play"
+                          tooltip="Start the selected experiment instance"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
                           aria-hidden="true">
                     </span>
                     </button>
                     <button class="btn btn-default"
-                            title="Stop the selected experiment instance"
-                            tooltip="Stop the selected experiment instance"
-                            tooltip-placement="bottom"
                             id="stopButton"
                             ng-click="stopGame(breadboard.experimentInstance.id)"
                             ng-disabled="breadboard.experimentInstance.status !== 'RUNNING'">
                     <span class="glyphicon glyphicon-stop"
+                          tooltip="Stop the selected experiment instance"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
                           aria-hidden="true">
                     </span>
                     </button>
                     <button class="btn btn-default"
-                            title="Reload the script engine"
-                            tooltip="Reload the script engine"
-                            tooltip-placement="bottom"
                             id="reloadButton"
                             ng-click="reload()">
                     <span class="glyphicon glyphicon-refresh"
+                          tooltip="Reload the script engine"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
                           aria-hidden="true">
                     </span>
                     </button>
                     <button class="btn btn-default"
-                            title="Execute initStep.start()"
                             tooltip="Execute initStep.start()"
                             tooltip-placement="bottom"
+                            tooltip-append-to-body="true"
                             id="startInitStep"
                             ng-click="run()">
                         Start InitStep
@@ -703,6 +703,16 @@
     <!-- Steps -->
     <div>
         <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
+            <steps
+                    ng-if="breadboard.experiment"
+                    actions="stepsActions"
+                    experiment-id="breadboard.experiment.id">
+            </steps>
+        </div>
+    </div>
+
+    <!--div>
+        <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
             <div id="stepsTabsDiv">
           <span class="steps-tab selected-{{$parent.selectedStep==step}}"
                 ng-repeat="step in breadboard.experiment.steps | orderBy: 'name'" ng-init="initStep(step)"><a
@@ -719,7 +729,7 @@
                     ng-model="selectedStep.source" ng-refresh="stepCodemirrorOptions.vimMode"> </textarea>
             </div>
         </div>
-    </div>
+    </div-->
 
     <div class="delete-dialog" id="deleteStepDialog" style="display: none;">
         <p id="deleteStepDesc"></p>
