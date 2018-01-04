@@ -103,18 +103,25 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
   }
 
   function deleteStep(step) {
-    StepsSrv.deleteStep(step.id)
-      .then(function(){
-        let stepIndex = vm.steps.indexOf(step);
-        vm.steps.splice(stepIndex, 1);
-        if (stepIndex > (vm.steps.length - 1)) stepIndex = 0;
-        vm.selectedStep = vm.steps[stepIndex];
-        vm.onDeleteStep();
-      },
-      function(error) {
-        step.status = STATUS.ERROR;
-        step.error = error.data;
-      });
+    if (step.id !== -1) {
+      StepsSrv.deleteStep(step.id)
+        .then(function(){
+            let stepIndex = vm.steps.indexOf(step);
+            vm.steps.splice(stepIndex, 1);
+            if (stepIndex > (vm.steps.length - 1)) stepIndex = 0;
+            vm.selectedStep = vm.steps[stepIndex];
+            vm.onDeleteStep();
+          },
+          function(error) {
+            step.status = STATUS.ERROR;
+            step.error = error.data;
+          });
+    } else {
+      let stepIndex = vm.steps.indexOf(step);
+      vm.steps.splice(stepIndex, 1);
+      if (stepIndex > (vm.steps.length - 1)) stepIndex = 0;
+      vm.selectedStep = vm.steps[stepIndex];
+    }
   }
 
   function updateStep(step, experimentId) {
