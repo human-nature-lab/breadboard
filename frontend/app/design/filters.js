@@ -7,7 +7,26 @@ angular.module('breadboard.filters', [])
         };
     }])
     .filter('asNumber', asNumber)
-    .filter('shortId', shortId);
+    .filter('shortId', shortId)
+    .filter('playerOrder', ['$filter', function($filter){
+      return function(players){
+        const ignoredPrefixes = ['_'];
+        players.sort(function(a, b){
+          let comp = a.id.localeCompare(b.id);
+          let aContains = false;
+          let bContains = false;
+          for(let p of ignoredPrefixes){
+            aContains = a.id.substr(0, p.length) === p;
+            bContains = b.id.substr(0, p.length) === p;
+            if((aContains || bContains) && !(aContains && bContains)) {
+              comp = aContains ? 1 : -1;
+            }
+          }
+          return comp;
+        });
+        return players;
+      }
+    }]);
 
 function asNumber() {
   return function(input) {

@@ -202,7 +202,7 @@
                         <label class="col-md-3 control-label" for="{{elem.name}}_checkbox">{{elem.name}}</label>
 
                         <div class="col-md-4">
-                            <input class="form-control" id="{{elem.name}}_checkbox" ng-model="launchParameters[elem.name]"
+                            <input id="{{elem.name}}_checkbox" ng-model="launchParameters[elem.name]"
                                    type="checkbox" ng-init="launchParameters[elem.name] = (elem.defaultVal === 'true')">
                         </div>
                     </span>
@@ -683,18 +683,18 @@
     <!-- Players -->
     <div>
         <div ui-jq="dialog" ui-options="playerDialogOptions" id="playerDiv">
-            <div class="container-fluid">
-                <div class="row">
-                    <div class="col-md-3">
+            <div class="container-fluid scrollable-container">
+                <div class="row scrollable-container">
+                    <div class="col-md-3 scrollable">
                         <ul class="nav nav-pills nav-stacked">
-                            <li ng-repeat="node in nodes | orderBy:'id'"
+                            <li ng-repeat="node in nodes | playerOrder"
                                 role="presentation"
                                 ng-class="{'active':(node.id === selectedNode.id)}">
                                 <a class="pill-condensed" ng-click="selectNode(node)">{{node.id | shortId}}</a>
                             </li>
                         </ul>
                     </div>
-                    <div class="col-md-9">
+                    <div class="col-md-9 scrollable">
                         <div ng-show="selectedNode">
                             <div id="playerStatusDiv">
                                 <h3>Player {{selectedNode.id | shortId}}</h3>
