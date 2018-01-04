@@ -98,7 +98,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
           observableList.addPropertyChangeListener({ evt ->
             if (evt instanceof groovy.util.ObservableList.ElementEvent) {
               // Filter out property changes to the list (length changing, etc)
-              v.onVertexPropertyChanged(v, s, evt.oldValue, evt.newValue)
+              v.onVertexPropertyChanged(v, s, evt.oldValue, observableList)
             }
           } as PropertyChangeListener)
           v.setProperty(s, observableList)
@@ -109,7 +109,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
           observableMap.addPropertyChangeListener({ evt ->
             if (evt instanceof groovy.util.ObservableMap.PropertyEvent) {
               // Filter out property changes to the map (length changing, etc)
-              v.onVertexPropertyChanged(v, s, evt.oldValue, evt.newValue)
+              v.onVertexPropertyChanged(v, s, evt.oldValue, observableMap)
             }
           } as PropertyChangeListener)
           v.setProperty(s, observableMap)
@@ -201,34 +201,34 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
                              "timer":timer]
       */
 
-          player.timers[name] = ["startTime"     : startTime,
-                             "endTime"       : endTime,
-                             "timerType"     : type,
-                             "elapsed"       : 0,
-                             "duration"      : time * 1000,
-                             "timerText"     : timerText,
-                             "direction"     : direction,
-                             "currencyAmount": currencyAmount,
-                             "appearance"    : appearance,
-                             "order"         : player.timers.size()]
+      player.timers[name] = [
+        type          : type,
+        elapsed       : 0,
+        duration      : time * 1000,
+        timerText     : timerText,
+        direction     : direction,
+        currencyAmount: currencyAmount,
+        appearance    : appearance,
+        order         : player.timers.size()
+      ]
 
       // Update the elapsed time for this timer
       def timerUpdateRate = 1000
-      def timer = new Timer()
-      timer.scheduleAtFixedRate({
-        player.timers[name].elapsed += 1000
+      def tim = new Timer()
+      tim.scheduleAtFixedRate({
+        player.timers[name].elapsed += timerUpdateRate
       } as GroovyTimerTask, timerUpdateRate, timerUpdateRate)
-      timer.runAfter(time * timerUpdateRate) {
+      tim.runAfter(time * 1000) {
+        println "Removing timer: " + name
         if (player.timers) {
           player.timers.remove(name)
         }
         if (result != null) {
           result(player)
         }
-        timer.cancel()
+        tim.cancel()
       }
     }
-    //println("""startTime: ${startTime}, endTime: ${endTime}, name: ${name}, timerText: ${timerText}, direction: ${direction}, type: ${type}, player: ${player}""")
   }
 
   def getSubmitForm(player, dollars, reason = "completed", sandbox = false, comments = false) {

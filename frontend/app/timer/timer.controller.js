@@ -9,6 +9,10 @@ export default function TimerCtrl($scope, $interval, $filter){
   // $scope.timer.type = $scope.timer.timerType || 'time';
   // $scope.timer.timerText = $scope.timer.timerText || '';
 
+  if(typeof $scope.timer.currencyAmount === 'string'){
+    $scope.timer.currencyAmount = parseFloat($scope.timer.currencyAmount, 10);
+  }
+
   // A single update to the time value. Changes depending on direction
   function update(){
     $scope.timer.elapsed += updateIntervalSpeed;

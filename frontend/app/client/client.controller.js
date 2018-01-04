@@ -1,6 +1,6 @@
 import _ from 'underscore';
 ClientCtrl.$inject = ['$scope', 'clientFactory', '$location', 'clientGraph', 'configService'];
-export default function ClientCtrl($scope, $clientFactory, $location, clientGraph, configService) {
+function ClientCtrl($scope, $clientFactory, $location, clientGraph, configService) {
   $scope.languages = [];
   $scope.selectedLanguage = ($location.search().language) ? $location.search().language : "";
 
@@ -57,8 +57,9 @@ export default function ClientCtrl($scope, $clientFactory, $location, clientGrap
     clientId = id;
     return clientGraph.load();
   }).then(Graph => {
+    let parentElement = document.getElementById('#graph');
     /* Graph here */
-    $scope.clientGraph = new Graph((Math.min($(window).width() * 0.50, $(window).height())), (Math.min($(window).width() * 0.50, $(window).height())), clientId);
+    $scope.clientGraph = new Graph(clientId, parentElement);
     $scope.$watch('client.graph', function (newValue) {
       $scope.clientGraph.updateGraph(newValue);
     }, true);
@@ -68,3 +69,6 @@ export default function ClientCtrl($scope, $clientFactory, $location, clientGrap
 
   let beep = new Audio('/assets/snd/countdown_beeps.ogg');
 }
+
+console.log(ClientCtrl);
+export default ClientCtrl;

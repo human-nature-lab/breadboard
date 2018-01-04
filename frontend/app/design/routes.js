@@ -3,7 +3,7 @@ import createFirstUserTemplateUrl from '../templates/create-first-user.html';
 import homeTemplateUrl from '../templates/home.html';
 import '../login/login.directive';
 import '../create-first-user/create-first-user.directive';
-import './middleware';
+import '../middleware/Authorization.middleware';
 import '../services/services.module';
 
 angular.module('breadboard.routes', ['ui.router', 'breadboard.middleware', 'ngCookies'])
