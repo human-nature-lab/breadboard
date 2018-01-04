@@ -784,18 +784,18 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       });
   };
 
-  var dialogMargin = 10,
-    topDivHeight = 50,
-    bottomDivHeight = 50,
+  var dialogMargin = 5,
+    topDivHeight = 45,
+    bottomDivHeight = 55,
     margin = 5,
-    windowHeight = ($(window).innerHeight() - topDivHeight - bottomDivHeight - dialogMargin),
+    windowHeight = ($(window).innerHeight() - topDivHeight - bottomDivHeight),
     windowWidth = ($(window).innerWidth() - (margin * 2));
 
   $scope.amtAdminDialogOptions = {
     title: 'AMT',
     autoOpen: false,
     width: windowWidth,
-    height: windowHeight,
+    height: windowHeight - margin,
     position: [margin, topDivHeight],
     buttons: {}
   };
@@ -803,17 +803,17 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.outputDialogOptions = {
     title: 'Output',
     autoOpen: true,
-    width: ((windowWidth * .5) - dialogMargin),
-    height: ((windowHeight * .25) - dialogMargin),
-    position: [margin, (topDivHeight + dialogMargin + (.75 * windowHeight))],
+    width: ((windowWidth * .5) - margin),
+    height: ((windowHeight * .25) - margin),
+    position: [margin, (topDivHeight + margin + (.75 * windowHeight))],
     buttons: {}
   };
 
   $scope.scriptDialogOptions = {
     title: 'Script',
     autoOpen: true,
-    width: ((windowWidth * .5) - dialogMargin),
-    height: ((windowHeight * .75) - dialogMargin),
+    width: ((windowWidth * .5) - margin),
+    height: ((windowHeight * .75) - margin),
     position: [margin, topDivHeight],
     buttons: [
       {
@@ -827,7 +827,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.contentDialogOptions = {
     title: 'Content',
-    width: ((windowWidth * .5) - dialogMargin),
+    width: ((windowWidth * .5) - margin),
     height: windowHeight,
     position: [margin, topDivHeight],
     autoOpen: false,
@@ -856,7 +856,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.customizeDialogOptions = {
     title: 'Customize',
     autoOpen: false,
-    width: ((windowWidth * .5) - dialogMargin),
+    width: ((windowWidth * .5) - margin),
     height: windowHeight,
     position: [margin, topDivHeight],
     buttons: {
@@ -869,17 +869,17 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.graphDialogOptions = {
     title: 'Graph',
     autoOpen: true,
-    width: ((windowWidth * .5) - dialogMargin),
+    width: (windowWidth * .5),
     height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight],
+    position: [((windowWidth * .5) + margin), topDivHeight],
     buttons: {}
   };
 
   $scope.imagesDialogOptions = {
     title: 'Images',
-    width: ((windowWidth * .5) - dialogMargin),
+    width: (windowWidth * .5),
     height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight],
+    position: [((windowWidth * .5) + margin), topDivHeight],
     autoOpen: false,
     buttons: {}
   };
@@ -896,7 +896,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.playerDialogOptions = {
     title: 'Players',
     autoOpen: false,
-    width: ((windowWidth * .5) - dialogMargin),
+    width: ((windowWidth * .5) - margin),
     height: windowHeight,
     position: [margin, topDivHeight],
     buttons: {}
@@ -905,9 +905,9 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.parametersDialogOptions = {
     title: 'Parameters',
     autoOpen: false,
-    width: ((windowWidth * .5) - dialogMargin),
+    width: (windowWidth * .5),
     height: windowHeight,
-    position: [((windowWidth * .5) + dialogMargin), topDivHeight],
+    position: [((windowWidth * .5) + margin), topDivHeight],
     buttons: {}
   };
 
