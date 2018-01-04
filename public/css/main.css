@@ -549,6 +549,10 @@ button.dialog-link:last-child{
     background: white;
 }
 
+.tooltip, .popover {
+    z-index: 10000 !important;
+}
+
 /*#dockDiv {*/
     /*height: 50px;*/
     /*padding: 0;*/
