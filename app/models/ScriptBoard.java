@@ -72,6 +72,14 @@ public class ScriptBoard extends UntypedActor {
   }
 
   private void resetEngine(Experiment experiment) throws IOException, ScriptException {
+    // When started, send a message to each Admin
+    for (Admin admin : admins) {
+      ObjectNode jsonOutput = Json.newObject();
+      ObjectNode notify = Json.newObject();
+      notify.put("ScriptEngineReloading", new Date().getTime());
+      jsonOutput.put("notify", notify);
+      admin.getOut().write(jsonOutput);
+    }
     Logger.debug("resetEngine");
     if (engine != null) {
       //just in case
@@ -161,6 +169,15 @@ public class ScriptBoard extends UntypedActor {
     graphInterface.addListener(graphChangedListener);
 
     gameListener.engine = engine;
+
+    // When done, send a message to each Admin
+    for (Admin admin : admins) {
+      ObjectNode jsonOutput = Json.newObject();
+      ObjectNode notify = Json.newObject();
+      notify.put("ScriptEngineReloaded", new Date().getTime());
+      jsonOutput.put("notify", notify);
+      admin.getOut().write(jsonOutput);
+    }
   }
 
   private void loadSteps(Experiment experiment, ThrottledWebSocketOut out) {

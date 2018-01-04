@@ -94,6 +94,39 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     }
   });
 
+  /* Store last experiment ID */
+  $scope.lastExperimentId = -1;
+
+  /* Script engine state */
+  $scope.ENGINE_STATE = {
+    'READY':0,
+    'LOADING':1,
+    'LOADED':2,
+    'STALE':3
+  };
+  $scope.scriptEngineLastReloaded = 0;
+  $scope.scriptEngineLastReloading = 0;
+  $scope.scriptEngineState = $scope.ENGINE_STATE.READY;
+
+  $scope.$watch('breadboard.notify', function(notify) {
+    console.log('notify', notify);
+    if (notify) {
+      if (notify.hasOwnProperty('ScriptEngineReloaded') &&
+        notify['ScriptEngineReloaded'] !== $scope.scriptEngineLastReloaded) {
+        $scope.scriptEngineLastReloaded = notify['ScriptEngineReloaded'];
+        $scope.scriptEngineState = $scope.ENGINE_STATE.LOADED;
+        $timeout(function() {
+          $scope.scriptEngineState = $scope.ENGINE_STATE.READY;
+        }, 1500);
+      }
+      if (notify.hasOwnProperty('ScriptEngineReloading') &&
+        notify['ScriptEngineReloading'] !== $scope.scriptEngineLastReloading) {
+        $scope.scriptEngineLastReloading = notify['ScriptEngineReloading'];
+        $scope.scriptEngineState = $scope.ENGINE_STATE.LOADING;
+      }
+    }
+  });
+
   /* Graph here */
   $scope.nodes = [];
   $scope.selectedNode = {};
@@ -106,10 +139,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   }
 
   $scope.stepsActions = {
-    'sendStep': sendStep
+    'sendStep': sendStep,
+    'onDeleteStep': onDeleteStep
   };
   function saveSteps() {
     $scope.stepsActions.saveSteps();
+  }
+  function onDeleteStep() {
+    // If you delete a step, you need to reload the script engine
+    $scope.scriptEngineState = $scope.ENGINE_STATE.STALE;
   }
 
   $breadboardFactory.addNodeChangeListener(function(nodes) {
@@ -278,11 +316,14 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   $scope.experimentChanged = function () {
-    $breadboardFactory.send(
-      {
+    if ($scope.lastExperimentId !== $scope.breadboard.experiment.id) {
+      $breadboardFactory.send({
         "action": "SelectExperiment",
         "experimentId": $scope.breadboard.experiment.id
       });
+
+      $scope.lastExperimentId = $scope.breadboard.experiment.id;
+    }
   };
 
   $scope.newExperiment = function () {
@@ -501,23 +542,19 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   $scope.run = function () {
-    //console.log("run()");
-    $breadboardFactory.send(
-      {
-        "action": "RunGame"
-      });
+    $breadboardFactory.send({
+      "action": "RunGame"
+    });
   };
 
   $scope.reload = function () {
-    //console.log("run()");
-    $breadboardFactory.send(
-      {
-        "action": "ReloadEngine"
-      });
+    $scope.scriptEngineState = $scope.ENGINE_STATE.LOADING;
+    $breadboardFactory.send({
+      "action": "ReloadEngine"
+    });
   };
 
   function sendStep(step) {
-    console.log('sendStep', step);
     $breadboardFactory.send({
       'action': 'SendStep',
       'id': step.id,
@@ -784,8 +821,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       });
   };
 
-  var dialogMargin = 5,
-    topDivHeight = 45,
+  var topDivHeight = 45,
     bottomDivHeight = 55,
     margin = 5,
     windowHeight = ($(window).innerHeight() - topDivHeight - bottomDivHeight),
@@ -795,7 +831,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     title: 'AMT',
     autoOpen: false,
     width: windowWidth,
-    height: windowHeight - margin,
+    height: windowHeight - 9, // Not sure why the AMT dialog is 9 pixels higher than the others...
     position: [margin, topDivHeight],
     buttons: {}
   };

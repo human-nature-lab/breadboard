@@ -7,6 +7,7 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
   vm.selectStep = selectStep;
   vm.deleteStep = deleteStep;
   vm.sendStep = $scope.actions.sendStep;
+  vm.onDeleteStep = $scope.actions.onDeleteStep;
 
   vm.selectedStep = {};
   vm.experimentId = $scope.experimentId;
@@ -102,13 +103,13 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
   }
 
   function deleteStep(step) {
-    console.log('deleteStep', step);
     StepsSrv.deleteStep(step.id)
       .then(function(){
         let stepIndex = vm.steps.indexOf(step);
         vm.steps.splice(stepIndex, 1);
         if (stepIndex > (vm.steps.length - 1)) stepIndex = 0;
         vm.selectedStep = vm.steps[stepIndex];
+        vm.onDeleteStep();
       },
       function(error) {
         step.status = STATUS.ERROR;

@@ -178,4 +178,8 @@ public class Admin implements ClientListener {
   public void setOut(ThrottledWebSocketOut out) {
     this.out = out;
   }
+
+  public ThrottledWebSocketOut getOut() {
+    return this.out;
+  }
 }
