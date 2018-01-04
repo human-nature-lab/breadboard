@@ -18,7 +18,7 @@ module.exports = {
         rules: [
             {
                 test: /\.css$/,
-                use: ['style-loader','css-loader'],
+                use: ['style-loader','css-loader?url=false'],
                 // exclude: /node_modules/,
             },
             {
@@ -28,7 +28,7 @@ module.exports = {
             },
             {
                 test: /\.(sass|scss)$/,
-                use: ['style-loader', 'css-loader', 'sass-loader'],
+                use: ['style-loader', 'css-loader?url=false', 'sass-loader'],
                 exclude: /node_modules/,
             },
             {

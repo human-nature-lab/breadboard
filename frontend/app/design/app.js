@@ -12,6 +12,7 @@ import '../customize/customize.directive';
 import '../steps/steps.directive';
 import '../directives/instance-parameters/instance-parameters.directive';
 import '../create-first-user/create-first-user.directive';
+import './design.sass';
 
 angular.module('breadboard', [
   'breadboard.filters',
