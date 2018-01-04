@@ -41,7 +41,7 @@ select option
 
 
 .ui-button .ui-icon.vim-icon
-  background-image: url('../img/vim16x16.gif')
+  background-image: url('/assets/img/vim16x16.gif')
   width: 16px
   height: 16px
 
@@ -138,7 +138,7 @@ caption
   border-top-right-radius: 5px
   border-top-left-radius: 5px
   border: 1px solid #4297D7
-  background: #5C9CCC url('redmond/images/ui-bg_gloss-wave_55_5c9ccc_500x100.png') 50% 50% repeat-x
+  background: #5C9CCC url('/assets/css/redmond/images/ui-bg_gloss-wave_55_5c9ccc_500x100.png') 50% 50% repeat-x
   color: white
   font-weight: bold
 
@@ -222,7 +222,7 @@ label.fixed-width
   border-top-right-radius: 5px
   border-top-left-radius: 5px
   border: 1px solid #4297D7
-  background: #5C9CCC url('redmond/images/ui-bg_gloss-wave_55_5c9ccc_500x100.png') 50% 50% repeat-x
+  background: #5C9CCC url('/assets/css/redmond/images/ui-bg_gloss-wave_55_5c9ccc_500x100.png') 50% 50% repeat-x
   color: white
   font-weight: bold
   display: inline-block
@@ -294,7 +294,7 @@ label.fixed-width
 
 
 .step-icon
-  background-image: url('Aristo/images/ui-icons_454545_256x240.png')
+  background-image: url('/assets/css/Aristo/images/ui-icons_454545_256x240.png')
   width: 16px
   height: 16px
   display: block
@@ -304,7 +304,7 @@ label.fixed-width
 
 
 .step-icon:hover
-  background-image: url('Aristo/images/ui-icons_222222_256x240.png')
+  background-image: url('/assets/css/Aristo/images/ui-icons_222222_256x240.png')
 
 
 .steps-tab a:hover, .steps-tab a:active, .selected-true a
@@ -532,6 +532,12 @@ button.dialog-link:last-child
 .tooltip, .popover
   z-index: 10000 !important
 
+.scrollable-container
+  height: 100%
+  overflow: hidden
+  .scrollable
+    overflow: auto
+    max-height: 100%
 
 /*#dockDiv */
     /*height: 50px*/
