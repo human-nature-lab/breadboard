@@ -180,7 +180,7 @@
                         <label class="col-md-3 control-label" for="{{elem.name}}_checkbox">{{elem.name}}</label>
 
                         <div class="col-md-4">
-                            <input class="form-control" id="{{elem.name}}_checkbox" ng-model="launchParameters[elem.name]"
+                            <input id="{{elem.name}}_checkbox" ng-model="launchParameters[elem.name]"
                                    type="checkbox" ng-init="launchParameters[elem.name] = (elem.defaultVal === 'true')">
                         </div>
                     </span>
