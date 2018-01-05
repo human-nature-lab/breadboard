@@ -25,6 +25,7 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.util.*;
 
 public class ScriptBoard extends UntypedActor {
@@ -183,7 +184,7 @@ public class ScriptBoard extends UntypedActor {
   private void loadSteps(Experiment experiment, ThrottledWebSocketOut out) {
     for (Step step : experiment.steps) {
       //should call RunStep?
-      processScript(step.source, out);
+      processScript(step.source, out, step.name);
     }
   }
 
@@ -256,9 +257,9 @@ public class ScriptBoard extends UntypedActor {
               String referer = jsonInput.get("referer").toString();
               String connection = jsonInput.get("connection").toString();
               String accept = jsonInput.get("accept").toString();
-              String cacheControl = jsonInput.get("cacheControl").toString();
-              String acceptCharset = jsonInput.get("acceptCharset").toString();
-              String cookie = jsonInput.get("cookie").toString();
+//              String cacheControl = jsonInput.get("cacheControl").toString();
+//              String acceptCharset = jsonInput.get("acceptCharset").toString();
+//              String cookie = jsonInput.get("cookie").toString();
               String acceptLanguage = jsonInput.get("acceptLanguage").toString();
               String acceptEncoding = jsonInput.get("acceptEncoding").toString();
               String userAgent = jsonInput.get("userAgent").toString();
@@ -271,7 +272,7 @@ public class ScriptBoard extends UntypedActor {
                 data.put("clientId", clientId);
                 data.put("referer", referer);
                 data.put("connection", connection);
-                data.put("acceptCharset", acceptCharset);
+//                data.put("acceptCharset", acceptCharset);
                 data.put("acceptLanguage", acceptLanguage);
                 data.put("acceptEncoding", acceptEncoding);
                 data.put("userAgent", userAgent);
@@ -286,7 +287,7 @@ public class ScriptBoard extends UntypedActor {
               makeChoice(choiceUID, params, out);
             }
           } catch (java.io.IOException ignored) {
-            //Logger.debug("java.io.IOException");
+            Logger.debug("java.io.IOException");
           }
         }
       });
@@ -372,7 +373,7 @@ public class ScriptBoard extends UntypedActor {
             breadboardMessage.user.update();
 
             // Process script
-            processScript(sendScript.script, breadboardMessage.out);
+            processScript(sendScript.script, breadboardMessage.out, sendScript.script);
           }
 
         } else if (message instanceof Breadboard.MakeChoice) {
@@ -396,7 +397,7 @@ public class ScriptBoard extends UntypedActor {
         } else if (message instanceof Breadboard.RunStep) {
           // TODO: Compile step here and make available to scripting engine
           Breadboard.RunStep runStep = (Breadboard.RunStep) message;
-          processScript(runStep.source, breadboardMessage.out);
+          processScript(runStep.source, breadboardMessage.out, runStep.source);
         } else if (message instanceof Breadboard.ChangeExperiment) {
           if (breadboardMessage.user != null) {
             rebuildScriptBoard(breadboardMessage.user.selectedExperiment);
@@ -558,7 +559,8 @@ public class ScriptBoard extends UntypedActor {
           //the script engine was throwing exception for ArbesmanRand because of missing onJoinStep
           if (runOnJoinStep.user.selectedExperiment != null && runOnJoinStep.user.selectedExperiment.hasOnJoinStep()) {
             Vertex player = runOnJoinStep.vertex;
-            processScript("onJoinStep.start(\"" + player.getId().toString() + "\")", runOnJoinStep.out);
+            String script = "onJoinStep.start(\"" + player.getId().toString() + "\")";
+            processScript(script, runOnJoinStep.out, script);
           }
 
         } // END else if(message instanceof Breadboard.RunOnJoinStep)
@@ -708,7 +710,11 @@ public class ScriptBoard extends UntypedActor {
     out.write(jsonOutput);
   }
 
-  private static void processScript(String script, ThrottledWebSocketOut out) {
+  private static void processScript(String script, ThrottledWebSocketOut out){
+    processScript(script, out, "Unnamed Script");
+  }
+
+  private static void processScript(String script, ThrottledWebSocketOut out, String scriptName) {
 
     ObjectNode jsonOutput = Json.newObject();
     //TODO: better way to handle this?
@@ -749,19 +755,19 @@ public class ScriptBoard extends UntypedActor {
 
       jsonOutput.put("output", outputString.trim());
     } catch (CompilationFailedException cfe) {
-      Logger.error("Unable to compile the script.", cfe);
+      Logger.error("Unable to compile the script. " + scriptName, cfe);
       jsonOutput.put("error", "Caught error: ".concat(cfe.getMessage()).concat("\n"));
       if (initStep) {
         engine.put("initStep.start()", null);
       }
     } catch (ScriptException se) {
-      Logger.error("Script Error.", se);
+      Logger.error("Script Error. " + scriptName, se);
       jsonOutput.put("error", "Caught error: ".concat(se.getMessage()).concat("\n"));
       if (initStep) {
         engine.put("initStep.start()", null);
       }
     } catch (Exception e) {
-      Logger.error("Failed to process the script.", e);
+      Logger.error("Failed to process the script. " + scriptName, e);
       jsonOutput.put("error", "Caught error: ".concat(e.getMessage()).concat("\n"));
       if (initStep) {
         engine.put("initStep.start()", null);
