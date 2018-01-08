@@ -9,7 +9,7 @@
                 <select class="form-control input-sm"
                         id="select-experiment"
                         ng-hide="breadboard.user.experiments.length == 0"
-                        ng-options="experiment.name for experiment in breadboard.user.experiments track by experiment.id"
+                        ng-options="experiment as experiment.name for experiment in breadboard.user.experiments track by experiment.id"
                         ng-change="experimentChanged()"
                         ng-model="breadboard.experiment"
                         ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">

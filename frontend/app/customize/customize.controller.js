@@ -9,7 +9,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   const savedTime = 1000;
 
-  vm.experimentId = $scope.experimentId;
+  // vm.experimentId = $scope.experimentId;
   vm.TAB = TAB;
   vm.selectTab = selectTab;
   vm.selectedTab = 0;
@@ -65,11 +65,14 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
     }
   };
 
+  $scope.$watch('experimentId', function(){
+    selectTab(TAB.STYLE, 'styleTab');
+  });
   selectTab(TAB.STYLE, 'styleTab');
 
   function getClientHtml() {
     vm.clientHtml.status = STATUS.LOADING;
-    CustomizeSrv.getClientHtml(vm.experimentId)
+    CustomizeSrv.getClientHtml($scope.experimentId)
       .then(
         function(success){
           vm.clientHtml.status = STATUS.UNCHANGED;
@@ -93,7 +96,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   function getClientGraph() {
     vm.clientGraph.status = STATUS.LOADING;
-    CustomizeSrv.getClientGraph(vm.experimentId)
+    CustomizeSrv.getClientGraph($scope.experimentId)
       .then(
         function(success){
           vm.clientGraph.status = STATUS.UNCHANGED;
@@ -117,7 +120,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   function getStyle() {
     vm.style.status = STATUS.LOADING;
-    CustomizeSrv.getStyle(vm.experimentId)
+    CustomizeSrv.getStyle($scope.experimentId)
       .then(
         function(success){
           vm.style.status = STATUS.UNCHANGED;
@@ -175,7 +178,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   function updateClientHtml() {
     vm.clientHtml.status = STATUS.SAVING;
-    CustomizeSrv.updateClientHtml(vm.experimentId, vm.clientHtml.clientValue)
+    CustomizeSrv.updateClientHtml($scope.experimentId, vm.clientHtml.clientValue)
       .then(
         function() {
           vm.clientHtml.status = STATUS.SAVED;
@@ -193,7 +196,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   function updateClientGraph() {
     vm.clientGraph.status = STATUS.SAVING;
-    CustomizeSrv.updateClientGraph(vm.experimentId, vm.clientGraph.clientValue)
+    CustomizeSrv.updateClientGraph($scope.experimentId, vm.clientGraph.clientValue)
       .then(
         function() {
           vm.clientGraph.status = STATUS.SAVED;
@@ -211,7 +214,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   function updateStyle() {
     vm.style.status = STATUS.SAVING;
-    CustomizeSrv.updateStyle(vm.experimentId, vm.style.clientValue)
+    CustomizeSrv.updateStyle($scope.experimentId, vm.style.clientValue)
       .then(
         function() {
           vm.style.status = STATUS.SAVED;
