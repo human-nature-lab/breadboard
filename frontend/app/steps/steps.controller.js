@@ -58,7 +58,7 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
   }
 
   function updateSelectedStep() {
-    updateStep(vm.selectedStep, vm.experimentId);
+    updateStep(vm.selectedStep, $scope.experimentId);
   }
 
   function createStep(type) {
@@ -154,7 +154,7 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
   $scope.saveSteps = function() {
     angular.forEach(vm.steps, function(step) {
       if (step.status === STATUS.MODIFIED) {
-        updateStep(step, vm.experimentId);
+        updateStep(step, $scope.experimentId);
       }
     });
   };
