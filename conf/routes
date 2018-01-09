@@ -44,6 +44,7 @@ DELETE      /steps/:stepId                                                      
 
 # Create New Experiment
 PUT         /experiment                                                          controllers.ExperimentController.createExperiment()
+POST        /experiment/import                                                   controllers.ExperimentController.importExperiment()
 
 # Languages
 GET         /languages                                                           controllers.LanguageController.getLanguages()

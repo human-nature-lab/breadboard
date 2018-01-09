@@ -388,22 +388,12 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       });
   };
 
-  $scope.openImportDialog = function () {
-    $("#importExperimentDialog input").each(function (index, element) {
-      $(element).val("");
+  $scope.openImportDialog = function(){
+
+    $('#importExperimentDialog').dialog({
+      title: "Import Experiment"
     });
 
-    $('#importExperimentDialog').dialog({title: 'Import Experiment'});
-  };
-
-  $scope.importExperiment = function () {
-    $('#importExperimentDialog').dialog('close');
-    $breadboardFactory.send(
-      {
-        "action": "ImportExperiment",
-        "importFrom": $scope.importFrom,
-        "importTo": $scope.importTo
-      });
   };
 
   $scope.createExperiment = function () {

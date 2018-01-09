@@ -7,6 +7,12 @@ import models.User;
 import play.mvc.Controller;
 import play.mvc.Result;
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
+
 public class ExperimentController extends Controller {
 
   public static Result createExperiment() {
@@ -59,5 +65,31 @@ public class ExperimentController extends Controller {
     user.saveManyToManyAssociations("ownedExperiments");
 
     return ok(experiment.toJson());
+  }
+
+
+  public static Result importExperiment(){
+
+    return ok("TODO: Unzip, validate and import the files");
+
+  }
+
+  public static Result exportExperiment(String experimentId){
+
+    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+    try(ZipOutputStream zos = new ZipOutputStream(baos)) {
+
+      ZipEntry entry = new ZipEntry("test.txt");
+      zos.putNextEntry(entry);
+      zos.write("These are the zipped file contents".getBytes());
+      zos.closeEntry();
+      zos.close();
+
+    } catch(IOException ioe) {
+      ioe.printStackTrace();
+    }
+
+    return ok(baos.toByteArray());
+
   }
 }

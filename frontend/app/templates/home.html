@@ -266,31 +266,7 @@
     </div>
 
     <!-- Import Experiment -->
-    <div id="importExperimentDialog" style="display: none;">
-        <div class="new-dialog">
-            <form ng-submit="importExperiment()">
-                <p>
-                    <label for="importExperimentImportFrom">Import experiment from: <br>
-                        <small>(breadboard-v2.X/experiments/...)</small>
-                    </label>
-                    <input id="importExperimentImportFrom" name="importFrom" ng-model="importFrom"
-                           placeholder="Directory name" required>
-                </p>
-                <p>
-                    <label for="importExperimentImportTo">Save experiment as:</label>
-                    <input id="importExperimentImportTo" name="importTo" ng-model="importTo"
-                           placeholder="Experiment name" required>
-                </p>
-
-                <p>
-                    <button jq-button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
-                            style="float: right;" type="submit">
-                        <span class="ui-button-text">Import</span>
-                    </button>
-                </p>
-            </form>
-        </div>
-    </div>
+    <experiment-import></experiment-import>
 
     <!-- AMT Admin -->
     <div>
