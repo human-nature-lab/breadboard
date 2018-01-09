@@ -27,19 +27,19 @@ export default function DownloadService($http, $q){
   };
 
   this.saveAs = function(dataURI, fileName){
-    return $q((resolve, reject) => {
-      try {
-        const a = document.createElement('a');
-        a.href = dataURI;
-        a.download = fileName;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        resolve("Downloading " + fileName);
-      } catch(e){
-        reject(e);
-      }
-    })
+    const deferred = $q.defer();
+    try {
+      const a = document.createElement('a');
+      a.href = dataURI;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      deferred.resolve("Downloading " + fileName);
+    } catch(e){
+      deferred.reject(e);
+    }
+    return deferred.promise;
   };
 
 }

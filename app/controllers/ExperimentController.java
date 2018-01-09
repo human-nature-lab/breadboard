@@ -74,7 +74,7 @@ public class ExperimentController extends Controller {
 
   }
 
-  public static Result exportExperiment(String experimentId){
+  public static Result exportExperiment(Long experimentId){
 
     ByteArrayOutputStream baos = new ByteArrayOutputStream();
     try(ZipOutputStream zos = new ZipOutputStream(baos)) {
