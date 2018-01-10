@@ -31,6 +31,11 @@ public class Content extends Model {
     return find.all();
   }
 
+  @JsonIgnore
+  public static Content findById(Long id) {
+    return find.where().eq("id", id).findUnique();
+  }
+
   public static Content findByName(String name) {
     return find.where().eq("name", name).findUnique();
   }

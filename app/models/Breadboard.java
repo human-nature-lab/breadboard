@@ -127,26 +127,6 @@ public class Breadboard extends UntypedActor {
               Long experimentId = Long.parseLong(jsonInput.get("experimentId").toString());
               String languageCode = jsonInput.get("code").toString();
               breadboardController.tell(new AddLanguage(user, experimentId, languageCode, out), null);
-            } else if (action.equals("CreateContent")) {
-              String name = jsonInput.get("name").toString();
-              breadboardController.tell(new CreateContent(user, name, out), null);
-            } else if (action.equals("SaveContent")) {
-              Logger.debug("SaveContent");
-              try {
-                try {
-                  Gson gson = new Gson();
-                  SaveContentObject saveContentObject = gson.fromJson(event.toString(), SaveContentObject.class);
-                  breadboardController.tell(new SaveContent(user, saveContentObject.getContentId(), saveContentObject.getName(), saveContentObject.getTranslations(), out), null);
-                } catch (Exception e) {
-                  StringWriter sw = new StringWriter();
-                  e.printStackTrace(new PrintWriter(sw));
-                  String exceptionAsString = sw.toString();
-                  Logger.debug(exceptionAsString);
-                }
-
-              } catch (NumberFormatException nfe) {
-                Logger.debug("SaveContent threw NumberFormatException at Long.parseLong parsing: " + jsonInput.get("contentId").toString());
-              }
             } else if (action.equals("MakeChoice")) {
               // TODO: Player client will not be logged in with email and will
               // need a different way to identify the correct game
@@ -170,9 +150,6 @@ public class Breadboard extends UntypedActor {
             } else if (action.equals("DeleteStep")) {
               Long id = Long.valueOf(jsonInput.get("id").toString());
               breadboardController.tell(new DeleteStep(user, id, out), null);
-            } else if (action.equals("DeleteContent")) {
-              Long id = Long.valueOf(jsonInput.get("id").toString());
-              breadboardController.tell(new DeleteContent(user, id, out), null);
             } else if (action.equals("SendStep")) {
               if (instances.containsKey(user.email)) {
                 try {
@@ -618,19 +595,6 @@ public class Breadboard extends UntypedActor {
           selectedExperiment.save();
         }
         instances.get(breadboardMessage.user.email).tell(message, null);
-      } else if (message instanceof CreateContent) {
-        // TODO: Think about disallowing Content with the same name in the same Experiment
-        CreateContent createContent = (CreateContent) message;
-        Logger.debug("CreateContent: " + createContent.name);
-        Experiment selectedExperiment = breadboardMessage.user.getExperiment();
-        if (selectedExperiment != null) {
-          Content newContent = new Content();
-          newContent.name = createContent.name;
-
-          selectedExperiment.content.add(newContent);
-          selectedExperiment.save();
-          instances.get(breadboardMessage.user.email).tell(message, null);
-        }
       } else if (message instanceof CreateStep) {
         CreateStep createStep = (CreateStep) message;
         Logger.debug("CreateStep: " + createStep.name);
@@ -654,40 +618,6 @@ public class Breadboard extends UntypedActor {
         DeleteStep deleteStep = (DeleteStep) message;
         Step step = Step.find.byId(deleteStep.id);
         step.delete();
-      } else if (message instanceof DeleteContent) {
-        DeleteContent deleteContent = (DeleteContent) message;
-        Content content = Content.find.byId(deleteContent.id);
-        content.delete();
-      } else if (message instanceof SaveContent) {
-        SaveContent saveContent = (SaveContent) message;
-        Experiment selectedExperiment = breadboardMessage.user.getExperiment();
-        if (selectedExperiment != null) {
-          Content content = selectedExperiment.getContent(saveContent.contentId);
-          if (content != null) {
-            for (Translation t : saveContent.translations) {
-              if (t.id == null) {
-                // New translation, create it
-                Translation newTranslation = new Translation();
-                newTranslation.language = t.getLanguage();
-                newTranslation.html = t.getHtml();
-                content.translations.add(newTranslation);
-                content.save();
-              } else {
-                // Existing translation, update it
-                Translation translation = Translation.find.byId(t.id);
-                translation.setHtml(t.getHtml());
-                translation.update();
-              }
-            }
-
-            instances.get(breadboardMessage.user.email).tell(message, null);
-
-            // Send "Content saved" message to output
-            ObjectNode jsonOutput = Json.newObject();
-            jsonOutput.put("output", "Content saved.");
-            breadboardMessage.out.write(jsonOutput);
-          }
-        }
       } else if (message instanceof SaveStyle) {
         SaveStyle saveStyle = (SaveStyle) message;
         Experiment selectedExperiment = breadboardMessage.user.getExperiment();
@@ -934,15 +864,6 @@ public class Breadboard extends UntypedActor {
     }
   }
 
-  public static class CreateContent extends BreadboardMessage {
-    final String name;
-
-    public CreateContent(User user, String name, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.name = name;
-    }
-  }
-
   public static class AddLanguage extends BreadboardMessage {
     final Long experimentId;
     final String languageCode;
@@ -969,99 +890,6 @@ public class Breadboard extends UntypedActor {
     public DeleteStep(User user, Long id, ThrottledWebSocketOut out) {
       super(user, out);
       this.id = id;
-    }
-  }
-
-  public static class DeleteContent extends BreadboardMessage {
-    final Long id;
-
-    public DeleteContent(User user, Long id, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.id = id;
-    }
-  }
-
-  public static class SaveContent extends BreadboardMessage {
-    final Long contentId;
-    final String name;
-    final List<Translation> translations;
-
-    public SaveContent(User user, Long contentId, String name, List<Translation> translations, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.contentId = contentId;
-      this.name = name;
-      this.translations = translations;
-    }
-  }
-
-  public class SaveContentObject implements Serializable {
-    @JsonCreator
-    public SaveContentObject(@JsonProperty("action") String action,
-                             @JsonProperty("uid") String uid,
-                             @JsonProperty("contentId") long contentId,
-                             @JsonProperty("name") String name,
-                             @JsonProperty("translations") List<Translation> translations) {
-      this.action = action;
-      this.uid = uid;
-      this.contentId = contentId;
-      this.name = name;
-      this.translations = translations;
-    }
-    private String action;
-    private String uid;
-    private long contentId;
-    private String name;
-    @JsonProperty("translations")
-    private List<Translation> translations;
-
-    @JsonGetter("action")
-    public String getAction() {
-      return action;
-    }
-
-    @JsonSetter("action")
-    public void setAction(String action) {
-      this.action = action;
-    }
-
-    @JsonGetter("uid")
-    public String getUid() {
-      return uid;
-    }
-
-    @JsonSetter("uid")
-    public void setUid(String uid) {
-      this.uid = uid;
-    }
-
-    @JsonGetter("contentId")
-    public long getContentId() {
-      return contentId;
-    }
-
-    @JsonSetter("contentId")
-    public void setContentId(long contentId) {
-      this.contentId = contentId;
-    }
-
-    @JsonGetter("name")
-    public String getName() {
-      return name;
-    }
-
-    @JsonSetter("name")
-    public void setName(String name) {
-      this.name = name;
-    }
-
-    @JsonGetter("translations")
-    public List<Translation> getTranslations() {
-      return translations;
-    }
-
-    @JsonSetter("translations")
-    public void setTranslations(List<Translation> translations) {
-      this.translations = translations;
     }
   }
 

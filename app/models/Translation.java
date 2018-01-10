@@ -36,6 +36,11 @@ public class Translation extends Model implements Serializable {
     return find.all();
   }
 
+  @JsonIgnore
+  public static Translation findById(Long id) {
+    return find.where().eq("id", id).findUnique();
+  }
+
   public Translation() {}
 
   public Long getId() {

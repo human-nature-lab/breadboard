@@ -2,7 +2,7 @@ LanguageService.$inject = ['$http', '$q'];
 export default function LanguageService($http, $q){
   let languages = null;
 
-  // Makes the initial request for the configuration parameters
+  // Makes the initial request for the languages
   const languagePromise = $http.get('languages')
     .then(function(res){
       languages = res.data;
@@ -22,5 +22,48 @@ export default function LanguageService($http, $q){
       }, function(err){
         throw err;
       })
+  };
+
+  /**
+   * Adds a language to the experiments_languages table
+   * @returns {Promise}
+   */
+  this.addLanguage = function(experimentId, languageId) {
+    console.log('language.service', languageId);
+    const payload = {
+      'experimentId': experimentId,
+      'languageId': languageId
+    };
+    return $http.post('languages', payload)
+      .then(function (response) {
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
+        },
+        function (response) {
+          return $q.reject(response);
+        });
+  };
+
+  /**
+   * Removes a language from the experiments_languages table
+   * @returns {Promise}
+   */
+  this.removeLanguage = function(experimentId, languageId) {
+    const payload = {
+      'experimentId': experimentId,
+      'languageId': languageId
+    };
+    return $http.post('languages/remove', payload)
+      .then(function (response) {
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
+        },
+        function (response) {
+          return $q.reject(response);
+        });
   };
 }

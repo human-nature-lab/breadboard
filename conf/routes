@@ -42,11 +42,18 @@ GET         /steps/:experimentId                                                
 POST        /steps/:stepId                                                       controllers.StepsController.updateStep(stepId: Long)
 DELETE      /steps/:stepId                                                       controllers.StepsController.deleteStep(stepId: Long)
 
+# Content Dialog
+GET         /content/:experimentId                                               controllers.ContentController.getContent(experimentId: Long)
+POST        /content/:contentId                                                  controllers.ContentController.updateContent(contentId: Long)
+DELETE      /content/:contentId                                                  controllers.ContentController.deleteContent(contentId: Long)
+
 # Create New Experiment
 PUT         /experiment                                                          controllers.ExperimentController.createExperiment()
 
 # Languages
 GET         /languages                                                           controllers.LanguageController.getLanguages()
+POST        /languages                                                           controllers.LanguageController.addLanguage()
+POST        /languages/remove                                                    controllers.LanguageController.removeLanguage()
 
 # Dummy HITs
 GET         /dummyHit                                                            controllers.ClientLogin.dummyHit(assignmentId: String ?= null, sandbox: String ?= null)
@@ -58,7 +65,7 @@ POST        /game/:experimentId/:experimentInstanceId/login                     
 POST        /game/:experimentId/:experimentInstanceId/amt                        controllers.ClientLogin.amtAuthenticate(experimentId: Long, experimentInstanceId: Long, hitId: String, assignmentId: String, workerId: String)
 GET         /login                                                               controllers.Application.login()
 POST        /login                                                               controllers.Application.authenticate()
-GET         /createFirstUser                                                     controllers.Application.createFirstUser()
+#GET         /createFirstUser                                                     controllers.Application.createFirstUser()
 POST        /createFirstUser                                                     controllers.Application.addFirstUser()
 GET         /logout                                                              controllers.Application.logout()
 

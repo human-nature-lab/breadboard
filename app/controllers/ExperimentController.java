@@ -2,6 +2,7 @@ package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import models.Experiment;
+import models.Language;
 import models.Step;
 import models.User;
 import play.mvc.Controller;
@@ -49,6 +50,8 @@ public class ExperimentController extends Controller {
       experiment.steps.add(init);
       experiment.clientHtml = Experiment.defaultClientHTML();
       experiment.clientGraph = Experiment.defaultClientGraph();
+      // Add the user's default language
+      experiment.languages.add(user.defaultLanguage);
     }
 
     experiment.name = newExperimentName;

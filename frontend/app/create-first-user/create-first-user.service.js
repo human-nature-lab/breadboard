@@ -10,11 +10,11 @@ function CreateFirstUserSrv($http, $q) {
 
   return service;
 
-  function createFirstUser(email, password, defaultLanguage) {
+  function createFirstUser(email, password, defaultLanguageId) {
     const payload = {
       'email': email,
       'password': password,
-      'defaultLanguage': defaultLanguage
+      'defaultLanguageId': defaultLanguageId
     };
     return $http.post('createFirstUser', payload)
       .then(function (response) {

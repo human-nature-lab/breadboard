@@ -1,7 +1,7 @@
 function CreateFirstUserCtrl($scope, languageService, CreateFirstUserSrv, $state) {
   $scope.vm = {
     languages:  [],
-    defaultLanguage: '',
+    defaultLanguage: {},
     email: '',
     password: '',
     confirmPassword: '',
@@ -18,11 +18,12 @@ function CreateFirstUserCtrl($scope, languageService, CreateFirstUserSrv, $state
   });
 
   $scope.submit = function() {
+    console.log($scope.vm.defaultLanguage);
     if ($scope.vm.password !== $scope.vm.confirmPassword) {
       $scope.vm.hasError = true;
       $scope.vm.errorMessage = 'Password and confirm password do not match.';
     } else {
-      CreateFirstUserSrv.createFirstUser($scope.vm.email, $scope.vm.password, $scope.vm.defaultLanguage.iso3)
+      CreateFirstUserSrv.createFirstUser($scope.vm.email, $scope.vm.password, $scope.vm.defaultLanguage.id)
         .then(function(res) {
           if(res.status === 200) {
             $state.go('login');

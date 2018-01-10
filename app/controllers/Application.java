@@ -30,6 +30,7 @@ public class Application extends Controller {
   }
   }
 
+  /*
   public static Result createFirstUser() {
     if (User.findRowCount() == 0) {
       return ok(createFirstUser.render(Form.form(CreateFirstUser.class)));
@@ -37,17 +38,21 @@ public class Application extends Controller {
       return ok(login.render(Form.form(Login.class)));
     }
   }
+  */
 
   public static Result addFirstUser() {
-    String email, password, defaultLanguage;
+    String email, password;
+    Long defaultLanguageId;
     JsonNode json = request().body().asJson();
     if(json == null) {
       return badRequest("Expecting Json data");
     } else {
       email = json.findPath("email").textValue();
       password = json.findPath("password").textValue();
-      defaultLanguage = json.findPath("defaultLanguage").textValue();
+      defaultLanguageId = json.findPath("defaultLanguageId").longValue();
     }
+
+    Language defaultLanguage = Language.findById(defaultLanguageId);
 
     if (email == null || password == null || defaultLanguage == null) {
       return badRequest("Please provide email, password, and default language.");

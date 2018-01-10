@@ -9,7 +9,6 @@ public class ContentFetcher {
   public ContentFetcher(Experiment selectedExperiment) {
     this.selectedExperiment = selectedExperiment;
   }
-
   public void setDefaultLanguage(String defaultLanguage) {
     this.defaultLanguage = defaultLanguage;
   }
@@ -18,31 +17,30 @@ public class ContentFetcher {
     if (defaultLanguage != null) {
       return this.getTranslated(name, defaultLanguage);
     }
-    Content c = selectedExperiment.getContentByName(name);
-    Translation t = c.translations.get(0);
-    /*
-    if (c == null)
-      return " ";
-    String returnString = "[";
-    for (int i = 0; i < c.translations.size(); i++) {
-      Translation t = c.translations.get(i);
-      returnString += "{'language':" + t.language.code;
-      returnString += ",'html':" + t.html + "}";
-      if (i < (c.translations.size() - 1)) {
-        returnString += ",";
+
+    Content c = Content.find.where()
+        .eq("experiment_id", selectedExperiment.id)
+        .eq("name", name)
+        .setMaxRows(1)
+        .findUnique();
+
+    if (c != null){
+      Translation t = Translation.find.where()
+          .eq("content_id", c.id)
+          .setMaxRows(1)
+          .findUnique();
+
+      if (t != null) {
+        return t.getHtml();
       }
+    } else {
+      Logger.debug("get -> c == null");
     }
-    returnString += "]";
-    return returnString;
-    */
-    //if (c == null) return " ";
-    //return c.toJson().toString();
-    return t.html;
+    return "";
   }
 
   public String get(String name, Object... parameters) {
     String returnContent = this.get(name);
-
     for (int i = 0; i < parameters.length; i++) {
       returnContent = returnContent.replace("{" + i + "}", parameters[i].toString());
     }
@@ -52,20 +50,31 @@ public class ContentFetcher {
 
   public String getTranslated(String name, String languageCode, Object... parameters) {
     String returnString = "";
-    Content c = selectedExperiment.getContentByName(name);
-    for (Translation t : c.translations) {
-      if (t.getLanguage() != null && t.getLanguage().getCode() != null && languageCode != null) {
-        if (t.getLanguage().getCode().equals(languageCode)) {
-          returnString = t.html;
-        }
-      } else {
-        Logger.debug("t.language == null || t.language.code == null || languageCode == null" + t.language.toJson() + ", " + languageCode);
-      }
-    }
-    for (int i = 0; i < parameters.length; i++) {
-      returnString = returnString.replace("{" + i + "}", parameters[i].toString());
-    }
+    Content c = Content.find.where()
+        .eq("experiment_id", selectedExperiment.id)
+        .eq("name", name)
+        .setMaxRows(1)
+        .findUnique();
+    if (c != null) {
+      Language l = Language.find.where()
+          .eq("code", languageCode)
+          .setMaxRows(1)
+          .findUnique();
 
+      Translation t = Translation.find.where()
+          .eq("content_id", c.id)
+          .eq("languages_id", l.id)
+          .setMaxRows(1)
+          .findUnique();
+
+      returnString = t.getHtml();
+
+      for (int i = 0; i < parameters.length; i++) {
+        returnString = returnString.replace("{" + i + "}", parameters[i].toString());
+      }
+    } else {
+      Logger.debug("getTranslated -> c == null");
+    }
     return returnString;
   }
 }
