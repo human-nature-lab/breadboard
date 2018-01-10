@@ -2,10 +2,7 @@ package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
-import models.Experiment;
-import models.Language;
-import models.Step;
-import models.User;
+import models.*;
 
 import play.mvc.Controller;
 import play.mvc.Http;
@@ -15,7 +12,6 @@ import play.mvc.Security;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -133,7 +129,7 @@ public class ExperimentController extends Controller {
       // Content in language subfolders
       for (Content c : experiment.content){
         for(Translation t : c.translations){
-          String language = (t.language == null || t.language.code == null) ? user.defaultLanguage : t.language.code;
+          String language = (t.language == null || t.language.code == null) ? user.defaultLanguage.getName() : t.language.code;
           e = new ZipEntry("Content/" + language + "/" + c.name.concat(".html"));
           zos.putNextEntry(e);
           zos.write(t.html.getBytes());
