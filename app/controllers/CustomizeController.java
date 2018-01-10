@@ -44,6 +44,7 @@ public class CustomizeController extends Controller {
 
   public static Result updateClientHtml(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
+
     if(experiment == null) {
       return badRequest("Invalid Experiment ID");
     }
@@ -61,7 +62,7 @@ public class CustomizeController extends Controller {
     }
 
     experiment.setClientHtml(clientHtml);
-    experiment.update();
+    experiment.save();
 
     return ok();
   }
@@ -85,7 +86,7 @@ public class CustomizeController extends Controller {
     }
 
     experiment.setClientGraph(clientGraph);
-    experiment.update();
+    experiment.save();
 
     return ok();
   }
@@ -109,7 +110,7 @@ public class CustomizeController extends Controller {
     }
 
     experiment.setStyle(style);
-    experiment.update();
+    experiment.save();
 
     return ok();
   }

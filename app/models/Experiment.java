@@ -1,10 +1,13 @@
 package models;
 
+import com.avaje.ebean.annotation.ConcurrencyMode;
+import com.avaje.ebean.annotation.EntityConcurrencyMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
+import play.Logger;
 import play.Play;
 import play.data.format.Formats;
 import play.data.validation.Constraints;
@@ -18,6 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@EntityConcurrencyMode(ConcurrencyMode.NONE)
 @Table(name = "experiments")
 public class Experiment extends Model {
   @Id
@@ -166,7 +170,14 @@ public class Experiment extends Model {
   public static String defaultClientHTML() {
     String contents = "";
     try {
-      contents = FileUtils.readFileToString(new File("conf/defaults/default-client-html.html"), "UTF-8");
+      if (FileUtils.directoryContains(new File("conf/defaults/"), new File("client-html.html"))) {
+        contents = FileUtils.readFileToString(new File("conf/defaults/client-html.html"), "UTF-8");
+      } else if (FileUtils.directoryContains(new File("conf/defaults/"), new File("default-client-html.html"))) {
+        FileUtils.copyFile(new File("conf/defaults/default-client-html.html"), new File("conf/defaults/client-html.html"));
+        contents = FileUtils.readFileToString(new File("conf/defaults/default-client-html.html"), "UTF-8");
+      } else {
+        Logger.error("Couldn't find the conf/defaults/default-client-html.html file.");
+      }
     } catch(IOException e){}
     return contents;
   }
@@ -174,7 +185,14 @@ public class Experiment extends Model {
   public static String defaultClientGraph() {
     String contents = "";
     try {
-      contents = FileUtils.readFileToString(new File("conf/defaults/default-client-graph.js"), "UTF-8");
+      if (FileUtils.directoryContains(new File("conf/defaults/"), new File("client-graph.js"))) {
+        contents = FileUtils.readFileToString(new File("conf/defaults/client-graph.js"), "UTF-8");
+      } else if (FileUtils.directoryContains(new File("conf/defaults/"), new File("default-client-graph.js"))) {
+        FileUtils.copyFile(new File("conf/defaults/default-client-graph.js"), new File("conf/defaults/client-graph.js"));
+        contents = FileUtils.readFileToString(new File("conf/defaults/default-client-graph.js"), "UTF-8");
+      } else {
+        Logger.error("Couldn't find the conf/defaults/default-client-graph.js file.");
+      }
     } catch(IOException e){}
     return contents;
   }
