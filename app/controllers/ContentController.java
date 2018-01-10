@@ -11,7 +11,6 @@ import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
 
-import java.io.Serializable;
 import java.util.List;
 
 public class ContentController extends Controller {
@@ -115,7 +114,8 @@ public class ContentController extends Controller {
     }
     experiment.save();
 
-    return ok(content.toJson());
+    Content returnContent = Content.findById(content.id);
+    return ok(returnContent.toJson());
   }
 
   private class UpdateContentObject {

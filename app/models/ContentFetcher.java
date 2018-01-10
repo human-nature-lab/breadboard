@@ -1,21 +1,29 @@
 package models;
 
 
+import com.avaje.ebean.Expr;
 import play.Logger;
 
 public class ContentFetcher {
   public Experiment selectedExperiment;
-  public String defaultLanguage;
+  public Language defaultLanguage;
   public ContentFetcher(Experiment selectedExperiment) {
     this.selectedExperiment = selectedExperiment;
   }
-  public void setDefaultLanguage(String defaultLanguage) {
-    this.defaultLanguage = defaultLanguage;
+
+  public void setDefaultLanguage(String languageString) {
+    Language language = Language.find.where()
+        .or(Expr.eq("code", languageString),
+            Expr.eq("name", languageString))
+        .setMaxRows(1)
+        .findUnique();
+
+    this.defaultLanguage = language;
   }
 
   public String get(String name) {
     if (defaultLanguage != null) {
-      return this.getTranslated(name, defaultLanguage);
+      return this.getTranslated(name, defaultLanguage.getCode());
     }
 
     Content c = Content.find.where()

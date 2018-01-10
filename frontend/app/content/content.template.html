@@ -55,11 +55,11 @@
                            role="button"
                            aria-haspopup="true"
                            aria-expanded="false">
-                            {{ vm.selectedLanguage.name }} <span class="caret"></span>
+                            {{ vm.selectedLanguage.name }} ({{ vm.selectedLanguage.code }}) <span class="caret"></span>
                         </a>
                         <ul class="dropdown-menu">
                             <li ng-repeat="language in vm.experimentLanguages | orderBy: 'name'">
-                                <a href="#" ng-click="vm.selectedLanguage = language">{{ language.name }}</a>
+                                <a href="#" ng-click="vm.selectedLanguage = language">{{ language.name }} ({{ language.code }})</a>
                             </li>
                         </ul>
                     </li>

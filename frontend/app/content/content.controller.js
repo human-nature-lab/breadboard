@@ -183,14 +183,16 @@ function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderBy, languageServ
       .then(
         function(success) {
           c.id = success.data.id;
+          c.translations = success.data.translations;
           c.status = STATUS.SAVED;
           $timeout(function() {
             c.status = STATUS.UNCHANGED;
           }, savedTime);
           c.error = '';
           angular.forEach(c.translations, function(t) {
-            t.html = t.clientHtml;
+            t.clientHtml = t.html;
           });
+          getSelectedTranslation();
         },
         function(error) {
           c.status = STATUS.ERROR;
