@@ -45,7 +45,7 @@ public class Experiment extends Model {
   @OneToMany(cascade = CascadeType.ALL)
   public List<Image> images = new ArrayList<Image>();
 
-  @ManyToMany(cascade = CascadeType.PERSIST)
+  @ManyToMany
   @JoinTable(name = "experiments_languages")
   public List<Language> languages = new ArrayList<Language>();
 

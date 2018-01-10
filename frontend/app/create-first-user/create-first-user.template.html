@@ -32,7 +32,7 @@
                     <label class="control-label" for="first-user-default-language">Default Language</label>
                     <select class="form-control"
                             id="first-user-default-language"
-                            ng-options="language as language.name for language in vm.languages | orderBy: 'name' track by language.iso3"
+                            ng-options="language as language.name for language in vm.languages | orderBy: 'name' track by language.id"
                             ng-model="vm.defaultLanguage" required>
                     </select>
                 </div>

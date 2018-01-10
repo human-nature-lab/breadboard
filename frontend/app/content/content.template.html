@@ -1,0 +1,106 @@
+<div class="container-fluid">
+    <div class="row" id="contentErrorDiv">
+        <div class="col-md-12">
+            <div class="panel panel-danger" ng-show="vm.error && vm.error.length > 0">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Error</h3>
+                </div>
+                <div class="panel-body">
+                    {{ vm.error }}
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="row" id="contentNavDiv">
+        <div class="col-md-12">
+            <nav class="navbar yamm navbar-default " role="navigation">
+                <ul class="nav navbar-nav form-inline">
+                    <li class="dropdown form-control-static">
+                        <a href="#"
+                           class="dropdown-toggle"
+                           tooltip="Change experiment languages"
+                           tooltip-placement="right"
+                           tooltip-append-to-body="true">
+                            <span class="fa fa-language"></span>
+                            <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <div class="yamm-content">
+                                    <div class="row-fluid">
+                                        <div class="col-md-2"
+                                             ng-repeat="l in vm.languages | orderBy: 'name'">
+                                            <button class="btn btn-default btn-block"
+                                                    ng-if="!vm.experimentHasLanguage(l)"
+                                                    href="#"
+                                                    ng-click="vm.addLanguage(vm.experimentId, l)">
+                                                {{ l.name }}
+                                            </button>
+                                            <button class="btn btn-info btn-block"
+                                                    ng-if="vm.experimentHasLanguage(l)"
+                                                    href="#"
+                                                    ng-click="vm.removeLanguage(vm.experimentId, l)">
+                                                <span class="fa fa-check"></span>
+                                                {{ l.name }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="dropdown form-control-static">
+                        <a href="#"
+                           class="dropdown-toggle"
+                           role="button"
+                           aria-haspopup="true"
+                           aria-expanded="false">
+                            {{ vm.selectedLanguage.name }} <span class="caret"></span>
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li ng-repeat="language in vm.experimentLanguages | orderBy: 'name'">
+                                <a href="#" ng-click="vm.selectedLanguage = language">{{ language.name }}</a>
+                            </li>
+                        </ul>
+                    </li>
+                    <content-status ng-repeat="c in vm.content"
+                                    content="c"
+                                    select-content="vm.selectContent"
+                                    delete-content="vm.deleteContent"
+                                    selected-content="vm.selectedContent"></content-status>
+                    <li role="presentation"
+                        class="form-control-static">
+                        <a ng-click="vm.createContent()">
+                        <span class="glyphicon glyphicon-plus"
+                              tooltip="Create new content"
+                              tooltip-placement="right"
+                              tooltip-append-to-body="true"
+                              aria-hidden="true">
+                        </span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+    <div class="row">
+        <div class="col-md-12">
+            <div>
+                <div class="panel panel-danger" ng-show="vm.selectedContent.error && vm.selectedContent.error.length > 0">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Error</h3>
+                    </div>
+                    <div class="panel-body">
+                        {{ vm.selectedContent.error }}
+                    </div>
+                </div>
+                <div id="tinymceDiv" ng-if="vm.selectedTranslation !== undefined">
+                <textarea id="tinymceTextarea" ui-tinymce="vm.tinymceOptions"
+                          ng-model="vm.selectedTranslation.clientHtml"></textarea>
+                </div>
+
+            </div>
+        </div>
+
+    </div>
+</div>

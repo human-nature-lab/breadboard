@@ -576,10 +576,6 @@ public class ScriptBoard extends UntypedActor {
           }
 
         } // END else if(message instanceof Breadboard.RunOnLeaveStep)
-        else if (message instanceof Breadboard.SaveContent || message instanceof Breadboard.CreateContent) {
-          breadboardMessage.user.selectedExperiment.refresh();
-          engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", breadboardMessage.user.selectedExperiment.contentFetcher);
-        } // END else if(message instanceof Breadboard.SaveContent || message instanceof Breadboard.CreateContent)
         else if (message instanceof Breadboard.Refresh) {
           Logger.debug("Breadboard.Refresh");
 

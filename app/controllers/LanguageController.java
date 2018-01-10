@@ -1,34 +1,100 @@
 package controllers;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import models.Experiment;
+import models.Language;
+import play.Logger;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Locale;
-import java.util.Set;
+
+import java.util.*;
 
 public class LanguageController extends Controller {
+
+  private static List<Language> seedLanguages() {
+    Locale[] locales = Locale.getAvailableLocales();
+    Set<String> addedLanguages = new HashSet<>();
+    List<Language> returnLanguages = new ArrayList<>();
+    for (Locale locale : locales) {
+      if (locale.getISO3Language().length() > 0 &&
+          locale.getDisplayLanguage().length() > 0 &&
+          (! addedLanguages.contains(locale.getISO3Language() + '-' + locale.getDisplayLanguage()))) {
+        addedLanguages.add(locale.getISO3Language() + '-' + locale.getDisplayLanguage());
+        Language language = new Language();
+        language.setName(locale.getDisplayLanguage());
+        language.setCode(locale.getISO3Language());
+        language.save();
+        returnLanguages.add(language);
+      }
+    }
+    return returnLanguages;
+  }
 
   public static Result getLanguages() {
     ObjectNode returnJson = Json.newObject();
     ArrayNode jsonLanguages = returnJson.putArray("languages");
-    Locale[] languages = Locale.getAvailableLocales();
-    Set<String> addedLanguages = new HashSet<>();
-    for (Locale language : languages) {
-      if (language.getISO3Language().length() > 0 &&
-          language.getDisplayLanguage().length() > 0 &&
-          (! addedLanguages.contains(language.getISO3Language() + '-' + language.getDisplayLanguage()))) {
-        addedLanguages.add(language.getISO3Language() + '-' + language.getDisplayLanguage());
-        ObjectNode jsonLanguage = Json.newObject();
-        jsonLanguage.put("name", language.getDisplayLanguage());
-        jsonLanguage.put("iso3", language.getISO3Language());
-        jsonLanguages.add(jsonLanguage);
-      }
+    List<Language> languages = Language.findAll();
+    if (languages.isEmpty()) {
+      // The database table is empty, add default languages
+      languages = seedLanguages();
+    }
+    for (Language language : languages) {
+      jsonLanguages.add(language.toJson());
     }
     return ok(returnJson);
   }
 
+  public static Result addLanguage() {
+    Long experimentId;
+    Long languageId;
+    JsonNode json = request().body().asJson();
+    if(json == null) {
+      return badRequest("Expecting Json data");
+    } else {
+      experimentId = json.findValue("experimentId").asLong();
+      languageId = json.findValue("languageId").asLong();
+    }
+
+    Experiment experiment = Experiment.findById(experimentId);
+    Language language = Language.findById(languageId);
+
+    if (experiment == null || language == null) {
+      return badRequest("Invalid experiment or language ID");
+    }
+
+    if (!experiment.languages.contains(language)) {
+      experiment.languages.add(language);
+      experiment.save();
+    }
+
+    return ok(language.toJson());
+  }
+
+  public static Result removeLanguage() {
+    Long experimentId;
+    Long languageId;
+    JsonNode json = request().body().asJson();
+    if(json == null) {
+      return badRequest("Expecting Json data");
+    } else {
+      experimentId = json.findValue("experimentId").asLong();
+      languageId = json.findValue("languageId").asLong();
+    }
+
+    Experiment experiment = Experiment.findById(experimentId);
+    Language language = Language.findById(languageId);
+
+    if (experiment == null || language == null) {
+      return badRequest("Invalid experiment or language ID");
+    }
+
+    experiment.languages.remove(language);
+    experiment.save();
+    experiment.saveManyToManyAssociations("languages");
+
+    return ok();
+  }
 }

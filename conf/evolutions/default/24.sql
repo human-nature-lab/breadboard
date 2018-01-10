@@ -11,7 +11,7 @@ create table experiments_languages (
   experiments_id             bigint not null,
   languages_id               bigint not null,
   foreign key (experiments_id) references experiments(id),
-  foreign key (languages_id) references languages(id),
+  foreign key (languages_id) references languages(id)
 );
 
 create table translations (

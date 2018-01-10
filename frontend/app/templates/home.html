@@ -279,51 +279,11 @@
     <!-- Content w/ Translation support -->
     <div>
         <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
-            <div id="contentLanguageDiv">
-                <span><i class="fa fa-language" aria-hidden="true"></i></span>
-                <select ng-model="selectedLanguage"
-                        ng-options="language as language.name for language in breadboard.experiment.languages track by language.id"></select>
-                <span class="i-button" ng-click="addLanguage()" title="Add Language"><span class="fa fa-plus-circle"
-                                                                                           aria-hidden="true"></span></span>
-            </div>
-            <div id="contentTabsDiv">
-          <span class="steps-tab selected-{{selectedContent.id==content.id}}"
-                ng-repeat="content in breadboard.experiment.content | orderBy: 'name'">
-            <a ng-click="selectContent(content)">{{content.name}}</a>
-              &nbsp;
-              <a title="Delete step" ng-click="deleteContent(cObject)" class="step-titlebar-close ui-corner-all"
-                 role="button">
-                <i class="fa fa-close"></i>
-              </a>
-          </span>
-                <span class="steps-tab selected-false">
-            &nbsp;
-            <a ng-click="newContent()" class="ng-binding">
-              <i class="fa fa-3 fa-plus" aria-hidden="true"></i>
-            </a>
-          </span>
-
-            </div>
-            <div id="tinymceDiv" ng-if="selectedTranslation !== undefined">
-                <textarea id="tinymceTextarea" ui-tinymce="tinymceOptions"
-                          ng-model="selectedTranslation.html"></textarea>
-            </div>
+            <content experiment-id="breadboard.experiment.id"
+                     experiment-languages="breadboard.experiment.languages"
+                     ng-if="breadboard.experiment"
+                     actions="contentActions"></content>
         </div>
-    </div>
-
-    <div class="new-dialog" id="newContentDialog" style="display: none;">
-        <form ng-submit="createContent()">
-            <p>
-                <input name="name" ng-model="newContentName" placeholder="Name" required>
-            </p>
-            <p>
-                <input name="language" ng-model="newContentLanguage" placeholder="Language" required>
-            </p>
-
-            <p>
-                <button style="float: right;" type="submit">Create</button>
-            </p>
-        </form>
     </div>
 
     <!-- CustomizeController -->

@@ -32,7 +32,8 @@ public class User extends Model {
 
   public String uid;
 
-  public String defaultLanguage;
+  @OneToOne
+  public Language defaultLanguage;
 
   /*
    * Currently role can be admin or amt_admin, should expand this to include experiment runners vs.
@@ -121,7 +122,7 @@ public class User extends Model {
 
     user.put("email", this.email);
 
-    user.put("defaultLanguage", this.defaultLanguage);
+    user.put("defaultLanguage", this.defaultLanguage.toJson());
 
     //user.put("experiments", Json.toJson(experimentNames));
     ArrayNode experiments = user.putArray("experiments");

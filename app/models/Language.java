@@ -6,7 +6,9 @@ import play.db.ebean.Model;
 import play.libs.Json;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 @Entity
 @Table(name = "languages")
@@ -18,12 +20,30 @@ public class Language extends Model {
 
   public String name;
 
+  @ManyToMany
+  @JoinTable(name = "experiments_languages")
+  public List<Experiment> experiments = new ArrayList<>();
+
   @JsonIgnore
   public static Finder<Long, Language> find = new Finder(Long.class, Language.class);
 
   @JsonIgnore
   public static List<Language> findAll() {
     return find.all();
+  }
+
+  @JsonIgnore
+  public static Language findById(Long id) {
+    return find.where().eq("id", id).findUnique();
+  }
+
+  @JsonIgnore
+  public static Language fromIso3(String iso3) {
+    Locale locale = new Locale(iso3);
+    Language language = new Language();
+    language.setCode(iso3);
+    language.setName(locale.getDisplayName());
+    return language;
   }
 
   public Language() {}

@@ -68,24 +68,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
           }
           */
         }
-        if ($scope.selectedLanguage === undefined) {
-          // Setup default language
-          $scope.selectedLanguage = $scope.breadboard.experiment.languages[0];
-        } else {
-          //console.log("$scope.selectedLanguage", $scope.selectedLanguage);
-        }
-        // Setup watch for selectedTranslation
-        $scope.$watch('[selectedLanguage, selectedContent]', $scope.selectTranslation, true);
-        /*
-        if ($scope.breadboard.experiment.content != undefined && $scope.contentLanguages == undefined) {
-          $scope.contentLanguages = [];
-          $scope.selectedContentLanguages = {};
-          $scope.contentObjects = {};
-          $scope.selectedContentName = undefined;
-          setupContentLanguages();
-          $scope.$watch($scope.breadboard.experiment.content, setupContentLanguages, true);
-        }
-        */
       }
     }
     catch (e) {
@@ -150,6 +132,11 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     $scope.scriptEngineState = $scope.ENGINE_STATE.STALE;
   }
 
+  $scope.contentActions = {};
+  function saveContent() {
+    $scope.contentActions.saveContent();
+  }
+
   $breadboardFactory.addNodeChangeListener(function(nodes) {
       $scope.nodes = nodes;
   });
@@ -166,28 +153,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   var applyStyle = function () {
     $('#styleTag').text($scope.breadboard.experiment.style);
   };
-
-  /*
-  function setupContentLanguages() {
-    var contentLanguageSet = new Set();
-    $scope.breadboard.experiment.content.forEach(function (content) {
-      contentLanguageSet.add(content.language);
-      // Default to the first language found as selected language for that content
-      if (! ((content.name) in $scope.selectedContentLanguages)) {
-        $scope.selectedContentLanguages[content.name] = content.language;
-      }
-      if (! ((content.name) in $scope.contentObjects)) {
-        $scope.contentObjects[content.name] = {};
-      }
-      $scope.contentObjects[content.name][content.language] = content;
-    });
-    $scope.contentLanguages = Array.from(contentLanguageSet);
-    $scope.selectedLanguage = $scope.contentLanguages[0];
-    console.log("$scope.contentObjects", $scope.contentObjects);
-    console.log("$scope.contentLanguages", $scope.contentLanguages);
-    console.log("$scope.selectedContentLanguages", $scope.selectedContentLanguages);
-  }
-  */
 
   $scope.logout = function(){
     $http.get('/logout').then(function(res){
@@ -272,39 +237,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
         "action": "MakeChoice",
         "choiceUID": $scope.selectedNode.choices[i].uid
       });
-  };
-
-  $scope.formatContent = function (content) {
-    var returnContent = {};
-    returnContent.languages = {};
-    returnContent.contentObject = {};
-    //console.log("content", content);
-    for (var i = 0; i < content.length; i++) {
-      var c = content[i];
-      returnContent.languages[c.language] = true;
-
-      if (!returnContent.contentObject.hasOwnProperty(c.name)) {
-        returnContent.contentObject[c.name] = [];
-      }
-
-      var co = {};
-      co[c.language] = c.html;
-      returnContent.contentObject[c.name].push(co);
-    }
-    return returnContent;
-  };
-
-  var saveContent = function () {
-    if ($scope.selectedContent != undefined) {
-      //console.log("saveContent: ", $scope.selectedContent);
-      $breadboardFactory.send(
-        {
-          "action": "SaveContent",
-          "contentId": $scope.selectedContent.id,
-          "name": $scope.selectedContent.name,
-          "translations": $scope.selectedContent.translations
-        });
-    }
   };
 
   $scope.update = function () {
@@ -551,39 +483,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     });
   }
 
-  /*
-  var sendStep = function () {
-    $breadboardFactory.send(
-      {
-        "action": "SendStep",
-        "id": $scope.selectedStep.id,
-        "name": $scope.selectedStep.name,
-        "source": $scope.selectedStep.source
-      });
-  };
-  */
-
-  $scope.vim = {vimMode: false};
-
-  $scope.$watch('vim', function () {
-    $scope.stepCodemirrorOptions.vimMode = $scope.vim.vimMode;
-    //$scope.cssCodemirrorOptions.vimMode = $scope.vim.vimMode;
-    $scope.scriptCodemirrorOptions.vimMode = $scope.vim.vimMode;
-    //$scope.clientHtmlCodemirrorOptions.vimMode = $scope.vim.vimMode;
-    //$scope.clientGraphCodemirrorOptions.vimMode = $scope.vim.vimMode;
-  }, true);
-
-  $scope.toggleVim = function () {
-    $scope.vim.vimMode = !$scope.vim.vimMode;
-  };
-
-  var toggleVim = function () {
-    var scope = angular.element($("#mainDiv")).scope();
-    scope.$apply(function () {
-      $scope.vim.vimMode = !$scope.vim.vimMode;
-    });
-  };
-
   $scope.initStep = function (step) {
     //this is for capturing the newly created step and select it
     if ($scope.newStepName !== undefined) {
@@ -591,162 +490,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
         $scope.selectedStep = step;
       }
     }
-  };
-
-  $scope.deleteStep = function (step) {
-
-    $('#deleteStepDesc').html("Are you sure that you want to permanently delete the step '" + step.name + "'?");
-
-    $('#deleteStepDialog').dialog({
-      title: 'Delete Step',
-      buttons: {
-        'Yes': function () {
-          $breadboardFactory.send({"action": "DeleteStep", "id": step.id});
-          $(this).dialog("close");
-          $scope.selectedStep.source = '';
-        },
-        'No': function () {
-          $(this).dialog("close");
-        }
-      }
-    });
-  };
-
-  /*
-  $scope.selectedContentLanguages = {};
-  $scope.selectedContentName = undefined;
-  $scope.selectedContent = undefined;
-  */
-
-  $scope.addLanguage = function() {
-    // Reset the language dialog
-    $("#addLanguageDialog input").each(function (index, element) {
-      $(element).val("");
-    });
-
-    $('#addLanguageDialog').dialog({
-      title: 'Add new language',
-      buttons: {
-        'Submit': function () {
-          var experimentId = $scope.breadboard.experiment.id;
-          //console.log("scope.newLanguage", $scope.newLanguageCode);
-          //console.log("experimentId", experimentId);
-
-          $breadboardFactory.send({
-            "action": "AddLanguage",
-            "experimentId": experimentId,
-            "code": $scope.newLanguageCode
-          });
-
-          $(this).dialog("close");
-        }
-      }
-    });
-  };
-
-  /*
-  $scope.selectContentLanguage = function (contentName, selectedLanguage, thisSelect) {
-    console.log("contentName", contentName);
-    console.log("selectedLanguage", selectedLanguage);
-    console.log("thisSelect", thisSelect);
-
-    $scope.selectedContentName = contentName;
-    $scope.selectedContent = $scope.breadboard.experiment.content[contentName][selectedLanguage];
-    $scope.selectedContentLanguages[contentName] = selectedLanguage;
-    $timeout(resizeTiny, 10);
-  };
-  */
-
-  $scope.selectContentName = function (contentName) {
-    $scope.selectedContentName = contentName;
-    /*
-    if ($scope.selectedContentLanguages[contentName] !== undefined) {
-      $scope.selectedContent = $scope.breadboard.experiment.content[contentName][$scope.selectedContentLanguages[contentName]];
-    }
-    */
-    $timeout(resizeTiny, 10);
-  };
-
-  $scope.selectContent = function (content) {
-    $scope.selectedContent = content;
-    /*
-     if ($scope.selectedContentLanguages[contentName] !== undefined) {
-     $scope.selectedContent = $scope.breadboard.experiment.content[contentName][$scope.selectedContentLanguages[contentName]];
-     }
-     */
-    $timeout(resizeTiny, 10);
-  };
-
-  $scope.selectTranslation = function() {
-    if ($scope.selectedLanguage !== undefined && $scope.selectedContent !== undefined) {
-      $scope.selectedTranslation = undefined;
-      angular.forEach($scope.selectedContent.translations, function(translation) {
-        if (translation.language.id == $scope.selectedLanguage.id) {
-          $scope.selectedTranslation = translation;
-        }
-      });
-      if ($scope.selectedTranslation == undefined) {
-        // No translation for the selected language
-        var length = $scope.selectedContent.translations.push(
-          {
-            'id' : null,
-            'html' : "<p>No translation found.</p>",
-            'language' : $scope.selectedLanguage
-          }
-        );
-        $scope.selectedTranslation = $scope.selectedContent.translations[(length - 1)];
-      }
-    }
-  };
-
-  $scope.deleteContent = function (content) {
-
-    $('#deleteStepDesc').html("Are you sure that you want to permanently delete the content '" + content.name + "'?");
-
-    $('#deleteStepDialog').dialog({
-      title: 'Delete Content',
-      buttons: {
-        'Yes': function () {
-          $breadboardFactory.send({"action": "DeleteContent", "id": content.id});
-          if ($scope.selectedContent.id == content.id) {
-            $scope.selectedContent = undefined;
-          }
-          $(this).dialog("close");
-        },
-        'No': function () {
-          $(this).dialog("close");
-        }
-      }
-    });
-  };
-
-  $scope.newStep = function () {
-    $("#newStepDialog input").each(function (index, element) {
-      $(element).val("");
-    });
-    $('#newStepDialog').dialog({title: 'Create New Step'});
-  };
-
-  $scope.createStep = function () {
-    $('#newStepDialog').dialog('close');
-    $breadboardFactory.send({"action": "CreateStep", "name": $scope.newStepName});
-  };
-
-  $scope.newContent = function () {
-    $("#newContentDialog input").each(function (index, element) {
-      $(element).val("");
-    });
-
-    $('#newContentDialog').dialog({title: 'Create New Content'});
-  };
-
-  $scope.createContent = function () {
-    $('#newContentDialog').dialog('close');
-    $breadboardFactory.send({
-      "action": "CreateContent",
-      "name": $scope.newContentName,
-      "language": $scope.newContentLanguage
-    });
   };
 
   $scope.stopGame = function (id) {
@@ -851,10 +594,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.contentDialogOptions = {
     title: 'Content',
-    width: ((windowWidth * .5) - margin),
+    width: windowWidth,
     height: windowHeight,
     position: [margin, topDivHeight],
-    autoOpen: false,
+    autoOpen: true,
     buttons: {
       'Save': function () {
         saveContent();
@@ -935,17 +678,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     buttons: {}
   };
 
-  $scope.stepCodemirrorOptions = {
-    lineNumbers: true,
-    matchBrackets: true,
-    mode: 'text/x-groovy',
-    extraKeys: {
-      "Ctrl-Enter": sendStep
-    },
-    vimMode: false,
-    showCursorWhenSelecting: true
-  };
-
   $scope.scriptCodemirrorOptions = {
     lineNumbers: true,
     matchBrackets: true,
@@ -955,20 +687,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     },
     vimMode: false,
     showCursorWhenSelecting: true
-  };
-
-  $scope.tinymceOptions = {
-    theme: 'modern',
-    width: '100%',
-    height: '100%',
-    plugins: "spellchecker image code lists link charmap textcolor",
-    toolbar: "styleselect | bullist numlist outdent indent | forecolor backcolor | cut copy paste | undo redo | link unlink | charmap | spellchecker | code | image",
-    statusbar: false,
-    menubar: false,
-    convert_urls: false,
-    content_css: '/assets/css/tinymce.css',
-    valid_elements: '*[*]',
-    resize: true
   };
 
   $scope.$on('$destroy', function(){
