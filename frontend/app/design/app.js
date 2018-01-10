@@ -14,6 +14,8 @@ import '../content/content.directive';
 import '../directives/instance-parameters/instance-parameters.directive';
 import '../create-first-user/create-first-user.directive';
 import './design.sass';
+import '../experiment-import/experiment-import.app';
+import '../experiment-import/experiment-import.directive';
 
 angular.module('breadboard', [
   'breadboard.filters',
@@ -29,6 +31,7 @@ angular.module('breadboard', [
   'breadboard.instance-parameters',
   'breadboard.steps',
   'breadboard.content',
+  'breadboard.experiment-import',
   'ui.utils',
   'ui.codemirror',
   'ui.tinymce',

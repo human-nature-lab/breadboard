@@ -10,7 +10,6 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
   vm.onDeleteStep = $scope.actions.onDeleteStep;
 
   vm.selectedStep = {};
-  vm.experimentId = $scope.experimentId;
   vm.steps = [];
   vm.createStatus = STATUS.UNLOADED;
   vm.error = '';
@@ -25,15 +24,21 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
     showCursorWhenSelecting: true
   };
 
-  StepsSrv.getSteps(vm.experimentId)
-    .then(
-      function(success){
-        vm.steps = orderBy(success.data.steps, 'name', false);
-        vm.selectedStep = vm.steps[0];
-      },
-      function(error){
-        vm.error = error.data;
-      });
+  // Any reason we can't just pass the experiment steps array into the directive directly? Maybe because this will eventually be a separate AJAX request?
+  function updateSteps(){
+    StepsSrv.getSteps($scope.experimentId)
+      .then(
+        function(success){
+          vm.steps = orderBy(success.data.steps, 'name', false);
+          vm.selectedStep = vm.steps[0];
+        },
+        function(error){
+          vm.error = error.data;
+        });
+  }
+  updateSteps();
+  $scope.$watch('experimentId', updateSteps);
+
 
   function selectStep(step) {
     if (step === vm.selectedStep) return;
@@ -53,7 +58,7 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
   }
 
   function updateSelectedStep() {
-    updateStep(vm.selectedStep, vm.experimentId);
+    updateStep(vm.selectedStep, $scope.experimentId);
   }
 
   function createStep(type) {
@@ -149,7 +154,7 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
   $scope.saveSteps = function() {
     angular.forEach(vm.steps, function(step) {
       if (step.status === STATUS.MODIFIED) {
-        updateStep(step, vm.experimentId);
+        updateStep(step, $scope.experimentId);
       }
     });
   };

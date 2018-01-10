@@ -11,6 +11,7 @@ import models.*;
 import java.io.*;
 import java.nio.file.Files;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 
 // TODO: Why does this always redirect to login?
@@ -48,11 +49,15 @@ public class ClientController extends Controller
         vals.put("User-Agent", "userAgent");
         vals.put("Host", "host");
         ObjectNode result = Json.newObject();
-        for (Map.Entry<String, String> entry : vals.entrySet()) {
-            result.put(entry.getValue(), request().headers().get(entry.getKey()) != null ? request().headers().get(entry.getKey()).toString() : null);
+        Iterator it = vals.entrySet().iterator();
+        while(it.hasNext()){
+            Map.Entry pair = (Map.Entry)it.next();
+            String header = request().getHeader(pair.getKey().toString());
+            result.put((String) pair.getValue(), header);
+            it.remove();
         }
         result.put("ipAddress", request().remoteAddress());
-        result.put("requestUri", request().uri());
+        result.put("requestURI", request().uri());
         result.put("clientId", clientId);
         result.put("experimentId", experimentId);
         result.put("experimentInstanceId", experimentInstanceId);

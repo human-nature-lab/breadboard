@@ -2,8 +2,8 @@ import _ from 'underscore';
 import 'ng-file-upload';
 
 /* Controllers */
-angular.module('breadboard.controllers', ['ngFileUpload']).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state', 'csvService', 'configService', 'Upload',
-function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, configService, Upload) {
+angular.module('breadboard.controllers', ['ngFileUpload']).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state', 'csvService', 'configService', 'Upload', 'downloadService',
+function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, configService, Upload, downloadService) {
   /*
   $scope.$watch('selectedLanguage', function(newValue) {
     console.log('selectedLanguage', newValue);
@@ -312,30 +312,18 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   $scope.exportExperiment = function () {
-    var selectedExperiment = $scope.breadboard.user.selectedExperiment;
-    $breadboardFactory.send(
-      {
-        "action": "ExportExperiment",
-        "selectedExperiment": selectedExperiment
+    downloadService.download("/experiment/export/" + $scope.breadboard.experiment.id, $scope.breadboard.experiment.name + '.zip')
+      .then(function(res){
+        console.log("Successfully downloaded experiment");
       });
   };
 
-  $scope.openImportDialog = function () {
-    $("#importExperimentDialog input").each(function (index, element) {
-      $(element).val("");
+  $scope.openImportDialog = function(){
+
+    $('#importExperimentDialog').dialog({
+      title: "Import Experiment"
     });
 
-    $('#importExperimentDialog').dialog({title: 'Import Experiment'});
-  };
-
-  $scope.importExperiment = function () {
-    $('#importExperimentDialog').dialog('close');
-    $breadboardFactory.send(
-      {
-        "action": "ImportExperiment",
-        "importFrom": $scope.importFrom,
-        "importTo": $scope.importTo
-      });
   };
 
   $scope.createExperiment = function () {

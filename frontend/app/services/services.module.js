@@ -7,8 +7,9 @@ import ConfigService from './config.service';
 import LanguageService from './language.service';
 import BreadboardFactory from './breadboard.factory';
 import CSVService from '../services/csv.service';
+import DownloadService from './download.service';
 
-export default angular.module('breadboard.services', [])
+angular.module('breadboard.services', [])
   .service('configService', ConfigService)
   .service('websocketFactory', WebsocketFactory)
   .service('clientGraph', ClientGraphService)
@@ -16,4 +17,5 @@ export default angular.module('breadboard.services', [])
   .service('clientFactory', ClientFactory)
   .service('languageService', LanguageService)
   .service('csvService', CSVService)
+  .service('downloadService', DownloadService)
   .factory('breadboardFactory', BreadboardFactory);
