@@ -1,4 +1,5 @@
-function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
+StepsCtrl.$inject = ['$scope', 'StepsSrv', 'STATUS', '$timeout', 'orderByFilter', 'alertService'];
+export default function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy, alertService) {
   let vm = this;
 
   const savedTime = 1000;
@@ -108,25 +109,30 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
   }
 
   function deleteStep(step) {
-    if (step.id !== -1) {
-      StepsSrv.deleteStep(step.id)
-        .then(function(){
-            let stepIndex = vm.steps.indexOf(step);
-            vm.steps.splice(stepIndex, 1);
-            if (stepIndex > (vm.steps.length - 1)) stepIndex = 0;
-            vm.selectedStep = vm.steps[stepIndex];
-            vm.onDeleteStep();
-          },
-          function(error) {
-            step.status = STATUS.ERROR;
-            step.error = error.data;
-          });
-    } else {
-      let stepIndex = vm.steps.indexOf(step);
-      vm.steps.splice(stepIndex, 1);
-      if (stepIndex > (vm.steps.length - 1)) stepIndex = 0;
-      vm.selectedStep = vm.steps[stepIndex];
-    }
+    alertService.confirm("Would you like to delete " + step.name + " permanently? This action cannot be undone.")
+      .then(confirmed => {
+        if (step.id !== -1) {
+          StepsSrv.deleteStep(step.id)
+            .then(function () {
+                let stepIndex = vm.steps.indexOf(step);
+                vm.steps.splice(stepIndex, 1);
+                if (stepIndex > (vm.steps.length - 1)) stepIndex = 0;
+                vm.selectedStep = vm.steps[stepIndex];
+                vm.onDeleteStep();
+              },
+              function (error) {
+                step.status = STATUS.ERROR;
+                step.error = error.data;
+              });
+        } else {
+          let stepIndex = vm.steps.indexOf(step);
+          vm.steps.splice(stepIndex, 1);
+          if (stepIndex > (vm.steps.length - 1)) stepIndex = 0;
+          vm.selectedStep = vm.steps[stepIndex];
+        }
+      }, cancelled => {
+
+      });
   }
 
   function updateStep(step, experimentId) {
@@ -160,7 +166,3 @@ function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy) {
   };
 
 }
-
-StepsCtrl.$inject = ['$scope', 'StepsSrv', 'STATUS', '$timeout', 'orderByFilter'];
-
-export default StepsCtrl;

@@ -1,4 +1,5 @@
-function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderBy, languageService) {
+ContentCtrl.$inject = ['$scope', 'ContentSrv', 'STATUS', '$timeout', 'orderByFilter', 'languageService', 'alertService'];
+export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderBy, languageService, alertService) {
   let vm = this;
 
   const savedTime = 1000;
@@ -99,15 +100,20 @@ function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderBy, languageServ
   }
 
   function removeLanguage(experimentId, language) {
-    languageService.removeLanguage(experimentId, language.id)
-      .then(function() {
-        // Remove the language from the list and select the next language
-        let languageIndex = vm.experimentLanguages.indexOf(language);
-        vm.experimentLanguages.splice(languageIndex, 1);
-      },
-      function(error) {
-        vm.error = error.data;
-      });
+    alertService.confirm(`This action is permanent. Are you sure you want to remove ${language.name} from translated languages?`)
+      .then(confirmed => {
+        languageService.removeLanguage(experimentId, language.id)
+          .then(function() {
+              // Remove the language from the list and select the next language
+              let languageIndex = vm.experimentLanguages.indexOf(language);
+              vm.experimentLanguages.splice(languageIndex, 1);
+            },
+            function(error) {
+              vm.error = error.data;
+            });
+      }, cancelled => {
+
+      })
   }
 
   function experimentHasLanguage(language) {
@@ -157,24 +163,29 @@ function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderBy, languageServ
 
 
   function deleteContent(c) {
-    if (c.id !== -1) {
-      ContentSrv.deleteContent(c.id)
-        .then(function(){
-            let contentIndex = vm.content.indexOf(c);
-            vm.content.splice(contentIndex, 1);
-            if (contentIndex > (vm.content.length - 1)) contentIndex = 0;
-            vm.selectedContent = vm.content[contentIndex];
-          },
-          function(error) {
-            c.status = STATUS.ERROR;
-            c.error = error.data;
-          });
-    } else {
-      let contentIndex = vm.content.indexOf(c);
-      vm.content.splice(contentIndex, 1);
-      if (contentIndex > (vm.content.length - 1)) contentIndex = 0;
-      vm.selectedContent = vm.content[contentIndex];
-    }
+    alertService.confirm(`This action is permanent. Are you sure you'd like to delete ${c.name}?`)
+      .then(confirmed => {
+        if (c.id !== -1) {
+          ContentSrv.deleteContent(c.id)
+            .then(function(){
+                let contentIndex = vm.content.indexOf(c);
+                vm.content.splice(contentIndex, 1);
+                if (contentIndex > (vm.content.length - 1)) contentIndex = 0;
+                vm.selectedContent = vm.content[contentIndex];
+              },
+              function(error) {
+                c.status = STATUS.ERROR;
+                c.error = error.data;
+              });
+        } else {
+          let contentIndex = vm.content.indexOf(c);
+          vm.content.splice(contentIndex, 1);
+          if (contentIndex > (vm.content.length - 1)) contentIndex = 0;
+          vm.selectedContent = vm.content[contentIndex];
+        }
+      }, cancelled => {
+
+      });
   }
 
   function updateContent(c, experimentId) {
@@ -208,7 +219,3 @@ function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderBy, languageServ
   };
 
 }
-
-ContentCtrl.$inject = ['$scope', 'ContentSrv', 'STATUS', '$timeout', 'orderByFilter', 'languageService'];
-
-export default ContentCtrl;
