@@ -9,6 +9,7 @@ import play.db.ebean.Model;
 import play.libs.Json;
 
 import javax.persistence.*;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -22,7 +23,7 @@ public class Content extends Model {
   public String name;
 
   @OneToMany(mappedBy="content", cascade = CascadeType.ALL)
-  public List<Translation> translations;
+  public List<Translation> translations = new ArrayList<>();
 
   @JsonIgnore
   public static Model.Finder<Long, Content> find = new Model.Finder(Long.class, Content.class);
