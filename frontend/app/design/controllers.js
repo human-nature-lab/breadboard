@@ -569,7 +569,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.outputDialogOptions = {
     title: 'Output',
-    autoOpen: false,
+    autoOpen: true,
     width: ((windowWidth * .5) - margin),
     height: ((windowHeight * .25) - margin),
     position: [margin, (topDivHeight + margin + (.75 * windowHeight))],
@@ -578,7 +578,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.scriptDialogOptions = {
     title: 'Script',
-    autoOpen: false,
+    autoOpen: true,
     width: ((windowWidth * .5) - margin),
     height: ((windowHeight * .75) - margin),
     position: [margin, topDivHeight],
@@ -597,7 +597,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     width: windowWidth,
     height: windowHeight,
     position: [margin, topDivHeight],
-    autoOpen: true,
+    autoOpen: false,
     buttons: {
       'Save': function () {
         saveContent();
@@ -622,7 +622,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.customizeDialogOptions = {
     title: 'Customize',
-    autoOpen: true,
+    autoOpen: false,
     width: windowWidth,
     height: windowHeight,
     position: [margin, topDivHeight],
@@ -635,7 +635,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.graphDialogOptions = {
     title: 'Graph',
-    autoOpen: false,
+    autoOpen: true,
     width: (windowWidth * .5),
     height: windowHeight,
     position: [((windowWidth * .5) + margin), topDivHeight],
