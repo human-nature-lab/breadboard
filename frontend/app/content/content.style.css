@@ -41,3 +41,7 @@ a {
     left: 0;
     right: 0;
 }
+
+.dropdown.form-control-static.language{
+    position: relative;
+}
