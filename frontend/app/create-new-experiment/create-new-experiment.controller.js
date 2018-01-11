@@ -14,6 +14,7 @@ function CreateNewExperimentCtrl($scope, CreateNewExperimentSrv, $timeout) {
         vm.success = true;
         $timeout(function() {
           $('#newExperimentDialog').dialog('close');
+          vm.success = false;
         }, 1500);
       }, function(error) {
         vm.error = error.data;

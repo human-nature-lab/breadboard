@@ -67,26 +67,20 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   $scope.$watch('experimentId', function(experimentId){
     if (experimentId !== vm.experimentId) {
+      vm.selectedTab = undefined;
       vm.experimentId = experimentId;
+
       vm.clientHtml.status = STATUS.UNLOADED;
-      vm.clientHtml.serverValue = '';
-      vm.clientHtml.clientValue = '';
-
       vm.clientGraph.status = STATUS.UNLOADED;
-      vm.clientGraph.serverValue = '';
-      vm.clientGraph.clientValue = '';
-
       vm.style.status = STATUS.UNLOADED;
-      vm.style.serverValue = '';
-      vm.style.clientValue = '';
+
       selectTab(TAB.STYLE, 'styleTab');
     }
   });
-  //selectTab(TAB.STYLE, 'styleTab');
 
   function getClientHtml() {
     vm.clientHtml.status = STATUS.LOADING;
-    CustomizeSrv.getClientHtml($scope.experimentId)
+    CustomizeSrv.getClientHtml(vm.experimentId)
       .then(
         function(success){
           vm.clientHtml.status = STATUS.UNCHANGED;
@@ -111,7 +105,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   function getClientGraph() {
     vm.clientGraph.status = STATUS.LOADING;
-    CustomizeSrv.getClientGraph($scope.experimentId)
+    CustomizeSrv.getClientGraph(vm.experimentId)
       .then(
         function(success){
           vm.clientGraph.status = STATUS.UNCHANGED;
@@ -136,7 +130,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   function getStyle() {
     vm.style.status = STATUS.LOADING;
-    CustomizeSrv.getStyle($scope.experimentId)
+    CustomizeSrv.getStyle(vm.experimentId)
       .then(
         function(success){
           vm.style.status = STATUS.UNCHANGED;
@@ -195,7 +189,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   function updateClientHtml() {
     vm.clientHtml.status = STATUS.SAVING;
-    CustomizeSrv.updateClientHtml($scope.experimentId, vm.clientHtml.clientValue)
+    CustomizeSrv.updateClientHtml(vm.experimentId, vm.clientHtml.clientValue)
       .then(
         function() {
           vm.clientHtml.errorMessage = '';
@@ -214,7 +208,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   function updateClientGraph() {
     vm.clientGraph.status = STATUS.SAVING;
-    CustomizeSrv.updateClientGraph($scope.experimentId, vm.clientGraph.clientValue)
+    CustomizeSrv.updateClientGraph(vm.experimentId, vm.clientGraph.clientValue)
       .then(
         function() {
           vm.clientGraph.errorMessage = '';
@@ -233,7 +227,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   function updateStyle() {
     vm.style.status = STATUS.SAVING;
-    CustomizeSrv.updateStyle($scope.experimentId, vm.style.clientValue)
+    CustomizeSrv.updateStyle(vm.experimentId, vm.style.clientValue)
       .then(
         function() {
           vm.style.errorMessage = '';

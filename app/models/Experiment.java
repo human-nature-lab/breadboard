@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import play.Logger;
 import play.Play;
 import play.data.format.Formats;
@@ -17,6 +18,7 @@ import play.libs.Json;
 import javax.persistence.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -170,13 +172,13 @@ public class Experiment extends Model {
   public static String defaultClientHTML() {
     String contents = "";
     try {
-      if (FileUtils.directoryContains(new File("conf/defaults/"), new File("client-html.html"))) {
-        contents = FileUtils.readFileToString(new File("conf/defaults/client-html.html"), "UTF-8");
-      } else if (FileUtils.directoryContains(new File("conf/defaults/"), new File("default-client-html.html"))) {
-        FileUtils.copyFile(new File("conf/defaults/default-client-html.html"), new File("conf/defaults/client-html.html"));
-        contents = FileUtils.readFileToString(new File("conf/defaults/default-client-html.html"), "UTF-8");
-      } else {
+      InputStream defaultClientHtml = Play.application().resourceAsStream("defaults/client-html.html");
+      if (defaultClientHtml == null) defaultClientHtml = Play.application().resourceAsStream("defaults/default-client-html.html");
+
+      if (defaultClientHtml == null) {
         Logger.error("Couldn't find the conf/defaults/default-client-html.html file.");
+      } else {
+        contents = IOUtils.toString(defaultClientHtml);
       }
     } catch(IOException e){}
     return contents;
@@ -185,13 +187,13 @@ public class Experiment extends Model {
   public static String defaultClientGraph() {
     String contents = "";
     try {
-      if (FileUtils.directoryContains(new File("conf/defaults/"), new File("client-graph.js"))) {
-        contents = FileUtils.readFileToString(new File("conf/defaults/client-graph.js"), "UTF-8");
-      } else if (FileUtils.directoryContains(new File("conf/defaults/"), new File("default-client-graph.js"))) {
-        FileUtils.copyFile(new File("conf/defaults/default-client-graph.js"), new File("conf/defaults/client-graph.js"));
-        contents = FileUtils.readFileToString(new File("conf/defaults/default-client-graph.js"), "UTF-8");
-      } else {
+      InputStream defaultClientGraph = Play.application().resourceAsStream("defaults/client-graph.js");
+      if (defaultClientGraph == null) defaultClientGraph = Play.application().resourceAsStream("defaults/default-client-graph.js");
+
+      if (defaultClientGraph == null) {
         Logger.error("Couldn't find the conf/defaults/default-client-graph.js file.");
+      } else {
+        contents = IOUtils.toString(defaultClientGraph);
       }
     } catch(IOException e){}
     return contents;
