@@ -17,6 +17,7 @@ import java.util.zip.ZipOutputStream;
 
 public class ExperimentController extends Controller {
 
+  @Security.Authenticated(Secured.class)
   public static Result createExperiment() {
     String newExperimentName;
     Long copyExperimentId;

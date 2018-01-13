@@ -10,11 +10,13 @@ import models.Translation;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.Security;
 
 import java.util.List;
 
 public class ContentController extends Controller {
 
+  @Security.Authenticated(Secured.class)
   public static Result getContent(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -31,6 +33,7 @@ public class ContentController extends Controller {
     return ok(returnJson);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result deleteContent(Long contentId) {
     Content content = Content.findById(contentId);
     if (content == null) {
@@ -40,6 +43,7 @@ public class ContentController extends Controller {
     return ok();
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result updateContent(Long contentId) {
     Gson gson = new Gson();
     Content content;

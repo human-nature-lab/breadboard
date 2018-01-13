@@ -6,9 +6,11 @@ import models.Experiment;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.Security;
 
 public class CustomizeController extends Controller {
 
+  @Security.Authenticated(Secured.class)
   public static Result getClientHtml(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -20,6 +22,7 @@ public class CustomizeController extends Controller {
     return ok(returnJson);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result getClientGraph(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -31,6 +34,7 @@ public class CustomizeController extends Controller {
     return ok(returnJson);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result getStyle(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -42,6 +46,7 @@ public class CustomizeController extends Controller {
     return ok(returnJson);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result updateClientHtml(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
 
@@ -67,6 +72,7 @@ public class CustomizeController extends Controller {
     return ok();
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result updateClientGraph(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -91,6 +97,7 @@ public class CustomizeController extends Controller {
     return ok();
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result updateStyle(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {

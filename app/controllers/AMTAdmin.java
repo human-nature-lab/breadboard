@@ -19,6 +19,7 @@ import play.data.Form;
 import play.libs.*;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.Security;
 import views.html.*;
 
 import java.io.IOException;
@@ -32,6 +33,7 @@ public class AMTAdmin extends Controller {
   private static final String SECRET_KEY = Play.application().configuration().getString("amt.secretKey");
   private static final String ACCESS_KEY = Play.application().configuration().getString("amt.accessKey");
 
+  @Security.Authenticated(Secured.class)
   public static Result getAccountBalance(Boolean sandbox) {
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
@@ -53,6 +55,7 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result listHITs(String nextToken, Integer maxResults, Boolean sandbox) {
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
@@ -92,6 +95,7 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result listAssignmentsForHIT(String hitId, Integer maxResults, String nextToken, Boolean sandbox) {
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
@@ -151,6 +155,7 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result listBonusPaymentsForHIT(String hitId, Integer maxResults, String nextToken, Boolean sandbox) {
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
@@ -182,6 +187,7 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result approveAssignment(String assignmentId, Boolean sandbox) {
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
@@ -198,6 +204,7 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result rejectAssignment(String assignmentId, Boolean sandbox) {
     String requesterFeedback = null;
     JsonNode json = request().body().asJson();
@@ -227,6 +234,7 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result sendBonus(String assignmentId, Boolean sandbox) {
     String bonusAmount = null;
     String reason = null;
@@ -258,6 +266,7 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result updateAssignmentCompleted(String assignmentId) {
     String completedText;
 
@@ -287,6 +296,7 @@ public class AMTAdmin extends Controller {
     return ok();
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result createHIT(Boolean sandbox) {
     String title;
     String description;
@@ -373,6 +383,7 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result createDummyHit(Boolean sandbox) {
     String workerId = null;
     String reason = null;
