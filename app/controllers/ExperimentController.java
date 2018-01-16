@@ -24,13 +24,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-//import java.util.zip.ZipEntry;
-//import java.util.zip.ZipFile;
-//import java.util.zip.ZipInputStream;
-//import java.util.zip.ZipOutputStream;
 
 public class ExperimentController extends Controller {
 
@@ -66,7 +61,7 @@ public class ExperimentController extends Controller {
     }
 
     if (experiment == null) {
-      experiment = newExperiment(user);
+      experiment = newExperiment(user, true);
     }
 
     experiment.name = newExperimentName;
@@ -110,7 +105,7 @@ public class ExperimentController extends Controller {
     // TODO: Save all the files to disk
     String uid = session().get("uid");
     User user = User.findByUID(uid);
-    Experiment experiment = newExperiment(user);
+    Experiment experiment = newExperiment(user, false);
     experiment.name = experimentName;
     experiment.save();
 
@@ -137,8 +132,7 @@ public class ExperimentController extends Controller {
       import22To23(experiment, user, outputFolder);
     }
 
-    return ok("TODO: Unzip, validate and import the files");
-
+    return ok(experiment.toJson());
   }
 
   @Security.Authenticated(Secured.class)
@@ -481,16 +475,18 @@ public class ExperimentController extends Controller {
     }
   }
 
-  private static Experiment newExperiment(User user){
+  private static Experiment newExperiment(User user, Boolean isNewExperiment){
     Experiment experiment = new Experiment();
-    Step onJoin = Experiment.generateOnJoinStep();
-    Step onLeave = Experiment.generateOnLeaveStep();
-    Step init = Experiment.generateInitStep();
-    experiment.steps.add(onJoin);
-    experiment.steps.add(onLeave);
-    experiment.steps.add(init);
-    experiment.clientHtml = Experiment.defaultClientHTML();
-    experiment.clientGraph = Experiment.defaultClientGraph();
+    if (isNewExperiment) {
+      Step onJoin = Experiment.generateOnJoinStep();
+      Step onLeave = Experiment.generateOnLeaveStep();
+      Step init = Experiment.generateInitStep();
+      experiment.steps.add(onJoin);
+      experiment.steps.add(onLeave);
+      experiment.steps.add(init);
+      experiment.clientHtml = Experiment.defaultClientHTML();
+      experiment.clientGraph = Experiment.defaultClientGraph();
+    }
     // Add the user's default language
     experiment.languages.add(user.defaultLanguage);
     return experiment;

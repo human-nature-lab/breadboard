@@ -141,6 +141,13 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       $scope.nodes = nodes;
   });
 
+  $scope.selectExperiment = function(experimentId) {
+    $breadboardFactory.send({
+      "action": "SelectExperiment",
+      "experimentId": experimentId
+    });
+  };
+
   $scope.selectNode = function(node) {
     for (let i = 0; i < $scope.nodes.length; i++) {
       $scope.nodes[i].selected = "0";
