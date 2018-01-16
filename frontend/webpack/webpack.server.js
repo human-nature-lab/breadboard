@@ -35,8 +35,6 @@ let server = new webpackDevServer(compiler, {
     // from the build path.
     publicPath: '/bundles/',
 
-    https: true,
-
     // Configure hot replacement
     hot: true,
 
@@ -50,6 +48,6 @@ let server = new webpackDevServer(compiler, {
 
 // We fire up the development server and give notice in the terminal
 // that we are starting the initial bundle
-server.listen(8080, 'localhost', function () {
+server.listen(8765, 'localhost', function () {
     console.log('[Webpack] Bundling project, please wait...');
 });
