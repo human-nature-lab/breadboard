@@ -2,7 +2,7 @@
 const webpack = require('webpack');
 const path = require('path');
 console.log(__dirname);
-const buildPath = path.resolve(__dirname, '../../../public/bundles/');
+const buildPath = path.resolve(__dirname, '../../public/bundles/');
 const nodeModulesPath = path.resolve(__dirname, 'node_modules');
 const LiveReloadPlugin = require('webpack-livereload-plugin');
 
@@ -23,7 +23,12 @@ module.exports = {
             },
             {
                 test: /\.js$/,
-                use: ['babel-loader'],
+                use: {
+                    loader: 'babel-loader',
+                    options: {
+                        presets: ['babel-preset-env']
+                    }
+                },
                 exclude: /node_modules/,
             },
             {

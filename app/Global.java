@@ -5,10 +5,12 @@ import play.Application;
 import play.GlobalSettings;
 import play.Logger;
 import play.db.DB;
+import play.libs.F;
 import play.libs.Yaml;
 import play.mvc.Action;
 import play.mvc.Http;
 
+import java.io.*;
 import java.lang.reflect.Method;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -19,8 +21,34 @@ import java.util.List;
 import java.util.Map;
 
 public class Global extends GlobalSettings {
+
+  static Process process = null;
+
+  @Override
   public void onStart(Application app) {
     //InitialData.insert(app);
+    boolean isWin = System.getProperty("os.name").toUpperCase().indexOf("WIN") >= 0;
+    String cwd = System.getProperty("user.dir");
+    String mode = play.Play.application().configuration().getString("application.mode");
+    if(mode.toUpperCase() == "DEV") {
+      // Try to start the assets server
+      try {
+        ProcessBuilder pb = new ProcessBuilder("node", cwd + "/frontend/webpack/webpack.server.js");
+        pb.directory(new File(cwd + "/frontend"));
+        pb.inheritIO();
+        process = pb.start();
+      } catch (Exception e) {
+        e.printStackTrace();
+      }
+    }
+    // TODO: We could build the production resources when the framework starts instead of having to build them manually
+  }
+
+  @Override
+  public void onStop(Application app){
+    if(process != null){
+      process.destroy();
+    }
   }
 
   @Override
