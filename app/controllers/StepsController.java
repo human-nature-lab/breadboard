@@ -8,9 +8,11 @@ import models.Step;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.Security;
 
 public class StepsController extends Controller {
 
+  @Security.Authenticated(Secured.class)
   public static Result getSteps(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -27,6 +29,7 @@ public class StepsController extends Controller {
     return ok(returnJson);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result deleteStep(Long stepId) {
     Step step = Step.findById(stepId);
     if (step == null) {
@@ -36,6 +39,7 @@ public class StepsController extends Controller {
     return ok();
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result updateStep(Long stepId) {
     Step step;
     Experiment experiment = null;

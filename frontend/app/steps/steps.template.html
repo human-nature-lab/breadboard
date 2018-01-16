@@ -28,7 +28,7 @@
                         <h3 class="panel-title">Error</h3>
                     </div>
                     <div class="panel-body">
-                        {{ vm.selectedStep.error }}
+                        <p ng-bind-html="vm.selectedStep.error | to_trusted"></p>
                     </div>
                 </div>
 

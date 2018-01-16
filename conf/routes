@@ -58,7 +58,7 @@ POST        /languages                                                          
 POST        /languages/remove                                                    controllers.LanguageController.removeLanguage()
 
 # Dummy HITs
-GET         /dummyHit                                                            controllers.ClientLogin.dummyHit(assignmentId: String ?= null, sandbox: String ?= null)
+# GET         /dummyHit                                                            controllers.ClientLogin.dummyHit(assignmentId: String ?= null, sandbox: String ?= null)
 
 # The hitId and assignmentId parameters may or may not be present
 GET         /game/:experimentId/:experimentInstanceId/amt                        controllers.ClientLogin.amtLogin(experimentId: Long, experimentInstanceId: Long, hitId: String ?= null, assignmentId: String ?= null, workerId: String ?= null)

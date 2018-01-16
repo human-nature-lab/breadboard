@@ -150,6 +150,7 @@ public class Application extends Controller {
     return ok(result);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result uploadImage() {
     MultipartFormData body = request().body().asMultipartFormData();
     FilePart picture = body.getFile("picture");
@@ -235,6 +236,7 @@ public class Application extends Controller {
     return notFound();
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result saveUserSettings() {
     Form<UserSettings> userSettingsForm = Form.form(UserSettings.class);
     userSettingsForm = userSettingsForm.bindFromRequest();
@@ -256,6 +258,7 @@ public class Application extends Controller {
     return ok(result);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result dataCsv(Long experimentId) {
     //TODO: Escape double quotes in ExperimentInstance parameters
     Experiment experiment = Experiment.findById(experimentId);
@@ -309,6 +312,7 @@ public class Application extends Controller {
     return ok(csv.toString());
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result eventCsv(Long experimentInstanceId) {
     ExperimentInstance ei = ExperimentInstance.findById(experimentInstanceId);
 

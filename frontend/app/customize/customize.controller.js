@@ -9,7 +9,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   const savedTime = 1000;
 
-  // vm.experimentId = $scope.experimentId;
+  vm.experimentId = undefined;
   vm.TAB = TAB;
   vm.selectTab = selectTab;
   vm.selectedTab = 0;
@@ -65,17 +65,26 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
     }
   };
 
-  $scope.$watch('experimentId', function(){
-    selectTab(TAB.STYLE, 'styleTab');
+  $scope.$watch('experimentId', function(experimentId){
+    if (experimentId !== vm.experimentId) {
+      vm.selectedTab = undefined;
+      vm.experimentId = experimentId;
+
+      vm.clientHtml.status = STATUS.UNLOADED;
+      vm.clientGraph.status = STATUS.UNLOADED;
+      vm.style.status = STATUS.UNLOADED;
+
+      selectTab(TAB.STYLE, 'styleTab');
+    }
   });
-  selectTab(TAB.STYLE, 'styleTab');
 
   function getClientHtml() {
     vm.clientHtml.status = STATUS.LOADING;
-    CustomizeSrv.getClientHtml($scope.experimentId)
+    CustomizeSrv.getClientHtml(vm.experimentId)
       .then(
         function(success){
           vm.clientHtml.status = STATUS.UNCHANGED;
+          vm.clientHtml.errorMessage = '';
           vm.clientHtml.serverValue = success.data.clientHtml;
           vm.clientHtml.clientValue = success.data.clientHtml;
           $scope.$watch('vm.clientHtml.clientValue', function(newValue) {
@@ -90,16 +99,17 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
         },
         function(error){
           vm.clientHtml.status = STATUS.ERROR;
-          vm.clientHtml.errorMessage = error.data;
+          vm.clientHtml.errorMessage = (error.data) ? error.data : error;
         });
   }
 
   function getClientGraph() {
     vm.clientGraph.status = STATUS.LOADING;
-    CustomizeSrv.getClientGraph($scope.experimentId)
+    CustomizeSrv.getClientGraph(vm.experimentId)
       .then(
         function(success){
           vm.clientGraph.status = STATUS.UNCHANGED;
+          vm.clientGraph.errorMessage = '';
           vm.clientGraph.serverValue = success.data.clientGraph;
           vm.clientGraph.clientValue = success.data.clientGraph;
           $scope.$watch('vm.clientGraph.clientValue', function(newValue) {
@@ -114,16 +124,17 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
         },
         function(error){
           vm.clientGraph.status = STATUS.ERROR;
-          vm.clientGraph.errorMessage = error.data;
+          vm.clientGraph.errorMessage = (error.data) ? error.data : error;
         });
   }
 
   function getStyle() {
     vm.style.status = STATUS.LOADING;
-    CustomizeSrv.getStyle($scope.experimentId)
+    CustomizeSrv.getStyle(vm.experimentId)
       .then(
         function(success){
           vm.style.status = STATUS.UNCHANGED;
+          vm.style.errorMessage = '';
           vm.style.serverValue = success.data.style;
           vm.style.clientValue = success.data.style;
           $scope.$watch('vm.style.clientValue', function(newValue) {
@@ -138,7 +149,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
         },
         function(error){
           vm.style.status = STATUS.ERROR;
-          vm.style.errorMessage = error.data;
+          vm.style.errorMessage = (error.data) ? error.data : error;
         });
   }
 
@@ -165,22 +176,23 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
   }
 
   $scope.saveCustomize = function() {
-    if (vm.clientHtml.status === STATUS.MODIFIED) {
+    if (vm.clientHtml.status === STATUS.MODIFIED || vm.clientHtml.status === STATUS.ERROR) {
       updateClientHtml();
     }
-    if (vm.clientGraph.status === STATUS.MODIFIED) {
+    if (vm.clientGraph.status === STATUS.MODIFIED || vm.clientGraph.status === STATUS.ERROR) {
       updateClientGraph();
     }
-    if (vm.style.status === STATUS.MODIFIED) {
+    if (vm.style.status === STATUS.MODIFIED || vm.style.status === STATUS.ERROR) {
       updateStyle();
     }
   };
 
   function updateClientHtml() {
     vm.clientHtml.status = STATUS.SAVING;
-    CustomizeSrv.updateClientHtml($scope.experimentId, vm.clientHtml.clientValue)
+    CustomizeSrv.updateClientHtml(vm.experimentId, vm.clientHtml.clientValue)
       .then(
         function() {
+          vm.clientHtml.errorMessage = '';
           vm.clientHtml.status = STATUS.SAVED;
           $timeout(function() {
             vm.clientHtml.status = STATUS.UNCHANGED;
@@ -189,16 +201,17 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
         },
         function(error) {
           vm.clientHtml.status = STATUS.ERROR;
-          vm.clientHtml.errorMessage = error.data;
+          vm.clientHtml.errorMessage = (error.data) ? error.data : error;
         }
       );
   }
 
   function updateClientGraph() {
     vm.clientGraph.status = STATUS.SAVING;
-    CustomizeSrv.updateClientGraph($scope.experimentId, vm.clientGraph.clientValue)
+    CustomizeSrv.updateClientGraph(vm.experimentId, vm.clientGraph.clientValue)
       .then(
         function() {
+          vm.clientGraph.errorMessage = '';
           vm.clientGraph.status = STATUS.SAVED;
           $timeout(function() {
             vm.clientGraph.status = STATUS.UNCHANGED;
@@ -207,16 +220,17 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
         },
         function(error) {
           vm.clientGraph.status = STATUS.ERROR;
-          vm.clientGraph.errorMessage = error.data;
+          vm.clientGraph.errorMessage = (error.data) ? error.data : error;
         }
       );
   }
 
   function updateStyle() {
     vm.style.status = STATUS.SAVING;
-    CustomizeSrv.updateStyle($scope.experimentId, vm.style.clientValue)
+    CustomizeSrv.updateStyle(vm.experimentId, vm.style.clientValue)
       .then(
         function() {
+          vm.style.errorMessage = '';
           vm.style.status = STATUS.SAVED;
           $timeout(function() {
             vm.style.status = STATUS.UNCHANGED;
@@ -228,7 +242,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
         },
         function(error) {
           vm.style.status = STATUS.ERROR;
-          vm.style.errorMessage = error.data;
+          vm.style.errorMessage = (error.data) ? error.data : error;
         }
       );
   }

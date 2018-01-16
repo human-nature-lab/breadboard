@@ -9,6 +9,7 @@ import play.Logger;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.Security;
 
 import java.util.*;
 
@@ -47,6 +48,7 @@ public class LanguageController extends Controller {
     return ok(returnJson);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result addLanguage() {
     Long experimentId;
     Long languageId;
@@ -73,6 +75,7 @@ public class LanguageController extends Controller {
     return ok(language.toJson());
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result removeLanguage() {
     Long experimentId;
     Long languageId;

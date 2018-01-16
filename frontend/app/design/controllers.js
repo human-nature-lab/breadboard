@@ -597,7 +597,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     width: windowWidth,
     height: windowHeight,
     position: [margin, topDivHeight],
-    autoOpen: true,
+    autoOpen: false,
     buttons: {
       'Save': function () {
         saveContent();
@@ -623,7 +623,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.customizeDialogOptions = {
     title: 'Customize',
     autoOpen: false,
-    width: ((windowWidth * .5) - margin),
+    width: windowWidth,
     height: windowHeight,
     position: [margin, topDivHeight],
     buttons: {

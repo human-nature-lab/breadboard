@@ -6,9 +6,11 @@ import models.Experiment;
 import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Result;
+import play.mvc.Security;
 
 public class CustomizeController extends Controller {
 
+  @Security.Authenticated(Secured.class)
   public static Result getClientHtml(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -20,6 +22,7 @@ public class CustomizeController extends Controller {
     return ok(returnJson);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result getClientGraph(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -31,6 +34,7 @@ public class CustomizeController extends Controller {
     return ok(returnJson);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result getStyle(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -42,8 +46,10 @@ public class CustomizeController extends Controller {
     return ok(returnJson);
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result updateClientHtml(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
+
     if(experiment == null) {
       return badRequest("Invalid Experiment ID");
     }
@@ -61,11 +67,12 @@ public class CustomizeController extends Controller {
     }
 
     experiment.setClientHtml(clientHtml);
-    experiment.update();
+    experiment.save();
 
     return ok();
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result updateClientGraph(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -85,11 +92,12 @@ public class CustomizeController extends Controller {
     }
 
     experiment.setClientGraph(clientGraph);
-    experiment.update();
+    experiment.save();
 
     return ok();
   }
 
+  @Security.Authenticated(Secured.class)
   public static Result updateStyle(Long experimentId) {
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null) {
@@ -109,7 +117,7 @@ public class CustomizeController extends Controller {
     }
 
     experiment.setStyle(style);
-    experiment.update();
+    experiment.save();
 
     return ok();
   }

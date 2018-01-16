@@ -10,6 +10,8 @@ db
 project/project
 project/target
 conf/generated.keystore
+conf/defaults/client-html.html
+conf/defaults/client-graph.js
 target
 tmp
 ec2

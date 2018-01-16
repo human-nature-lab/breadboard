@@ -1,10 +1,14 @@
 package models;
 
+import com.avaje.ebean.annotation.ConcurrencyMode;
+import com.avaje.ebean.annotation.EntityConcurrencyMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
+import play.Logger;
 import play.Play;
 import play.data.format.Formats;
 import play.data.validation.Constraints;
@@ -14,10 +18,12 @@ import play.libs.Json;
 import javax.persistence.*;
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@EntityConcurrencyMode(ConcurrencyMode.NONE)
 @Table(name = "experiments")
 public class Experiment extends Model {
   @Id
@@ -166,7 +172,14 @@ public class Experiment extends Model {
   public static String defaultClientHTML() {
     String contents = "";
     try {
-      contents = FileUtils.readFileToString(new File("conf/defaults/default-client-html.html"), "UTF-8");
+      InputStream defaultClientHtml = Play.application().resourceAsStream("defaults/client-html.html");
+      if (defaultClientHtml == null) defaultClientHtml = Play.application().resourceAsStream("defaults/default-client-html.html");
+
+      if (defaultClientHtml == null) {
+        Logger.error("Couldn't find the conf/defaults/default-client-html.html file.");
+      } else {
+        contents = IOUtils.toString(defaultClientHtml);
+      }
     } catch(IOException e){}
     return contents;
   }
@@ -174,7 +187,14 @@ public class Experiment extends Model {
   public static String defaultClientGraph() {
     String contents = "";
     try {
-      contents = FileUtils.readFileToString(new File("conf/defaults/default-client-graph.js"), "UTF-8");
+      InputStream defaultClientGraph = Play.application().resourceAsStream("defaults/client-graph.js");
+      if (defaultClientGraph == null) defaultClientGraph = Play.application().resourceAsStream("defaults/default-client-graph.js");
+
+      if (defaultClientGraph == null) {
+        Logger.error("Couldn't find the conf/defaults/default-client-graph.js file.");
+      } else {
+        contents = IOUtils.toString(defaultClientGraph);
+      }
     } catch(IOException e){}
     return contents;
   }

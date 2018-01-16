@@ -6,7 +6,7 @@
                     <h3 class="panel-title">Error</h3>
                 </div>
                 <div class="panel-body">
-                    {{ vm.error }}
+                    <p ng-bind-html="vm.error | to_trusted"></p>
                 </div>
             </div>
         </div>

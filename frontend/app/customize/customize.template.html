@@ -21,6 +21,30 @@
                     </a>
                 </li>
             </ul>
+            <div class="panel panel-danger" ng-show="vm.style.errorMessage.length > 0">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Error</h3>
+                </div>
+                <div class="panel-body">
+                    <p ng-bind-html="vm.style.errorMessage | to_trusted"></p>
+                </div>
+            </div>
+            <div class="panel panel-danger" ng-show="vm.clientGraph.errorMessage.length > 0">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Error</h3>
+                </div>
+                <div class="panel-body">
+                    <p ng-bind-html="vm.clientGraph.errorMessage | to_trusted"></p>
+                </div>
+            </div>
+            <div class="panel panel-danger" ng-show="vm.clientHtml.errorMessage.length > 0">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Error</h3>
+                </div>
+                <div class="panel-body">
+                    <p ng-bind-html="vm.clientHtml.errorMessage | to_trusted"></p>
+                </div>
+            </div>
             <div ng-show="vm.selectedTab === vm.TAB.STYLE" id="styleTab">
                 <textarea class="codemirror"
                           ui-codemirror
