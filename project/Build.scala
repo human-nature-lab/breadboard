@@ -18,6 +18,8 @@ object ApplicationBuild extends Build {
       "com.tinkerpop.gremlin" % "gremlin-groovy" % "2.5.0",
       "commons-io" % "commons-io" % "2.3",
       "org.apache.commons" % "commons-lang3" % "3.1",
+      "org.apache.commons" % "commons-csv" % "1.5",
+      "net.lingala.zip4j" % "zip4j" % "1.3.2",
       "commons-codec" % "commons-codec" % "1.7",
       "org.imgscalr" % "imgscalr-lib" % "4.2",
       "net.sf.jung" % "jung2" % "2.0.1",

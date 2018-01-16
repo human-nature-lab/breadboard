@@ -38,6 +38,9 @@ public class Language extends Model {
   }
 
   @JsonIgnore
+  public static Language findByIso3(String iso3) { return find.where().eq("code", iso3).findUnique(); }
+
+  @JsonIgnore
   public static Language fromIso3(String iso3) {
     Locale locale = new Locale(iso3);
     Language language = new Language();

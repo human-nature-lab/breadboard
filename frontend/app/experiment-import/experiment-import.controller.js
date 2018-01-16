@@ -10,11 +10,12 @@ export default function ExperimentImportCtrl($scope, Upload){
 
   $scope.importExperiment = function(){
     if(!$scope.import.file) return;
+    let name = $scope.import.name.length ? $scope.import.name : $scope.import.file.name;
+    name = name.replace(".zip", "");
     Upload.upload({
-      url: $scope.import.path,
+      url: $scope.import.path + `/${name}`,
       data: {
-        file: $scope.import.file,
-        name: $scope.import.name.length ? $scope.import.name : $scope.import.file.name
+        file: $scope.import.file
       }
     }).then(function(resp){
       if(resp.data === 'Error uploading'){

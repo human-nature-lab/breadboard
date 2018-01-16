@@ -49,7 +49,7 @@ DELETE      /content/:contentId                                                 
 
 # Create New Experiment
 PUT         /experiment                                                          controllers.ExperimentController.createExperiment()
-POST        /experiment/import                                                   controllers.ExperimentController.importExperiment()
+POST        /experiment/import/:name                                             controllers.ExperimentController.importExperiment(name: String)
 GET         /experiment/export/:experimentId                                     controllers.ExperimentController.exportExperiment(experimentId: Long)
 
 # Languages

@@ -228,6 +228,9 @@ public class Experiment extends Model {
 
   @Override
   public void delete() {
+    for (Language l : languages){
+      l.delete();
+    }
     for (Step s : steps) {
       s.delete();
     }
