@@ -328,7 +328,8 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.openImportDialog = function(){
 
     $('#importExperimentDialog').dialog({
-      title: "Import Experiment"
+      title: "Import experiment",
+      width: '600px'
     });
 
   };

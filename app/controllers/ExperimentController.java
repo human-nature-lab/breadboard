@@ -24,6 +24,8 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Date;
+import java.util.Iterator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -93,16 +95,16 @@ public class ExperimentController extends Controller {
     // Validate the size of the file
     Http.MultipartFormData.FilePart filePart = body.getFile("file");
     File zippedFile = filePart.getFile();
-    if(zippedFile.length() > maxUploadSize){
-      return badRequest("Uploaded file is too large");
-    }
 
     // Validate the other data
     if(experimentName == null || zippedFile == null){
       return badRequest("Must include zipFile and experiment name");
     }
 
-    // TODO: Save all the files to disk
+    if(zippedFile.length() > maxUploadSize){
+      return badRequest("Uploaded file is too large");
+    }
+
     String uid = session().get("uid");
     User user = User.findByUID(uid);
     Experiment experiment = newExperiment(user, false);
@@ -110,22 +112,58 @@ public class ExperimentController extends Controller {
     experiment.save();
 
     String outputFolder = "experiments/" + experiment.name + "_" + experiment.id;
-//    deflateFile(outputFolder, zippedFile);
+
     try {
       ZipFile zipFile = new ZipFile(zippedFile);
       zipFile.extractAll(outputFolder);
+      // If the Content and Steps directories are contained within a parent sub-directory,
+      // move all content into the new parent directory
+      Logger.debug("FilenameUtils.directoryContains(outputFolder, 'Steps': " + FilenameUtils.directoryContains(outputFolder, "Steps"));
+
+      File stepsPath = new File(outputFolder, "Steps");
+      File contentPath = new File(outputFolder, "Content");
+      if ( (! FilenameUtils.directoryContains(outputFolder, stepsPath.getCanonicalPath())) &&
+           (! FilenameUtils.directoryContains(outputFolder, contentPath.getCanonicalPath()))) {
+          File outputFolderFile = new File(outputFolder);
+          File[] outputFolderFiles = outputFolderFile.listFiles();
+          if (outputFolderFiles == null || outputFolderFiles.length != 1) {
+            return badRequest("No Steps or Content folders found 1");
+          }
+          File subDirectory = outputFolderFiles[0];
+
+          stepsPath = new File(subDirectory, "Steps");
+          contentPath = new File(subDirectory, "Content");
+
+          if ( (FilenameUtils.directoryContains(subDirectory.getCanonicalPath(), stepsPath.getCanonicalPath())) ||
+               (FilenameUtils.directoryContains(subDirectory.getCanonicalPath(), contentPath.getCanonicalPath())) ) {
+            // The subDirectory contains Steps and/or Content,
+            // let's copy the contents of the subdirectory to the parent directory
+            String tempDirectoryName = "temp_" + new Date().getTime();
+            File tempDirectory = new File(tempDirectoryName);
+            // Rename the subDirectory in case there is a directory name collision
+            FileUtils.moveDirectory(subDirectory, tempDirectory);
+            // Copy all files from subDirectory to outputFolder
+            FileUtils.copyDirectory(tempDirectory, outputFolderFile);
+            // Clean up
+            FileUtils.deleteDirectory(tempDirectory);
+          } else {
+            return badRequest("No Steps or Content folders found 2");
+          }
+      }
+
     } catch (ZipException e){
       e.printStackTrace();
     }
 
-
-    // TODO: Check the version and then point to the specific import function
     try{
       String version = readFile(outputFolder + File.separator + ".version", StandardCharsets.UTF_8);
-      if(version == "v2.2" || version == "v2"){
+      if(version.startsWith("v2.3")){
+        import23To23(experiment, user, outputFolder);
+      } else if (version.startsWith("v2.2")) {
         import22To23(experiment, user, outputFolder);
       } else {
-        import23To23(experiment, user, outputFolder);
+        // Default to v2.2 import for now
+        import22To23(experiment, user, outputFolder);
       }
     } catch(IOException e){
       Logger.debug("No .version file present");
@@ -484,9 +522,9 @@ public class ExperimentController extends Controller {
       experiment.steps.add(onJoin);
       experiment.steps.add(onLeave);
       experiment.steps.add(init);
-      experiment.clientHtml = Experiment.defaultClientHTML();
-      experiment.clientGraph = Experiment.defaultClientGraph();
     }
+    experiment.clientHtml = Experiment.defaultClientHTML();
+    experiment.clientGraph = Experiment.defaultClientGraph();
     // Add the user's default language
     experiment.languages.add(user.defaultLanguage);
     return experiment;

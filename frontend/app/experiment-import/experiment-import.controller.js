@@ -31,29 +31,34 @@ export default function ExperimentImportCtrl($scope, Upload, $timeout){
         file: $scope.import.file
       }
     }).then(function(resp){
-      if(resp.data === 'Error uploading'){
-        alert('Unable to import the experiment. Please select a new experiment zip file');
+      if (resp.status < 400) { //Success
+        $scope.import.file = null;
+        $scope.import.importedName = $scope.import.name;
+        $scope.import.name = '';
+        $scope.import.success = true;
+        if ($scope.import.selectExperiment) {
+          $scope.selectExperiment()(resp.data.id);
+        }
+        $timeout(function() {
+          $scope.import.importedName = '';
+          $scope.import.success = false;
+          $('#importExperimentDialog').dialog('close');
+        }, 1500);
+      } else {
+        errorOnUpload(resp);
       }
-      $scope.import.file = null;
-      $scope.import.importedName = $scope.import.name;
-      $scope.import.name = '';
-      $scope.import.success = true;
-      if ($scope.import.selectExperiment) {
-        $scope.selectExperiment()(resp.data.id);
-      }
-      $timeout(function() {
-        $scope.import.importedName = '';
-        $scope.import.success = false;
-        $('#importExperimentDialog').dialog('close');
-      }, 1500);
     }, function(err){
-      console.error(err);
-      $scope.import.error = (err.data) ? err.data : err;
-      $scope.import.file = null;
-      $scope.import.name = '';
+      errorOnUpload(err)
     }, function(evt){
       console.log('import upload progress', evt);
     });
   };
+
+  function errorOnUpload(err) {
+    console.error(err);
+    $scope.import.error = (err.data) ? err.data : err;
+    $scope.import.file = null;
+    $scope.import.name = '';
+  }
 
 }
