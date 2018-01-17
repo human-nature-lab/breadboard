@@ -7,7 +7,9 @@ angular.module('breadboard.experiment-import')
   .directive("experimentImport", function(){
     return {
       restrict: 'E',
-      scope: {},
+      scope: {
+        selectExperiment:'&'
+      },
       replace: true,
       templateUrl: experimentImportTemplate,
       controller: ExperimentImportController

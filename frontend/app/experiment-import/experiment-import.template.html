@@ -1,27 +1,59 @@
 <div id="importExperimentDialog" style="display: none;">
-    <div class="new-dialog">
-        <div class="form-group">
-            <button ngf-select
-                    class="btn btn-default drop-zone"
-                    ngf-pattern="'.zip'"
-                    ng-model="import.file">
-                Select an experiment to import
-            </button>
-            <span class="import-file">
+    <div class="panel panel-success" ng-show="import.success">
+        <div class="panel-heading">
+            <h3 class="panel-title">Success</h3>
+        </div>
+        <div class="panel-body">
+            Experiment {{vm.import.importedName}} imported.
+        </div>
+    </div>
+    <div class="panel panel-danger" ng-show="import.error.length > 0">
+        <div class="panel-heading">
+            <h3 class="panel-title">Error</h3>
+        </div>
+        <div class="panel-body">
+            <p ng-bind-html="import.error | to_trusted"></p>
+        </div>
+    </div>
+    <div class="new-dialog" ng-show="!import.success">
+        <form name="importExperimentForm">
+            <div class="form-group">
+                <p class="form-control-static">
+                    You can import exported experiments compressed using the zip format.
+                </p>
+                <button ngf-select
+                        class="btn btn-default drop-zone"
+                        ngf-pattern="'.zip'"
+                        ng-model="import.file"
+                        required>
+                    Select an experiment to import
+                </button>
+                <p class="form-control-static import-file">
                     {{import.file.name}}
-                </span>
-        </div>
-        <div class="form-group">
-            <label for="experiment-name">
-                Experiment Name
-            </label>
-            <input type="text"
-                   id="experiment-name"
-                   ng-model="import.name" placeholder="leave blank to use the name of the file"/>
-        </div>
-        <div class="form-group">
-            <button class="btn btn-default"
-                    ng-click="importExperiment()">Import</button>
-        </div>
+                </p>
+            </div>
+            <div class="form-group">
+                <label for="experiment-name">
+                    Experiment name
+                </label>
+                <input type="text"
+                       id="experiment-name"
+                       ng-model="import.name" required>
+            </div>
+            <div class="form-group">
+                <label for="select-experiment">
+                    Select experiment on import
+                </label>
+                <input type="checkbox"
+                       id="select-experiment"
+                       ng-model="import.selectExperiment">
+            </div>
+            <div class="form-group">
+                <button class="btn btn-default"
+                        type="submit"
+                        ng-disabled="importExperimentForm.$invalid"
+                        ng-click="importExperiment()">Import</button>
+            </div>
+        </form>
     </div>
 </div>
