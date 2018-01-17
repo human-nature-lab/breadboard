@@ -30,3 +30,4 @@ dev.sh
 node_modules
 client-graph.js
 client-html.html
+public/bundles

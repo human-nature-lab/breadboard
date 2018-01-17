@@ -53,7 +53,7 @@ public class ScriptBoard extends UntypedActor {
 
   public static boolean checkPassword(String _password) {
     // If no password is set, always return true
-    if (engine.get("password") == null)
+    if (engine == null || engine.get("password") == null)
       return true;
     Object password = engine.get("password");
     return _password.equals(password.toString());

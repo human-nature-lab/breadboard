@@ -6,7 +6,6 @@ import models.*;
 
 import net.lingala.zip4j.core.ZipFile;
 import net.lingala.zip4j.exception.ZipException;
-import net.lingala.zip4j.model.UnzipParameters;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FileUtils;
@@ -26,7 +25,6 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Date;
-import java.util.Iterator;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -275,11 +273,10 @@ public class ExperimentController extends Controller {
   private static Boolean import22To23(Experiment experiment, User user,  String directory) throws IOException{
     try {
       String style = FileUtils.readFileToString(new File(directory, "style.css"));
-      experiment.style = style;
+      Logger.debug("style: " + style);
+      experiment.setStyle(style);
     } catch(IOException e){
       Logger.error("Unable to read style.css", e);
-      // TODO: Apply default styles here
-      experiment.style = "";
     }
     Logger.debug("Skipping client.html. Using default instead. Please merge any customizations by hand");
     Logger.debug("Skipping client-graph.js. Using default instead. Please merge any customizations by hand.");
@@ -348,7 +345,7 @@ public class ExperimentController extends Controller {
   private static Boolean import23To23(Experiment experiment, User user, String directory) throws IOException{
 
     String style = FileUtils.readFileToString(new File(directory, "style.css"));
-    experiment.style = style;
+    experiment.setStyle(style);
     String clientGraph = FileUtils.readFileToString(new File(directory, "client-graph.js"));
     experiment.clientGraph = clientGraph;
     String clientHtml = FileUtils.readFileToString(new File(directory, "client-html.html"));
