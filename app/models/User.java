@@ -122,7 +122,7 @@ public class User extends Model {
 
     user.put("email", this.email);
 
-    user.put("defaultLanguage", this.defaultLanguage.toJson());
+    user.put("defaultLanguage", (this.defaultLanguage == null) ? null : this.defaultLanguage.toJson());
 
     //user.put("experiments", Json.toJson(experimentNames));
     ArrayNode experiments = user.putArray("experiments");

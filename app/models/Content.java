@@ -25,6 +25,9 @@ public class Content extends Model {
   @OneToMany(mappedBy="content", cascade = CascadeType.ALL)
   public List<Translation> translations = new ArrayList<>();
 
+  // Removed in v2.3.0 kept for migration purposes
+  public String html;
+
   @JsonIgnore
   public static Model.Finder<Long, Content> find = new Model.Finder(Long.class, Content.class);
 

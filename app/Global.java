@@ -1,6 +1,7 @@
 import com.avaje.ebean.Ebean;
-import models.Experiment;
-import models.User;
+import controllers.LanguageController;
+import exceptions.BreadboardException;
+import models.*;
 import play.Application;
 import play.GlobalSettings;
 import play.Logger;
@@ -19,6 +20,7 @@ import java.sql.Statement;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 public class Global extends GlobalSettings {
 
@@ -26,11 +28,46 @@ public class Global extends GlobalSettings {
 
   @Override
   public void onStart(Application app) {
+
+    if (BreadboardVersion.findAll().isEmpty()) {
+      // Import database from earlier version of breadboard
+      BreadboardVersion breadboardVersion = new BreadboardVersion();
+      breadboardVersion.version = "v2.3.0";
+      breadboardVersion.save();
+
+      LanguageController.seedLanguages();
+
+      Language english = Language.findByIso3("eng");
+      if (english == null) {
+        Logger.debug("Unable to find english in languages.");
+        english = Language.findAll().get(0);
+      }
+
+      for (User user : User.findAll()) {
+        user.defaultLanguage = english;
+        user.save();
+      }
+
+      for (Experiment experiment : Experiment.findAll()) {
+        experiment.languages.add(english);
+        experiment.uid = UUID.randomUUID().toString();
+        experiment.save();
+      }
+
+      for (Content content : Content.findAll()) {
+        Translation translation = new Translation();
+        translation.language = english;
+        translation.setHtml(content.html);
+        content.translations.add(translation);
+        content.save();
+      }
+    }
+
     //InitialData.insert(app);
     boolean isWin = System.getProperty("os.name").toUpperCase().indexOf("WIN") >= 0;
     String cwd = System.getProperty("user.dir");
     String mode = play.Play.application().configuration().getString("application.mode");
-    if(mode.toUpperCase() == "DEV") {
+    if(mode.toUpperCase().equals("DEV")) {
       // Try to start the assets server
       try {
         ProcessBuilder pb = new ProcessBuilder("node", cwd + "/frontend/webpack/webpack.server.js");

@@ -19,7 +19,8 @@ function AMTAdminSrv($http, $q, $timeout) {
       setSandbox: setSandbox,
       createDummyHIT: createDummyHIT,
       updateAssignmentCompleted: updateAssignmentCompleted,
-      createHIT: createHIT
+      createHIT: createHIT,
+      getAMTAssignments: getAMTAssignments
     },
     sandbox = true;
 
@@ -66,7 +67,6 @@ function AMTAdminSrv($http, $q, $timeout) {
       'nextToken': nextToken,
       'maxResults': maxResults
     });
-    console.log('listAssignmentsForHIT', url);
     return $http.get(url)
       .then(function (response) {
           if (response.status < 400) {
@@ -85,7 +85,6 @@ function AMTAdminSrv($http, $q, $timeout) {
       'nextToken': nextToken,
       'maxResults': maxResults
     });
-    console.log('listBonusPaymentsForHIT', url);
     return $http.get(url)
       .then(function (response) {
           if (response.status < 400) {
@@ -99,17 +98,6 @@ function AMTAdminSrv($http, $q, $timeout) {
   }
 
   function approveAssignment(assignmentId) {
-    /* Test Code
-    var deferred = $q.defer();
-    $timeout(function() {
-      if (Math.random() < .5) {
-        deferred.resolve();
-      } else {
-        deferred.reject("AMT returned an error.");
-      }
-    }, Math.random() * 10000);
-    return deferred.promise;
-    */
     return $http.get('/amtadmin/approveAssignment/' + assignmentId + ((sandbox) ? '?sandbox=true' : ''))
       .then(function (response) {
           if (response.status < 400) {
@@ -209,6 +197,19 @@ function AMTAdminSrv($http, $q, $timeout) {
     };
 
     return $http.post('/amtadmin/createHIT' + ((sandbox) ? '?sandbox=true' : ''), payload)
+      .then(function (response) {
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
+        },
+        function (response) {
+          return $q.reject(response);
+        });
+  }
+
+  function getAMTAssignments(experimentId) {
+    return $http.get('/experiment/' + experimentId + '/amtassignments' + ((sandbox) ? '?sandbox=true' : ''))
       .then(function (response) {
           if (response.status < 400) {
             return $q.when(response);

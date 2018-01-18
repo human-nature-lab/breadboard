@@ -13,7 +13,7 @@ public class Secured extends Security.Authenticator {
     String uid = ctx.session().get("uid");
     User user = User.findByUID(uid);
     if(user != null) {
-      return User.findByUID(uid).email;
+      return user.email;
     } else {
       return null;
     }

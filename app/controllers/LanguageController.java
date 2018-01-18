@@ -15,7 +15,7 @@ import java.util.*;
 
 public class LanguageController extends Controller {
 
-  private static List<Language> seedLanguages() {
+  public static List<Language> seedLanguages() {
     Locale[] locales = Locale.getAvailableLocales();
     Set<String> addedLanguages = new HashSet<>();
     List<Language> returnLanguages = new ArrayList<>();

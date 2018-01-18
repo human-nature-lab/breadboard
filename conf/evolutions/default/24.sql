@@ -30,8 +30,6 @@ create sequence experiments_languages_seq;
 
 create sequence translations_seq;
 
-alter table content drop column html;
-
 # --- !Downs
 
 drop table if exists languages;
@@ -45,5 +43,3 @@ drop sequence if exists languages_seq;
 drop sequence if exists experiments_languages_seq;
 
 drop sequence if exists translations_seq;
-
-alter table content add column html text;

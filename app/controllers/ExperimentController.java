@@ -2,6 +2,8 @@ package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.*;
 
 import net.lingala.zip4j.core.ZipFile;
@@ -12,6 +14,7 @@ import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import org.imgscalr.Scalr;
 import play.Logger;
+import play.libs.Json;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
@@ -126,7 +129,7 @@ public class ExperimentController extends Controller {
           File outputFolderFile = new File(outputFolder);
           File[] outputFolderFiles = outputFolderFile.listFiles();
           if (outputFolderFiles == null || outputFolderFiles.length != 1) {
-            return badRequest("No Steps or Content folders found 1");
+            return badRequest("No Steps or Content folders found");
           }
           File subDirectory = outputFolderFiles[0];
 
@@ -146,7 +149,7 @@ public class ExperimentController extends Controller {
             // Clean up
             FileUtils.deleteDirectory(tempDirectory);
           } else {
-            return badRequest("No Steps or Content folders found 2");
+            return badRequest("No Steps or Content folders found");
           }
       }
 
@@ -155,17 +158,26 @@ public class ExperimentController extends Controller {
     }
 
     try{
-      String version = readFile(outputFolder + File.separator + ".version", StandardCharsets.UTF_8);
-      if(version.startsWith("v2.3")){
+      String dotBreadboard = readFile(outputFolder + File.separator + ".breadboard", StandardCharsets.UTF_8);
+      ObjectMapper mapper = new ObjectMapper();
+      JsonNode dotBreadboardJson = mapper.readTree(dotBreadboard);
+      String eVersion = dotBreadboardJson.findPath("experimentVersion").textValue();
+      String eUid = dotBreadboardJson.findPath("experimentUid").textValue();
+      String eName = dotBreadboardJson.findPath("experimentName").textValue();
+      // TODO: offer the option to import the Experiment UID and/or Name from the .breadboard file
+
+      Logger.debug("Read .breadboard file: experimentVersion = " + eVersion + " experimentUid = " + eUid + " experimentName = " + eName);
+
+      if(eVersion.startsWith("v2.3")){
         import23To23(experiment, user, outputFolder);
-      } else if (version.startsWith("v2.2")) {
+      } else if (eVersion.startsWith("v2.2")) {
         import22To23(experiment, user, outputFolder);
       } else {
         // Default to v2.2 import for now
         import22To23(experiment, user, outputFolder);
       }
     } catch(IOException e){
-      Logger.debug("No .version file present");
+      Logger.debug("No .breadboard file present");
       import22To23(experiment, user, outputFolder);
     }
 
@@ -187,9 +199,14 @@ public class ExperimentController extends Controller {
       ZipEntry e;
 
       // TODO: Write the version based on the build version
-      e = new ZipEntry(".version");
+      ObjectNode dotBreadboard = Json.newObject();
+      dotBreadboard.put("version", "v2.3.0");
+      dotBreadboard.put("experimentName", experiment.name);
+      dotBreadboard.put("experimentUid", experiment.uid);
+
+      e = new ZipEntry(".breadboard");
       zos.putNextEntry(e);
-      zos.write("v2.3".getBytes());
+      zos.write(dotBreadboard.toString().getBytes());
       zos.closeEntry();
 
       // Client style/html/graph

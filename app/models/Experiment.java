@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 @Entity
 @EntityConcurrencyMode(ConcurrencyMode.NONE)
@@ -32,6 +33,8 @@ public class Experiment extends Model {
   @Constraints.Required
   @Formats.NonEmpty
   public String name;
+
+  public String uid;
 
   @OneToMany(cascade = CascadeType.ALL)
   public List<Step> steps = new ArrayList<Step>();
@@ -109,6 +112,11 @@ public class Experiment extends Model {
   }
 
   public Experiment() {
+    this.uid = UUID.randomUUID().toString();
+  }
+
+  public Experiment(String uid) {
+    this.uid = uid;
   }
 
   /**
@@ -117,6 +125,7 @@ public class Experiment extends Model {
    * @param experiment the experiment to be copied from
    */
   public Experiment(Experiment experiment) {
+    this.uid = UUID.randomUUID().toString();
     this.style = experiment.style;
     this.clientHtml = experiment.clientHtml;
     this.clientGraph = experiment.clientGraph;
@@ -350,6 +359,7 @@ public class Experiment extends Model {
 
     experiment.put("id", id);
     experiment.put("name", name);
+    experiment.put("uid", uid);
 
     ArrayNode jsonSteps = experiment.putArray("steps");
     for (Step s : steps) {

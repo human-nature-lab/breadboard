@@ -1,7 +1,7 @@
 <div>
     <div class="container-fluid" ng-class="{'bg-info': !sandbox, 'bg-warning': sandbox}">
         <div class="pull-right">
-            <p class="text-right">
+            <p class="text-right margin-top">
                 Account Balance: {{ (accountBalance == null) ? "Loading" : accountBalance | currency:"$" }}
             </p>
             <h3>
@@ -23,6 +23,9 @@
             </li>
             <li role="presentation" ng-class="{'active': (selectedTab === 'payment') }">
                 <a ng-click="selectedTab = 'payment'">Create Payment HITs</a>
+            </li>
+            <li role="presentation" ng-class="{'active': (selectedTab === 'workers') }">
+                <a ng-click="selectedTab = 'workers'">Manage Workers</a>
             </li>
         </ul>
         <div ng-show="selectedTab === 'create'">
@@ -234,7 +237,7 @@
             </tr>
             </thead>
             <tbody>
-            <tr ng-repeat-start="hit in hits" ng-click="selectHIT(hit)" ng-class="{'info' : (selectedHIT == hit)}">
+            <tr ng-repeat-start="hit in hits" ng-click="selectHIT(hit)" ng-class="{'info' : (selectedHIT == hit), 'success' : (experiment && experiment.uid && experiment.uid === hit.experimentUid)}">
                 <td>{{ hit.title }}</td>
                 <td>{{ hit.creationTime | date: "yyyy-MM-dd" }}</td>
                 <td>{{ hit.reward | currency:"$" }}</td>
@@ -628,5 +631,25 @@
                 </div>
             </div>
         </div>
+
+
+        <div ng-show="selectedTab === 'workers'">
+            <div>&nbsp;</div>
+            <div ng-show="manageWorkers.experimentId == undefined">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        No experiment selected
+                    </div>
+                    <div class="panel-body">
+                        <p>Select an experiment to manage the AMT workers who have previously participated in the experiment.</p>
+                    </div>
+                </div>
+            </div>
+            <div ng-show="manageWorkers.experimentId !== undefined">
+
+            </div>
+        </div>
+
+
     </div>
 </div>

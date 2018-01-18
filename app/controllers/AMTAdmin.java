@@ -15,12 +15,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.*;
 import org.apache.commons.io.IOUtils;
 import play.Play;
-import play.data.Form;
 import play.libs.*;
 import play.mvc.Controller;
 import play.mvc.Result;
 import play.mvc.Security;
-import views.html.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -116,8 +114,8 @@ public class AMTAdmin extends Controller {
         boolean update = true;
         if (amtAssignment == null) {
           amtAssignment = new AMTAssignment();
-          // Default to completed, require unchecking completed box to permit repeat play
-          amtAssignment.assignmentCompleted = true;
+          // Default to incomplete, require checking completed box to prevent repeat play
+          amtAssignment.assignmentCompleted = false;
           update = false;
         }
         amtAssignment.amtHit = hit;
@@ -346,6 +344,11 @@ public class AMTAdmin extends Controller {
       builder.setEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration((sandbox ? SANDBOX_ENDPOINT : PRODUCTION_ENDPOINT), SIGNING_REGION));
       AmazonMTurk mTurk = builder.build();
 
+      Experiment experiment = Experiment.findById(Long.parseLong(experimentId));
+      String experimentName = experiment.name;
+      if (experimentName.length() > 150) experimentName = experimentName.substring(0, 150) + "...";
+      String annotation = "{\"experimentUid\":\"" + experiment.uid + "\",\"experimentName\":\"" + experimentName + "\"}";
+
       // Create HIT
       CreateHITRequest createHITRequest = new CreateHITRequest()
           .withQuestion(question)
@@ -355,7 +358,8 @@ public class AMTAdmin extends Controller {
           .withLifetimeInSeconds(hitLifetime)
           .withAssignmentDurationInSeconds(assignmentDuration)
           .withKeywords(keywords)
-          .withReward(reward);
+          .withReward(reward)
+          .withRequesterAnnotation(annotation);
 
       CreateHITResult createHITResult = mTurk.createHIT(createHITRequest);
       HIT hit = createHITResult.getHIT();

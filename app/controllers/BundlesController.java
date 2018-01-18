@@ -14,7 +14,7 @@ public class BundlesController {
 
     public static Promise<Result> asset(String filePath){
         String mode = play.Play.application().configuration().getString("application.mode");
-        if(mode.toUpperCase() == "DEV") {
+        if(mode.toUpperCase().equals("DEV")) {
             return WS.url("http://localhost:8765/bundles/" + filePath).get().map(new Function<WS.Response, Result>() {
                 public Result apply(WS.Response res) {
                     String contentType = res.getHeader("Content-Type") == null ? res.getHeader("Content-Type") : "application/octet-stream";

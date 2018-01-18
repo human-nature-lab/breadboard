@@ -3,7 +3,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.tokens = [null];
   $scope.curToken = 0;
   $scope.hits = [];
-  $scope.selectedTab = 'manage';
+  $scope.selectedTab = 'workers';
   $scope.selectedHIT = null;
   $scope.showCreateHIT = false;
   $scope.creatingHIT = false;
@@ -33,6 +33,11 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
     'autoLaunch' : true,
     'status' : 0, // 0: Show form, 1: Submitting, 2: Successful, 3: Error
     'error' : ''
+  };
+
+  $scope.manageWorkers = {
+    'experimentId' : undefined,
+    'amtAssignments' : []
   };
 
   $scope.$watch('experimentInstance', function(experimentInstance, oldExperimentInstance) {
@@ -71,7 +76,19 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.createHIT = createHIT;
   getAccountBalance();
   listHITs();
+  $scope.$watch('experiment', function(experiment) {
+    if (experiment && experiment.hasOwnProperty('id') && experiment.id !== $scope.manageWorkers.experimentId) {
+      $scope.manageWorkers.experimentId = experiment.id;
+      getAMTAssignments();
+    }
+  });
 
+  function getAMTAssignments() {
+    AMTAdminSrv.getAMTAssignments($scope.experiment.id).then(function(response) {
+      console.log('getAMTAssignments', response);
+      $scope.manageWorkers.amtAssignments = response.data.assignments;
+    });
+  }
 
   function toggleSandbox() {
     AMTAdminSrv.setSandbox(!AMTAdminSrv.isSandbox());
@@ -99,7 +116,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
 
   function listHITs() {
     AMTAdminSrv.listHITs($scope.tokens[$scope.curToken]).then(function(response) {
-      //console.log('listHITs response', response);
+      console.log('listHITs response', response);
       if ($scope.curToken === $scope.tokens.length - 1 && response.data.hits.length > 0) {
         if (response.data.nextToken !== null) {
           $scope.tokens.push(response.data.nextToken);
@@ -111,6 +128,16 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
         $scope.tokens.pop();
       } else {
         $scope.hits = response.data.hits;
+        angular.forEach($scope.hits, function(hit) {
+          if (hit.hasOwnProperty('requesterAnnotation') && hit.requesterAnnotation) {
+            try {
+              let requesterAnnotation = JSON.parse(hit.requesterAnnotation);
+              hit.experimentUid = requesterAnnotation.experimentUid;
+            } catch(err) {
+              //Invalid JSON
+            }
+          }
+        });
       }
       //console.log('$scope.hits', $scope.hits);
     });

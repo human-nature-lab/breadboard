@@ -568,16 +568,17 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.amtAdminDialogOptions = {
     title: 'AMT',
-    autoOpen: false,
+    autoOpen: true,
     width: windowWidth,
     height: windowHeight - 9, // Not sure why the AMT dialog is 9 pixels higher than the others...
     position: [margin, topDivHeight],
     buttons: {}
   };
 
+  /* START These three dialogs auto-open */
   $scope.outputDialogOptions = {
     title: 'Output',
-    autoOpen: true,
+    autoOpen: false,
     width: ((windowWidth * .5) - margin),
     height: ((windowHeight * .25) - margin),
     position: [margin, (topDivHeight + margin + (.75 * windowHeight))],
@@ -586,7 +587,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.scriptDialogOptions = {
     title: 'Script',
-    autoOpen: true,
+    autoOpen: false,
     width: ((windowWidth * .5) - margin),
     height: ((windowHeight * .75) - margin),
     position: [margin, topDivHeight],
@@ -599,6 +600,16 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       }
     ]
   };
+
+  $scope.graphDialogOptions = {
+    title: 'Graph',
+    autoOpen: false,
+    width: (windowWidth * .5),
+    height: windowHeight,
+    position: [((windowWidth * .5) + margin), topDivHeight],
+    buttons: {}
+  };
+  /* END These three dialogs auto-open */
 
   $scope.contentDialogOptions = {
     title: 'Content',
@@ -641,14 +652,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     },
   };
 
-  $scope.graphDialogOptions = {
-    title: 'Graph',
-    autoOpen: true,
-    width: (windowWidth * .5),
-    height: windowHeight,
-    position: [((windowWidth * .5) + margin), topDivHeight],
-    buttons: {}
-  };
 
   $scope.imagesDialogOptions = {
     title: 'Images',
