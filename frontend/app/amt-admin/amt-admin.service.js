@@ -20,7 +20,8 @@ function AMTAdminSrv($http, $q, $timeout) {
       createDummyHIT: createDummyHIT,
       updateAssignmentCompleted: updateAssignmentCompleted,
       createHIT: createHIT,
-      getAMTAssignments: getAMTAssignments
+      getAMTAssignments: getAMTAssignments,
+      getAMTWorkers: getAMTWorkers
     },
     sandbox = true;
 
@@ -32,6 +33,19 @@ function AMTAdminSrv($http, $q, $timeout) {
 
   function setSandbox(s) {
     sandbox = s;
+  }
+
+  function getAMTWorkers(experimentId) {
+    return $http.get('/amtadmin/getAMTWorkers/' + experimentId + ((sandbox) ? '?sandbox=true' : ''))
+      .then(function (response) {
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
+        },
+        function (response) {
+          return $q.reject(response);
+        });
   }
 
   function getAccountBalance() {

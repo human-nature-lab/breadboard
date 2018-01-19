@@ -1,4 +1,5 @@
 breadboard.sh
+breadboard-without-keys.sh
 public/bundles
 .idea
 .idea_modules

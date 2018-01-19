@@ -3,7 +3,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.tokens = [null];
   $scope.curToken = 0;
   $scope.hits = [];
-  $scope.selectedTab = 'workers';
+  $scope.selectedTab = 'manage';
   $scope.selectedHIT = null;
   $scope.showCreateHIT = false;
   $scope.creatingHIT = false;
@@ -11,6 +11,11 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.showCreateDummyHITs = false;
   $scope.sandbox = AMTAdminSrv.isSandbox();
   $scope.maxAssignments = 20;
+
+  $scope.manageHits = {
+    'status' : 1, // 0: no requester key found, 1: loading, 2: loaded, 3: Error,
+    'error' : ''
+  };
 
   $scope.dummyHIT = {
     'workerIDs' : '',
@@ -36,8 +41,12 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   };
 
   $scope.manageWorkers = {
+    'status' : 0, // 0: no experiment selected, 1: loading, 2: loaded, 3: Error
+    'error' : '',
     'experimentId' : undefined,
-    'amtAssignments' : []
+    'amtWorkers' : [],
+    'sandbox': undefined,
+    'selectedWorker': undefined
   };
 
   $scope.$watch('experimentInstance', function(experimentInstance, oldExperimentInstance) {
@@ -67,6 +76,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.approveAll = approveAll;
   $scope.rejectAll = rejectAll;
   $scope.grantAll = grantAll;
+  $scope.completeAll = completeAll;
   $scope.showAll = showAll;
   $scope.toggleSandbox = toggleSandbox;
   $scope.submitDummyHITs = submitDummyHITs;
@@ -76,10 +86,18 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.createHIT = createHIT;
   getAccountBalance();
   listHITs();
+
   $scope.$watch('experiment', function(experiment) {
     if (experiment && experiment.hasOwnProperty('id') && experiment.id !== $scope.manageWorkers.experimentId) {
       $scope.manageWorkers.experimentId = experiment.id;
-      getAMTAssignments();
+      getAMTWorkers();
+    }
+  });
+
+  $scope.$watch('sandbox', function(sandbox) {
+    if ($scope.manageWorkers.experimentId !== undefined && sandbox !== $scope.manageWorkers.sandbox) {
+      $scope.manageWorkers.sandbox = sandbox;
+      getAMTWorkers();
     }
   });
 
@@ -114,9 +132,30 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
     });
   }
 
+  function getAMTWorkers() {
+    $scope.manageWorkers.status = 1;
+    AMTAdminSrv.getAMTWorkers($scope.experiment.id).then(function(response) {
+      $scope.manageWorkers.status = 2;
+      $scope.manageWorkers.amtWorkers = response.data.amtWorkers;
+      angular.forEach($scope.manageWorkers.amtWorkers, function(worker) {
+        angular.forEach(worker.assignments, function(assignment) {
+          assignment.completedSuccess = false;
+          assignment.completedPending = false;
+          assignment.completedError = null;
+        });
+      });
+    },
+    function(err) {
+      $scope.manageWorkers.status = 3;
+      $scope.manageWorkers.error = (err.data) ? err.data : err;
+    });
+  }
+
   function listHITs() {
+    $scope.manageHits.status = 1;
     AMTAdminSrv.listHITs($scope.tokens[$scope.curToken]).then(function(response) {
-      console.log('listHITs response', response);
+      console.log('response', response);
+      $scope.manageHits.status = 2;
       if ($scope.curToken === $scope.tokens.length - 1 && response.data.hits.length > 0) {
         if (response.data.nextToken !== null) {
           $scope.tokens.push(response.data.nextToken);
@@ -140,6 +179,16 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
         });
       }
       //console.log('$scope.hits', $scope.hits);
+    },
+    function(err) {
+      console.log('err', err);
+      // TODO: Probably shouldn't be relying upon a string comparison here
+      if (err.data === 'No AWS keys provided' || err === 'No AWS keys provided') {
+        $scope.manageHits.status = 0;
+      } else {
+        $scope.manageHits.status = 3;
+        $scope.manageHits.error = (err.data) ? err.data : err;
+      }
     });
   }
 
@@ -187,6 +236,13 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
       }
     });
     updateAssignmentCounts(hit);
+  }
+
+  function completeAll(hit) {
+    angular.forEach(hit.assignments, function(assignment) {
+      assignment.assignmentCompleted = true;
+      updateAssignmentCompleted(assignment);
+    });
   }
 
   function grantBonuses(hit) {

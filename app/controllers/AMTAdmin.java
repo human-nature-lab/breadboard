@@ -5,6 +5,7 @@ import com.amazonaws.AmazonServiceException;
 import com.amazonaws.auth.AWSStaticCredentialsProvider;
 import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.client.builder.AwsClientBuilder;
+import com.amazonaws.services.dynamodbv2.xspec.S;
 import com.amazonaws.services.mturk.AmazonMTurk;
 import com.amazonaws.services.mturk.AmazonMTurkClientBuilder;
 import com.amazonaws.services.mturk.model.*;
@@ -33,6 +34,9 @@ public class AMTAdmin extends Controller {
 
   @Security.Authenticated(Secured.class)
   public static Result getAccountBalance(Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
       AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
@@ -54,7 +58,55 @@ public class AMTAdmin extends Controller {
   }
 
   @Security.Authenticated(Secured.class)
+  public static Result getAMTWorkers(Long experimentId, Boolean sandbox) {
+    HashMap<String, List<AMTAssignment>> amtWorkerAssignments = new HashMap<>();
+    ObjectNode returnJson = Json.newObject();
+
+    Experiment experiment = Experiment.findById(experimentId);
+
+    if (experiment == null) {
+      return badRequest("Invalid experiment ID");
+    }
+
+    for (ExperimentInstance instance : experiment.instances) {
+      for (AMTHit hit : instance.amtHits) {
+        if (hit.sandbox == sandbox) {
+          for (AMTAssignment assignment : hit.amtAssignments) {
+            if (! amtWorkerAssignments.containsKey(assignment.workerId)) {
+              amtWorkerAssignments.put(assignment.workerId, new ArrayList<AMTAssignment>());
+            }
+            amtWorkerAssignments.get(assignment.workerId).add(assignment);
+          }
+        }
+      }
+    }
+
+    ArrayNode amtWorkersJson = returnJson.putArray("amtWorkers");
+
+    for (Map.Entry<String, List<AMTAssignment>> entry : amtWorkerAssignments.entrySet()) {
+      ObjectNode worker = Json.newObject();
+      int nCompleted = 0;
+      worker.put("id", entry.getKey());
+      worker.put("nAssignments", entry.getValue().size());
+      ArrayNode workerAssignments = worker.putArray("assignments");
+      for (AMTAssignment assignment : entry.getValue()) {
+        if (assignment != null) {
+          if (assignment.assignmentCompleted != null && assignment.assignmentCompleted) nCompleted++;
+          workerAssignments.add(assignment.toJson());
+        }
+      }
+      worker.put("assignmentsCompleted", nCompleted);
+      amtWorkersJson.add(worker);
+    }
+
+    return ok(returnJson);
+  }
+
+  @Security.Authenticated(Secured.class)
   public static Result listHITs(String nextToken, Integer maxResults, Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
       AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
@@ -95,6 +147,9 @@ public class AMTAdmin extends Controller {
 
   @Security.Authenticated(Secured.class)
   public static Result listAssignmentsForHIT(String hitId, Integer maxResults, String nextToken, Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
       AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
@@ -155,6 +210,9 @@ public class AMTAdmin extends Controller {
 
   @Security.Authenticated(Secured.class)
   public static Result listBonusPaymentsForHIT(String hitId, Integer maxResults, String nextToken, Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
       AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
@@ -187,6 +245,9 @@ public class AMTAdmin extends Controller {
 
   @Security.Authenticated(Secured.class)
   public static Result approveAssignment(String assignmentId, Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
     try {
       AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
       AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
@@ -204,6 +265,9 @@ public class AMTAdmin extends Controller {
 
   @Security.Authenticated(Secured.class)
   public static Result rejectAssignment(String assignmentId, Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
     String requesterFeedback = null;
     JsonNode json = request().body().asJson();
     if(json == null) {
@@ -234,6 +298,9 @@ public class AMTAdmin extends Controller {
 
   @Security.Authenticated(Secured.class)
   public static Result sendBonus(String assignmentId, Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
     String bonusAmount = null;
     String reason = null;
     String workerId = null;
@@ -266,6 +333,9 @@ public class AMTAdmin extends Controller {
 
   @Security.Authenticated(Secured.class)
   public static Result updateAssignmentCompleted(String assignmentId) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
     String completedText;
 
     JsonNode json = request().body().asJson();
@@ -296,6 +366,9 @@ public class AMTAdmin extends Controller {
 
   @Security.Authenticated(Secured.class)
   public static Result createHIT(Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
     String title;
     String description;
     String reward;
@@ -389,6 +462,9 @@ public class AMTAdmin extends Controller {
 
   @Security.Authenticated(Secured.class)
   public static Result createDummyHit(Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
     String workerId = null;
     String reason = null;
     String reward = null;
@@ -420,13 +496,12 @@ public class AMTAdmin extends Controller {
       CreateQualificationTypeRequest createQualificationTypeRequest = new CreateQualificationTypeRequest()
           .withName(qualificationName)
           .withDescription(reason)
-          .withAutoGranted(true)
-          .withAutoGrantedValue(1)
           .withQualificationTypeStatus(QualificationTypeStatus.Active);
       CreateQualificationTypeResult createQualificationTypeResult = mTurk.createQualificationType(createQualificationTypeRequest);
 
       AssociateQualificationWithWorkerRequest associateQualificationWithWorkerRequest = new AssociateQualificationWithWorkerRequest()
           .withQualificationTypeId(createQualificationTypeResult.getQualificationType().getQualificationTypeId())
+          .withIntegerValue(1)
           .withWorkerId(workerId);
 
       mTurk.associateQualificationWithWorker(associateQualificationWithWorkerRequest);

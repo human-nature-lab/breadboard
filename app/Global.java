@@ -1,7 +1,10 @@
 import com.avaje.ebean.Ebean;
+import com.avaje.ebean.SqlRow;
 import controllers.LanguageController;
 import exceptions.BreadboardException;
 import models.*;
+import org.apache.commons.io.FileUtils;
+import play.Play;
 import play.Application;
 import play.GlobalSettings;
 import play.Logger;
@@ -29,12 +32,89 @@ public class Global extends GlobalSettings {
   @Override
   public void onStart(Application app) {
 
-    if (BreadboardVersion.findAll().isEmpty()) {
-      // Import database from earlier version of breadboard
-      BreadboardVersion breadboardVersion = new BreadboardVersion();
-      breadboardVersion.version = "v2.3.0";
-      breadboardVersion.save();
+    String sql = "select count(*) as table_count from information_schema.tables where table_name = 'breadboard_version';";
+    SqlRow versionTableCount = Ebean.createSqlQuery(sql).findUnique();
+    String count = versionTableCount.getString("table_count");
 
+    if (count.equals("0")) {
+
+      // Create the breadboard_version table
+      sql = "create table breadboard_version ( version varchar(255) ); ";
+      Ebean.createSqlUpdate(sql).execute();
+      // Update the version
+      sql = "insert into breadboard_version values ('v2.3.0'); ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      // Create the languages table
+      sql = "create table if not exists languages ( id bigint not null, code varchar(8), name varchar(255), " +
+          "constraint pk_language primary key (id) ); ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      // Create the experiment_languages table
+      sql = "create table if not exists experiments_languages " +
+          "( experiments_id bigint not null, languages_id bigint not null, " +
+          "foreign key (experiments_id) references experiments(id), " +
+          "foreign key (languages_id) references languages(id) );";
+      Ebean.createSqlUpdate(sql).execute();
+
+      // Create the translations table
+      sql = "create table if not exists translations ( id bigint not null, html text, content_id bigint not null, languages_id bigint not null," +
+          "foreign key (content_id) references content(id)," +
+          "foreign key (languages_id) references languages(id)," +
+          "constraint pk_translations primary key (id) ); ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      // Add the auto increment sequences
+      sql = "create sequence if not exists languages_seq; ";
+      Ebean.createSqlUpdate(sql).execute();
+      sql = "create sequence if not exists experiments_languages_seq; ";
+      Ebean.createSqlUpdate(sql).execute();
+      sql = "create sequence if not exists translations_seq; ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      // Add the uid column to experiments
+      sql = "alter table experiments add column if not exists uid varchar(255); ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      // Add default language column to users
+      sql = "alter table users add column if not exists default_language_id bigint; ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      sql = "alter table users add constraint fk_default_language_languages " +
+          "foreign key (default_language_id) references languages (id) " +
+          "on delete restrict on update restrict; ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      sql = "create index if not exists ix_users_default_language on users (default_language_id); ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      // Changes to support new AMT dialog
+      sql = "alter table amt_assignments add column if not exists bonus_amount varchar(255); ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      sql = "alter table amt_hits alter column experiment_instance_id set null; ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      // Additional schema changes for older versions of breadboard pre v2.1
+      sql = "alter table experiments add column if not exists client_graph text; ";
+      Ebean.createSqlUpdate(sql).execute();
+      sql = "alter table experiments add column if not exists client_html text; ";
+      Ebean.createSqlUpdate(sql).execute();
+
+      // Messages table
+      sql = "create table messages (\n" +
+          "  id                        bigint not null,\n" +
+          "  message_uid               varchar(36),\n" +
+          "  message_title             varchar(255),\n" +
+          "  message_html              text,\n" +
+          "  priority                  tinyint,\n" +
+          "  auto_open                 bit,\n" +
+          "  created_at                timestamp,\n" +
+          "  dismissed_at              timestamp\n" +
+          ");\n";
+      Ebean.createSqlUpdate(sql).execute();
+
+      // Migrate data
       LanguageController.seedLanguages();
 
       Language english = Language.findByIso3("eng");
@@ -52,6 +132,15 @@ public class Global extends GlobalSettings {
         experiment.languages.add(english);
         experiment.uid = UUID.randomUUID().toString();
         experiment.save();
+
+
+        try {
+          File experimentDirectory = new File(Play.application().path().toString() + "/experiments/" + experiment.name + "_v2.2");
+          FileUtils.writeStringToFile(new File(experimentDirectory, "client.html"), experiment.clientHtml);
+          FileUtils.writeStringToFile(new File(experimentDirectory, "client-graph.js"), experiment.clientGraph);
+        } catch (IOException ioe) {
+          Logger.error("Error backing up v2.2 client.html and client.js to experiments directory");
+        }
       }
 
       for (Content content : Content.findAll()) {
@@ -61,6 +150,10 @@ public class Global extends GlobalSettings {
         content.translations.add(translation);
         content.save();
       }
+
+      // TODO: Add message telling user what was done
+      // TODO: Load v2.3 version notes as message from file system
+
     }
 
     //InitialData.insert(app);

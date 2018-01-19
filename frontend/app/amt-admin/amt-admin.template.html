@@ -198,375 +198,426 @@
         </div>
     </div>
     <div class="container-fluid">
-        <table class="table table-hover table-condensed" ng-show="selectedTab === 'manage'">
-            <thead>
-            <tr>
-                <th colspan="7" class="text-center">
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination pagination-sm">
-                            <li ng-class="{'disabled' : (curToken < 1)}">
-                                <a ng-click="pageHITs(curToken - 1)" aria-label="Previous">
-                                    <span aria-hidden="true">&laquo;</span>
-                                </a>
-                            </li>
-                            <li ng-class="{'active' : ($index === curToken)}" ng-repeat="t in tokens"><a
-                                    ng-click="pageHITs($index)">{{ ($index + 1) }}</a></li>
-                            <li ng-class="{'disabled' : (tokens.length === 0 || curToken === (tokens.length - 1))}">
-                                <a ng-click="pageHITs(curToken + 1)" aria-label="Next">
-                                    <span aria-hidden="true">&raquo;</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                </th>
-            </tr>
-            <tr>
-                <th></th>
-                <th></th>
-                <th></th>
-                <th colspan="4" class="active">Assignments</th>
-            </tr>
-            <tr>
-                <th>Title</th>
-                <th>Creation Date</th>
-                <th>Reward</th>
-                <th class="active">Requested</th>
-                <th class="active">Pending Review</th>
-                <th class="active">Reviewed</th>
-                <th class="active">Remaining</th>
-            </tr>
-            </thead>
-            <tbody>
-            <tr ng-repeat-start="hit in hits" ng-click="selectHIT(hit)" ng-class="{'info' : (selectedHIT == hit), 'success' : (experiment && experiment.uid && experiment.uid === hit.experimentUid)}">
-                <td>{{ hit.title }}</td>
-                <td>{{ hit.creationTime | date: "yyyy-MM-dd" }}</td>
-                <td>{{ hit.reward | currency:"$" }}</td>
-                <td class="active">{{ hit.maxAssignments }}</td>
-                <td class="active">{{ hit.maxAssignments - hit.numberOfAssignmentsAvailable -
-                    hit.numberOfAssignmentsCompleted }}
-                </td>
-                <td class="active">{{ hit.numberOfAssignmentsCompleted }}</td>
-                <td class="active">{{ hit.numberOfAssignmentsAvailable }}</td>
-            </tr>
-            <tr ng-show="selectedHIT == hit" ng-repeat-end>
-                <td colspan="7">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="panel panel-default">
-                                <div class="panel-heading">
-                                    Description
-                                </div>
-                                <div class="panel-body">
-                                    {{ hit.description }}
-                                </div>
-                            </div>
-                        </div>
-                        <div class="col-md-12">
-                            <div class="panel panel-default">
-                                <div class="panel-heading">
-                                    Assignments
-                                </div>
-                                <div class="panel-body">
-                                    <span ng-show="hit.assignments === null">Loading...</span>
-                                    <span ng-show="hit.assignments !== null && hit.assignments.length === 0">
-                                        <p>No assignments found...</p>
-                                        <button class="btn btn-default" ng-click="refreshAssignmentsForHIT(hit)">Refresh</button>
-                                    </span>
-                                    <table class="table table-condensed" ng-show="hit.assignments !== null && hit.assignments.length > 0">
-                                        <thead>
-                                        <tr>
-                                            <th>Assignment ID</th>
-                                            <th>Worker ID</th>
-                                            <th><span class="glyphicon glyphicon-check" ng-click="approveAll(hit)"
-                                                      title="Select all"></span> Approve
-                                            </th>
-                                            <th><span class="glyphicon glyphicon-check" ng-click="rejectAll(hit)"
-                                                      title="Select all"></span> Reject
-                                            </th>
-                                            <th><span class="glyphicon glyphicon-check" ng-click="grantAll(hit)"
-                                                      title="Select all"></span> Bonus
-                                            </th>
-                                            <th>Completed</th>
-                                            <th><span class="glyphicon glyphicon-collapse-down" ng-click="showAll(hit)"
-                                                      title="Show all"></span> Answers
-                                            </th>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td></td>
-                                            <td>
-                                                <button class="btn btn-default" ng-if="hit.approveCount > 0"
-                                                        ng-click="approveAssignments(hit)">Approve {{ hit.approveCount
-                                                    }}
-                                                </button>
-                                            </td>
-                                            <td>
-                                                <div class="form-inline" ng-if="hit.rejectCount > 0">
-                                                    <div class="form-group">
-                                                        <label class="control-label"
-                                                               for="rejectReasonInput2">Reason</label>
-                                                        <input type="text" ng-model="globals.rejectionReason"
-                                                               class="form-control" id="rejectReasonInput2"
-                                                               placeholder="Reason">
-                                                    </div>
-                                                    <button class="btn btn-default"
-                                                            ng-disabled="globals.rejectionReason.length == 0"
-                                                            ng-click="rejectAssignments(hit)">Reject {{ hit.rejectCount
-                                                        }}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="form-inline" ng-if="hit.bonusTotal > 0">
-                                                    <div class="form-group">
-                                                        <label class="control-label"
-                                                               for="bonusReasonInput2">Reason</label>
-                                                        <input type="text" ng-model="globals.bonusReason"
-                                                               class="form-control" id="bonusReasonInput2"
-                                                               placeholder="Reason">
-                                                    </div>
-                                                    <button ng-disabled="globals.bonusReason.length == 0"
-                                                            class="btn btn-default" ng-click="grantBonuses(hit)">Grant
-                                                        {{ hit.bonusTotal | currency:"$" }}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td></td>
-                                            <td>
-                                                <button class="btn btn-default" ng-click="getAssignmentsCSV(hit)">
-                                                    Download CSV
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        </thead>
-                                        <tbody>
-                                        <tr ng-repeat="assignment in hit.assignments">
-                                            <td>{{ assignment.assignmentId }}</td>
-                                            <td>{{ assignment.workerId }}</td>
-
-                                            <td>
-                              <span ng-if="assignment.approvalTime !== null">
-                                <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
-                                {{ assignment.approvalTime | date: "yyyy-MM-dd" }}
-                              </span>
-
-                                                <span ng-if="assignment.approvalPending !== null">
-                                Approval pending...
-                              </span>
-
-                                                <span ng-if="assignment.approvalError !== null">
-                                Error: {{ assignment.approvalError  }}
-                              </span>
-
-                                                <span ng-if="assignment.approvalPending === null && assignment.rejectionPending === null && assignment.approvalTime === null && assignment.rejectionTime === null && assignment.approvalError === null && assignment.rejectionError === null">
-                                <input type="checkbox" ng-model="assignment.approve" ng-disabled="assignment.reject"
-                                       ng-change="updateAssignmentCounts(hit)"> Approve
-                              </span>
-                                            </td>
-
-                                            <td>
-                              <span ng-if="assignment.rejectionTime !== null">
-                                <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
-                                {{ assignment.rejectionTime | date: "yyyy-MM-dd" }}
-                              </span>
-
-                                                <span ng-if="assignment.rejectionPending !== null">
-                                Rejection pending...
-                              </span>
-
-                                                <span ng-if="assignment.rejectionError !== null">
-                                Error: {{ assignment.rejectionError  }}
-                              </span>
-
-                                                <span ng-if="assignment.rejectionPending === null && assignment.approvalPending === null && assignment.rejectionTime === null && assignment.approvalTime === null && assignment.rejectionError === null && assignment.approvalError === null">
-                                <input type="checkbox" ng-model="assignment.reject" ng-disabled="assignment.approve"
-                                       ng-change="updateAssignmentCounts(hit)"> Reject
-                              </span>
-                                            </td>
-
-                                            <td>
-                                                <span ng-if="assignment.bonusGranted === null">Loading...</span>
-
-                                                <span ng-if="assignment.bonusGranted !== null && assignment.bonusGranted > 0">
-                                <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
-                                {{ assignment.bonusGranted | currency:"$" }}
-                              </span>
-
-                                                <span ng-if="assignment.bonusPending !== null">
-                                Bonus pending...
-                              </span>
-
-                                                <span ng-if="assignment.bonusError !== null">
-                                Error: {{ assignment.bonusError  }}
-                              </span>
-
-                                                <span ng-if="assignment.bonusPending === null && assignment.bonusGranted === 0 && assignment.bonusError === null && assignment.bonus !== null && assignment.bonus > 0">
-                                <input type="checkbox" ng-model="assignment.grantBonus"
-                                       ng-change="updateAssignmentCounts(hit)">
-                                {{ assignment.bonus | currency:"$" }}
-                              </span>
-
-                                                <span ng-if="assignment.bonusPending === null && assignment.bonusGranted === 0 && assignment.bonusError === null && assignment.bonus !== null && (isNaN(assignment.bonus) || assignment.bonus <= 0)">
-                                {{ assignment.bonus | currency:"$" }}
-                              </span>
-                                            </td>
-
-                                            <td>
-                                                <input type="checkbox"
-                                                       ng-class="{'disabled' : (assignment.completedPending)}"
-                                                       ng-model="assignment.assignmentCompleted"
-                                                       ng-change="updateAssignmentCompleted(assignment)">
-
-                                                <span ng-if="assignment.completedError !== null">
-                                Error: {{ assignment.completedError  }}
-                              </span>
-
-                                                <span ng-if="assignment.completedSuccess">
-                                <span class="text-success glyphicon glyphicon-ok" aria-hidden="true"></span>
-                              </span>
-                                            </td>
-
-                                            <td>
-                                                <button ng-if="!assignment.showAnswers"
-                                                        ng-click="assignment.showAnswers = !assignment.showAnswers"
-                                                        type="button" class="btn btn-sm">
-                                <span
-                                        class="glyphicon"
-                                        ng-class="{ 'glyphicon-collapse-down' : assignment.showAnswers, 'glyphicon-expand' : !assignment.showAnswers}"
-                                        aria-hidden="true">
-                                </span>
-                                                </button>
-                                                <table class="table table-condensed" ng-if="assignment.showAnswers">
-                                                    <thead>
-                                                    <tr>
-                                                        <th colspan="2">
-                                                            <button ng-click="assignment.showAnswers = !assignment.showAnswers"
-                                                                    type="button" class="btn btn-sm">
-                                        <span
-                                                class="glyphicon"
-                                                ng-class="{ 'glyphicon-collapse-down' : assignment.showAnswers, 'glyphicon-expand' : !assignment.showAnswers}"
-                                                aria-hidden="true">
-                                        </span>
-                                                            </button>
-                                                        </th>
-                                                    </tr>
-                                                    </thead>
-                                                    <tbody ng-show="assignment.showAnswers">
-                                                    <tr ng-repeat="(key, value) in assignment.answer">
-                                                        <td class="col-md-3">{{ key }}:</td>
-                                                        <td class="col-md-9">{{ value }}</td>
-                                                    </tr>
-                                                    </tbody>
-                                                </table>
-                                            </td>
-                                        </tr>
-                                        </tbody>
-                                        <tfoot>
-                                        <tr ng-if="hit.assignmentsNextToken !== null">
-                                            <th colspan="6" class="text-center">
-                                                <nav aria-label="More Assignments">
-                                                    <ul class="pager">
-                                                        <li><a ng-click="moreAssignmentsForHIT(hit)">More</a></li>
-                                                    </ul>
-                                                </nav>
-                                            </th>
-                                        </tr>
-                                        <tr>
-                                            <td></td>
-                                            <td></td>
-                                            <td>
-                                                <button class="btn btn-default" ng-if="hit.approveCount > 0"
-                                                        ng-click="approveAssignments(hit)">Approve {{ hit.approveCount
-                                                    }}
-                                                </button>
-                                            </td>
-                                            <td>
-                                                <div class="form-inline" ng-if="hit.rejectCount > 0">
-                                                    <div class="form-group">
-                                                        <label class="control-label"
-                                                               for="rejectReasonInput">Reason</label>
-                                                        <input type="text" ng-model="globals.rejectionReason"
-                                                               class="form-control" id="rejectReasonInput"
-                                                               placeholder="Reason">
-                                                    </div>
-                                                    <button class="btn btn-default"
-                                                            ng-disabled="globals.rejectionReason.length == 0"
-                                                            ng-click="rejectAssignments(hit)">Reject {{ hit.rejectCount
-                                                        }}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                <div class="form-inline" ng-if="hit.bonusTotal > 0">
-                                                    <div class="form-group">
-                                                        <label class="control-label"
-                                                               for="bonusReasonInput">Reason</label>
-                                                        <input type="text" ng-model="globals.bonusReason"
-                                                               class="form-control" id="bonusReasonInput"
-                                                               placeholder="Reason">
-                                                    </div>
-                                                    <button ng-disabled="bonusReason.length == 0"
-                                                            class="btn btn-default" ng-click="grantBonuses(hit)">Grant
-                                                        {{ hit.bonusTotal | currency:"$" }}
-                                                    </button>
-                                                </div>
-                                            </td>
-                                            <td></td>
-                                            <td>
-                                                <button class="btn btn-default" ng-click="getAssignmentsCSV(hit)">
-                                                    Download CSV
-                                                </button>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <th>Assignment ID</th>
-                                            <th>Worker ID</th>
-                                            <th><span class="glyphicon glyphicon-check" ng-click="approveAll(hit)"
-                                                      title="Select all"></span> Approve
-                                            </th>
-                                            <th><span class="glyphicon glyphicon-check" ng-click="rejectAll(hit)"
-                                                      title="Select all"></span> Reject
-                                            </th>
-                                            <th><span class="glyphicon glyphicon-check" ng-click="grantAll(hit)"
-                                                      title="Select all"></span> Bonus
-                                            </th>
-                                            <th>Completed</th>
-                                            <th><span class="glyphicon glyphicon-collapse-down" ng-click="showAll(hit)"
-                                                      title="Show all"></span> Answers
-                                            </th>
-                                        </tr>
-                                        </tfoot>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
+        <div ng-show="selectedTab === 'manage'">
+            <div>&nbsp;</div>
+            <div ng-show="manageHits.status === 0">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        No AWS keys found
                     </div>
-                </td>
-            </tr>
-            </tbody>
-            <tfoot>
-            <tr>
-                <th colspan="7" class="text-center">
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination pagination-sm">
-                            <li ng-class="{'disabled' : (curToken < 1)}">
-                                <a ng-click="pageHITs(curToken - 1)" aria-label="Previous">
-                                    <span aria-hidden="true">&laquo;</span>
-                                </a>
-                            </li>
-                            <li ng-class="{'active' : ($index === curToken)}" ng-repeat="t in tokens"><a
-                                    ng-click="pageHITs($index)">{{ ($index + 1) }}</a></li>
-                            <li ng-class="{'disabled' : (tokens.length === 0 || curToken === (tokens.length - 1))}">
-                                <a ng-click="pageHITs(curToken + 1)" aria-label="Next">
-                                    <span aria-hidden="true">&raquo;</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </nav>
-                </th>
-            </tr>
-            </tfoot>
-        </table>
+                    <div class="panel-body">
+                        <p>To enable this function you must provide your AWS keys to breadboard. </p>
+                        <p>Add <code>-DAMT_ACCESS_KEY=[ACCESS KEY] -DAMT_SECRET_KEY=[SECRET KEY]</code> to breadboard.sh or breadboard.bat.</p>
+                        <p>See <a href="https://github.com/human-nature-lab/breadboard/wiki/Creating-an-AMT-Requester-Account">the documentation</a> for more information.</p>
+
+                    </div>
+                </div>
+            </div>
+            <div ng-show="manageHits.status === 1">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+            <table class="table table-hover table-condensed" ng-show="manageHits.status === 2">
+                <thead>
+                <tr>
+                    <th colspan="7" class="text-center">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-sm">
+                                <li ng-class="{'disabled' : (curToken < 1)}">
+                                    <a ng-click="pageHITs(curToken - 1)" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                <li ng-class="{'active' : ($index === curToken)}" ng-repeat="t in tokens"><a
+                                        ng-click="pageHITs($index)">{{ ($index + 1) }}</a></li>
+                                <li ng-class="{'disabled' : (tokens.length === 0 || curToken === (tokens.length - 1))}">
+                                    <a ng-click="pageHITs(curToken + 1)" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </th>
+                </tr>
+                <tr>
+                    <th></th>
+                    <th></th>
+                    <th></th>
+                    <th colspan="4" class="active">Assignments</th>
+                </tr>
+                <tr>
+                    <th>Title</th>
+                    <th>Creation Date</th>
+                    <th>Reward</th>
+                    <th class="active">Requested</th>
+                    <th class="active">Pending Review</th>
+                    <th class="active">Reviewed</th>
+                    <th class="active">Remaining</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr ng-repeat-start="hit in hits" ng-click="selectHIT(hit)" ng-class="{'info' : (selectedHIT == hit), 'success' : (experiment && experiment.uid && experiment.uid === hit.experimentUid)}">
+                    <td>{{ hit.title }}</td>
+                    <td>{{ hit.creationTime | date: "yyyy-MM-dd" }}</td>
+                    <td>{{ hit.reward | currency:"$" }}</td>
+                    <td class="active">{{ hit.maxAssignments }}</td>
+                    <td class="active">{{ hit.maxAssignments - hit.numberOfAssignmentsAvailable -
+                        hit.numberOfAssignmentsCompleted }}
+                    </td>
+                    <td class="active">{{ hit.numberOfAssignmentsCompleted }}</td>
+                    <td class="active">{{ hit.numberOfAssignmentsAvailable }}</td>
+                </tr>
+                <tr ng-show="selectedHIT == hit" ng-repeat-end>
+                    <td colspan="7">
+                        <div class="row">
+                            <div class="col-md-12">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        Description
+                                    </div>
+                                    <div class="panel-body">
+                                        {{ hit.description }}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-12">
+                                <div class="panel panel-default">
+                                    <div class="panel-heading">
+                                        Assignments
+                                    </div>
+                                    <div class="panel-body">
+                                        <span ng-show="hit.assignments === null">Loading...</span>
+                                        <span ng-show="hit.assignments !== null && hit.assignments.length === 0">
+                                            <p>No assignments found...</p>
+                                            <button class="btn btn-default" ng-click="refreshAssignmentsForHIT(hit)">Refresh</button>
+                                        </span>
+                                        <table class="table table-condensed" ng-show="hit.assignments !== null && hit.assignments.length > 0">
+                                            <thead>
+                                            <tr>
+                                                <th>Assignment ID</th>
+                                                <th>Worker ID</th>
+                                                <th><span class="glyphicon glyphicon-check" ng-click="approveAll(hit)"
+                                                          tooltip="Check all"
+                                                          tooltip-placement="bottom"
+                                                          tooltip-append-to-body="true"></span> Approve
+                                                </th>
+                                                <th><span class="glyphicon glyphicon-check" ng-click="rejectAll(hit)"
+                                                          tooltip="Check all"
+                                                          tooltip-placement="bottom"
+                                                          tooltip-append-to-body="true"></span> Reject
+                                                </th>
+                                                <th><span class="glyphicon glyphicon-check" ng-click="grantAll(hit)"
+                                                          tooltip="Check all"
+                                                          tooltip-placement="bottom"
+                                                          tooltip-append-to-body="true"></span> Bonus
+                                                </th>
+                                                <th><span class="glyphicon glyphicon-check" ng-click="completeAll(hit)"
+                                                          tooltip="Mark all as having completed {{experiment.name}}"
+                                                          tooltip-placement="bottom"
+                                                          tooltip-append-to-body="true"></span> Completed
+                                                </th>
+                                                <th><span class="glyphicon glyphicon-collapse-down" ng-click="showAll(hit)"
+                                                          tooltip="Show all answers"
+                                                          tooltip-placement="bottom"
+                                                          tooltip-append-to-body="true"
+                                                          title="Show all"></span> Answers
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <td></td>
+                                                <td></td>
+                                                <td>
+                                                    <button class="btn btn-default" ng-if="hit.approveCount > 0"
+                                                            ng-click="approveAssignments(hit)">Approve {{ hit.approveCount
+                                                        }}
+                                                    </button>
+                                                </td>
+                                                <td>
+                                                    <div class="form-inline" ng-if="hit.rejectCount > 0">
+                                                        <div class="form-group">
+                                                            <label class="control-label"
+                                                                   for="rejectReasonInput2">Reason</label>
+                                                            <input type="text" ng-model="globals.rejectionReason"
+                                                                   class="form-control" id="rejectReasonInput2"
+                                                                   placeholder="Reason">
+                                                        </div>
+                                                        <button class="btn btn-default"
+                                                                ng-disabled="globals.rejectionReason.length == 0"
+                                                                ng-click="rejectAssignments(hit)">Reject {{ hit.rejectCount
+                                                            }}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="form-inline" ng-if="hit.bonusTotal > 0">
+                                                        <div class="form-group">
+                                                            <label class="control-label"
+                                                                   for="bonusReasonInput2">Reason</label>
+                                                            <input type="text" ng-model="globals.bonusReason"
+                                                                   class="form-control" id="bonusReasonInput2"
+                                                                   placeholder="Reason">
+                                                        </div>
+                                                        <button ng-disabled="globals.bonusReason.length == 0"
+                                                                class="btn btn-default" ng-click="grantBonuses(hit)">Grant
+                                                            {{ hit.bonusTotal | currency:"$" }}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td></td>
+                                                <td>
+                                                    <button class="btn btn-default" ng-click="getAssignmentsCSV(hit)">
+                                                        Download CSV
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            </thead>
+                                            <tbody>
+                                            <tr ng-repeat="assignment in hit.assignments">
+                                                <td>{{ assignment.assignmentId }}</td>
+                                                <td>{{ assignment.workerId }}</td>
+
+                                                <td>
+                                  <span ng-if="assignment.approvalTime !== null">
+                                    <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                    {{ assignment.approvalTime | date: "yyyy-MM-dd" }}
+                                  </span>
+
+                                                    <span ng-if="assignment.approvalPending !== null">
+                                    Approval pending...
+                                  </span>
+
+                                                    <span ng-if="assignment.approvalError !== null">
+                                    Error: {{ assignment.approvalError  }}
+                                  </span>
+
+                                                    <span ng-if="assignment.approvalPending === null && assignment.rejectionPending === null && assignment.approvalTime === null && assignment.rejectionTime === null && assignment.approvalError === null && assignment.rejectionError === null">
+                                    <input type="checkbox" ng-model="assignment.approve" ng-disabled="assignment.reject"
+                                           ng-change="updateAssignmentCounts(hit)"> Approve
+                                  </span>
+                                                </td>
+
+                                                <td>
+                                  <span ng-if="assignment.rejectionTime !== null">
+                                    <span class="glyphicon glyphicon-remove" aria-hidden="true"></span>
+                                    {{ assignment.rejectionTime | date: "yyyy-MM-dd" }}
+                                  </span>
+
+                                                    <span ng-if="assignment.rejectionPending !== null">
+                                    Rejection pending...
+                                  </span>
+
+                                                    <span ng-if="assignment.rejectionError !== null">
+                                    Error: {{ assignment.rejectionError  }}
+                                  </span>
+
+                                                    <span ng-if="assignment.rejectionPending === null && assignment.approvalPending === null && assignment.rejectionTime === null && assignment.approvalTime === null && assignment.rejectionError === null && assignment.approvalError === null">
+                                    <input type="checkbox" ng-model="assignment.reject" ng-disabled="assignment.approve"
+                                           ng-change="updateAssignmentCounts(hit)"> Reject
+                                  </span>
+                                                </td>
+
+                                                <td>
+                                                    <span ng-if="assignment.bonusGranted === null">Loading...</span>
+
+                                                    <span ng-if="assignment.bonusGranted !== null && assignment.bonusGranted > 0">
+                                    <span class="glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                    {{ assignment.bonusGranted | currency:"$" }}
+                                  </span>
+
+                                                    <span ng-if="assignment.bonusPending !== null">
+                                    Bonus pending...
+                                  </span>
+
+                                                    <span ng-if="assignment.bonusError !== null">
+                                    Error: {{ assignment.bonusError  }}
+                                  </span>
+
+                                                    <span ng-if="assignment.bonusPending === null && assignment.bonusGranted === 0 && assignment.bonusError === null && assignment.bonus !== null && assignment.bonus > 0">
+                                    <input type="checkbox" ng-model="assignment.grantBonus"
+                                           ng-change="updateAssignmentCounts(hit)">
+                                    {{ assignment.bonus | currency:"$" }}
+                                  </span>
+
+                                                    <span ng-if="assignment.bonusPending === null && assignment.bonusGranted === 0 && assignment.bonusError === null && assignment.bonus !== null && (isNaN(assignment.bonus) || assignment.bonus <= 0)">
+                                    {{ assignment.bonus | currency:"$" }}
+                                  </span>
+                                                </td>
+
+                                                <td>
+                                                    <input type="checkbox"
+                                                           ng-class="{'disabled' : (assignment.completedPending)}"
+                                                           ng-model="assignment.assignmentCompleted"
+                                                           ng-change="updateAssignmentCompleted(assignment)">
+
+                                                    <span ng-if="assignment.completedError !== null">
+                                    Error: {{ assignment.completedError  }}
+                                  </span>
+
+                                                    <span ng-if="assignment.completedSuccess">
+                                    <span class="text-success glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                  </span>
+                                                </td>
+
+                                                <td>
+                                                    <button ng-if="!assignment.showAnswers"
+                                                            ng-click="assignment.showAnswers = !assignment.showAnswers"
+                                                            type="button" class="btn btn-sm">
+                                    <span
+                                            class="glyphicon"
+                                            ng-class="{ 'glyphicon-collapse-down' : assignment.showAnswers, 'glyphicon-expand' : !assignment.showAnswers}"
+                                            aria-hidden="true">
+                                    </span>
+                                                    </button>
+                                                    <table class="table table-condensed" ng-if="assignment.showAnswers">
+                                                        <thead>
+                                                        <tr>
+                                                            <th colspan="2">
+                                                                <button ng-click="assignment.showAnswers = !assignment.showAnswers"
+                                                                        type="button" class="btn btn-sm">
+                                            <span
+                                                    class="glyphicon"
+                                                    ng-class="{ 'glyphicon-collapse-down' : assignment.showAnswers, 'glyphicon-expand' : !assignment.showAnswers}"
+                                                    aria-hidden="true">
+                                            </span>
+                                                                </button>
+                                                            </th>
+                                                        </tr>
+                                                        </thead>
+                                                        <tbody ng-show="assignment.showAnswers">
+                                                        <tr ng-repeat="(key, value) in assignment.answer">
+                                                            <td class="col-md-3">{{ key }}:</td>
+                                                            <td class="col-md-9">{{ value }}</td>
+                                                        </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </td>
+                                            </tr>
+                                            </tbody>
+                                            <tfoot>
+                                            <tr ng-if="hit.assignmentsNextToken !== null">
+                                                <th colspan="6" class="text-center">
+                                                    <nav aria-label="More Assignments">
+                                                        <ul class="pager">
+                                                            <li><a ng-click="moreAssignmentsForHIT(hit)">More</a></li>
+                                                        </ul>
+                                                    </nav>
+                                                </th>
+                                            </tr>
+                                            <tr>
+                                                <td></td>
+                                                <td></td>
+                                                <td>
+                                                    <button class="btn btn-default" ng-if="hit.approveCount > 0"
+                                                            ng-click="approveAssignments(hit)">Approve {{ hit.approveCount
+                                                        }}
+                                                    </button>
+                                                </td>
+                                                <td>
+                                                    <div class="form-inline" ng-if="hit.rejectCount > 0">
+                                                        <div class="form-group">
+                                                            <label class="control-label"
+                                                                   for="rejectReasonInput">Reason</label>
+                                                            <input type="text" ng-model="globals.rejectionReason"
+                                                                   class="form-control" id="rejectReasonInput"
+                                                                   placeholder="Reason">
+                                                        </div>
+                                                        <button class="btn btn-default"
+                                                                ng-disabled="globals.rejectionReason.length == 0"
+                                                                ng-click="rejectAssignments(hit)">Reject {{ hit.rejectCount
+                                                            }}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td>
+                                                    <div class="form-inline" ng-if="hit.bonusTotal > 0">
+                                                        <div class="form-group">
+                                                            <label class="control-label"
+                                                                   for="bonusReasonInput">Reason</label>
+                                                            <input type="text" ng-model="globals.bonusReason"
+                                                                   class="form-control" id="bonusReasonInput"
+                                                                   placeholder="Reason">
+                                                        </div>
+                                                        <button ng-disabled="bonusReason.length == 0"
+                                                                class="btn btn-default" ng-click="grantBonuses(hit)">Grant
+                                                            {{ hit.bonusTotal | currency:"$" }}
+                                                        </button>
+                                                    </div>
+                                                </td>
+                                                <td></td>
+                                                <td>
+                                                    <button class="btn btn-default" ng-click="getAssignmentsCSV(hit)">
+                                                        Download CSV
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                            <tr>
+                                                <th>Assignment ID</th>
+                                                <th>Worker ID</th>
+                                                <th><span class="glyphicon glyphicon-check" ng-click="approveAll(hit)"
+                                                          title="Select all"></span> Approve
+                                                </th>
+                                                <th><span class="glyphicon glyphicon-check" ng-click="rejectAll(hit)"
+                                                          title="Select all"></span> Reject
+                                                </th>
+                                                <th><span class="glyphicon glyphicon-check" ng-click="grantAll(hit)"
+                                                          title="Select all"></span> Bonus
+                                                </th>
+                                                <th><span class="glyphicon glyphicon-check" ng-click="completeAll(hit)"
+                                                          tooltip="Mark all as having completed {{experiment.name}}"
+                                                          tooltip-placement="bottom"
+                                                          tooltip-append-to-body="true"></span> Completed
+                                                </th>
+                                                <th><span class="glyphicon glyphicon-collapse-down" ng-click="showAll(hit)"
+                                                          tooltip="Show all answers"
+                                                          tooltip-placement="bottom"
+                                                          tooltip-append-to-body="true"
+                                                          title="Show all"></span> Answers
+                                                </th>
+                                            </tr>
+                                            </tfoot>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+                <tfoot>
+                <tr>
+                    <th colspan="7" class="text-center">
+                        <nav aria-label="Page navigation">
+                            <ul class="pagination pagination-sm">
+                                <li ng-class="{'disabled' : (curToken < 1)}">
+                                    <a ng-click="pageHITs(curToken - 1)" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                                <li ng-class="{'active' : ($index === curToken)}" ng-repeat="t in tokens"><a
+                                        ng-click="pageHITs($index)">{{ ($index + 1) }}</a></li>
+                                <li ng-class="{'disabled' : (tokens.length === 0 || curToken === (tokens.length - 1))}">
+                                    <a ng-click="pageHITs(curToken + 1)" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                            </ul>
+                        </nav>
+                    </th>
+                </tr>
+                </tfoot>
+            </table>
+            <div class="panel panel-danger" ng-show="manageHits.status === 3">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Error</h3>
+                </div>
+                <div class="panel-body">
+                    <p ng-bind-html="manageHits.error | to_trusted"></p>
+                </div>
+            </div>
+        </div>
 
         <div ng-show="selectedTab === 'payment'">
             <div>&nbsp;</div>
@@ -635,7 +686,7 @@
 
         <div ng-show="selectedTab === 'workers'">
             <div>&nbsp;</div>
-            <div ng-show="manageWorkers.experimentId == undefined">
+            <div ng-show="manageWorkers.status === 0">
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         No experiment selected
@@ -645,11 +696,93 @@
                     </div>
                 </div>
             </div>
-            <div ng-show="manageWorkers.experimentId !== undefined">
+            <div ng-show="manageWorkers.status === 1">
+                <div class="panel panel-default">
+                    <div class="panel-body">
+                        <p>Loading...</p>
+                    </div>
+                </div>
+            </div>
+            <div ng-show="manageWorkers.status === 2">
+                <table class="table table-condensed">
+                    <thead>
+                    <tr>
+                        <th>Worker ID</th>
+                        <th>Assignments ({{experiment.name}})</th>
+                        <th>Assignments completed ({{experiment.name}})</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-repeat-start="worker in manageWorkers.amtWorkers"
+                        ng-class="{'info' : (manageWorkers.selectedWorker === worker)}">
+                        <td>
+                            <i class="fa"
+                               ng-class="{'fa-minus-circle' : (manageWorkers.selectedWorker === worker), 'fa-plus-circle': (manageWorkers.selectedWorker !== worker)}"
+                               ng-click="(manageWorkers.selectedWorker === worker) ? manageWorkers.selectedWorker = undefined : manageWorkers.selectedWorker = worker"
+                               aria-hidden="true"></i>
+                            {{ worker.id }}
+                        </td>
+                        <td>{{ worker.nAssignments }}</td>
+                        <td>{{ worker.assignmentsCompleted }}</td>
+                    </tr>
+                    <tr ng-repeat-end ng-show="manageWorkers.selectedWorker === worker">
+                        <td colspan="4">
+                            <div class="col-md-1"></div>
+                            <div class="col-md-11">
+                                <table class="table table-condensed">
+                                    <thead>
+                                    <tr>
+                                        <th class="col-md-3">Assignment ID</th>
+                                        <th class="col-md-2">Status</th>
+                                        <th class="col-md-2">Submit date</th>
+                                        <th class="col-md-3">Reason</th>
+                                        <th class="col-md-2">
+                                            Completed
+                                            <i class="fa fa-question-circle"
+                                               tooltip="Worker completed {{experiment.name}} with this assignment"
+                                               tooltip-placement="bottom"
+                                               tooltip-append-to-body="true"
+                                               aria-hidden="true"></i>
+                                        </th>
+                                    </tr>
+                                    </thead>
+                                    <tbody>
+                                    <tr ng-repeat="assignment in worker.assignments">
+                                        <td>{{ assignment.assignmentId }}</td>
+                                        <td>{{ assignment.assignmentStatus }}</td>
+                                        <td>{{ assignment.submitTime | date: "yyyy-MM-dd" }}</td>
+                                        <td>{{ assignment.reason }}</td>
+                                        <td>
+                                            <input type="checkbox"
+                                                   ng-class="{'disabled' : (assignment.completedPending)}"
+                                                   ng-model="assignment.assignmentCompleted"
+                                                   ng-change="updateAssignmentCompleted(assignment)">
 
+                                            <span ng-if="assignment.completedError !== null">
+                                    Error: {{ assignment.completedError  }}
+                                  </span>
+
+                                            <span ng-if="assignment.completedSuccess">
+                                    <span class="text-success glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                  </span>
+                                        </td>
+                                    </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <div class="panel panel-danger" ng-show="manageWorkers.status === 3">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Error</h3>
+                </div>
+                <div class="panel-body">
+                    <p ng-bind-html="manageWorkers.error | to_trusted"></p>
+                </div>
             </div>
         </div>
-
-
     </div>
 </div>
