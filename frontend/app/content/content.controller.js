@@ -41,25 +41,36 @@ export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderB
   vm.selectedTranslation = undefined;
   vm.selectedLanguage = vm.experimentLanguages[0];
 
-  ContentSrv.getContent(vm.experimentId)
-    .then(
-      function(success){
-        vm.content = orderBy(success.data.content, 'name', false);
+  getContent();
 
-        angular.forEach(vm.content, function(c) {
-          angular.forEach(c.translations, function(t) {
-            t.clientHtml = t.html;
+  $scope.$watch('experimentId', function(newExperimentId, oldExperimentId) {
+    if (newExperimentId !== oldExperimentId) {
+      vm.experimentId = $scope.experimentId;
+      getContent();
+    }
+  });
+
+  function getContent() {
+    ContentSrv.getContent(vm.experimentId)
+      .then(
+        function(success){
+          vm.content = orderBy(success.data.content, 'name', false);
+
+          angular.forEach(vm.content, function(c) {
+            angular.forEach(c.translations, function(t) {
+              t.clientHtml = t.html;
+            });
           });
-        });
 
-        vm.selectedContent = vm.content[0];
-        vm.selectedTranslation = getSelectedTranslation();
-        $scope.$watch('vm.selectedLanguage', getSelectedTranslation);
-        $scope.$watch('vm.selectedContent', getSelectedTranslation);
-      },
-      function(error){
-        vm.error = error.data;
-      });
+          vm.selectedContent = vm.content[0];
+          vm.selectedTranslation = getSelectedTranslation();
+          $scope.$watch('vm.selectedLanguage', getSelectedTranslation);
+          $scope.$watch('vm.selectedContent', getSelectedTranslation);
+        },
+        function(error){
+          vm.error = error.data;
+        });
+  }
 
   function getSelectedTranslation() {
     vm.selectedTranslation = undefined;
