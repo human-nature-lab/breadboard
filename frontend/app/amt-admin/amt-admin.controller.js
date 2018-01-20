@@ -1,9 +1,11 @@
+import _ from 'underscore';
+
 function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.accountBalance = null;
   $scope.tokens = [null];
   $scope.curToken = 0;
   $scope.hits = [];
-  $scope.selectedTab = 'manage';
+  $scope.selectedTab = 'workers';
   $scope.selectedHIT = null;
   $scope.showCreateHIT = false;
   $scope.creatingHIT = false;
@@ -46,7 +48,12 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
     'experimentId' : undefined,
     'amtWorkers' : [],
     'sandbox': undefined,
-    'selectedWorker': undefined
+    'selectedWorker': undefined,
+    'limit': 25,
+    'page': 1,
+    'total': 0,
+    'search': '',
+    'lastSearch': ''
   };
 
   $scope.$watch('experimentInstance', function(experimentInstance, oldExperimentInstance) {
@@ -87,6 +94,27 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   getAccountBalance();
   listHITs();
 
+  let debounceGetAMTWorkers = _.debounce(getAMTWorkers, 750);
+  $scope.$watch('manageWorkers.search', function(search) {
+    if (search !== $scope.manageWorkers.lastSearch) {
+      $scope.manageWorkers.lastSearch = search;
+      // TODO: Latest version of angular has a built-in debounce model update
+      // which is superior
+      debounceGetAMTWorkers();
+    }
+
+  });
+
+  $scope.$watch('manageWorkers.limit', function(newLimit, oldLimit) {
+    // TODO: Change the page to match the current offset
+    $scope.manageWorkers.page = 1;
+    getAMTWorkers();
+  });
+
+  $scope.$watch('manageWorkers.page', function() {
+    getAMTWorkers();
+  });
+
   $scope.$watch('experiment', function(experiment) {
     if (experiment && experiment.hasOwnProperty('id') && experiment.id !== $scope.manageWorkers.experimentId) {
       $scope.manageWorkers.experimentId = experiment.id;
@@ -103,7 +131,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
 
   function getAMTAssignments() {
     AMTAdminSrv.getAMTAssignments($scope.experiment.id).then(function(response) {
-      console.log('getAMTAssignments', response);
+      //console.log('getAMTAssignments', response);
       $scope.manageWorkers.amtAssignments = response.data.assignments;
     });
   }
@@ -134,8 +162,11 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
 
   function getAMTWorkers() {
     $scope.manageWorkers.status = 1;
-    AMTAdminSrv.getAMTWorkers($scope.experiment.id).then(function(response) {
+    if (! $scope.experiment) return;
+    AMTAdminSrv.getAMTWorkers($scope.experiment.id, $scope.manageWorkers.limit, ($scope.manageWorkers.limit * ($scope.manageWorkers.page - 1)), $scope.manageWorkers.search.toUpperCase()).then(function(response) {
+      console.log("getAMTWorkers", response);
       $scope.manageWorkers.status = 2;
+      $scope.manageWorkers.total = response.data.total;
       $scope.manageWorkers.amtWorkers = response.data.amtWorkers;
       angular.forEach($scope.manageWorkers.amtWorkers, function(worker) {
         angular.forEach(worker.assignments, function(assignment) {
@@ -154,7 +185,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   function listHITs() {
     $scope.manageHits.status = 1;
     AMTAdminSrv.listHITs($scope.tokens[$scope.curToken]).then(function(response) {
-      console.log('response', response);
+      //console.log('response', response);
       $scope.manageHits.status = 2;
       if ($scope.curToken === $scope.tokens.length - 1 && response.data.hits.length > 0) {
         if (response.data.nextToken !== null) {
@@ -181,7 +212,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
       //console.log('$scope.hits', $scope.hits);
     },
     function(err) {
-      console.log('err', err);
+      //console.log('err', err);
       // TODO: Probably shouldn't be relying upon a string comparison here
       if (err.data === 'No AWS keys provided' || err === 'No AWS keys provided') {
         $scope.manageHits.status = 0;
@@ -467,16 +498,16 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   }
 
   function createHIT(createHitForm) {
-    console.log('sandbox', $scope.sandbox);
-    console.log('createHitForm.disallowPrevious', createHitForm.disallowPrevious);
-    console.log('createHitForm.tutorialTime', createHitForm.tutorialTime);
-    console.log('createHitForm.lifetime', createHitForm.lifetime);
-    console.log('createHitForm.maxAssignments', createHitForm.maxAssignments);
-    console.log('createHitForm.reward', createHitForm.reward);
-    console.log('createHitForm.description', createHitForm.description);
-    console.log('createHitForm.title', createHitForm.title);
-    console.log('experimentInstance', $scope.experimentInstance);
-    console.log('experiment', $scope.experiment);
+    //console.log('sandbox', $scope.sandbox);
+    //console.log('createHitForm.disallowPrevious', createHitForm.disallowPrevious);
+    //console.log('createHitForm.tutorialTime', createHitForm.tutorialTime);
+    //console.log('createHitForm.lifetime', createHitForm.lifetime);
+    //console.log('createHitForm.maxAssignments', createHitForm.maxAssignments);
+    //console.log('createHitForm.reward', createHitForm.reward);
+    //console.log('createHitForm.description', createHitForm.description);
+    //console.log('createHitForm.title', createHitForm.title);
+    //console.log('experimentInstance', $scope.experimentInstance);
+    //console.log('experiment', $scope.experiment);
     createHitForm.status = 1;
     AMTAdminSrv.createHIT(
       createHitForm.title,
@@ -491,10 +522,10 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
       $scope.experiment.id,
       $scope.experimentInstance.id)
       .then(function () {
-        console.log('createHIT returned OK');
+        //console.log('createHIT returned OK');
         createHitForm.status = 2;
         if (createHitForm.autoLaunch) {
-          console.log('createHitForm.autoLaunch is true');
+          //console.log('createHitForm.autoLaunch is true');
           $scope.onCreateHit()(createHitForm.lifetime, createHitForm.tutorialTime);
         }
       },
@@ -529,7 +560,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
       rows.push(row);
     });
     var csvString = headerRow + '\n' + rows.join('\n');
-    console.log('csvString', csvString);
+    //console.log('csvString', csvString);
     var filename = hit.hitid + '.csv';
     var blob = new Blob([csvString], {type: 'text/csv'});
 

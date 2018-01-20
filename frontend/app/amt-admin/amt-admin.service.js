@@ -35,8 +35,8 @@ function AMTAdminSrv($http, $q, $timeout) {
     sandbox = s;
   }
 
-  function getAMTWorkers(experimentId) {
-    return $http.get('/amtadmin/getAMTWorkers/' + experimentId + ((sandbox) ? '?sandbox=true' : ''))
+  function getAMTWorkers(experimentId, limit, offset, search) {
+    return $http.get('/amtadmin/getAMTWorkers/' + experimentId + '?sandbox=' + sandbox + '&limit=' + limit + '&offset=' + offset + '&search=' + search)
       .then(function (response) {
           if (response.status < 400) {
             return $q.when(response);

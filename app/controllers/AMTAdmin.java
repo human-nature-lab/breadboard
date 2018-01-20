@@ -10,11 +10,13 @@ import com.amazonaws.services.mturk.AmazonMTurk;
 import com.amazonaws.services.mturk.AmazonMTurkClientBuilder;
 import com.amazonaws.services.mturk.model.*;
 import com.amazonaws.services.mturk.model.QualificationRequirement;
+import com.avaje.ebean.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.*;
 import org.apache.commons.io.IOUtils;
+import play.Logger;
 import play.Play;
 import play.libs.*;
 import play.mvc.Controller;
@@ -57,9 +59,29 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  private static class JsonWorker {
+    public String workerId;
+    public List<ObjectNode> assignments = new ArrayList<>();
+    public int nCompleted = 0;
+
+    JsonWorker(String id) {
+      workerId = id;
+    }
+
+    public ObjectNode toJson() {
+      ObjectNode worker = Json.newObject();
+      worker.put("id", workerId);
+      worker.put("nAssignments", assignments.size());
+      worker.put("assignmentsCompleted", nCompleted);
+      ArrayNode jsonAssignments = worker.putArray("assignments");
+      jsonAssignments.addAll(assignments);
+      return worker;
+    }
+  }
+
   @Security.Authenticated(Secured.class)
-  public static Result getAMTWorkers(Long experimentId, Boolean sandbox) {
-    HashMap<String, List<AMTAssignment>> amtWorkerAssignments = new HashMap<>();
+  public static Result getAMTWorkers(Long experimentId, Boolean sandbox, Integer limit, Integer offset, String search) {
+    HashMap<String, JsonWorker> amtWorkerAssignments = new HashMap<>();
     ObjectNode returnJson = Json.newObject();
 
     Experiment experiment = Experiment.findById(experimentId);
@@ -67,23 +89,94 @@ public class AMTAdmin extends Controller {
     if (experiment == null) {
       return badRequest("Invalid experiment ID");
     }
+    // TODO: There is a bug in the interaction between distinct and limit in H2 1.3.172,
+    // Need to upgrade to latest version of H2 to return exactly limit workers
+    // should be fixed in a commit here:
+    // https://github.com/h2database/h2database/pull/578/files
+    //"(select distinct worker_id from amt_assignments " +
 
-    for (ExperimentInstance instance : experiment.instances) {
-      for (AMTHit hit : instance.amtHits) {
-        if (hit.sandbox == sandbox) {
-          for (AMTAssignment assignment : hit.amtAssignments) {
-            if (! amtWorkerAssignments.containsKey(assignment.workerId)) {
-              amtWorkerAssignments.put(assignment.workerId, new ArrayList<AMTAssignment>());
-            }
-            amtWorkerAssignments.get(assignment.workerId).add(assignment);
-          }
-        }
+    String workerCountSql = "select count(distinct worker_id) as worker_count from amt_assignments " +
+        "where worker_id in " +
+        "(select worker_id from amt_assignments " +
+        " where worker_id like CONCAT(:search, '%')" +
+        " and amt_hit_id in " +
+        "(select id from amt_hits where sandbox = :sandbox and experiment_instance_id in " +
+        "(select id from experiment_instances where experiment_id = :experimentId)));";
+
+    SqlRow sqlRow = Ebean.createSqlQuery(workerCountSql)
+        .setParameter("experimentId", experimentId)
+        .setParameter("search", search)
+        .setParameter("sandbox", (sandbox) ? 1 : 0)
+        .findUnique();
+    Long workerCount = sqlRow.getLong("worker_count");
+
+    //" where worker_id like ':search%'" +
+    String sql = "select * from amt_assignments " +
+        "where worker_id in " +
+        "(select worker_id from amt_assignments " +
+        " where worker_id like CONCAT(:search, '%')" +
+        " and amt_hit_id in " +
+        "(select id from amt_hits where sandbox = :sandbox and experiment_instance_id in " +
+        "(select id from experiment_instances where experiment_id = :experimentId)) " +
+        "order by worker_id limit :limit offset :offset) order by worker_id;";
+
+     SqlQuery sqlQuery = Ebean.createSqlQuery(sql)
+        .setParameter("experimentId", experimentId)
+        .setParameter("limit", limit)
+        .setParameter("offset", offset)
+        .setParameter("search", search)
+        .setParameter("sandbox", (sandbox) ? 1 : 0);
+
+     Logger.debug(sqlQuery.toString());
+
+      List<SqlRow> assignments = sqlQuery.findList();
+
+      returnJson.put("total", workerCount);
+      returnJson.put("offset", offset);
+      returnJson.put("limit", limit);
+
+    for (SqlRow row : assignments) {
+      String workerId = row.getString("worker_id");
+
+      if (! amtWorkerAssignments.containsKey(workerId)) {
+        amtWorkerAssignments.put(workerId, new JsonWorker(workerId));
       }
+
+      JsonWorker jsonWorker = amtWorkerAssignments.get(workerId);
+      Boolean assignmentCompleted = row.getBoolean("assignment_completed");
+      if (assignmentCompleted != null && assignmentCompleted) jsonWorker.nCompleted++;
+
+      ObjectNode amtAssignment = Json.newObject();
+
+      amtAssignment.put("id", row.getLong("id"));
+      amtAssignment.put("assignmentId", row.getString("assignment_id"));
+      amtAssignment.put("workerId", workerId);
+      amtAssignment.put("assignmentStatus", row.getString("assignment_status"));
+      amtAssignment.put("autoApprovalTime", row.getString("auto_approval_time"));
+      amtAssignment.put("acceptTime", row.getString("accept_time"));
+      amtAssignment.put("submitTime", row.getString("submit_time"));
+      amtAssignment.put("answer", row.getString("answer"));
+      amtAssignment.put("score", row.getString("score"));
+      amtAssignment.put("reason", row.getString("reason"));
+      amtAssignment.put("completion", row.getString("completion"));
+      amtAssignment.put("assignmentCompleted", assignmentCompleted);
+      amtAssignment.put("bonusGranted", row.getBoolean("bonus_granted"));
+      amtAssignment.put("bonusAmount", row.getString("bonus_amount"));
+      amtAssignment.put("workerBlocked", row.getBoolean("worker_blocked"));
+      amtAssignment.put("qualificationAssigned", row.getBoolean("qualification_assigned"));
+
+      jsonWorker.assignments.add(amtAssignment);
     }
 
     ArrayNode amtWorkersJson = returnJson.putArray("amtWorkers");
 
-    for (Map.Entry<String, List<AMTAssignment>> entry : amtWorkerAssignments.entrySet()) {
+    for (JsonWorker jsonWorker : amtWorkerAssignments.values()) {
+      amtWorkersJson.add(jsonWorker.toJson());
+    }
+    returnJson.put("rows", amtWorkerAssignments.size());
+
+    /*
+    for (Map.Entry<String, List<ObjectNode>> entry : amtWorkerAssignments.entrySet()) {
       ObjectNode worker = Json.newObject();
       int nCompleted = 0;
       worker.put("id", entry.getKey());
@@ -98,6 +191,7 @@ public class AMTAdmin extends Controller {
       worker.put("assignmentsCompleted", nCompleted);
       amtWorkersJson.add(worker);
     }
+    */
 
     return ok(returnJson);
   }

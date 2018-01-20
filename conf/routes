@@ -28,7 +28,7 @@ POST        /amtadmin/rejectAssignment/:assignmentId                            
 POST        /amtadmin/sendBonus/:assignmentId                                    controllers.AMTAdmin.sendBonus(assignmentId: String, sandbox: Boolean ?= false)
 POST        /amtadmin/updateAssignmentCompleted/:assignmentId                    controllers.AMTAdmin.updateAssignmentCompleted(assignmentId: String)
 POST        /amtadmin/createHIT                                                  controllers.AMTAdmin.createHIT(sandbox: Boolean ?= false)
-GET         /amtadmin/getAMTWorkers/:experimentId                                controllers.AMTAdmin.getAMTWorkers(experimentId: Long, sandbox: Boolean ?= false)
+GET         /amtadmin/getAMTWorkers/:experimentId                                controllers.AMTAdmin.getAMTWorkers(experimentId: Long, sandbox: Boolean ?= false, limit: Integer ?= 50, offset: Integer ?= 0, search: String ?= "")
 
 # AMT Workers Controller
 GET         /experiment/:experimentId/amtassignments                                controllers.AMTAssignmentController.getAMTAssignments(experimentId: Long, sandbox: Boolean ?= false)
