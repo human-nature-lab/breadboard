@@ -31,7 +31,7 @@ public class ClientController extends Controller
         if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
           return ok( amtError.render() );
         }
-        final File file = play.Play.application().getFile("frontend/app/client.html");
+        final File file = play.Play.application().getFile("public/templates/client.html");
         return ok(file, true);
 //        return ok(client.render(experimentId, experimentInstanceId, clientId, connectionSpeed, experiment.clientHtml, experiment.clientGraph));
     }
