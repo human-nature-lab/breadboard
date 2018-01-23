@@ -106,7 +106,7 @@ public class ExperimentInstance extends Model {
       throw new IllegalStateException("The current status is not runnable:" + status);
     }
     status = Status.RUNNING;
-    this.update();
+    //this.update();
   }
 
   public void test() {
@@ -114,12 +114,12 @@ public class ExperimentInstance extends Model {
       throw new IllegalStateException("The current status is not runnable:" + status);
     }
     status = Status.TESTING;
-    this.update();
+    //this.update();
   }
 
   public void finish() {
     status = Status.FINISHED;
-    this.update();
+    //this.update();
   }
 
   public void stop() {
@@ -127,7 +127,7 @@ public class ExperimentInstance extends Model {
       throw new IllegalStateException("The current status is not runnable:" + status);
     }
     status = Status.STOPPED;
-    this.update();
+    //this.update();
   }
 
   public void setHasStarted(Boolean hasStarted) {

@@ -66,7 +66,7 @@ public class AMTAssignment extends Model {
     amtAssignment.put("autoApprovalTime", autoApprovalTime);
     amtAssignment.put("acceptTime", acceptTime);
     amtAssignment.put("submitTime", submitTime);
-    amtAssignment.put("answer", answer);
+    amtAssignment.put("answer", (answer==null) ? "" : answer);
     amtAssignment.put("score", score);
     amtAssignment.put("reason", reason);
     amtAssignment.put("completion", completion);

@@ -344,6 +344,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       });
   };
 
+  $scope.submitAMTTask = function (lifetimeInSeconds, tutorialTime) {
+    console.log('submitAMTTask', lifetimeInSeconds, tutorialTime);
+    $breadboardFactory.send({
+      "action": "SubmitAMTTask",
+      "lifetimeInSeconds": lifetimeInSeconds,
+      "tutorialTime": tutorialTime
+    });
+  };
+
   $scope.deleteImage = function (imageId) {
     $breadboardFactory.send({
       "action": "DeleteImage",

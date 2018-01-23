@@ -69,7 +69,7 @@
                 <select class="form-control input-sm"
                         id="select-experiment-instance"
                         ng-hide="breadboard.user.experiments.length === 0 || breadboard.experiment.instances.length === 0"
-                        ng-options="instance as instance.name for instance in breadboard.experiment.instances track by instance.id"
+                        ng-options="instance as instance.name for instance in breadboard.experiment.instances | orderBy: '-creationTime' track by instance.id"
                         ng-model="breadboard.experimentInstance"
                         ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">
                 </select>
