@@ -22,6 +22,7 @@ import java.util.*;
 
 public class Application extends Controller {
 
+  /*
   public static Result login() {
     if (User.findRowCount() == 0) {
       return ok(createFirstUser.render(Form.form(CreateFirstUser.class)));
@@ -29,6 +30,7 @@ public class Application extends Controller {
       return ok(login.render(Form.form(Login.class)));
   }
   }
+  */
 
   /*
   public static Result createFirstUser() {
@@ -130,8 +132,9 @@ public class Application extends Controller {
 
   public static Result logout() {
     session().clear();
-    flash("success", "You've been logged out");
-    return redirect(routes.Application.login());
+    //flash("success", "You've been logged out");
+    //return redirect(routes.Application.login());
+    return unauthorized();
   }
 
   public static Result index() {

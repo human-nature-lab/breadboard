@@ -69,7 +69,7 @@ GET         /game/:experimentId/:experimentInstanceId/amt                       
 GET         /game/:experimentId/:experimentInstanceId/login                      controllers.ClientLogin.login(experimentId: String, experimentInstanceId: String)
 POST        /game/:experimentId/:experimentInstanceId/login                      controllers.ClientLogin.authenticate(experimentId: String, experimentInstanceId: String)
 POST        /game/:experimentId/:experimentInstanceId/amt                        controllers.ClientLogin.amtAuthenticate(experimentId: Long, experimentInstanceId: Long, hitId: String, assignmentId: String, workerId: String)
-GET         /login                                                               controllers.Application.login()
+#GET         /login                                                               controllers.Application.login()
 POST        /login                                                               controllers.Application.authenticate()
 #GET         /createFirstUser                                                     controllers.Application.createFirstUser()
 POST        /createFirstUser                                                     controllers.Application.addFirstUser()

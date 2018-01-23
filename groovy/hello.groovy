@@ -221,7 +221,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         player.timers[name].elapsed += timerUpdateRate
       } as GroovyTimerTask, timerUpdateRate, timerUpdateRate)
       tim.runAfter(time * 1000) {
-        println "Removing timer: " + name
+        //println "Removing timer: " + name
         if (player.timers) {
           player.timers.remove(name)
         }
@@ -853,23 +853,31 @@ class PlayerActions {
       idleTimer1.player = playerAction.player
       idleTimer1.timer = new Timer()
       idleTimer1.fired = false
+
+      def idleTimer2 = [:]
+      idleTimer2.player = playerAction.player
+      idleTimer2.timer = new Timer()
+
       def time1 = (warnTime != null) ? warnTime : idleTime
       def time2 = (dropTime != null) ? dropTime : idleTime
-      def warn = idleTimer1.timer.runAfter(time1 * 1000) {
-        /*
-        if (playerAction.player.getProperty("timer") != null && playerAction.player.getProperty("timer").size() > 0) {
-            playerAction.player.setProperty("tempTimer", playerAction.player.getProperty("timer"));
-        }
-        */
+      idleTimer1.timer.runAfter(time1 * 1000) {
+
         idleTimer1.fired = true
+
         def timerName = "dropTimer"
-        def dropTimer = ["timerText"     : "You will be dropped in: ",
-                         "startTime"     : (System.currentTimeMillis()),
-                         "endTime"       : (System.currentTimeMillis() + (time2 * 1000)),
-                         "appearance"    : "warning",
-                         "timerType"     : "time",
-                         "direction"     : "down",
-                         "currencyAmount": "0"]
+
+        def dropTimer = [
+            name          : "dropTimer",
+            type          : "time",
+            elapsed       : 0,
+            duration      : time2 * 1000,
+            timerText     : "You will be dropped in: ",
+            direction     : "down",
+            currencyAmount: "0",
+            appearance    : "warning",
+            order         : -1
+        ]
+
         if (playerAction.player.timers == null) {
           playerAction.player.timers = [:]
         }
@@ -877,17 +885,23 @@ class PlayerActions {
         playerAction.player.timers[timerName] = dropTimer
         // TODO: Find out why modifying the timers map doesn't trigger a client update without the next line
         playerAction.player.lastupdated = System.currentTimeMillis()
+
+        idleTimer2.timer.runAfter(time2 * 1000) {
+          idleTimer2.timer.cancel()
+
+          if (dropPlayerClosure) {
+            dropPlayerClosure(playerAction.player)
+          }
+          playerAction.player.timers.remove("dropTimer")
+        }
+
+        def timerUpdateRate = 1000
+        idleTimer2.timer.scheduleAtFixedRate({
+          playerAction.player.timers["dropTimer"].elapsed += timerUpdateRate
+        } as GroovyTimerTask, timerUpdateRate, timerUpdateRate)
+
       }
 
-      def idleTimer2 = [:]
-      idleTimer2.player = playerAction.player
-      idleTimer2.timer = new Timer()
-      def drop = idleTimer1.timer.runAfter(time2 * 2000) {
-        if (dropPlayerClosure) {
-          dropPlayerClosure(playerAction.player)
-        }
-        playerAction.player.timers.remove("dropTimer")
-      }
       playerAction.idleTimer1 = idleTimer1
       playerAction.idleTimer2 = idleTimer2
     }

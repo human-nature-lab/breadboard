@@ -161,6 +161,7 @@ public class Global extends GlobalSettings {
     //InitialData.insert(app);
     boolean isWin = System.getProperty("os.name").toUpperCase().indexOf("WIN") >= 0;
     String cwd = System.getProperty("user.dir");
+    // TODO: If omitted, this should default to PROD
     String mode = play.Play.application().configuration().getString("application.mode");
     if(mode.toUpperCase().equals("DEV")) {
       // Try to start the assets server
