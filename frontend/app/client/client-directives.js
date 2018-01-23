@@ -9,7 +9,7 @@ angular.module('client.directives', [])
       link: function(scope,elem,attrs){
         $timeout(function(){
           $compile(elem.contents())(scope);
-					console.log("inside compile directive");
+					//console.log("inside compile directive");
         });
       }
     };
@@ -27,11 +27,11 @@ angular.module('client.directives', [])
         scope.translatedText = "";
         scope.textObject = scope.$eval(attrs.textObject);
         scope.$watchCollection('[selectedLanguage,textObject]', function(value){
-          console.log('value[1]', value[1]);
+          //console.log('value[1]', value[1]);
           if (value[1] !== undefined) {
             try {
               var textObject = JSON.parse(value[1]);
-              console.log("scope.textObject", textObject);
+              //console.log("scope.textObject", textObject);
               for (var i = 0; i < textObject.contentArray.length; i++) {
                 var content = textObject.contentArray[i];
                 // Add the language to the languages array if it doesn't already exist
@@ -62,7 +62,7 @@ angular.module('client.directives', [])
       link: function (scope, element, attrs) {
         scope.$watch(attrs.buttonTextObject, function(value){
           scope.buttonTextObject = JSON.parse(value);
-          console.log("scope.buttonTextObject", scope.buttonTextObject);
+          //console.log("scope.buttonTextObject", scope.buttonTextObject);
           for (var i = 0; i < scope.textObject.contentArray.length; i++) {
             if (scope.selectedLanguage == scope.buttonTextObject.contentArray[i].language) {
               scope.translatedButtonText = scope.buttonTextObject.contentArray[i].text;

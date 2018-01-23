@@ -6,6 +6,7 @@ export default function ConfigService($http, $q){
   const configPromise = $http.get('state')
     .then(function(res){
       config = res.data;
+      //console.log("res", res);
       return config;
     }, function(err){
       console.error("Unable to load client configuration", err);

@@ -86,7 +86,7 @@ public class ScriptBoard extends UntypedActor {
       //just in case
       playerActions.turnAIOff();
       //clean up the graph
-      processScript("g.empty()", null);
+      processScript("g.empty()", null, null);
     }
 
     engine = manager.getEngineByName("gremlin-groovy");
@@ -334,7 +334,7 @@ public class ScriptBoard extends UntypedActor {
         } else if (message instanceof Breadboard.RunGame) {
           if (breadboardMessage.user != null) {
             // Run Game
-            processScript("initStep.start()", breadboardMessage.out);
+            processScript("initStep.start()", breadboardMessage.out, null);
           }
 
         } else if (message instanceof Breadboard.HitCreated) {
@@ -344,7 +344,7 @@ public class ScriptBoard extends UntypedActor {
             Integer tutorialTimeInMs = hitCreated.tutorialTime * 1000;
             Long timerTime = System.currentTimeMillis() + (lifetimeInMs + tutorialTimeInMs);
             // startAt will be used to add timer to clients for start of game
-            processScript("startAt = " + timerTime, breadboardMessage.out);
+            processScript("startAt = " + timerTime, breadboardMessage.out, null);
 
             final ThrottledWebSocketOut breadboardOut = breadboardMessage.out;
             // Set timer for lifetimeInSeconds time after which no longer allow new client connections
@@ -359,7 +359,7 @@ public class ScriptBoard extends UntypedActor {
             new Timer().schedule(new TimerTask() {
               @Override
               public void run() {
-                processScript("initStep.start()", breadboardOut);
+                processScript("initStep.start()", breadboardOut, null);
                 Logger.debug("initStep.start()");
               }
             }, (lifetimeInMs + tutorialTimeInMs));
@@ -373,7 +373,7 @@ public class ScriptBoard extends UntypedActor {
             breadboardMessage.user.update();
 
             // Process script
-            processScript(sendScript.script, breadboardMessage.out, sendScript.script);
+            processScript(sendScript.script, breadboardMessage.out, null);
           }
 
         } else if (message instanceof Breadboard.MakeChoice) {
@@ -397,7 +397,7 @@ public class ScriptBoard extends UntypedActor {
         } else if (message instanceof Breadboard.RunStep) {
           // TODO: Compile step here and make available to scripting engine
           Breadboard.RunStep runStep = (Breadboard.RunStep) message;
-          processScript(runStep.source, breadboardMessage.out, runStep.source);
+          processScript(runStep.source, breadboardMessage.out, null);
         } else if (message instanceof Breadboard.ChangeExperiment) {
           if (breadboardMessage.user != null) {
             rebuildScriptBoard(breadboardMessage.user.selectedExperiment);
@@ -434,7 +434,7 @@ public class ScriptBoard extends UntypedActor {
           }
 
           breadboardMessage.user.currentScript = "";
-          processScript("g.empty()", breadboardMessage.out);
+          processScript("g.empty()", breadboardMessage.out, null);
 
           if (toBeDeleteExperiment != null) {
             //needs to remove all the selectedExperiment and ownedExperiments which is this toBeDeleteExperiment
@@ -560,7 +560,7 @@ public class ScriptBoard extends UntypedActor {
           if (runOnJoinStep.user.selectedExperiment != null && runOnJoinStep.user.selectedExperiment.hasOnJoinStep()) {
             Vertex player = runOnJoinStep.vertex;
             String script = "onJoinStep.start(\"" + player.getId().toString() + "\")";
-            processScript(script, runOnJoinStep.out, script);
+            processScript(script, runOnJoinStep.out, null);
           }
 
         } // END else if(message instanceof Breadboard.RunOnJoinStep)
@@ -571,7 +571,7 @@ public class ScriptBoard extends UntypedActor {
           if (runOnLeaveStep.user.selectedExperiment != null && runOnLeaveStep.user.selectedExperiment.hasOnLeaveStep()) {
             Vertex player = runOnLeaveStep.vertex;
             if (engine.get("onLeaveStep.start()") != null) {
-              processScript("onLeaveStep.start(\"" + player.getId().toString() + "\")", runOnLeaveStep.out);
+              processScript("onLeaveStep.start(\"" + player.getId().toString() + "\")", runOnLeaveStep.out, null);
             }
           }
 
@@ -706,11 +706,14 @@ public class ScriptBoard extends UntypedActor {
     out.write(jsonOutput);
   }
 
+  /*
   private static void processScript(String script, ThrottledWebSocketOut out){
     processScript(script, out, "Unnamed Script");
   }
+  */
 
   private static void processScript(String script, ThrottledWebSocketOut out, String scriptName) {
+    if (scriptName == null) scriptName = "Unnamed Script";
 
     ObjectNode jsonOutput = Json.newObject();
     //TODO: better way to handle this?

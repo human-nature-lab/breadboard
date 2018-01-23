@@ -5,7 +5,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   $scope.tokens = [null];
   $scope.curToken = 0;
   $scope.hits = [];
-  $scope.selectedTab = 'workers';
+  $scope.selectedTab = 'manage';
   $scope.selectedHIT = null;
   $scope.showCreateHIT = false;
   $scope.creatingHIT = false;

@@ -131,16 +131,18 @@ public class Global extends GlobalSettings {
       for (Experiment experiment : Experiment.findAll()) {
         experiment.languages.add(english);
         experiment.uid = UUID.randomUUID().toString();
-        experiment.save();
-
 
         try {
           File experimentDirectory = new File(Play.application().path().toString() + "/experiments/" + experiment.name + "_v2.2");
           FileUtils.writeStringToFile(new File(experimentDirectory, "client.html"), experiment.clientHtml);
           FileUtils.writeStringToFile(new File(experimentDirectory, "client-graph.js"), experiment.clientGraph);
+          experiment.clientGraph = Experiment.defaultClientGraph();
+          experiment.clientHtml = Experiment.defaultClientHTML();
         } catch (IOException ioe) {
           Logger.error("Error backing up v2.2 client.html and client.js to experiments directory");
         }
+
+        experiment.save();
       }
 
       for (Content content : Content.findAll()) {

@@ -92,6 +92,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
 
       @Override
       void vertexPropertyChanged(Vertex v, String s, Object o, Object o1) {
+        /* Look at this again for v2.3.1
         if (o1 instanceof List && (!(o1 instanceof ObservableList))) {
           def observableList = new ObservableList()
           observableList.addAll(o1)
@@ -114,6 +115,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
           } as PropertyChangeListener)
           v.setProperty(s, observableMap)
         }
+        */
       }
 
       @Override

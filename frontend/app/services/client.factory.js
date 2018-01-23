@@ -7,7 +7,7 @@ export default function ClientFactory($websocketFactory, $rootScope, $http, $q, 
     websocket.onopen = function (evt) {
       configService.all().then(function(clientVars){
         clientVars.action = "LogIn";
-        console.log("Sending on open", clientVars);
+        //console.log("Sending on open", clientVars);
         websocket.send(JSON.stringify(clientVars));
       })
     };

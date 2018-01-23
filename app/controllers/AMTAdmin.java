@@ -127,7 +127,7 @@ public class AMTAdmin extends Controller {
         .setParameter("search", search)
         .setParameter("sandbox", (sandbox) ? 1 : 0);
 
-     Logger.debug(sqlQuery.toString());
+     //Logger.debug(sqlQuery.toString());
 
       List<SqlRow> assignments = sqlQuery.findList();
 

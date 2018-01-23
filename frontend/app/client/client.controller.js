@@ -22,7 +22,7 @@ function ClientCtrl($scope, $clientFactory, $location, clientGraph, configServic
 
       var data = JSON.parse(message.data);
       // For debugging:
-      console.log(data);
+      //console.log(data);
       if (data.queuedMessages != undefined) {
         for (var i = 0; i < data.queuedMessages.length; i++) {
           _.extend($scope.client, data.queuedMessages[i]);
@@ -42,12 +42,12 @@ function ClientCtrl($scope, $clientFactory, $location, clientGraph, configServic
       }
     }
     catch (e) {
-      console.log("Parse error: " + e.toString());
+      console.error("Parse error: " + e.toString());
     }
   });
 
   $scope.translateText = function(textJson) {
-    console.log("textJson: ", textJson);
+    //console.log("textJson: ", textJson);
     let textObject = JSON.parse(textJson);
     return (textObject.contentArray[0].text);
   };
@@ -70,5 +70,5 @@ function ClientCtrl($scope, $clientFactory, $location, clientGraph, configServic
   let beep = new Audio('/assets/snd/countdown_beeps.ogg');
 }
 
-console.log(ClientCtrl);
+//console.log(ClientCtrl);
 export default ClientCtrl;

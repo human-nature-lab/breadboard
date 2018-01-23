@@ -301,7 +301,7 @@
     <div>
         <div ui-jq="dialog" ui-options="launchDialogOptions" id="launchDiv">
             <div>
-                <table class="table table-hover" id="instance-table">
+                <table class="table table-hover table-condensed" id="instance-table">
                     <thead>
                     <tr>
                         <td colspan="6">
@@ -327,7 +327,7 @@
                     </thead>
                     <tbody>
                     <tr ng-show="breadboard.experiment.instances.length == 0"><td colspan="6">No instances</td></tr>
-                    <tr ng-repeat-start="instance in breadboard.experiment.instances"
+                    <tr ng-repeat-start="instance in breadboard.experiment.instances | orderBy:'-creationTime'"
                         ng-class="{'info':(instance.id === breadboard.experimentInstance.id)}"
                         ng-click="breadboard.experimentInstance = instance">
                         <td>{{instance.id}}</td>
