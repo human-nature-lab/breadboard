@@ -60,4 +60,8 @@ export default function TimerCtrl($scope, $interval, $filter){
     }
   }
 
+  $scope.$on("$destroy", function(){
+    stop();
+  });
+
 };
