@@ -57,6 +57,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   };
 
   $scope.$watch('experimentInstance', function(experimentInstance, oldExperimentInstance) {
+    console.log('experimentInstance changed', experimentInstance, oldExperimentInstance);
     if (experimentInstance && experimentInstance.hits && experimentInstance.hits.length > 0) {
       $scope.createHitForm.status = 2;
     } else {

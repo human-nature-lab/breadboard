@@ -138,7 +138,7 @@ public class Application extends Controller {
   }
 
   public static Result index() {
-      final File file = play.Play.application().getFile("public/templates/breadboard.html");
+      final File file = play.Play.application().getFile("assets/templates/breadboard.html");
       return ok(file, true);
   }
 

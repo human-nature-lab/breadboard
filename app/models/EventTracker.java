@@ -33,7 +33,7 @@ public class EventTracker {
     for (Object key : data.keySet()) {
       Map<String, String> dataMap = new HashMap<String, String>();
       dataMap.put("name", key.toString());
-      dataMap.put("value", data.get(key).toString());
+      dataMap.put("value", (data.get(key) == null) ? "null" : data.get(key).toString());
       nameValues.add(dataMap);
     }
 

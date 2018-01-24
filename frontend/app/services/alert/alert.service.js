@@ -31,6 +31,7 @@ export default function AlertService($q, $modal){
         };
       }]
     });
+    console.log('confirmModal', confirmModal);
     return d.promise;
   }
 }

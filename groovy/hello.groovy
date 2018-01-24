@@ -562,11 +562,6 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         //def data = [[name: "playerId", value: player.id.toString()], [name: "neighborId", value: neighbor.id.toString()]]
         if (r.nextDouble() < connectivity) {
           addTrackedEdge(player, neighbor, "connected")
-          /*
-          if (eventTracker) {
-              eventTracker.track("connected", data)
-          }
-          */
         }
       }
     }

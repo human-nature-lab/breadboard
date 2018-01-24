@@ -16,8 +16,9 @@ cp breadboard-${breadboard_version}.bat install/breadboard-${breadboard_version}
 cp breadboard-${breadboard_version}.sh install/breadboard-${breadboard_version}/breadboard.sh
 cp ../breadboard-wiki/Release-History.md install/breadboard-${breadboard_version}/CHANGELOG.md
 rm -r install/breadboard-${breadboard_version}/conf/evolutions
+rm -r install/breadboard-${breadboard_version}/share
 rm install/breadboard-${breadboard_version}/conf/application.conf
 rm install/breadboard-${breadboard_version}/conf/application-dev.conf
 rm install/breadboard-${breadboard_version}/conf/generated.keystore
 cd install
-zip -r install/breadboard-${breadboard_version}.zip breadboard-${breadboard_version}
+zip -r breadboard-${breadboard_version}.zip breadboard-${breadboard_version}

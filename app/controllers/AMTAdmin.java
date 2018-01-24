@@ -513,8 +513,8 @@ public class AMTAdmin extends Controller {
 
       Experiment experiment = Experiment.findById(Long.parseLong(experimentId));
       String experimentName = experiment.name;
-      if (experimentName.length() > 150) experimentName = experimentName.substring(0, 150) + "...";
-      String annotation = "{\"experimentUid\":\"" + experiment.uid + "\",\"experimentName\":\"" + experimentName + "\"}";
+      if (experimentName.length() > 120) experimentName = experimentName.substring(0, 120) + "...";
+      String annotation = "{\"experimentType\":\"breadboard\",\"experimentUid\":\"" + experiment.uid + "\",\"experimentName\":\"" + experimentName + "\"}";
 
       // Create HIT
       CreateHITRequest createHITRequest = new CreateHITRequest()
