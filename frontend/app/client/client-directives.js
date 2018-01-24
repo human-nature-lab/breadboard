@@ -3,7 +3,7 @@
 /* Directives */
 
 angular.module('client.directives', [])
-  .directive('compile',function($compile, $timeout){
+  .directive('compile',['$compile', '$timeout', function($compile, $timeout){
     return{
       restrict:'A',
       link: function(scope,elem,attrs){
@@ -13,7 +13,7 @@ angular.module('client.directives', [])
         });
       }
     };
-})
+}])
   .directive('clientText', ['$sce', '$location', function($sce, $location){
     return{
       restrict:'E',

@@ -607,7 +607,6 @@ public class ScriptBoard extends UntypedActor {
           loadSteps(selectedExperiment, breadboardMessage.out);
           Breadboard.ReloadEngine reloadEngine = (Breadboard.ReloadEngine) message;
           if (reloadEngine.user.experimentInstanceId != -1) {
-            Logger.debug("got here");
             ExperimentInstance ei = ExperimentInstance.findById(reloadEngine.user.experimentInstanceId);
             if (ei != null) {
               eventTracker.enable();
