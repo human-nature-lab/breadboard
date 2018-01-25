@@ -7,26 +7,13 @@ function Graph(clientId, parentElement) {
   var arrowPadding = 7;
   var graphPadding = 10;
   var linkDistance = (Math.min(width, height) / 2) - alterNodeR - (2 * graphPadding);
-  //var linkDistance = 10;
   console.log('parent', parentElement, width, height);
 
   var ignoreProps = ["$$hashKey", "text", "choices", "x", "y", "px", "py"];
 
-  //setInterval(function(){
-  //  width = parentElement ? parentElement.clientWidth : 600;
-  //	height = parentElement ? parentElement.clientHeight : 600;
-  //  force.size([width, height]);
-  //}, 1000);
-
-  // set up initial svg object
   var div = parentElement ? d3.select(parentElement) : d3.select("#graph");
   var vis = div.append("svg:svg")
     .attr("viewBox", "0 0 600 600")
-  //.attr("width", "100%")
-  //.attr("height", "100%")
-  //.attr("preserveAspectRatio", "xMinYMin meet");
-  //.attr("width", width)
-  //.attr("height", height);
 
   // set up arrow markers for graph links
   // Thanks to rkirsling for the example here: http://bl.ocks.org/rkirsling/5001347
