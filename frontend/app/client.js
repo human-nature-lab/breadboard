@@ -51,7 +51,7 @@ angular.module('breadboard.client', [
   }]);
 var app = angular.module('breadboard.client');
 
-app.config(
+app.config(['$controllerProvider', '$provide', '$compileProvider',
   function( $controllerProvider, $provide, $compileProvider ) {
     // Since the "shorthand" methods for component
     // definitions are no longer valid, we can just
@@ -91,5 +91,4 @@ app.config(
     // NOTE: You can do the same thing with the "filter"
     // and the "$filterProvider"; but, I don't really use
     // custom filters.
-  }
-);
+  }]);
