@@ -84,33 +84,44 @@ public class AMTAdmin extends Controller {
     HashMap<String, JsonWorker> amtWorkerAssignments = new HashMap<>();
     ObjectNode returnJson = Json.newObject();
 
+    /*
     Experiment experiment = Experiment.findById(experimentId);
 
     if (experiment == null) {
       return badRequest("Invalid experiment ID");
     }
+    */
     // TODO: There is a bug in the interaction between distinct and limit in H2 1.3.172,
     // Need to upgrade to latest version of H2 to return exactly limit workers
     // should be fixed in a commit here:
     // https://github.com/h2database/h2database/pull/578/files
     //"(select distinct worker_id from amt_assignments " +
 
+    // Return all workers with their assignments and names and UIDs of experiments
+
     String workerCountSql = "select count(distinct worker_id) as worker_count from amt_assignments " +
-        "where worker_id in " +
-        "(select worker_id from amt_assignments " +
         " where worker_id like CONCAT(:search, '%')" +
-        " and amt_hit_id in " +
-        "(select id from amt_hits where sandbox = :sandbox and experiment_instance_id in " +
-        "(select id from experiment_instances where experiment_id = :experimentId)));";
+        " and worker_id in " +
+        "(select worker_id from amt_assignments " +
+        " where amt_hit_id in " +
+        "(select id from amt_hits where sandbox = :sandbox));";
 
     SqlRow sqlRow = Ebean.createSqlQuery(workerCountSql)
-        .setParameter("experimentId", experimentId)
         .setParameter("search", search)
         .setParameter("sandbox", (sandbox) ? 1 : 0)
         .findUnique();
     Long workerCount = sqlRow.getLong("worker_count");
 
+    String workerIdSql = "select distinct worker_id from amt_assignments " +
+        " where worker_id like CONCAT(:search, '%')" +
+        " and worker_id in " +
+        "(select worker_id from amt_assignments " +
+        " where amt_hit_id in " +
+        "(select id from amt_hits where sandbox = :sandbox))" +
+        " order by worker_id limit :limit offset :offset";
+
     //" where worker_id like ':search%'" +
+    /*
     String sql = "select * from amt_assignments " +
         "where worker_id in " +
         "(select worker_id from amt_assignments " +
@@ -119,9 +130,9 @@ public class AMTAdmin extends Controller {
         "(select id from amt_hits where sandbox = :sandbox and experiment_instance_id in " +
         "(select id from experiment_instances where experiment_id = :experimentId)) " +
         "order by worker_id limit :limit offset :offset) order by worker_id;";
+       */
 
-     SqlQuery sqlQuery = Ebean.createSqlQuery(sql)
-        .setParameter("experimentId", experimentId)
+     SqlQuery sqlQuery = Ebean.createSqlQuery(workerIdSql)
         .setParameter("limit", limit)
         .setParameter("offset", offset)
         .setParameter("search", search)
@@ -129,43 +140,64 @@ public class AMTAdmin extends Controller {
 
      //Logger.debug(sqlQuery.toString());
 
-      List<SqlRow> assignments = sqlQuery.findList();
+      List<SqlRow> workerIds = sqlQuery.findList();
 
       returnJson.put("total", workerCount);
       returnJson.put("offset", offset);
       returnJson.put("limit", limit);
 
-    for (SqlRow row : assignments) {
+      // This is necessary because of the bug regarding distinct + limit
+    int endI = Math.min(limit, workerIds.size());
+    for (int i = 0; i < endI; i++) {
+      SqlRow row = workerIds.get(i);
       String workerId = row.getString("worker_id");
+      List<AMTAssignment> assignments = AMTAssignment.find
+          .where()
+          .eq("worker_id", workerId)
+          .findList();
 
       if (! amtWorkerAssignments.containsKey(workerId)) {
         amtWorkerAssignments.put(workerId, new JsonWorker(workerId));
       }
 
       JsonWorker jsonWorker = amtWorkerAssignments.get(workerId);
-      Boolean assignmentCompleted = row.getBoolean("assignment_completed");
-      if (assignmentCompleted != null && assignmentCompleted) jsonWorker.nCompleted++;
+      for (AMTAssignment assignment : assignments) {
+        AMTHit hit = assignment.amtHit;
+        ExperimentInstance instance = hit.experimentInstance;
+        Experiment experiment = (instance == null) ? null : instance.experiment;
 
-      ObjectNode amtAssignment = Json.newObject();
+        String experimentName = (experiment == null) ? "" : experiment.name;
+        Long eId = (experiment == null) ? -1L : experiment.id;
+        String eUid = (experiment == null) ? "" : experiment.uid;
 
-      amtAssignment.put("id", row.getLong("id"));
-      amtAssignment.put("assignmentId", row.getString("assignment_id"));
-      amtAssignment.put("workerId", workerId);
-      amtAssignment.put("assignmentStatus", row.getString("assignment_status"));
-      amtAssignment.put("autoApprovalTime", row.getString("auto_approval_time"));
-      amtAssignment.put("acceptTime", row.getString("accept_time"));
-      amtAssignment.put("submitTime", row.getString("submit_time"));
-      amtAssignment.put("answer", row.getString("answer"));
-      amtAssignment.put("score", row.getString("score"));
-      amtAssignment.put("reason", row.getString("reason"));
-      amtAssignment.put("completion", row.getString("completion"));
-      amtAssignment.put("assignmentCompleted", assignmentCompleted);
-      amtAssignment.put("bonusGranted", row.getBoolean("bonus_granted"));
-      amtAssignment.put("bonusAmount", row.getString("bonus_amount"));
-      amtAssignment.put("workerBlocked", row.getBoolean("worker_blocked"));
-      amtAssignment.put("qualificationAssigned", row.getBoolean("qualification_assigned"));
+        Boolean assignmentCompleted = assignment.assignmentCompleted;;
+        if (assignmentCompleted != null && assignmentCompleted) jsonWorker.nCompleted++;
 
-      jsonWorker.assignments.add(amtAssignment);
+        ObjectNode amtAssignment = Json.newObject();
+
+        amtAssignment.put("id", assignment.id);
+        amtAssignment.put("assignmentId", assignment.assignmentId);
+        amtAssignment.put("workerId", workerId);
+        amtAssignment.put("assignmentStatus", assignment.assignmentStatus);
+        amtAssignment.put("autoApprovalTime", assignment.autoApprovalTime);
+        amtAssignment.put("acceptTime", assignment.acceptTime);
+        amtAssignment.put("submitTime", assignment.submitTime);
+        amtAssignment.put("answer", assignment.answer);
+        amtAssignment.put("score", assignment.score);
+        amtAssignment.put("reason", assignment.reason);
+        amtAssignment.put("completion", assignment.completion);
+        amtAssignment.put("assignmentCompleted", assignmentCompleted);
+        amtAssignment.put("bonusGranted", assignment.bonusGranted);
+        amtAssignment.put("bonusAmount", assignment.bonusAmount);
+        amtAssignment.put("workerBlocked", assignment.workerBlocked);
+        amtAssignment.put("qualificationAssigned", assignment.qualificationAssigned);
+        amtAssignment.put("experimentName", experimentName);
+        amtAssignment.put("experimentUid", eUid);
+        amtAssignment.put("experimentId", eId);
+
+        jsonWorker.assignments.add(amtAssignment);
+      }
+
     }
 
     ArrayNode amtWorkersJson = returnJson.putArray("amtWorkers");

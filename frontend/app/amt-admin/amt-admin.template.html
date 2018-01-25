@@ -588,9 +588,18 @@
                 </tbody>
                 <tfoot>
                 <tr>
+                    <th>Title</th>
+                    <th>Creation Date</th>
+                    <th>Reward</th>
+                    <th class="active">Requested</th>
+                    <th class="active">Pending Review</th>
+                    <th class="active">Reviewed</th>
+                    <th class="active">Remaining</th>
+                </tr>
+                <tr>
                     <th colspan="7" class="text-center">
                         <nav aria-label="Page navigation">
-                            <ul class="pagination pagination-lg">
+                            <ul class="pagination pagination-sm">
                                 <li ng-class="{'disabled' : (curToken < 1)}">
                                     <a ng-click="pageHITs(curToken - 1)" aria-label="Previous">
                                         <span aria-hidden="true">&laquo;</span>
@@ -763,15 +772,15 @@
                     </tr>
                     <tr ng-repeat-end ng-show="manageWorkers.selectedWorker === worker">
                         <td colspan="4">
-                            <div class="col-md-1"></div>
-                            <div class="col-md-11">
+                            <div class="margin-left">
                                 <table class="table table-condensed">
                                     <thead>
                                     <tr>
+                                        <th class="col-md-3">Experiment</th>
                                         <th class="col-md-3">Assignment ID</th>
-                                        <th class="col-md-2">Status</th>
-                                        <th class="col-md-2">Submit date</th>
-                                        <th class="col-md-3">Reason</th>
+                                        <th class="col-md-1">Status</th>
+                                        <th class="col-md-1">Submit date</th>
+                                        <th class="col-md-2">Reason</th>
                                         <th class="col-md-2">
                                             Completed
                                             <i class="fa fa-question-circle"
@@ -784,6 +793,7 @@
                                     </thead>
                                     <tbody>
                                     <tr ng-repeat="assignment in worker.assignments">
+                                        <td>{{ assignment.experimentName }}</td>
                                         <td>{{ assignment.assignmentId }}</td>
                                         <td>{{ assignment.assignmentStatus }}</td>
                                         <td>{{ assignment.submitTime | date: "yyyy-MM-dd" }}</td>
