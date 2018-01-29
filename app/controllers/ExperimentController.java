@@ -113,7 +113,8 @@ public class ExperimentController extends Controller {
     experiment.name = experimentName;
     experiment.save();
 
-    String outputFolder = "experiments/" + experiment.name + "_" + experiment.id;
+    String timeString = new Date().getTime() + "";
+    String outputFolder = "experiments/" + experiment.name + "_" + experiment.id + "_" + timeString;
 
     try {
       ZipFile zipFile = new ZipFile(zippedFile);
@@ -128,11 +129,14 @@ public class ExperimentController extends Controller {
            (! FilenameUtils.directoryContains(outputFolder, contentPath.getCanonicalPath()))) {
           File outputFolderFile = new File(outputFolder);
           File[] outputFolderFiles = outputFolderFile.listFiles();
-          if (outputFolderFiles == null || outputFolderFiles.length != 1) {
+          if (outputFolderFiles == null || outputFolderFiles.length == 0) {
             return badRequest("No Steps or Content folders found");
           }
           File subDirectory = outputFolderFiles[0];
-
+          // Fix for __MACOSX folder added by mac compression
+          if (subDirectory.getName().equals("__MACOSX") && outputFolderFiles.length > 1) {
+            subDirectory = outputFolderFiles[1];
+          }
           stepsPath = new File(subDirectory, "Steps");
           contentPath = new File(subDirectory, "Content");
 
@@ -140,7 +144,7 @@ public class ExperimentController extends Controller {
                (FilenameUtils.directoryContains(subDirectory.getCanonicalPath(), contentPath.getCanonicalPath())) ) {
             // The subDirectory contains Steps and/or Content,
             // let's copy the contents of the subdirectory to the parent directory
-            String tempDirectoryName = "temp_" + new Date().getTime();
+            String tempDirectoryName = "temp_" + timeString;
             File tempDirectory = new File(tempDirectoryName);
             // Rename the subDirectory in case there is a directory name collision
             FileUtils.moveDirectory(subDirectory, tempDirectory);

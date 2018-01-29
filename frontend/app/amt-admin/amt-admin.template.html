@@ -753,8 +753,8 @@
                     <thead>
                     <tr>
                         <th>Worker ID</th>
-                        <th>Assignments ({{experiment.name}})</th>
-                        <th>Assignments completed ({{experiment.name}})</th>
+                        <th>Assignments</th>
+                        <th>Assignments completed</th>
                     </tr>
                     </thead>
                     <tbody>
@@ -819,6 +819,13 @@
                         </td>
                     </tr>
                     </tbody>
+                    <tfoot>
+                    <tr>
+                        <th>Worker ID</th>
+                        <th>Assignments</th>
+                        <th>Assignments completed</th>
+                    </tr>
+                    </tfoot>
                 </table>
             </div>
             <div class="panel panel-danger" ng-show="manageWorkers.status === 3">

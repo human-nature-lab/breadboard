@@ -43,6 +43,11 @@ public class Application extends Controller {
   */
 
   public static Result addFirstUser() {
+
+    if (User.findRowCount() > 0) {
+      return badRequest("User table is not empty.");
+    }
+
     String email, password;
     Long defaultLanguageId;
     JsonNode json = request().body().asJson();
