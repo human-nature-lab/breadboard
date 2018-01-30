@@ -578,7 +578,7 @@ public class AMTAdmin extends Controller {
       experimentInstance.amtHits.add(amtHit);
       experimentInstance.save();
 
-      return ok();
+      return ok(amtHit.toJson());
     } catch (AmazonServiceException ase) {
       return badRequest(ase.getMessage());
     } catch (AmazonClientException ace) {
