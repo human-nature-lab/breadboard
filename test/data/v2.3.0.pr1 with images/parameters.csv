@@ -1,5 +1,0 @@
-Name,Type,Min.,Max.,Default,Short Description
-tutorialLength,Integer,15,1200,120,Amount of time players will have for the tutorial
-gameLength,Integer,30,1200,180,Amount of time for players to make a decision
-reward,Integer,10,400,100,Amount of money to be earned in cents
-overboardReward,Integer,0,400,90,The award if the user is thrown overboard
