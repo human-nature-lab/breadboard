@@ -1,0 +1,9 @@
+circle[accepted='0']{
+	fill: red;
+}
+circle[accepted='1']{
+  	fill: green;
+}
+circle[isCaptain=true]{
+   	fill: blue;
+}

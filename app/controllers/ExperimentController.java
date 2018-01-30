@@ -78,6 +78,20 @@ public class ExperimentController extends Controller {
     return ok(experiment.toJson());
   }
 
+  static public boolean deleteDirectory(File path) {
+    if (path.exists()) {
+      File[] files = path.listFiles();
+      for (int i = 0; i < files.length; i++) {
+        if (files[i].isDirectory()) {
+          deleteDirectory(files[i]);
+        } else {
+          files[i].delete();
+        }
+      }
+    }
+    return (path.delete());
+  }
+
   @Security.Authenticated(Secured.class)
   public static Result importExperiment(String experimentName) throws IOException{
 
@@ -119,44 +133,38 @@ public class ExperimentController extends Controller {
     try {
       ZipFile zipFile = new ZipFile(zippedFile);
       zipFile.extractAll(outputFolder);
-      // If the Content and Steps directories are contained within a parent sub-directory,
-      // move all content into the new parent directory
-      Logger.debug("FilenameUtils.directoryContains(outputFolder, 'Steps': " + FilenameUtils.directoryContains(outputFolder, "Steps"));
 
-      File stepsPath = new File(outputFolder, "Steps");
-      File contentPath = new File(outputFolder, "Content");
-      if ( (! FilenameUtils.directoryContains(outputFolder, stepsPath.getCanonicalPath())) &&
-           (! FilenameUtils.directoryContains(outputFolder, contentPath.getCanonicalPath()))) {
-          File outputFolderFile = new File(outputFolder);
-          File[] outputFolderFiles = outputFolderFile.listFiles();
-          if (outputFolderFiles == null || outputFolderFiles.length == 0) {
-            return badRequest("No Steps or Content folders found");
-          }
-          File subDirectory = outputFolderFiles[0];
-          // Fix for __MACOSX folder added by mac compression
-          if (subDirectory.getName().equals("__MACOSX") && outputFolderFiles.length > 1) {
-            subDirectory = outputFolderFiles[1];
-          }
-          stepsPath = new File(subDirectory, "Steps");
-          contentPath = new File(subDirectory, "Content");
-
-          if ( (FilenameUtils.directoryContains(subDirectory.getCanonicalPath(), stepsPath.getCanonicalPath())) ||
-               (FilenameUtils.directoryContains(subDirectory.getCanonicalPath(), contentPath.getCanonicalPath())) ) {
-            // The subDirectory contains Steps and/or Content,
-            // let's copy the contents of the subdirectory to the parent directory
-            String tempDirectoryName = "temp_" + timeString;
-            File tempDirectory = new File(tempDirectoryName);
-            // Rename the subDirectory in case there is a directory name collision
-            FileUtils.moveDirectory(subDirectory, tempDirectory);
-            // Copy all files from subDirectory to outputFolder
-            FileUtils.copyDirectory(tempDirectory, outputFolderFile);
-            // Clean up
-            FileUtils.deleteDirectory(tempDirectory);
-          } else {
-            return badRequest("No Steps or Content folders found");
-          }
+      //Delete the __MAC_OSX directory if it exists
+      File[] outputFiles = (new File(outputFolder)).listFiles();
+      for(File outputFile: outputFiles){
+        if(outputFile.getName().equals("__MACOSX") || outputFile.getName().equals("__MAC_OSX")){
+          deleteDirectory(outputFile);
+        }
       }
 
+      outputFiles = (new File(outputFolder)).listFiles();
+      if(outputFiles.length == 1){
+        // Pull out the contents of this sub-directory into the main directory
+        File subDirectory = outputFiles[0];
+        Logger.debug("Single subdirectory found: " + outputFiles);
+        File stepsDirectory = new File(subDirectory, "Steps");
+        File contentDirectory = new File(subDirectory, "Content");
+        if(stepsDirectory.exists() || contentDirectory.exists()) {
+          outputFolder = subDirectory.getAbsolutePath();
+          Logger.debug("Using subdirectory, " + outputFolder + " for import instead.");
+        } else {
+          String msg = "No Steps or Content directories found. Please upload a valid experiment";
+          Logger.debug(msg);
+          return badRequest(msg);
+        }
+      } else {
+        File stepsDirectory = new File(outputFolder, "Steps");
+        File contentDirectory = new File(outputFolder, "Content");
+        if(!stepsDirectory.exists() || !contentDirectory.exists()){
+          String msg = "No Steps or Content directories found. Please upload a valid experiment";
+          return badRequest("No Steps or Content directories found. Please upload a valid experiment");
+        }
+      }
     } catch (ZipException e){
       e.printStackTrace();
     }
@@ -165,7 +173,7 @@ public class ExperimentController extends Controller {
       String dotBreadboard = readFile(outputFolder + File.separator + ".breadboard", StandardCharsets.UTF_8);
       ObjectMapper mapper = new ObjectMapper();
       JsonNode dotBreadboardJson = mapper.readTree(dotBreadboard);
-      String eVersion = dotBreadboardJson.findPath("experimentVersion").textValue();
+      String eVersion = dotBreadboardJson.findPath("version").textValue();
       String eUid = dotBreadboardJson.findPath("experimentUid").textValue();
       String eName = dotBreadboardJson.findPath("experimentName").textValue();
       // TODO: offer the option to import the Experiment UID and/or Name from the .breadboard file
