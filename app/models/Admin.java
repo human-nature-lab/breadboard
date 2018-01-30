@@ -103,7 +103,9 @@ public class Admin implements ClientListener {
           jsonOutput.put("action", "nodePropertyChanged");
           jsonOutput.put("id", vertex.getId().toString());
           jsonOutput.put("key", k.toString());
-          jsonOutput.put("value", gson.toJson(newMap.get(k)));
+          // Using gson here leads to a StackOverflowError due to a circular reference
+          //jsonOutput.put("value", gson.toJson(newMap.get(k)));
+          jsonOutput.put("value", Json.toJson(newMap.get(k)));
           out.write(jsonOutput);
         }
       }
@@ -111,7 +113,8 @@ public class Admin implements ClientListener {
       jsonOutput.put("action", "nodePropertyChanged");
       jsonOutput.put("id", vertex.getId().toString());
       jsonOutput.put("key", key);
-      jsonOutput.put("value", gson.toJson(setValue));
+      //jsonOutput.put("value", gson.toJson(setValue));
+      jsonOutput.put("value", Json.toJson(setValue));
       out.write(jsonOutput);
     }
   }
