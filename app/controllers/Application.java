@@ -235,7 +235,7 @@ public class Application extends Controller {
     Image image = Image.findById(imageId);
 
     if (image != null) {
-      if (image.contentType != null && image.thumbFile != null) {
+      if (image.contentType != null && image.thumbFile != null && image.thumbFile.length > 0) {
         response().setContentType(image.contentType);
         return ok(image.thumbFile);
       }
