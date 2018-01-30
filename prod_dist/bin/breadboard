@@ -232,7 +232,6 @@ run() {
   # If using JDK9 we need to add --add-modules java.xml.bind
   if [[ "$java_version" > "9" ]]; then
     addJava "--add-modules java.xml.bind"
-    addJava "--illegal-access=deny"
   fi
 
   # run sbt

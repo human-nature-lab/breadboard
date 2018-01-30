@@ -309,6 +309,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       buttons: {
         'Yes': function () {
           $breadboardFactory.send({"action": "DeleteExperiment", "selectedExperiment": selectedExperiment});
+          $scope.breadboard.user.selectedExperiment = null;
           $(this).dialog("close");
         },
         'No': function () {

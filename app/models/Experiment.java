@@ -1,5 +1,6 @@
 package models;
 
+import com.avaje.ebean.Ebean;
 import com.avaje.ebean.annotation.ConcurrencyMode;
 import com.avaje.ebean.annotation.EntityConcurrencyMode;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -257,9 +258,10 @@ public class Experiment extends Model {
 
   @Override
   public void delete() {
-    for (Language l : languages){
-      l.delete();
-    }
+    Ebean.createSqlUpdate("delete from experiments_languages where experiments_id = :experimentId")
+        .setParameter("experimentId", this.id)
+        .execute();
+
     for (Step s : steps) {
       s.delete();
     }
