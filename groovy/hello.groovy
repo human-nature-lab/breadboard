@@ -348,9 +348,9 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
 
   def hasVertex(id) {
     if (getVertex(id) == null)
-      return false;
+      return false
 
-    return true;
+    return true
   }
 
   def ring(random = true) {
@@ -803,7 +803,7 @@ class PlayerAI {
 
   def choose(Vertex player) {
     if (!this.isOn)
-      return;
+      return
 
     if (behaviors.containsKey(player)) {
       behaviors[player](player)
@@ -942,27 +942,21 @@ class PlayerActions {
 
   }
 
-  @Synchronized
   def remove(Vertex p) {
-    p.choices = []
-
-    def iterator = actions.entrySet().iterator()
-
-    while (iterator.hasNext()) {
-      if (iterator.next().value.player == p) {
-        iterator.remove()
-      }
-    }
-
-    //playerToActionQueue.remove(p)
-    playerToActionQueue[p] = [] as Queue
+    remove(p.id.toString())
   }
 
   def remove(String pid) {
-    // Remove all actions associated with the specified player
+    def removedChoices = false
     def pActions = getActions(pid)
     def pActionsKeys = pActions.keySet()
     pActionsKeys.each {
+      def action = actions.get(it)
+      if (! removedChoices && action.hasProperty("player")) {
+        action.player.choices = []
+        removedChoices = true
+      }
+
       actions.remove(it)
     }
   }
