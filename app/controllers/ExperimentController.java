@@ -477,27 +477,18 @@ public class ExperimentController extends Controller {
     if (imageFiles != null) {
       for (File imageFile : imageFiles) {
         String imageName = FilenameUtils.removeExtension(imageFile.getName());
-        byte[] imageBytes = FileUtils.readFileToByteArray(imageFile);
-        Image image = new Image();
-        image.fileName = imageFile.getName();
-        image.file = imageBytes;
-        image.contentType = "image/" + FilenameUtils.getExtension(imageFile.getName());
-
-        // Create thumbnail
-        InputStream in = new ByteArrayInputStream(image.file);
-        BufferedImage bImage = ImageIO.read(in);
-        BufferedImage scaledImage = Scalr.resize(bImage, 100);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(scaledImage, FilenameUtils.getExtension(imageFile.getName()), baos);
-        baos.flush();
-
-        byte[] thumbImageBytes = baos.toByteArray();
-        image.thumbFile = thumbImageBytes;
-        image.thumbFileName = (image.fileName).concat("_thumb");
-        baos.close();
-
-        experiment.images.add(image);
-        Logger.debug("Adding image: " + imageName);
+        String ext = FilenameUtils.getExtension(imageFile.getName());
+        if(ext.matches("(jpg|jpeg|png|bmp|gif)")) {
+          byte[] imageBytes = FileUtils.readFileToByteArray(imageFile);
+          Image image = new Image();
+          image.fileName = imageFile.getName();
+          image.file = imageBytes;
+          image.contentType = "image/" + FilenameUtils.getExtension(imageFile.getName());
+          experiment.images.add(image);
+          Logger.debug("Adding image: " + imageName);
+        } else {
+          Logger.debug("Skipping file of unsupported type: " + imageName);
+        }
       }
     }
 
