@@ -162,7 +162,8 @@ public class ExperimentController extends Controller {
         File contentDirectory = new File(outputFolder, "Content");
         if(!stepsDirectory.exists() || !contentDirectory.exists()){
           String msg = "No Steps or Content directories found. Please upload a valid experiment";
-          return badRequest("No Steps or Content directories found. Please upload a valid experiment");
+          Logger.debug(msg);
+          return badRequest(msg);
         }
       }
     } catch (ZipException e){
@@ -325,7 +326,9 @@ public class ExperimentController extends Controller {
         }
       } else {
         // Content is broken out by language
-        Language language = Language.findByIso3(langFileOrDir.getName());
+        String languageIso3 = langFileOrDir.getName().equals("null") ? user.defaultLanguage.getCode() : langFileOrDir.getName();
+        Language language = Language.findByIso3(languageIso3);
+//        Language language = Language.findByIso3(langFileOrDir.getName());
         try{
           importTranslations(experiment, language, langFileOrDir);
         } catch(IOException e){
@@ -443,6 +446,17 @@ public class ExperimentController extends Controller {
         translation.language = language;
         translation.html = FileUtils.readFileToString(file);
 
+        // Check for existing experiment language and add it if it doesn't exist
+        boolean hasExperimentLanguage = false;
+        for(Language l: experiment.languages){
+          if(l.id == language.id){
+            hasExperimentLanguage = true;
+          }
+        }
+        if(!hasExperimentLanguage){
+          experiment.languages.add(language);
+        }
+
         // Check for existing content and create if it doesn't exist
         String contentName = FilenameUtils.removeExtension(file.getName());
         Content content = null;
@@ -458,8 +472,9 @@ public class ExperimentController extends Controller {
           content.name = contentName;
           experiment.content.add(content);
         }
-        Logger.debug("Adding content: " + content.name + " with language " + language.name);
+        Logger.debug("Adding translation to " + content.name + " for language " + language.name);
         content.translations.add(translation);
+        Logger.debug("Translation length: " + content.translations.size());
       }
     }
 
