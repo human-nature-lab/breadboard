@@ -483,7 +483,7 @@ public class ExperimentController extends Controller {
       for (File imageFile : imageFiles) {
         String imageName = FilenameUtils.removeExtension(imageFile.getName());
         String ext = FilenameUtils.getExtension(imageFile.getName());
-        if(ext.matches("(jpg|jpeg|png|bmp|gif|svg)")) {
+        if(ext.matches("(jpg|jpeg|png|bmp|gif|svg|webp)")) {
           byte[] imageBytes = FileUtils.readFileToByteArray(imageFile);
           Image image = new Image();
           image.fileName = imageFile.getName();
