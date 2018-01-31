@@ -177,20 +177,6 @@ public class Application extends Controller {
         image.fileName = fileName;
         image.file = FileUtils.readFileToByteArray(file);
         image.contentType = contentType;
-
-        // Create thumbnail
-        InputStream in = new ByteArrayInputStream(image.file);
-        BufferedImage bImage = ImageIO.read(in);
-        BufferedImage scaledImage = Scalr.resize(bImage, 100);
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        ImageIO.write(scaledImage, image.contentType.replaceAll("image/", "").toLowerCase(), baos);
-        baos.flush();
-
-        byte[] imageBytes = baos.toByteArray();
-        image.thumbFile = imageBytes;
-        image.thumbFileName = (image.fileName).concat("_thumb");
-        baos.close();
-
         experiment.images.add(image);
         experiment.save();
       } catch (NullPointerException npe) {
