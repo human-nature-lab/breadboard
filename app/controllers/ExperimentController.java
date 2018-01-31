@@ -12,7 +12,6 @@ import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
-import org.imgscalr.Scalr;
 import play.Logger;
 import play.libs.Json;
 import play.mvc.Controller;
@@ -20,8 +19,6 @@ import play.mvc.Http;
 import play.mvc.Result;
 import play.mvc.Security;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +27,8 @@ import java.nio.file.Paths;
 import java.util.Date;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
+
+import static org.apache.commons.io.FileUtils.deleteDirectory;
 
 public class ExperimentController extends Controller {
 
@@ -78,20 +77,6 @@ public class ExperimentController extends Controller {
     return ok(experiment.toJson());
   }
 
-  static public boolean deleteDirectory(File path) {
-    if (path.exists()) {
-      File[] files = path.listFiles();
-      for (int i = 0; i < files.length; i++) {
-        if (files[i].isDirectory()) {
-          deleteDirectory(files[i]);
-        } else {
-          files[i].delete();
-        }
-      }
-    }
-    return (path.delete());
-  }
-
   @Security.Authenticated(Secured.class)
   public static Result importExperiment(String experimentName) throws IOException{
 
@@ -128,7 +113,8 @@ public class ExperimentController extends Controller {
     experiment.save();
 
     String timeString = new Date().getTime() + "";
-    String outputFolder = "experiments/" + experiment.name + "_" + experiment.id + "_" + timeString;
+    String rootOutputFolder = "experiments/" + experiment.name + "_" + experiment.id + "_" + timeString;
+    String outputFolder = rootOutputFolder;
 
     try {
       ZipFile zipFile = new ZipFile(zippedFile);
@@ -155,6 +141,7 @@ public class ExperimentController extends Controller {
         } else {
           String msg = "No Steps or Content directories found. Please upload a valid experiment";
           Logger.debug(msg);
+          deleteDirectory(new File(rootOutputFolder));
           return badRequest(msg);
         }
       } else {
@@ -163,6 +150,7 @@ public class ExperimentController extends Controller {
         if(!stepsDirectory.exists() || !contentDirectory.exists()){
           String msg = "No Steps or Content directories found. Please upload a valid experiment";
           Logger.debug(msg);
+          deleteDirectory(new File(rootOutputFolder));
           return badRequest(msg);
         }
       }
@@ -192,6 +180,8 @@ public class ExperimentController extends Controller {
     } catch(IOException e){
       Logger.debug("No .breadboard file present");
       import22To23(experiment, user, outputFolder);
+    } finally{
+      deleteDirectory(new File(rootOutputFolder));
     }
 
     return ok(experiment.toJson());
@@ -523,6 +513,8 @@ public class ExperimentController extends Controller {
       parameter.description = record.get("Short Description");
       experiment.parameters.add(parameter);
     }
+
+    in.close();
 
   }
 
