@@ -483,12 +483,16 @@ public class ExperimentController extends Controller {
       for (File imageFile : imageFiles) {
         String imageName = FilenameUtils.removeExtension(imageFile.getName());
         String ext = FilenameUtils.getExtension(imageFile.getName());
-        if(ext.matches("(jpg|jpeg|png|bmp|gif)")) {
+        if(ext.matches("(jpg|jpeg|png|bmp|gif|svg|webp)")) {
           byte[] imageBytes = FileUtils.readFileToByteArray(imageFile);
           Image image = new Image();
           image.fileName = imageFile.getName();
           image.file = imageBytes;
-          image.contentType = "image/" + FilenameUtils.getExtension(imageFile.getName());
+          String extension = FilenameUtils.getExtension(imageFile.getName());
+          image.contentType = "image/" + extension;
+          if(extension.equals("svg")){
+            image.contentType += "+xml";
+          }
           experiment.images.add(image);
           Logger.debug("Adding image: " + imageName);
         } else {
