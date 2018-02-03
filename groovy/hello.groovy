@@ -953,6 +953,7 @@ class PlayerActions {
     pActionsKeys.each {
       def action = actions.get(it)
       if (! removedChoices && action.hasProperty("player")) {
+        playerToActionQueue[action.player] = [] as Queue
         action.player.choices = []
         removedChoices = true
       }
