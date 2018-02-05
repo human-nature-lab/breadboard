@@ -219,7 +219,10 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
       def tim = new Timer()
       tim.scheduleAtFixedRate({
         player.timers[name].elapsed += timerUpdateRate
-      } as GroovyTimerTask, timerUpdateRate, timerUpdateRate)
+        // Updating this property triggers an update
+        // when breadboard is in event based update mode
+        player.timerUpdatedAt = System.currentTimeMillis()
+      } as GroovyTimerTask, 0, timerUpdateRate)
       tim.runAfter(time * 1000) {
         //println "Removing timer: " + name
         if (player.timers) {
