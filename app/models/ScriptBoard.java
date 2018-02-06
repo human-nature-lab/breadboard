@@ -584,8 +584,7 @@ public class ScriptBoard extends UntypedActor {
             admin.setOut(breadboardMessage.out);
           }
 
-          ObjectNode jsonOutput = Json.newObject();
-
+          //ObjectNode jsonOutput = Json.newObject();
           Graph wholeGraph = (Graph) engine.get("g");
 
           for (Admin admin : admins) {
@@ -596,8 +595,7 @@ public class ScriptBoard extends UntypedActor {
               admin.edgeAdded(e);
             }
           }
-
-          breadboardMessage.out.write(jsonOutput);
+          //breadboardMessage.out.write(jsonOutput);
         } else if (message instanceof Breadboard.GameFinish) {
           Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.ReloadEngine(breadboardMessage.user, breadboardMessage.out), null);
           Breadboard.breadboardController.tell(new Breadboard.Update(breadboardMessage.user, breadboardMessage.out), null);

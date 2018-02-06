@@ -43,13 +43,14 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $breadboardFactory.onmessage(function (data) {
     try {
-      if ($scope.breadboard == undefined) {
+      if ($scope.breadboard === undefined) {
         $scope.breadboard = {};
       }
+      console.log("$scope.breadboard, before", $scope.breadboard);
 
       $scope.breadboard = _.extend($scope.breadboard, data);
 
-      console.log("$scope.breadboard", $scope.breadboard);
+      console.log("$scope.breadboard, after", $scope.breadboard);
 
       if ($scope.breadboard.experiment != undefined) {
         // If there is style, apply it
@@ -712,7 +713,11 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.$on('$destroy', function(){
     // Destroy all of the popup windows.
-    $("[ui-jq=\"dialog\"]").dialog('destroy');
+    $timeout(
+      function() {
+        $("[ui-jq=\"dialog\"]").dialog('destroy');
+      }
+    );
 
     // TODO: Disconnect from websockets and other cleanup so that the application can restart without redirect
   });

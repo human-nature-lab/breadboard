@@ -29,7 +29,7 @@ angular.module('breadboard.routes', ['ui.router', 'breadboard.middleware', 'ngCo
       templateUrl: homeTemplateUrl,
       onExit: function(){
         // remove this hack once we're free of jquery ui dialogs
-        window.location.reload();
+        //window.location.reload();
       }
     })
     .state('create-first-user', {

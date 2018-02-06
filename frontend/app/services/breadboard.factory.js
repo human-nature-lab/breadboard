@@ -1,8 +1,8 @@
 import './websocket.factory';
 import 'angular';
 
-BreadboardFactory.$inject = ['websocketFactory', '$rootScope', '$cookieStore', '$http', '$q', 'configService'];
-export default function BreadboardFactory($websocketFactory, $rootScope, $cookieStore, $http, $q, configService) {
+BreadboardFactory.$inject = ['websocketFactory', '$rootScope', '$cookieStore', '$http', '$q', 'configService', '$timeout'];
+export default function BreadboardFactory($websocketFactory, $rootScope, $cookieStore, $http, $q, configService, $timeout) {
 
   let websocket;
   let nodeChangeListeners = [];
@@ -20,7 +20,7 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
   }
 
   function processMessage(data, callback) {
-    //console.log('processMessage', data);
+    console.log('processMessage', data);
     if (data.action !== undefined) {
       const g = $rootScope.$$childHead.breadboardGraph;
       if(data.action === "addNode")
@@ -67,38 +67,54 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
       }
     } else {
       $rootScope.$apply(function () {
-        //console.log("data", data);
+        console.log("data", data);
         callback(data);
       });
     }
   }
 
   let socketUrl;
+  /*
   let configPromise = configService.all().then(config => {
     websocket = $websocketFactory(config.connectSocket);
     websocket.onopen = function (evt) {
       websocket.send(JSON.stringify( {"action" : "LogIn", "uid" : config.uid }) );
     };
   });
+  */
 
+  let websocketMessages = [];
 
   let service = {
     onmessage: function (callback) {
-      configService.hasLoaded()
-        .then(() => {
-          setTimeout(function(){
-            websocket.onmessage = function(){
-              let args = arguments;
-              let data = JSON.parse(args[0].data);
-              if (data.queuedMessages != undefined) {
+      console.log("onmessage");
+      configService.all()
+        .then((config) => {console.log(".then()");
+            websocket = $websocketFactory(config.connectSocket);
+
+            console.log("setTimeout");
+            websocket.onmessage = function(message){
+              console.log("websocket.onmessage");
+
+              //let args = arguments;
+              //debugger;
+              //let data = JSON.parse(args[0].data);
+              let data = JSON.parse(message.data);
+              if (data.hasOwnProperty("queuedMessages")) {
                 for (var i = 0; i < data.queuedMessages.length; i++) {
                   processMessage(data.queuedMessages[i], callback);
                 }
               } else {
                 processMessage(data, callback);
               }
-            }
-          })
+            };
+
+            websocket.onopen = function (evt) {
+              websocket.send(JSON.stringify( {"action" : "LogIn", "uid" : config.uid }) );
+            };
+        },
+        function(error) {
+          console.error(error);
         })
     },
     send: function (message) {
