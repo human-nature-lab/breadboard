@@ -175,7 +175,7 @@
     <!-- Dialogs -->
 
     <!-- New Experiment Instance -->
-    <div id="newExperimentInstanceDialog" style="display: none;">
+    <div id="newExperimentInstanceDialog" style="display:none;">
         <form name="createExperimentInstanceForm" class="form-horizontal">
             <h4>Instance</h4>
             <div class="form-group">
@@ -193,7 +193,7 @@
 
                         <div class="col-md-4">
                             <input class="form-control" id="{{elem.name}}_text" ng-model="launchParameters[elem.name]"
-                                   type="text" ng-init="launchParameters[elem.name] = elem.defaultVal" required>
+                                   type="text" required>
                         </div>
                     </span>
 
@@ -202,7 +202,7 @@
 
                         <div class="col-md-4">
                             <input id="{{elem.name}}_checkbox" ng-model="launchParameters[elem.name]"
-                                   type="checkbox" ng-init="launchParameters[elem.name] = (elem.defaultVal === 'true')">
+                                   type="checkbox">
                         </div>
                     </span>
 
@@ -211,7 +211,7 @@
 
                         <div class="col-md-4">
                             <input class="form-control" id="{{elem.name}}_integer" ng-model="launchParameters[elem.name]"
-                                   type="number" step="1" min="{{elem.minVal}}" max="{{elem.maxVal}}" ng-init="launchParameters[elem.name] = (elem.defaultVal | asNumber)">
+                                   type="number" step="1" min="{{elem.minVal}}" max="{{elem.maxVal}}">
                         </div>
                     </span>
 
@@ -220,7 +220,7 @@
 
                         <div class="col-md-4">
                             <input class="form-control" id="{{elem.name}}_decimal" ng-model="launchParameters[elem.name]"
-                                   type="number" step=".01" min="{{elem.minVal}}" max="{{elem.maxVal}}" ng-init="launchParameters[elem.name] = (elem.defaultVal | asNumber)">
+                                   type="number" step=".01" min="{{elem.minVal}}" max="{{elem.maxVal}}">
                         </div>
                     </span>
 
@@ -229,7 +229,7 @@
                 </div>
             </div>
             <div class="form-group col-md-12 text-right">
-                <button class="btn btn-default" ng-disabled="createExperimentInstanceForm.$invalid" ng-click="launchGame()">Create</button>
+                <button class="btn btn-default" ng-disabled="createExperimentInstanceForm.$invalid" ng-click="launchGame(breadboard.experiment.id, experimentInstanceName)">Create</button>
             </div>
         </form>
     </div>

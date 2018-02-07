@@ -46,28 +46,12 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       if ($scope.breadboard === undefined) {
         $scope.breadboard = {};
       }
-      //console.log("$scope.breadboard, before", $scope.breadboard);
-
       $scope.breadboard = _.extend($scope.breadboard, data);
-
-      //console.log("$scope.breadboard, after", $scope.breadboard);
 
       if ($scope.breadboard.experiment != undefined) {
         // If there is style, apply it
         if ($scope.breadboard.experiment.style) {
           applyStyle();
-        }
-
-        if ($scope.breadboard.experiment.parameters != undefined) {
-          // Set parameters in Launch dialog to default values
-          /*
-          for (var i = 0; i < $scope.breadboard.experiment.parameters.length; i++) {
-            var parameter = $scope.breadboard.experiment.parameters[i];
-            if (!$scope.launchParameters[parameter.name]) {
-              $scope.launchParameters[parameter.name] = parameter.defaultVal;
-            }
-          }
-          */
         }
       }
     }
@@ -279,10 +263,30 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   $scope.openNewInstanceModal = function(){
+    // Clear launch parameters
+    $scope.experimentInstanceName = "";
+    $scope.launchParameters = {};
+
+    // Set default launch parameters
+    for (var i = 0; i < $scope.breadboard.experiment.parameters.length; i++) {
+      var parameter = $scope.breadboard.experiment.parameters[i];
+      var val = parameter.defaultVal;
+      if (parameter.type === 'Boolean') {
+        val = (val === 'true');
+      }
+      if (parameter.type === 'Integer') {
+        val = parseInt(val, 10);
+      }
+      if (parameter.type === 'Decimal') {
+        val = parseFloat(val);
+      }
+      $scope.launchParameters[parameter.name] = val;
+    }
 
     $("#newExperimentInstanceDialog").dialog({
       title: 'Create an experiment instance',
-      width: '600px',
+      width: '80%',
+      height: (window.innerHeight * 0.8),
       modal: 'true'
     });
 
@@ -290,14 +294,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.launchParameters = {};
 
-  $scope.launchGame = function () {
+  $scope.launchGame = function (experimentId, experimentInstanceName) {
     $('#newExperimentInstanceDialog').dialog('close');
     $('#launchDiv').dialog('open');
-    $('#graphDiv').dialog('open');
+    //$('#graphDiv').dialog('open');
     $breadboardFactory.send(
       {
         "action": "LaunchGame",
-        "name": $scope.experimentInstanceName,
+        "experimentId": experimentId,
+        "name": experimentInstanceName,
         "parameters": $scope.launchParameters
       });
   };
