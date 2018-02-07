@@ -20,7 +20,7 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
   }
 
   function processMessage(data, callback) {
-    console.log('processMessage', data);
+    //console.log('processMessage', data);
     if (data.action !== undefined) {
       const g = $rootScope.$$childHead.breadboardGraph;
       if(data.action === "addNode")
@@ -67,7 +67,7 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
       }
     } else {
       $rootScope.$apply(function () {
-        console.log("data", data);
+        //console.log("data", data);
         callback(data);
       });
     }
@@ -87,14 +87,15 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
 
   let service = {
     onmessage: function (callback) {
-      console.log("onmessage");
+      //console.log("onmessage");
       configService.all()
-        .then((config) => {console.log(".then()");
+        .then((config) => {
+            //console.log(".then()");
             websocket = $websocketFactory(config.connectSocket);
 
-            console.log("setTimeout");
+            //console.log("setTimeout");
             websocket.onmessage = function(message){
-              console.log("websocket.onmessage");
+              //console.log("websocket.onmessage");
 
               //let args = arguments;
               //debugger;

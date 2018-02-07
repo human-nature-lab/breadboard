@@ -46,11 +46,11 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       if ($scope.breadboard === undefined) {
         $scope.breadboard = {};
       }
-      console.log("$scope.breadboard, before", $scope.breadboard);
+      //console.log("$scope.breadboard, before", $scope.breadboard);
 
       $scope.breadboard = _.extend($scope.breadboard, data);
 
-      console.log("$scope.breadboard, after", $scope.breadboard);
+      //console.log("$scope.breadboard, after", $scope.breadboard);
 
       if ($scope.breadboard.experiment != undefined) {
         // If there is style, apply it
@@ -92,7 +92,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.scriptEngineState = $scope.ENGINE_STATE.READY;
 
   $scope.$watch('breadboard.notify', function(notify) {
-    console.log('notify', notify);
+    //console.log('notify', notify);
     if (notify) {
       if (notify.hasOwnProperty('ScriptEngineReloaded') &&
         notify['ScriptEngineReloaded'] !== $scope.scriptEngineLastReloaded) {
@@ -347,7 +347,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   $scope.submitAMTTask = function (lifetimeInSeconds, tutorialTime) {
-    console.log('submitAMTTask', lifetimeInSeconds, tutorialTime);
+    //console.log('submitAMTTask', lifetimeInSeconds, tutorialTime);
     $breadboardFactory.send({
       "action": "SubmitAMTTask",
       "lifetimeInSeconds": lifetimeInSeconds,
