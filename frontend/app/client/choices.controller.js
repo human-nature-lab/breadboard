@@ -1,9 +1,14 @@
-ChoicesCtrl.$inject = ['$scope', 'clientFactory']
+import _ from 'underscore';
+ChoicesCtrl.$inject = ['$scope', 'clientFactory'];
 export default function ChoicesCtrl($scope, $clientFactory) {
   $scope.custom = undefined;
-
+  $scope.hasSelectedChoice = false;
   $scope.makeChoice = function (uid) {
     //console.log("makeChoice");
+    // Find the current choice and add wasSelected attribute
+    var choice = $scope.childChoices.find(function(choice){return choice.uid===uid});
+    choice.wasSelected = true;
+    $scope.hasSelectedChoice = true;
     $scope.params= {};
     if (angular.element('.param')) {
       angular.forEach(angular.element(".param"), function(value, key){
@@ -45,6 +50,9 @@ export default function ChoicesCtrl($scope, $clientFactory) {
       $scope.custom = newValue[0].custom;
     } else {
       $scope.custom = undefined;
+    }
+    if(!(_.isMatch(newValue, $scope.childChoices))){
+      $scope.hasSelectedChoice = false;
     }
     $scope.childChoices = newValue;
   }, true);

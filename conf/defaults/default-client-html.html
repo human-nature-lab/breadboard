@@ -15,8 +15,8 @@
             <div id="choices" ng-controller="ChoicesCtrl">
                 <ng-form name="choicesForm" ng-hide="client.player.choices === undefined">
                     <div ng-if="custom" bind-html-compile="custom"></div>
-                    <button ng-repeat="choice in childChoices |filter: {class: '!drop'}" class="{{choice.class}}" ng-click="makeChoice(choice.uid)" ng-disabled="choicesForm.$invalid">
-                        {{choice.name}}
+                    <button ng-repeat="choice in childChoices |filter: {class: '!drop'}" class="{{choice.class}}" ng-click="makeChoice(choice.uid)" ng-disabled="choicesForm.$invalid || hasSelectedChoice">
+                        {{choice.name}} <span ng-if="choice.wasSelected" class="fa fa-spinner fa-spin"></span>
                     </button>
                 </ng-form>
             </div> <!-- choices -->
