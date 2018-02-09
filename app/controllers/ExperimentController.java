@@ -68,6 +68,9 @@ public class ExperimentController extends Controller {
     }
 
     experiment.name = newExperimentName;
+    if (user.defaultLanguage != null) {
+      experiment.languages.add(user.defaultLanguage);
+    }
     experiment.save();
 
     user.ownedExperiments.add(experiment);
