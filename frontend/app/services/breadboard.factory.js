@@ -90,8 +90,11 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
       //console.log("onmessage");
       configService.all()
         .then((config) => {
-            //console.log(".then()");
-            websocket = $websocketFactory(config.connectSocket);
+          setTimeout(function() {
+          //console.log(".then()");
+
+            //console.log('config', config);
+          websocket = $websocketFactory(config.connectSocket);
 
             //console.log("setTimeout");
             websocket.onmessage = function(message){
@@ -113,6 +116,7 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
             websocket.onopen = function (evt) {
               websocket.send(JSON.stringify( {"action" : "LogIn", "uid" : config.uid }) );
             };
+          });
         },
         function(error) {
           console.error(error);

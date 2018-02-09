@@ -1,8 +1,9 @@
 ConfigService.$inject = ['$http', '$q'];
 export default function ConfigService($http, $q){
-  let config = null;
+  //let config = null;
 
   // Makes the initial request for the configuration parameters
+  /*
   const configPromise = $http.get('state')
     .then(function(res){
       config = res.data;
@@ -15,6 +16,7 @@ export default function ConfigService($http, $q){
   this.hasLoaded = function(){
     return $q.when(configPromise);
   };
+    */
 
   /**
    * Should be used to access all configuration properties set by the /state route
@@ -22,9 +24,11 @@ export default function ConfigService($http, $q){
    * @returns {Promise}
    */
   this.get = function(key){
-    return $q.when(configPromise)
-      .then(function(){
-        return config[key];
+    //return $q.when(configPromise)
+    return $http.get('state', {cache: true})
+      .then(function(res){
+        //return config[key];
+        return res.data[key];
       }, function(err){
         throw err;
       });
@@ -35,9 +39,12 @@ export default function ConfigService($http, $q){
    * @returns {Promise}
    */
   this.all = function(){
-    return $q.when(configPromise)
-      .then(function(){
-        return Object.assign({}, config);
+    //return $q.when(configPromise)
+    //return configPromise
+    return $http.get('state', {cache: true})
+      .then(function(res){
+        //return Object.assign({}, config);
+        return res.data;
       }, function(err){
         throw err;
       })
@@ -49,6 +56,7 @@ export default function ConfigService($http, $q){
    * @param val - value to set it to
    * @returns {Promise}
    */
+  /*
   this.set = function(key, val){
     return $q.when(configPromise)
       .then(function(){
@@ -58,4 +66,5 @@ export default function ConfigService($http, $q){
         throw err;
       });
   }
+  */
 }
