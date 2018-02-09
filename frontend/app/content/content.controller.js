@@ -46,6 +46,8 @@ export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderB
   $scope.$watch('experimentId', function(newExperimentId, oldExperimentId) {
     if (newExperimentId !== oldExperimentId) {
       vm.experimentId = $scope.experimentId;
+      vm.experimentLanguages = $scope.experimentLanguages;
+      vm.selectedLanguage = vm.experimentLanguages[0];
       getContent();
     }
   });
