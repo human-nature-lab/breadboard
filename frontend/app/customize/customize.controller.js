@@ -24,7 +24,10 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
       matchBrackets: true,
       mode: 'text/html',
       extraKeys: {
-        "Ctrl-Enter": updateClientHtml
+        "Ctrl-Enter": updateClientHtml,
+        "Ctrl-S" : function() {
+          $scope.saveCustomize()
+        }
       },
       vimMode: false,
       showCursorWhenSelecting: true
@@ -41,7 +44,10 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
       matchBrackets: true,
       mode: 'text/javascript',
       extraKeys: {
-        "Ctrl-Enter": updateClientGraph
+        "Ctrl-Enter": updateClientGraph,
+        "Ctrl-S" : function() {
+          $scope.saveCustomize()
+        }
       },
       vimMode: false,
       showCursorWhenSelecting: true
@@ -58,7 +64,10 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
       matchBrackets: true,
       mode: 'text/css',
       extraKeys: {
-        "Ctrl-Enter": updateStyle
+        "Ctrl-Enter": updateStyle,
+        "Ctrl-S" : function() {
+          $scope.saveCustomize()
+        }
       },
       vimMode: false,
       showCursorWhenSelecting: true

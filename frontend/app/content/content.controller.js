@@ -1,3 +1,4 @@
+import KEYS from '../util/keycodes';
 ContentCtrl.$inject = ['$scope', 'ContentSrv', 'STATUS', '$timeout', 'orderByFilter', 'languageService', 'alertService'];
 export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderBy, languageService, alertService) {
   let vm = this;
@@ -34,7 +35,17 @@ export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderB
     content_css: '/assets/css/tinymce.css',
     valid_elements: '*[*]',
     resize: true,
-    autoresize_max_height: ($('#contentDiv').height() - $('#contentNavDiv').height() - $('#contentErrorDiv').height())
+    autoresize_max_height: ($('#contentDiv').height() - $('#contentNavDiv').height() - $('#contentErrorDiv').height()),
+    setup: function(editor) {
+      //Focus the editor on load
+      $timeout(function(){ editor.focus(); });
+      editor.on("keydown", function(e) {
+        if(e.ctrlKey && e.keyCode === KEYS.S){
+          $scope.saveContent();
+          e.preventDefault();
+        }
+      });
+    }
   };
 
   vm.selectedContent = undefined;

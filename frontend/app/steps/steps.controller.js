@@ -19,7 +19,10 @@ export default function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy, a
     matchBrackets: true,
     mode: 'text/x-groovy',
     extraKeys: {
-      "Ctrl-Enter": updateSelectedStep
+      "Ctrl-Enter": updateSelectedStep,
+      "Ctrl-S": function() {
+        $scope.saveSteps();
+      }
     },
     vimMode: false,
     showCursorWhenSelecting: true
