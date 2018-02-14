@@ -3,7 +3,7 @@ ClientCtrl.$inject = ['$scope', 'clientFactory', '$location', 'clientGraph', 'co
 function ClientCtrl($scope, $clientFactory, $location, clientGraph, configService) {
   $scope.languages = [];
   $scope.selectedLanguage = ($location.search().language) ? $location.search().language : "";
-
+  $scope.timers = [];
   $scope.selectLanguage = function(language) {
     $scope.selectedLanguage = language;
     $location.search('language', language);
@@ -33,7 +33,26 @@ function ClientCtrl($scope, $clientFactory, $location, clientGraph, configServic
         }
         if (data.hasOwnProperty("player")) {
           $scope.client.player = _(data.player).clone();
-          //console.log("data.player", $scope.client.player);
+          if($scope.client.player.timers){
+            var timerIds = Object.keys($scope.client.player.timers);
+            if(timerIds.length.length !== $scope.timers.length){
+              $scope.timers = [];
+              for(var i=0; i<timerIds.length; i++){
+                var timer = $scope.client.player.timers[timerIds[i]];
+                timer.id = timerIds[i];
+                $scope.timers.push(timer);
+              }
+              // All this work for a sort... Makes you wonder
+              $scope.timers.sort(function(a, b){
+                return a.order > b.order;
+              });
+            } else {
+              for(let i=0; i<$scope.timers.length; i++){
+                $scope.client.player.timers[$scope.timers[i].id].id = $scope.timers[i].id;
+                $scope.timers[i] = $scope.client.player.timers[$scope.timers[i].id];
+              }
+            }
+          }
         }
         if (data.hasOwnProperty("style")) {
           $scope.client.style = _(data.style).clone();
