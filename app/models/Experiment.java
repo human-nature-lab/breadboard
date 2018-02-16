@@ -143,6 +143,9 @@ public class Experiment extends Model {
     for (Image image : experiment.images) {
       this.images.add(new Image(image));
     }
+    for(Language language : experiment.languages) {
+      this.languages.add(language);
+    }
   }
 
   public void export() throws IOException {

@@ -706,6 +706,27 @@
                 </div>
             </div>
             <div class="form-inline text-right" ng-show="manageWorkers.status === 1 || manageWorkers.status === 2">
+                <!-- TODO: finish this feature for v2.3.X
+                <div class="form-group">
+                    <button ngf-select
+                            class="btn btn-default drop-zone"
+                            ngf-pattern="'.csv'"
+                            ng-model="manageWorkers.file"
+                            ng-disabled="manageWorkers.importStatus !== 0"
+                            required>
+                        Import workers
+                        <i ng-show="manageWorkers.importStatus === 3"
+                           class="fa fa-info-circle text-danger"
+                           aria-hidden="true"></i>
+                        <i ng-show="manageWorkers.importStatus === 2"
+                           class="fa fa-check-circle text-success"
+                           aria-hidden="true"></i>
+                        <i ng-show="manageWorkers.importStatus === 1"
+                           class="fa fa-refresh fa-spin text-info"
+                           aria-hidden="true"></i>
+                    </button>
+                </div>
+                TODO -->
                 <label for="resultsPerPage"
                        class="control-label">Results per page</label>
                 <div id="resultsPerPage" class="btn-group" role="group" aria-label="Results per page">

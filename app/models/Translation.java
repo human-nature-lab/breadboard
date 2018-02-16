@@ -43,6 +43,11 @@ public class Translation extends Model implements Serializable {
 
   public Translation() {}
 
+  public Translation(Translation t) {
+    this.html = t.html;
+    this.language = t.language;
+  }
+
   public Long getId() {
     return id;
   }

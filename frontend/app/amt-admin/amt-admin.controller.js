@@ -1,6 +1,6 @@
 import _ from 'underscore';
 
-function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
+function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
   $scope.accountBalance = null;
   $scope.tokens = [null];
   $scope.curToken = 0;
@@ -53,7 +53,10 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
     'page': 1,
     'total': 0,
     'search': '',
-    'lastSearch': ''
+    'lastSearch': '',
+    'file': undefined,
+    'importStatus': 0, // 0: not uploaded, 1, uploading, 2: uploaded, 3: error
+    'importError': ''
   };
 
   $scope.$watch('experimentInstance', function(experimentInstance, oldExperimentInstance) {
@@ -104,6 +107,32 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
       debounceGetAMTWorkers();
     }
 
+  });
+
+  $scope.$watch('manageWorkers.file', function() {
+    if(!$scope.manageWorkers.file || !$scope.experiment) return;
+    $scope.manageWorkers.importStatus = 1; //Uploading
+    Upload.upload({
+      url: '/amtadmin/importAMTWorkers/' +  $scope.experiment.id + '?sandbox=' + $scope.sandbox,
+      data: {
+        file: $scope.manageWorkers.file
+      }
+    }).then(function(resp){
+      if (resp.status < 400) { //Success
+        $scope.manageWorkers.file = undefined;
+        $scope.manageWorkers.importStatus = 2; //Uploaded
+        $timeout(function() {
+          $scope.manageWorkers.importStatus = 0;
+        }, 1500);
+      } else {
+        $scope.manageWorkers.importStatus = 3; //Error
+        $scope.manageWorkers.importError = (resp.data) ? resp.data : resp; //Error
+      }
+    }, function(err){
+      $scope.manageWorkers.importError = (err.data) ? err.data : err; //Error
+    }, function(evt){
+      console.log('import upload progress', evt);
+    });
   });
 
   $scope.$watch('manageWorkers.limit', function(newLimit, oldLimit) {
@@ -583,6 +612,6 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout) {
   }
 }
 
-AMTAdminCtrl.$inject = ['$scope', 'AMTAdminSrv', '$q', '$filter', '$timeout'];
+AMTAdminCtrl.$inject = ['$scope', 'AMTAdminSrv', '$q', '$filter', '$timeout', 'Upload'];
 
 export default AMTAdminCtrl;

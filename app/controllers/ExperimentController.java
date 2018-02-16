@@ -41,7 +41,7 @@ public class ExperimentController extends Controller {
       return badRequest("Expecting Json data");
     } else {
       newExperimentName = json.findPath("newExperimentName").textValue();
-      copyExperimentId = json.findPath("copyExperimentId").longValue();
+      copyExperimentId = json.findPath("copyExperimentId").asLong();
     }
 
     if (newExperimentName == null) {
@@ -68,7 +68,7 @@ public class ExperimentController extends Controller {
     }
 
     experiment.name = newExperimentName;
-    if (user.defaultLanguage != null) {
+    if (user.defaultLanguage != null && copyExperiment == null) {
       experiment.languages.add(user.defaultLanguage);
     }
     experiment.save();

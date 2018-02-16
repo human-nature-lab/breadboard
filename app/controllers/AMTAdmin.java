@@ -15,16 +15,18 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.*;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVRecord;
 import org.apache.commons.io.IOUtils;
 import play.Logger;
 import play.Play;
 import play.libs.*;
 import play.mvc.Controller;
+import play.mvc.Http;
 import play.mvc.Result;
 import play.mvc.Security;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.*;
 
 public class AMTAdmin extends Controller {
@@ -77,6 +79,110 @@ public class AMTAdmin extends Controller {
       jsonAssignments.addAll(assignments);
       return worker;
     }
+  }
+
+  @Security.Authenticated(Secured.class)
+  public static Result importAMTWorkers(Long experimentId, Boolean sandbox) {
+    Http.MultipartFormData body = request().body().asMultipartFormData();
+    Long maxUploadSize = play.Play.application().configuration().getLong("maxUploadSize", 50L * 1024L * 1024L);
+
+    // Validate Content-Length header
+    try {
+      Long fileSize = Long.parseLong(request().getHeader("Content-Length"), 10);
+      if (fileSize > maxUploadSize) {
+        return badRequest("Uploaded file is too large");
+      }
+    } catch(Exception e){
+      return badRequest("Upload was malformed");
+    }
+
+    // Validate the size of the file
+    Http.MultipartFormData.FilePart filePart = body.getFile("file");
+    File workerCsvFile = filePart.getFile();
+
+    Experiment experiment = Experiment.findById(experimentId);
+
+    // Validate the other data
+    if(experiment == null){
+      return badRequest("Invalid experiment ID");
+    }
+
+    if(workerCsvFile.length() > maxUploadSize){
+      return badRequest("Uploaded file is too large");
+    }
+
+    try {
+      Reader in = new FileReader(workerCsvFile);
+      try {
+        Date now = new Date();
+        String importTitle = "IMPORTED_" + experimentId + "_" + now.getTime();
+        // Add a fake Experiment Instance
+        ExperimentInstance instance = new ExperimentInstance(importTitle, experiment);
+        experiment.instances.add(instance);
+        experiment.save();
+
+        // Add a fake AMTHit for the import
+        AMTHit amtHit = new AMTHit();
+        amtHit.creationDate = now;
+        amtHit.requestId = "IMPORTED";
+        amtHit.isValid = "true";
+        amtHit.hitId = "IMPORTED_" + experimentId + "_" + now.getTime();
+        amtHit.title = "IMPORTED INTO " + experiment.name + " AT " + now.getTime();
+        amtHit.description = "This is a fake HIT created by breadboard when importing AMT Worker IDs to prevent repeat play.";
+        amtHit.lifetimeInSeconds = "0";
+        amtHit.tutorialTime = "0";
+        amtHit.maxAssignments = "0";
+        amtHit.externalURL = "IMPORTED";
+        amtHit.reward = "0";
+        amtHit.disallowPrevious = "none";
+        amtHit.sandbox = sandbox;
+        amtHit.setExtended(false);
+        amtHit.experimentInstance = instance;
+        amtHit.save();
+
+        int assignmentIndex = 0;
+        CSVFormat format = CSVFormat.DEFAULT;
+        for (CSVRecord record : format.parse(in)) {
+          String workerId = record.get(0);
+          Logger.debug("workerId = " + workerId);
+          AMTWorker amtWorker = AMTWorker.findByWorkerId(workerId);
+          if (amtWorker == null) {
+            amtWorker = new AMTWorker();
+            amtWorker.workerId = workerId;
+            amtWorker.score = "";
+            amtWorker.completion = "";
+            amtWorker.amtHit = amtHit;
+            amtWorker.save();
+          }
+
+          // Add an assignment for the current experiment and mark it as completed
+          AMTAssignment amtAssignment = new AMTAssignment();
+          amtAssignment.assignmentId = "IMPORTED_" + experimentId + "_" + now.getTime() + "_" + (++assignmentIndex);
+          amtAssignment.workerId = workerId;
+          amtAssignment.assignmentCompleted = true;
+          amtAssignment.assignmentStatus = "IMPORTED";
+          amtAssignment.autoApprovalTime = "IMPORTED";
+          amtAssignment.acceptTime = null;
+          amtAssignment.submitTime = null;
+          amtAssignment.answer = "";
+          amtAssignment.score = "";
+          amtAssignment.reason = "IMPORTED";
+          amtAssignment.completion = "";
+          amtAssignment.bonusAmount = "";
+          amtAssignment.bonusGranted = false;
+          amtAssignment.workerBlocked = false;
+          amtAssignment.qualificationAssigned = false;
+          amtAssignment.amtHit = amtHit;
+          amtAssignment.save();
+        }
+      } finally {
+        in.close();
+      }
+    } catch (IOException ioe) {
+      return badRequest("Error reading uploaded file");
+    }
+
+    return ok();
   }
 
   @Security.Authenticated(Secured.class)

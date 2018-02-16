@@ -33,7 +33,7 @@ public class AMTWorker extends Model {
   }
 
   public static AMTWorker findByWorkerId(String workerId) {
-    return find.where().eq("workerId", workerId).findUnique();
+    return find.where().eq("workerId", workerId).setMaxRows(1).findUnique();
   }
 
   public static int countByWorkerId(String wid) {
