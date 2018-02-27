@@ -221,7 +221,7 @@ public class ExperimentController extends Controller {
       zos.write(experiment.style.getBytes());
       zos.closeEntry();
 
-      e = new ZipEntry("client.html");
+      e = new ZipEntry("client-html.html");
       zos.putNextEntry(e);
       zos.write(experiment.clientHtml.getBytes());
       zos.closeEntry();
