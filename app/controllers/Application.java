@@ -276,7 +276,7 @@ public class Application extends Controller {
 
     csv.append("\n");
 
-    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    SimpleDateFormat simpleDateFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS'Z'");
 
     List<ExperimentInstance> instances = experiment.instances;
     for (ExperimentInstance instance : instances) {
@@ -323,7 +323,7 @@ public class Application extends Controller {
       for (EventData eventData : eventDatas) {
         csv.append("\"").append(event.id).append("\",\"")
             .append(event.name).append("\",\"")
-            .append(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'").format(event.datetime))
+            .append(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss:SSS'Z'").format(event.datetime))
             .append("\",\"").append(eventData.name).append("\",")
             .append(eventData.valueToCSV()).append("\n");
       }
