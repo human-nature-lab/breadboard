@@ -100,10 +100,30 @@ public class ScriptBoard extends UntypedActor {
       engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", experiment.contentFetcher);
     }
 
-    // Run the test Groovy script here
-    File scriptFile = new File(Play.application().path().toString() + "/groovy/hello.groovy");
-    String scriptString = FileUtils.readFileToString(scriptFile, "UTF-8");
-    engine.eval(scriptString);
+    // Load Groovy scripts
+    File utilFile = new File(Play.application().path().toString() + "/groovy/util.groovy");
+    String utilString = FileUtils.readFileToString(utilFile, "UTF-8");
+    engine.eval(utilString);
+
+    File graphFile = new File(Play.application().path().toString() + "/groovy/graph.groovy");
+    String graphString = FileUtils.readFileToString(graphFile, "UTF-8");
+    engine.eval(graphString);
+
+    File actionsFile = new File(Play.application().path().toString() + "/groovy/actions.groovy");
+    String actionsString = FileUtils.readFileToString(actionsFile, "UTF-8");
+    engine.eval(actionsString);
+
+    File stepFile = new File(Play.application().path().toString() + "/groovy/step.groovy");
+    String stepString = FileUtils.readFileToString(stepFile, "UTF-8");
+    engine.eval(stepString);
+
+    File timerFile = new File(Play.application().path().toString() + "/groovy/timer.groovy");
+    String timerString = FileUtils.readFileToString(timerFile, "UTF-8");
+    engine.eval(timerString);
+
+    File testFile = new File(Play.application().path().toString() + "/groovy/test.groovy");
+    String testString = FileUtils.readFileToString(testFile, "UTF-8");
+    engine.eval(testString);
 
     // get script object on which we want to implement the interface with
     Object a = engine.get("a");

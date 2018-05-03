@@ -42,7 +42,7 @@ public class Global extends GlobalSettings {
       sql = "create table breadboard_version ( version varchar(255) ); ";
       Ebean.createSqlUpdate(sql).execute();
       // Update the version
-      sql = "insert into breadboard_version values ('v2.3.0'); ";
+      sql = "insert into breadboard_version values ('v2.3.1'); ";
       Ebean.createSqlUpdate(sql).execute();
 
       // Create the languages table

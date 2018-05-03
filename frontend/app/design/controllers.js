@@ -591,6 +591,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     buttons: {}
   };
 
+  $scope.testingDialogOptions = {
+    title: 'Testing',
+    autoOpen: false,
+    width: windowWidth,
+    height: windowHeight - 9, // Not sure why the AMT dialog is 9 pixels higher than the others...
+    position: [margin, topDivHeight],
+    buttons: {}
+  };
+
   /* START These three dialogs auto-open */
   $scope.outputDialogOptions = {
     title: 'Output',

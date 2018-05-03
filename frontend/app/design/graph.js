@@ -218,12 +218,11 @@ function Graph(_width, _height, parentScope) {
 
   this.linkPropertyChanged = function (id, key, value) {
     var link = findLink(id);
-    link[key] = value;
-    if (_.indexOf(ignoreProps, key) == -1) {
-      // Performance bottleneck here:
-      //vis.selectAll("line.link").attr(key, function(d, i) {
-      vis.select("#link_" + id).attr(key, function (d, i) {
-        //console.log("setting node attribute " + key + " + to " + d[key]);
+    if (link) {
+      link[key] = value;
+    }
+    if (_.indexOf(ignoreProps, key) === -1) {
+      vis.select("#link_" + id).attr(key, function (d) {
         return d[key];
       });
     }

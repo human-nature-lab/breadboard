@@ -1,0 +1,11 @@
+<div>
+    <div class="testing-iframe-div" ng-repeat="node in testNodes()">
+        <span class="label label-primary testing-iframe-label">{{ node.id }}</span>
+        <iframe id="testing-iframe-{{node.id}}"
+                class="testing-iframe"
+                src="{{ getTestClientURL(experimentId, experimentInstanceId, node.id) }}"
+                width="320"
+                height="180">
+        </iframe>
+    </div>
+</div>
