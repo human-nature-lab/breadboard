@@ -1,0 +1,321 @@
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-5">
+            <table class="table table-condensed">
+                <thead>
+                    <tr>
+                        <th>Experiment</th>
+                        <th>Experiment UID</th>
+                        <th>Qualification ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                <tr ng-repeat-start="qualificationType in qualificationTypes"
+                    ng-class="{'info':(qualificationType === selectedQualificationType)}"
+                    ng-click="selectQualificationType(qualificationType)"
+                    role="button">
+                    <td>{{ qualificationType.experimentName }}</td>
+                    <td>
+                        <span tooltip="{{ qualificationType.experimentUid }}"
+                              tooltip-append-to-body="true">
+                            {{ qualificationType.experimentUid | shortId }}
+                        </span>
+                    </td>
+                    <td>
+                        <span tooltip="{{ qualificationType.qualificationTypeId }}"
+                              tooltip-append-to-body="true">
+                            {{ (qualificationType.qualificationTypeId === null) ? "None" : qualificationType.qualificationTypeId | shortId }}
+                        </span>
+                    </td>
+                </tr>
+                <tr class="info" ng-if="qualificationType === selectedQualificationType && selectedQualificationType.qualificationTypeId !== null">
+                    <td colspan="3">
+                        <table class="table table-condensed">
+                            <tbody>
+                              <tr>
+                                  <td>Experiment UID</td><td>{{ selectedQualificationType.experimentUid }}</td>
+                              </tr>
+                              <tr>
+                                  <td>Qualification ID</td><td>{{ selectedQualificationType.qualificationTypeId }}</td>
+                              </tr>
+                              <tr>
+                                  <td>Status</td><td>{{ selectedQualificationType.qualificationTypeStatus }}</td>
+                              </tr>
+                              <tr>
+                                  <td>Creation time</td><td>{{ selectedQualificationType.creationTime }}</td>
+                              </tr>
+                            </tbody>
+                        </table>
+                        <div class="form-inline pull-right">
+                            <div class="form-group">
+                                <button class="btn btn-default"
+                                        ng-disabled="addQualificationsStatus !== 0"
+                                        ng-click="openAddQualificationsDialog()">
+                                    Add participants
+                                    <i ng-show="addQualificationsStatus === 3"
+                                       class="fa fa-info-circle text-danger"
+                                       aria-hidden="true"></i>
+                                    <i ng-show="addQualificationsStatus === 2"
+                                       class="fa fa-check-circle text-success"
+                                       aria-hidden="true"></i>
+                                    <i ng-show="addQualificationsStatus === 1"
+                                       class="fa fa-refresh fa-spin text-info"
+                                       aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                <tr class="info" ng-if="qualificationType === selectedQualificationType && selectedQualificationType.qualificationTypeId === null"
+                    ng-repeat-end>
+                    <td colspan="3">
+                        <table class="table table-condensed">
+                            <tbody>
+                            <tr>
+                                <td>Experiment UID</td><td>{{ qualificationType.experimentUid }}</td>
+                            </tr>
+                            <tr>
+                                <td colspan="2">No qualification type found for this experiment.</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                        <div class="form-inline pull-right">
+                            <div class="form-group">
+                                <button class="btn btn-default"
+                                        ng-disabled="addQualificationTypeStatus !== 0"
+                                        ng-click="addQualificationType(qualificationType.experimentUid)">
+                                    Add qualification type
+                                    <i ng-show="addQualificationTypeStatus === 3"
+                                       class="fa fa-info-circle text-danger"
+                                       aria-hidden="true"></i>
+                                    <i ng-show="addQualificationTypeStatus === 2"
+                                       class="fa fa-check-circle text-success"
+                                       aria-hidden="true"></i>
+                                    <i ng-show="addQualificationTypeStatus === 1"
+                                       class="fa fa-refresh fa-spin text-info"
+                                       aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th>Experiment</th>
+                        <th>Experiment UID</th>
+                        <th>Qualification ID</th>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="col-md-7">
+            <div ng-show="selectedQualificationType === undefined || selectedQualificationType.qualificationTypeId === null">
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        No qualification type selected
+                    </div>
+                    <div class="panel-body">
+                        <p>Select an experiment with an associated qualification type on the left to manage the AMT
+                            workers who have previously participated in the experiment.</p>
+                    </div>
+                </div>
+            </div>
+
+            <div ng-show="selectedQualificationType !== undefined && selectedQualificationType.qualificationTypeId !== null">
+                <div class="container-fluid">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-inline pull-right">
+                                <label for="resultsPerPage"
+                                       class="control-label">Results per page</label>
+                                <div id="resultsPerPage" class="btn-group" role="group" aria-label="Results per page">
+                                    <button type="button"
+                                            ng-class="{'btn-primary':(maxResults == 25)}"
+                                            ng-click="maxResults=25"
+                                            class="btn btn-default">25
+                                    </button>
+                                    <button type="button"
+                                            ng-class="{'btn-primary':(maxResults == 50)}"
+                                            ng-click="maxResults=50"
+                                            class="btn btn-default">50
+                                    </button>
+                                    <button type="button"
+                                            ng-class="{'btn-primary':(maxResults == 100)}"
+                                            ng-click="maxResults=100"
+                                            class="btn btn-default">100
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div ng-show="status === 1">
+                            <div class="panel panel-default">
+                                <div class="panel-body">
+                                    <p>Loading...</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div ng-show="status === 2">
+                            <div class="text-center">
+                                <nav aria-label="Page navigation">
+                                    <ul class="pagination pagination-sm">
+                                        <li ng-class="{'disabled' : (curToken < 1)}">
+                                            <a ng-click="pageQualifications(curToken - 1)" aria-label="Previous">
+                                                <span aria-hidden="true">&laquo;</span>
+                                            </a>
+                                        </li>
+                                        <li ng-class="{'active' : ($index === curToken)}" ng-repeat="t in tokens"><a
+                                                ng-click="pageQualifications($index)">{{ ($index + 1) }}</a></li>
+                                        <li ng-class="{'disabled' : (tokens.length === 0 || curToken === (tokens.length - 1))}">
+                                            <a ng-click="pageQualifications(curToken + 1)" aria-label="Next">
+                                                <span aria-hidden="true">&raquo;</span>
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </nav>
+                            </div>
+                            <table class="table table-condensed">
+                                <thead>
+                                <tr>
+                                    <th>Worker ID</th>
+                                    <th>Qualification status</th>
+                                    <th>Qualification value</th>
+                                    <th>Grant date</th>
+                                    <th></th>
+                                </tr>
+                                </thead>
+                                <tbody>
+                                <tr ng-if="qualifications.length === 0">
+                                    <td colspan="5" class="info">No workers with this qualification found...</td>
+                                </tr>
+                                <tr ng-repeat="qualification in qualifications | orderBy: 'workerId'">
+                                    <td>{{ qualification.workerId }}</td>
+                                    <td>{{ qualification.status }}</td>
+                                    <td>{{ qualification.integerValue }}</td>
+                                    <td>{{ qualification.grantTime }}</td>
+                                    <td>
+                                        <button class="btn btn-default"
+                                                ng-click="removeQualification(qualification)">
+                            <span class="glyphicon glyphicon-remove"
+                                  tooltip="Remove the qualification."
+                                  tooltip-append-to-body="true"
+                                  aria-hidden="true">
+                            </span>
+                                        </button>
+                                    </td>
+                                </tr>
+                                </tbody>
+                                <tfoot>
+                                <tr>
+                                    <th>Worker ID</th>
+                                    <th>Qualification status</th>
+                                    <th>Qualification value</th>
+                                    <th>Grant date</th>
+                                    <th></th>
+                                </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+
+                        <div ng-show="status === 3">
+                            <div class="panel panel-danger">
+                                <div class="panel-heading">
+                                    Error
+                                </div>
+                                <div class="panel-body">
+                                    <p>{{ error }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="addQualificationsDialog" style="display: none;">
+                <div class="panel panel-success" ng-show="addQualificationsStatus === 2">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Success</h3>
+                    </div>
+                    <div class="panel-body">
+                        <ul>
+                            <li>
+                                {{ addQualificationsSuccessCount }} qualifications assigned.
+                            </li>
+                            <li ng-if="addQualificationsErrorCount > 0">
+                                {{ addQualificationsErrorCount }} errors.
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="panel panel-danger" ng-show="addQualificationsStatus === 3">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Error</h3>
+                    </div>
+                    <div class="panel-body">
+                        <p ng-bind-html="addQualificationsError | to_trusted"></p>
+                    </div>
+                </div>
+                <div class="new-dialog" ng-show="addQualificationsStatus !== 1">
+                    <form name="addQualificationsForm">
+                        <div class="form-group">
+                            <p class="form-control-static">
+                                Assign qualifications to workers who previously participated in the currently selected
+                                experiment by entering AMT worker IDs in the text area or loading a text file with one
+                                worker
+                                ID per line.
+                            </p>
+                            <button ngf-select="importWorkerIDsFromFile($file)"
+                                    type="file"
+                                    class="btn btn-default"
+                                    ngf-pattern="'.csv,.tsv,.txt'"
+                                    accept=".csv,.tsv,.txt"
+                                    required>
+                                Choose a text file with one worker ID per line
+                            </button>
+                        </div>
+                        <div class="form-group">
+                            <label for="worker-ids">
+                                Enter one worker ID per line
+                            </label>
+                            <textarea id="worker-ids"
+                                      class="form-control"
+                                      rows="15"
+                                      placeholder="Worker IDs"
+                                      ng-model="addQualificationsIds"
+                                      required>
+                    </textarea>
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-default"
+                                    type="submit"
+                                    ng-disabled="addQualificationsForm.$invalid"
+                                    ng-click="addQualifications()">Import
+                            </button>
+                        </div>
+                    </form>
+                </div>
+                <div class="new-dialog" ng-show="addQualificationsStatus === 1 || addQualificationsStatus === 2">
+                    <table class="table">
+                        <thead>
+                        <tr>
+                            <th class="col-md-3">Worker ID</th>
+                            <th class="col-md-9">Status</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr ng-repeat="status in addQualificationsStatuses">
+                            <td>{{ status.workerId }}</td>
+                            <td>{{ status.status }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

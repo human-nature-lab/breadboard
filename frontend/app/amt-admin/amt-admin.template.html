@@ -22,10 +22,13 @@
                 <a ng-click="selectedTab = 'create'">Create HIT</a>
             </li>
             <li role="presentation" ng-class="{'active': (selectedTab === 'payment') }">
-                <a ng-click="selectedTab = 'payment'">Create Payment HITs</a>
+                <a ng-click="selectedTab = 'payment'">Create payment HITs</a>
             </li>
             <li role="presentation" ng-class="{'active': (selectedTab === 'workers') }">
-                <a ng-click="selectedTab = 'workers'">Manage Workers</a>
+                <a ng-click="selectedTab = 'workers'">Manage workers</a>
+            </li>
+            <li role="presentation" ng-class="{'active': (selectedTab === 'qualifications') }">
+                <a ng-click="selectedTab = 'qualifications'">Manage qualifications</a>
             </li>
         </ul>
         <div ng-show="selectedTab === 'create'">
@@ -706,15 +709,11 @@
                 </div>
             </div>
             <div class="form-inline text-right" ng-show="manageWorkers.status === 1 || manageWorkers.status === 2">
-                <!-- TODO: finish this feature for v2.3.X
                 <div class="form-group">
-                    <button ngf-select
-                            class="btn btn-default drop-zone"
-                            ngf-pattern="'.csv'"
-                            ng-model="manageWorkers.file"
+                    <button class="btn btn-default"
                             ng-disabled="manageWorkers.importStatus !== 0"
-                            required>
-                        Import workers
+                            ng-click="openImportWorkersDialog()">
+                        Add participant qualifications
                         <i ng-show="manageWorkers.importStatus === 3"
                            class="fa fa-info-circle text-danger"
                            aria-hidden="true"></i>
@@ -726,7 +725,6 @@
                            aria-hidden="true"></i>
                     </button>
                 </div>
-                TODO -->
                 <label for="resultsPerPage"
                        class="control-label">Results per page</label>
                 <div id="resultsPerPage" class="btn-group" role="group" aria-label="Results per page">
@@ -859,4 +857,10 @@
             </div>
         </div>
     </div>
+
+    <div ng-show="selectedTab === 'qualifications'">
+        <div>&nbsp;</div>
+        <manage-qualifications sandbox="sandbox" experiment-id="experiment.id"></manage-qualifications>
+    </div>
+
 </div>

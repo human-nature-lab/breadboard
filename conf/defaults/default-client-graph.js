@@ -7,7 +7,6 @@ function Graph(clientId, parentElement) {
   var arrowPadding = 7;
   var graphPadding = 10;
   var linkDistance = (Math.min(width, height) / 2) - alterNodeR - (2 * graphPadding);
-  console.log('parent', parentElement, width, height);
 
   var ignoreProps = ["$$hashKey", "text", "choices", "x", "y", "px", "py"];
 

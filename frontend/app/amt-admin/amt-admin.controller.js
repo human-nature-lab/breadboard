@@ -5,7 +5,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
   $scope.tokens = [null];
   $scope.curToken = 0;
   $scope.hits = [];
-  $scope.selectedTab = 'manage';
+  $scope.selectedTab = 'qualifications';
   $scope.selectedHIT = null;
   $scope.showCreateHIT = false;
   $scope.creatingHIT = false;
@@ -46,6 +46,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
     'status' : 0, // 0: no experiment selected, 1: loading, 2: loaded, 3: Error
     'error' : '',
     'experimentId' : undefined,
+    'experimentUid' : undefined,
     'amtWorkers' : [],
     'sandbox': undefined,
     'selectedWorker': undefined,
@@ -53,10 +54,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
     'page': 1,
     'total': 0,
     'search': '',
-    'lastSearch': '',
-    'file': undefined,
-    'importStatus': 0, // 0: not uploaded, 1, uploading, 2: uploaded, 3: error
-    'importError': ''
+    'lastSearch': ''
   };
 
   $scope.$watch('experimentInstance', function(experimentInstance, oldExperimentInstance) {
@@ -109,6 +107,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
 
   });
 
+  /*
   $scope.$watch('manageWorkers.file', function() {
     if(!$scope.manageWorkers.file || !$scope.experiment) return;
     $scope.manageWorkers.importStatus = 1; //Uploading
@@ -134,6 +133,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
       console.log('import upload progress', evt);
     });
   });
+  */
 
   $scope.$watch('manageWorkers.limit', function(newLimit, oldLimit) {
     // TODO: Change the page to match the current offset
@@ -148,6 +148,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
   $scope.$watch('experiment', function(experiment) {
     if (experiment && experiment.hasOwnProperty('id') && experiment.id !== $scope.manageWorkers.experimentId) {
       $scope.manageWorkers.experimentId = experiment.id;
+      $scope.manageWorkers.experimentUid = experiment.uid;
       getAMTWorkers();
     }
   });

@@ -64,6 +64,7 @@ public class Experiment extends Model {
 
   // The AMT QualificationTypeId for the Previous Worker qualification specific to this experiment type.
   public String qualificationTypeId;
+
   // QualificationTypeId in the AMT Sandbox
   public String qualificationTypeIdSandbox;
 
@@ -97,6 +98,10 @@ public class Experiment extends Model {
 
   public static Experiment findByName(String name) {
     return find.where().eq("name", name).findUnique();
+  }
+
+  public static Experiment findByUid(String uid) {
+    return find.where().eq("uid", uid).findUnique();
   }
 
   public static Experiment findById(Long id) {
