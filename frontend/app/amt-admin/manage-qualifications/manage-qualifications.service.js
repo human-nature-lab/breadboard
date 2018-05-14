@@ -18,8 +18,8 @@ function ManageQualificationsSrv($http, $q, $timeout) {
 
   return service;
 
-  function getExperimentQualificationTypeId(experimentId, sandbox) {
-    return $http.get('/amtadmin/getExperimentQualificationTypeId/' + experimentId + ((sandbox) ? '?sandbox=true' : ''))
+  function getExperimentQualificationTypeId(experimentUid, sandbox) {
+    return $http.get('/amtadmin/getExperimentQualificationTypeId/' + experimentUid + ((sandbox) ? '?sandbox=true' : ''))
       .then(function (response) {
           if (response.status < 400) {
             return $q.when(response);
@@ -59,8 +59,8 @@ function ManageQualificationsSrv($http, $q, $timeout) {
         });
   }
 
-  function listQualificationTypes(maxResults, nextToken, sandbox) {
-    var url = '/amtadmin/listQualificationTypes' + buildQueryStringParameters({'sandbox': sandbox, 'nextToken': nextToken, 'maxResults': maxResults});
+  function listQualificationTypes(sandbox) {
+    var url = '/amtadmin/listQualificationTypes' + buildQueryStringParameters({ 'sandbox': sandbox });
     return $http.get(url)
       .then(function (response) {
           if (response.status < 400) {

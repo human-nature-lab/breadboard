@@ -123,16 +123,6 @@ function ManageQualificationsCtrl($scope, ManageQualificationsSrv) {
           $scope.status = 3;
           $scope.error = error.data;
         });
-    /*
-    ManageQualificationsSrv.getExperimentQualificationTypeId($scope.experimentId, $scope.sandbox)
-      .then(function(response) {
-          var qualificationTypeId = response.data.qualificationTypeId;
-          console.log('qualificationTypeId', qualificationTypeId);
-        },
-        function(error) {
-          console.error(error);
-        });
-        */
   }
 
   function openAddQualificationsDialog() {
@@ -153,7 +143,7 @@ function ManageQualificationsCtrl($scope, ManageQualificationsSrv) {
   }
 
   function listQualificationTypes() {
-    ManageQualificationsSrv.listQualificationTypes(100, null, $scope.sandbox)
+    ManageQualificationsSrv.listQualificationTypes($scope.sandbox)
       .then(
         function(results) {
           console.log('listQualificationTypes', results);

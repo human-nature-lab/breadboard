@@ -1,11 +1,11 @@
 import _ from 'underscore';
 
-function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
+function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload, ManageQualificationsSrv) {
   $scope.accountBalance = null;
   $scope.tokens = [null];
   $scope.curToken = 0;
   $scope.hits = [];
-  $scope.selectedTab = 'qualifications';
+  $scope.selectedTab = 'manage';
   $scope.selectedHIT = null;
   $scope.showCreateHIT = false;
   $scope.creatingHIT = false;
@@ -27,21 +27,6 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
     'nPending' : 0
   };
 
-  $scope.createHitForm = {
-    'disallowPrevious' : 'type',
-    'tutorialTime' : 300,
-    'lifetime' : 300,
-    'assignmentDuration' : 5400,
-    'keywords' : '',
-    'maxAssignments' : 20,
-    'reward' : 1,
-    'description' : '',
-    'title' : '',
-    'autoLaunch' : true,
-    'status' : 0, // 0: Show form, 1: Submitting, 2: Successful, 3: Error
-    'error' : ''
-  };
-
   $scope.manageWorkers = {
     'status' : 0, // 0: no experiment selected, 1: loading, 2: loaded, 3: Error
     'error' : '',
@@ -57,18 +42,6 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
     'lastSearch': ''
   };
 
-  $scope.$watch('experimentInstance', function(experimentInstance, oldExperimentInstance) {
-    console.log('experimentInstance changed', experimentInstance, oldExperimentInstance);
-    if (experimentInstance && experimentInstance.hits && experimentInstance.hits.length > 0) {
-      $scope.createHitForm.status = 2;
-    } else {
-      if (experimentInstance && ((!oldExperimentInstance) || experimentInstance.id !== oldExperimentInstance.id)) {
-        // New experiment instance
-        $scope.createHitForm.status = 0;
-      }
-    }
-  });
-
   $scope.globals = {
     bonusReason : "Final game score.",
     rejectionReason : "You failed to complete the task correctly."
@@ -79,6 +52,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
   $scope.selectHIT = selectHIT;
   $scope.updateAssignmentCounts = updateAssignmentCounts;
   $scope.updateAssignmentCompleted = updateAssignmentCompleted;
+  $scope.assignQualification = assignQualification;
   $scope.grantBonuses = grantBonuses;
   $scope.approveAssignments = approveAssignments;
   $scope.rejectAssignments = rejectAssignments;
@@ -86,13 +60,14 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
   $scope.rejectAll = rejectAll;
   $scope.grantAll = grantAll;
   $scope.completeAll = completeAll;
+  $scope.qualifyAll = qualifyAll;
   $scope.showAll = showAll;
   $scope.toggleSandbox = toggleSandbox;
   $scope.submitDummyHITs = submitDummyHITs;
   $scope.clearDummyHITs = clearDummyHITs;
   $scope.getAssignmentsCSV = getAssignmentsCSV;
   $scope.refreshAssignmentsForHIT = refreshAssignmentsForHIT;
-  $scope.createHIT = createHIT;
+  $scope.refreshHITs = refreshHITs;
   getAccountBalance();
   listHITs();
 
@@ -307,6 +282,23 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
     });
   }
 
+  function qualifyAll(hit) {
+    var experimentUid = hit.experimentUid;
+    ManageQualificationsSrv.getExperimentQualificationTypeId(experimentUid, $scope.sandbox)
+      .then(
+        function(response) {
+          var qualificationTypeId = response.data.qualificationTypeId;
+          angular.forEach(hit.assignments, function(assignment) {
+            assignment.qualificationAssigned = true;
+            assignQualification(assignment, experimentUid, qualificationTypeId);
+          });
+        },
+        function(error) {
+          console.error(error);
+        }
+      );
+  }
+
   function grantBonuses(hit) {
     angular.forEach(hit.assignments, function(assignment) {
       if (assignment.grantBonus && !assignment.bonusPending) {
@@ -371,6 +363,7 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
       //console.log('assignments', assignments);
       hit.assignments = hit.assignments.concat(assignments);
       updateBonusPaymentsForHIT(hit, null);
+      updateAssignQualificationForHIT(hit);
     });
   }
 
@@ -390,6 +383,61 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
         assignment.completedSuccess = false;
         assignment.completedError = error.data;
       });
+  }
+
+  function assignQualification(assignment, experimentUid, _qualificationTypeId) {
+    assignment.qualificationPending = true;
+
+    var qualificationTypeId = _qualificationTypeId;
+    if (!qualificationTypeId) {
+      ManageQualificationsSrv.getExperimentQualificationTypeId(experimentUid, $scope.sandbox)
+        .then(
+          function(response) {
+            qualificationTypeId = response.data.qualificationTypeId;
+            assignQualification(assignment, experimentUid, qualificationTypeId);
+          },
+          function(error) {
+            console.error(error);
+          }
+        );
+    } else {
+      if (!assignment.qualificationAssigned) {
+        AMTAdminSrv.removeParticipantQualification(qualificationTypeId, assignment.workerId)
+          .then(
+            function() {
+              assignment.qualificationPending = false;
+              assignment.qualificationAssigned = false;
+              assignment.qualificationSuccess = true;
+              $timeout(function() {
+                assignment.qualificationSuccess = false;
+              }, 1500);
+            },
+            function(error) {
+              console.error(error);
+              assignment.qualificationAssigned = true;
+              assignment.qualificationError = error.data;
+            }
+          );
+
+      } else {
+        AMTAdminSrv.assignParticipantQualification(qualificationTypeId, assignment.workerId)
+          .then(
+            function() {
+              assignment.qualificationPending = false;
+              assignment.qualificationAssigned = true;
+              assignment.qualificationSuccess = true;
+              $timeout(function() {
+                assignment.qualificationSuccess = false;
+              }, 1500);
+            },
+            function(error) {
+              console.error(error);
+              assignment.qualificationAssigned = false;
+              assignment.qualificationError = error.data;
+            }
+          );
+      }
+    }
   }
 
   function updateBonusPaymentsForHIT(hit, nextToken) {
@@ -418,6 +466,32 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
     });
   }
 
+  function updateAssignQualificationForHIT(hit) {
+    ManageQualificationsSrv.getExperimentQualificationTypeId(hit.experimentUid, $scope.sandbox)
+      .then(
+        function(response) {
+          var qualificationTypeId = response.data.qualificationTypeId;
+          angular.forEach(hit.assignments, function(assignment) {
+            AMTAdminSrv.getQualificationScore(qualificationTypeId, assignment.workerId)
+              .then(
+                function(response) {
+                  var qualificationGranted = (response.data.status === 'Granted');
+                  assignment.qualificationAssigned = qualificationGranted;
+                  assignment.qualificationPending = false;
+                  console.log('updateQualificationForHIT', response);
+                },
+                function(error) {
+                  console.error(error);
+                }
+              );
+          });
+        },
+        function(error) {
+          console.error(error);
+        }
+      );
+  }
+
   function getAssignmentsForHIT(hit, nextToken) {
     var deferred = $q.defer();
     AMTAdminSrv.listAssignmentsForHIT(hit.hitid, nextToken, $scope.maxAssignments).then(function(response) {
@@ -438,6 +512,10 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
         assignment.completedSuccess = false;
         assignment.completedPending = false;
         assignment.completedError = null;
+        assignment.qualificationAssigned = false;
+        assignment.qualificationPending = true;
+        assignment.qualificationError = null;
+        assignment.qualificationSuccess = false;
 
         if (assignment.answer.hasOwnProperty('bonus')) {
           assignment.bonus = parseFloat(assignment.answer.bonus);
@@ -472,7 +550,12 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
     getAssignmentsForHIT(hit, null).then(function(assignments) {
       hit.assignments = assignments;
       updateBonusPaymentsForHIT(hit, null);
+      updateAssignQualificationForHIT(hit);
     });
+  }
+
+  function refreshHITs() {
+    listHITs();
   }
 
   function parseQuestionFormAnswer(questionFormAnswerString) {
@@ -528,45 +611,6 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
     $scope.dummyHIT.submitted = [];
   }
 
-  function createHIT(createHitForm) {
-    //console.log('sandbox', $scope.sandbox);
-    //console.log('createHitForm.disallowPrevious', createHitForm.disallowPrevious);
-    //console.log('createHitForm.tutorialTime', createHitForm.tutorialTime);
-    //console.log('createHitForm.lifetime', createHitForm.lifetime);
-    //console.log('createHitForm.maxAssignments', createHitForm.maxAssignments);
-    //console.log('createHitForm.reward', createHitForm.reward);
-    //console.log('createHitForm.description', createHitForm.description);
-    //console.log('createHitForm.title', createHitForm.title);
-    //console.log('experimentInstance', $scope.experimentInstance);
-    //console.log('experiment', $scope.experiment);
-    createHitForm.status = 1;
-    AMTAdminSrv.createHIT(
-      createHitForm.title,
-      createHitForm.description,
-      createHitForm.reward,
-      createHitForm.maxAssignments,
-      createHitForm.lifetime,
-      createHitForm.tutorialTime,
-      createHitForm.assignmentDuration,
-      createHitForm.keywords,
-      createHitForm.disallowPrevious,
-      $scope.experiment.id,
-      $scope.experimentInstance.id)
-      .then(function (amtHit) {
-        //console.log('createHIT returned OK');
-        createHitForm.status = 2;
-        if (createHitForm.autoLaunch) {
-          //console.log('createHitForm.autoLaunch is true');
-          $scope.onCreateHit()(createHitForm.lifetime, createHitForm.tutorialTime);
-        } else {
-          $scope.experimentInstance.hits.push(amtHit.data);
-        }
-      },
-      function(error) {
-        createHitForm.status = 3;
-        createHitForm.error = error.data;
-      });
-  }
 
   function getAssignmentsCSV(hit) {
     var headerRow = '"hitId","hitTitle","creationTime","assignmentId","workerId","approvalTime","rejectionTime","bonusGranted"';
@@ -613,6 +657,6 @@ function AMTAdminCtrl($scope, AMTAdminSrv, $q, $filter, $timeout, Upload) {
   }
 }
 
-AMTAdminCtrl.$inject = ['$scope', 'AMTAdminSrv', '$q', '$filter', '$timeout', 'Upload'];
+AMTAdminCtrl.$inject = ['$scope', 'AMTAdminSrv', '$q', '$filter', '$timeout', 'Upload', 'ManageQualificationsSrv'];
 
 export default AMTAdminCtrl;

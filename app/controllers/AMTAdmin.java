@@ -8,11 +8,15 @@ import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.mturk.AmazonMTurk;
 import com.amazonaws.services.mturk.AmazonMTurkClientBuilder;
 import com.amazonaws.services.mturk.model.*;
+import com.amazonaws.services.mturk.model.Locale;
 import com.amazonaws.services.mturk.model.QualificationRequirement;
 import com.avaje.ebean.*;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.Gson;
+import com.google.gson.reflect.TypeToken;
 import models.*;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
@@ -26,6 +30,7 @@ import play.mvc.Result;
 import play.mvc.Security;
 
 import java.io.*;
+import java.lang.reflect.Type;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -136,10 +141,40 @@ public class AMTAdmin extends Controller {
     }
   }
 
+  public static QualificationType getQualificationTypeByName(String qualificationName, Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return null;
+    }
 
+    try {
+      AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
+      AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
+      builder.setEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration((sandbox ? SANDBOX_ENDPOINT : PRODUCTION_ENDPOINT), SIGNING_REGION));
+      AmazonMTurk mTurk = builder.build();
+
+      ListQualificationTypesRequest listQualificationTypesRequest = new ListQualificationTypesRequest()
+          .withMaxResults(1)
+          .withMustBeOwnedByCaller(false)
+          .withMustBeRequestable(false)
+          .withQuery(qualificationName);
+
+      ListQualificationTypesResult listQualificationTypesResult = mTurk.listQualificationTypes(listQualificationTypesRequest);
+      List<QualificationType> qualificationTypes = listQualificationTypesResult.getQualificationTypes();
+
+      if (qualificationTypes.isEmpty()) {
+        return null;
+      }
+
+      return qualificationTypes.get(0);
+    } catch (AmazonServiceException ase) {
+      return null;
+    } catch (AmazonClientException ace) {
+      return null;
+    }
+  }
 
   @Security.Authenticated(Secured.class)
-  public static Result listQualificationTypes(Integer maxResults, String nextToken, Boolean sandbox) {
+  public static Result listQualificationTypes(Boolean sandbox) {
     if (SECRET_KEY == null || ACCESS_KEY == null) {
       return badRequest("No AWS keys provided");
     }
@@ -184,6 +219,7 @@ public class AMTAdmin extends Controller {
 
         ObjectNode qualificationTypeJson = Json.newObject();
 
+        qualificationTypeJson.put("label", experiment.name + " participant");
         qualificationTypeJson.put("experimentUid", experiment.uid);
         qualificationTypeJson.put("experimentName", experiment.name);
         qualificationTypeJson.put("creationTime", (qualificationType == null) ? null : df.format(qualificationType.getCreationTime()));
@@ -207,28 +243,20 @@ public class AMTAdmin extends Controller {
   }
 
   @Security.Authenticated(Secured.class)
-  public static Result getExperimentQualificationTypeId(Long experimentId, Boolean sandbox) {
+  public static Result getExperimentQualificationTypeId(String experimentUid, Boolean sandbox) {
     if (SECRET_KEY == null || ACCESS_KEY == null) {
       return badRequest("No AWS keys provided");
     }
 
-    Experiment experiment = Experiment.findById(experimentId);
-
-    // Validate the other data
-    if(experiment == null){
-      return badRequest("Invalid experiment ID");
-    }
-
-    String qualificationTypeId = (sandbox) ? experiment.qualificationTypeIdSandbox : experiment.qualificationTypeId;
-
-    if (qualificationTypeId == null) {
+    QualificationType qualificationType = getQualificationTypeByName(PARTICIPANT_QUALIFICATION_PREFIX + experimentUid, sandbox);
+    if (qualificationType == null) {
       try {
         AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
         AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
         builder.setEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration((sandbox ? SANDBOX_ENDPOINT : PRODUCTION_ENDPOINT), SIGNING_REGION));
         AmazonMTurk mTurk = builder.build();
 
-        String qualificationName = PARTICIPANT_QUALIFICATION_PREFIX + experiment.uid;
+        String qualificationName = PARTICIPANT_QUALIFICATION_PREFIX + experimentUid;
         String reason = "You previously participated in this experiment.";
         // Create a new qualification type
         CreateQualificationTypeRequest createQualificationTypeRequest = new CreateQualificationTypeRequest()
@@ -236,15 +264,7 @@ public class AMTAdmin extends Controller {
             .withDescription(reason)
             .withQualificationTypeStatus(QualificationTypeStatus.Active);
         CreateQualificationTypeResult createQualificationTypeResult = mTurk.createQualificationType(createQualificationTypeRequest);
-        QualificationType qualificationType = createQualificationTypeResult.getQualificationType();
-        qualificationTypeId = qualificationType.getQualificationTypeId();
-
-        if (sandbox) {
-          experiment.qualificationTypeIdSandbox = qualificationTypeId;
-        } else {
-          experiment.qualificationTypeId = qualificationTypeId;
-        }
-        experiment.save();
+        qualificationType = createQualificationTypeResult.getQualificationType();
       } catch (AmazonServiceException ase) {
         return badRequest(ase.getMessage());
       } catch (AmazonClientException ace) {
@@ -253,7 +273,7 @@ public class AMTAdmin extends Controller {
     }
 
     ObjectNode returnJson = Json.newObject();
-    returnJson.put("qualificationTypeId", qualificationTypeId);
+    returnJson.put("qualificationTypeId", qualificationType.getQualificationTypeId());
     return ok(returnJson);
   }
 
@@ -296,6 +316,113 @@ public class AMTAdmin extends Controller {
       return ok();
     } catch (AmazonServiceException ase) {
       return badRequest(ase.getMessage());
+    } catch (AmazonClientException ace) {
+      return internalServerError(ace.getMessage());
+    }
+  }
+
+  @Security.Authenticated(Secured.class)
+  public static Result removeParticipantQualification(Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
+    String workerId = null;
+    String qualificationTypeId = null;
+    JsonNode json = request().body().asJson();
+    if(json == null) {
+      return badRequest("Expecting Json data");
+    } else {
+      workerId = json.findPath("workerId").textValue();
+      qualificationTypeId = json.findPath("qualificationTypeId").textValue();
+    }
+
+    if (workerId == null) {
+      return badRequest("Please provide an AMT worker ID.");
+    }
+
+    if (qualificationTypeId == null) {
+      return badRequest("Please provide a qualification type ID.");
+    }
+
+    try {
+      AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
+      AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
+      builder.setEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration((sandbox ? SANDBOX_ENDPOINT : PRODUCTION_ENDPOINT), SIGNING_REGION));
+      AmazonMTurk mTurk = builder.build();
+
+      DisassociateQualificationFromWorkerRequest disassociateQualificationFromWorkerRequest = new DisassociateQualificationFromWorkerRequest()
+          .withQualificationTypeId(qualificationTypeId)
+          .withWorkerId(workerId);
+
+      mTurk.disassociateQualificationFromWorker(disassociateQualificationFromWorkerRequest);
+      return ok();
+    } catch (AmazonServiceException ase) {
+      return badRequest(ase.getMessage());
+    } catch (AmazonClientException ace) {
+      return internalServerError(ace.getMessage());
+    }
+  }
+
+  @Security.Authenticated(Secured.class)
+  public static Result getQualificationScore(Boolean sandbox) {
+    if (SECRET_KEY == null || ACCESS_KEY == null) {
+      return badRequest("No AWS keys provided");
+    }
+    String workerId = null;
+    String qualificationTypeId = null;
+    JsonNode json = request().body().asJson();
+    if(json == null) {
+      return badRequest("Expecting Json data");
+    } else {
+      workerId = json.findPath("workerId").textValue();
+      qualificationTypeId = json.findPath("qualificationTypeId").textValue();
+    }
+
+    if (workerId == null) {
+      return badRequest("Please provide an AMT worker ID.");
+    }
+
+    if (qualificationTypeId == null) {
+      return badRequest("Please provide a qualification type ID.");
+    }
+
+    try {
+      AWSStaticCredentialsProvider awsCredentials = new AWSStaticCredentialsProvider(new BasicAWSCredentials(ACCESS_KEY, SECRET_KEY));
+      AmazonMTurkClientBuilder builder = AmazonMTurkClientBuilder.standard().withCredentials(awsCredentials);
+      builder.setEndpointConfiguration(new AwsClientBuilder.EndpointConfiguration((sandbox ? SANDBOX_ENDPOINT : PRODUCTION_ENDPOINT), SIGNING_REGION));
+      AmazonMTurk mTurk = builder.build();
+
+      GetQualificationScoreRequest getQualificationScoreRequest = new GetQualificationScoreRequest()
+          .withQualificationTypeId(qualificationTypeId)
+          .withWorkerId(workerId);
+
+      GetQualificationScoreResult qualificationScoreResult = mTurk.getQualificationScore(getQualificationScoreRequest);
+      Qualification qualification = qualificationScoreResult.getQualification();
+
+      TimeZone tz = TimeZone.getTimeZone("UTC");
+      DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+      df.setTimeZone(tz);
+
+      ObjectNode returnJson = Json.newObject();
+
+      if (qualification == null) {
+        returnJson.put("status", "None");
+      } else {
+        returnJson.put("grantTime", df.format(qualification.getGrantTime()));
+        returnJson.put("integerValue", qualification.getIntegerValue());
+        if (qualification.getLocaleValue() != null) {
+          returnJson.put("localeValue", qualification.getLocaleValue().toString());
+        }
+        returnJson.put("qualificationTypeId", qualification.getQualificationTypeId());
+        returnJson.put("status", qualification.getStatus());
+        returnJson.put("workerId", qualification.getWorkerId());
+      }
+      return ok(returnJson);
+    } catch (AmazonServiceException ase) {
+      ObjectNode returnJson = Json.newObject();
+      returnJson.put("status", "None");
+      return ok(returnJson);
+      //return badRequest(ase.getMessage());
     } catch (AmazonClientException ace) {
       return internalServerError(ace.getMessage());
     }
@@ -697,6 +824,10 @@ public class AMTAdmin extends Controller {
       ListAssignmentsForHITResult assignmentResults = mTurk.listAssignmentsForHIT(listAssignmentsForHITRequest);
       List<Assignment> assignments = assignmentResults.getAssignments();
 
+      TimeZone tz = TimeZone.getTimeZone("UTC");
+      DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+      df.setTimeZone(tz);
+
       // Update amt_assignments table
       for (Assignment assignment : assignments) {
         AMTHit hit = AMTHit.findByHitId(assignment.getHITId());
@@ -713,8 +844,8 @@ public class AMTAdmin extends Controller {
         amtAssignment.workerId = assignment.getWorkerId();
         amtAssignment.assignmentStatus = assignment.getAssignmentStatus();
         amtAssignment.autoApprovalTime = assignment.getAutoApprovalTime().toString();
-        amtAssignment.acceptTime = (assignment.getAcceptTime() == null) ? null :  assignment.getAcceptTime().toString();
-        amtAssignment.submitTime = (assignment.getSubmitTime() == null) ? null :  assignment.getSubmitTime().toString();
+        amtAssignment.acceptTime = (assignment.getAcceptTime() == null) ? null :  df.format(assignment.getAcceptTime());
+        amtAssignment.submitTime = (assignment.getSubmitTime() == null) ? null :  df.format(assignment.getSubmitTime());
         amtAssignment.answer = assignment.getAnswer();
 
         if (!update) {
@@ -725,8 +856,8 @@ public class AMTAdmin extends Controller {
         ObjectNode jsonAssignment = Json.newObject();
         jsonAssignment.put("assignmentId", amtAssignment.assignmentId);
         jsonAssignment.put("workerId", amtAssignment.workerId);
-        jsonAssignment.put("approvalTime", (assignment.getApprovalTime() == null) ? null : assignment.getApprovalTime().toString());
-        jsonAssignment.put("rejectionTime", (assignment.getRejectionTime() == null) ? null : assignment.getRejectionTime().toString());
+        jsonAssignment.put("approvalTime", (assignment.getApprovalTime() == null) ? null : df.format(assignment.getApprovalTime()));
+        jsonAssignment.put("rejectionTime", (assignment.getRejectionTime() == null) ? null : df.format(assignment.getRejectionTime()));
         jsonAssignment.put("answer", amtAssignment.answer);
         jsonAssignment.put("assignmentCompleted", amtAssignment.assignmentCompleted);
 
@@ -915,6 +1046,7 @@ public class AMTAdmin extends Controller {
     String disallowPrevious;
     String experimentId;
     String experimentInstanceId;
+    BBQualificationRequirement[] qualificationRequirements = null;
 
     JsonNode json = request().body().asJson();
     if (json == null) {
@@ -931,11 +1063,17 @@ public class AMTAdmin extends Controller {
       disallowPrevious = json.findPath("disallowPrevious").textValue();
       experimentId = json.findPath("experimentId").textValue();
       experimentInstanceId = json.findPath("experimentInstanceId").textValue();
+      Logger.debug("qualificationRequirements.asText() = " + json.findPath("qualificationRequirements").toString());
+      try {
+        qualificationRequirements = new ObjectMapper().readValue(json.findPath("qualificationRequirements").toString(), BBQualificationRequirement[].class);
+      } catch(IOException ioe) {}
     }
+
 
     if (title == null || description == null || reward == null || maxAssignments < 0 || hitLifetime < 0 || tutorialTime < 0 || assignmentDuration < 0 || keywords == null || disallowPrevious == null || experimentId == null || experimentInstanceId == null) {
       return badRequest("Please provide experiment ID, experiment instance ID, title, description, reward, max assignments, hit lifetime, tutorial time, assignment duration, keywords, and allow repeat play option.");
     }
+
 
     String rootURL = play.Play.application().configuration().getString("breadboard.rootUrl");
     String gameURL = String.format("/game/%1$s/%2$s/amt", experimentId, experimentInstanceId);
@@ -968,6 +1106,62 @@ public class AMTAdmin extends Controller {
           .withKeywords(keywords)
           .withReward(reward)
           .withRequesterAnnotation(annotation);
+
+      if (qualificationRequirements != null) {
+        Logger.debug("qualificationRequirements = " + ((qualificationRequirements != null) ? qualificationRequirements : "qualificationRequirements is null"));
+      }
+
+      List<QualificationRequirement> qualificationRequirementList = new ArrayList<>();
+      for (BBQualificationRequirement bbQualificationRequirement : qualificationRequirements) {
+        List<Locale> locales = new ArrayList<>();
+        for (BBLocale bbLocale : bbQualificationRequirement.locales) {
+          Locale locale = new Locale()
+              .withCountry(bbLocale.country.trim());
+          if (!bbLocale.subdivision.trim().isEmpty()) {
+              locale.setSubdivision(bbLocale.subdivision.trim());
+          }
+          locales.add(locale);
+        }
+        List<Integer> integerValues = new ArrayList<>();
+        for (String integerString : bbQualificationRequirement.integerValues.split(",")) {
+          try {
+            Integer integerValue = Integer.parseInt(integerString.trim());
+            integerValues.add(integerValue);
+          } catch (NumberFormatException nfe) {}
+        }
+
+        String qualificationTypeId = bbQualificationRequirement.selectedQualificationType.qualificationTypeId;
+
+        if (qualificationTypeId.equals("OTHER_EXPERIMENT")) {
+          String experimentUid = bbQualificationRequirement.otherExperiment;
+          String qualificationName = PARTICIPANT_QUALIFICATION_PREFIX + experimentUid;
+          QualificationType qualificationType = getQualificationTypeByName(qualificationName, sandbox);
+          if (qualificationType != null) {
+            qualificationTypeId = qualificationType.getQualificationTypeId();
+          }
+        }
+
+        QualificationRequirement qualificationRequirement = new QualificationRequirement()
+            .withActionsGuarded(bbQualificationRequirement.actionsGuarded)
+            .withComparator(bbQualificationRequirement.comparator)
+            .withQualificationTypeId(qualificationTypeId);
+
+        if (!locales.isEmpty()) {
+          qualificationRequirement.setLocaleValues(locales);
+        }
+
+        if (!integerValues.isEmpty()) {
+          qualificationRequirement.setIntegerValues(integerValues);
+        }
+
+        qualificationRequirementList.add(qualificationRequirement);
+      }
+
+      if (!qualificationRequirementList.isEmpty()) {
+        createHITRequest.setQualificationRequirements(qualificationRequirementList);
+      }
+
+      Logger.debug("createHitRequest = " + createHITRequest.toString());
 
       CreateHITResult createHITResult = mTurk.createHIT(createHITRequest);
       HIT hit = createHITResult.getHIT();
@@ -1091,4 +1285,31 @@ public class AMTAdmin extends Controller {
     public Experiment experiment;
   }
 
+  private static class BBQualificationRequirement {
+    public String actionsGuarded;
+    public String comparator;
+    public String integerValues;
+    public List<BBLocale> locales;
+    public String otherExperiment;
+    public BBQualificationType selectedQualificationType;
+  }
+
+  private static class BBQualificationType {
+    public String label;
+    public String qualificationTypeId;
+    public String experimentUid;
+    public String experimentName;
+    public String creationTime;
+    public String description;
+    public Boolean isRequestable;
+    public Boolean autoGranted;
+    public String keywords;
+    public String name;
+    public String qualificationTypeStatus;
+  }
+
+  private static class BBLocale {
+    public String country;
+    public String subdivision;
+  }
 }

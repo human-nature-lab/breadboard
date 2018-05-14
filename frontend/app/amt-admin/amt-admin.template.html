@@ -33,171 +33,11 @@
         </ul>
         <div ng-show="selectedTab === 'create'">
             <div>&nbsp;</div>
-            <div ng-show="createHitForm.status !== 2 && (!experimentInstance || experimentInstance.status !== 'RUNNING')">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        No running experiment instance
-                    </div>
-                    <div class="panel-body">
-                        <p>Make sure you have created an experiment instance and that the experiment instance is
-                            currently running.</p>
-                    </div>
-                </div>
-            </div>
-            <form name="hitForm"
-                  id="amtDiv"
-                  class="form"
-                  ng-show="createHitForm.status < 2 && experimentInstance && experimentInstance.status === 'RUNNING'">
-                <div>
-                    <div class="form-group">
-                        <label class="control-label" for="title">Title</label>
-                        <input ng-disabled="createHitForm.status == 1" class="form-control" id="title"
-                               ng-model="createHitForm.title" placeholder="Title" required></div>
-                    <div class="form-group">
-                        <label class="control-label" for="description">Description</label>
-                        <textarea ng-disabled="createHitForm.status == 1" class="form-control" id="description"
-                                  ng-model="createHitForm.description" placeholder="Description" rows="3"
-                                  cols="60" required></textarea>
-                    </div>
-                    <div class="form-horizontal">
-                        <div class="form-group">
-                            <label class="control-label col-md-3" for="reward">Reward</label>
-                            <div class="col-md-3">
-                                <input ng-disabled="createHitForm.status == 1" class="form-control" type="number"
-                                       min="0" step="0.01" name="reward" ng-model="createHitForm.reward"
-                                       placeholder="Reward" required>
-                            </div>
-                            <label class="control-label col-md-3" for="maxAssignments">Max. Assignments</label>
-                            <div class="col-md-3">
-                                <input ng-disabled="createHitForm.status == 1" class="form-control" type="number"
-                                       min="1" id="maxAssignments"
-                                       ng-model="createHitForm.maxAssignments" placeholder="Max Assignments" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-horizontal">
-                        <div class="form-group">
-                            <label class="control-label col-md-3" for="lifetimeInSeconds">HIT lifetime (in
-                                seconds)</label>
-                            <div class="col-md-3">
-                                <input ng-disabled="createHitForm.status == 1" class="form-control" type="number"
-                                       id="lifetimeInSeconds" ng-model="createHitForm.lifetime" min="0"
-                                       placeholder="HIT lifetime (sec.)" required>
-                            </div>
-                            <label class="control-label col-md-3" for="tutorialTime">Tutorial time (in seconds)</label>
-                            <div class="col-md-3">
-                                <input ng-disabled="createHitForm.status == 1" class="form-control" type="number"
-                                       id="tutorialTime" ng-model="createHitForm.tutorialTime" min="0"
-                                       placeholder="Tutorial time (sec.)" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-horizontal">
-                        <div class="form-group">
-                            <label class="control-label col-md-3" for="assignmentDuration">Assignment duration (in
-                                seconds)</label>
-                            <div class="col-md-3">
-                                <input ng-disabled="createHitForm.status == 1" class="form-control" type="number"
-                                       id="assignmentDuration" ng-model="createHitForm.assignmentDuration" min="0"
-                                       placeholder="Assignment duration (sec.)" required>
-                            </div>
-                            <label class="control-label col-md-3" for="tutorialTime">Keywords (for HIT search)</label>
-                            <div class="col-md-3">
-                                <input ng-disabled="createHitForm.status == 1" class="form-control" type="text"
-                                       id="keywords" ng-model="createHitForm.keywords"
-                                       placeholder="Keywords" required>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-horizontal">
-                        <div class="form-group">
-                            <label class="control-label col-md-3" for="disallowPrevious">Allow repeat play?</label>
-                            <div class="col-md-3">
-                                <select ng-disabled="createHitForm.status == 1" class="form-control"
-                                        id="disallowPrevious" ng-model="createHitForm.disallowPrevious" required>
-                                    <option value=""></option>
-                                    <option value="type">Block previous players of THIS experiment</option>
-                                    <option value="any">Block previous players of ANY experiment</option>
-                                    <option value="none">Allow repeat play</option>
-                                </select>
-                            </div>
-                            <label class="control-label col-md-3" for="autoLaunch">Start initStep automatically when HIT
-                                lifetime and tutorial time expire?</label>
-                            <div class="col-md-3">
-                                <input ng-disabled="createHitForm.status == 1" class="form-control" type="checkbox"
-                                       id="autoLaunch" ng-model="createHitForm.autoLaunch">
-                            </div>
-                        </div>
-                    </div>
-                    <div class="form-group col-md-12">
-                        <button ng-disabled="hitForm.$invalid || createHitForm.status == 1" class="btn btn-default" id="submitAMTButton"
-                                ng-click="createHIT(createHitForm)">
-                            Create HIT
-                        </button>
-                    </div>
-                </div>
-            </form>
-            <div ng-show="createHitForm.status == 2">
-                <table class="table" ng-repeat="hit in experimentInstance.hits">
-                    <thead>
-                    <tr>
-                        <th colspan="2">HIT Created</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>Creation Time</td>
-                        <td>{{hit.creationTime}}</td>
-                    </tr>
-                    <tr>
-                        <td>HIT Id</td>
-                        <td>{{hit.hitId}}</td>
-                    </tr>
-                    <tr>
-                        <td>Title</td>
-                        <td>{{hit.title}}</td>
-                    </tr>
-                    <tr>
-                        <td>Description</td>
-                        <td>{{hit.description}}</td>
-                    </tr>
-                    <tr>
-                        <td>Reward</td>
-                        <td>{{hit.reward}}</td>
-                    </tr>
-                    <tr>
-                        <td>HIT lifetime (in seconds)</td>
-                        <td>{{hit.lifetimeInSeconds}}</td>
-                    </tr>
-                    <tr>
-                        <td>Tutorial time (in seconds)</td>
-                        <td>{{hit.tutorialTime}}</td>
-                    </tr>
-                    <tr>
-                        <td>Max. Assignments</td>
-                        <td>{{hit.maxAssignments}}</td>
-                    </tr>
-                    <tr>
-                        <td>URL</td>
-                        <td>{{hit.externalURL}}</td>
-                    </tr>
-                    <tr>
-                        <td>Sandbox?</td>
-                        <td>{{hit.sandbox}}</td>
-                    </tr>
-                    </tbody>
-                </table>
-            </div>
-            <div ng-show="createHitForm.status == 3">
-                <div class="panel panel-default">
-                    <div class="panel-heading">
-                        Error creating AMT HIT
-                    </div>
-                    <div class="panel-body">
-                        {{ createHitForm.error }}
-                    </div>
-                </div>
-            </div>
+            <create-hit on-create-hit="onCreateHit()"
+                        experiment="experiment"
+                        experiment-instance="experimentInstance"
+                        sandbox="sandbox">
+            </create-hit>
         </div>
     </div>
     <div class="container-fluid">
@@ -226,7 +66,7 @@
             <table class="table table-hover table-condensed" ng-show="manageHits.status === 2">
                 <thead>
                 <tr>
-                    <th colspan="7" class="text-center">
+                    <th colspan="6" class="text-center">
                         <nav aria-label="Page navigation">
                             <ul class="pagination pagination-sm">
                                 <li ng-class="{'disabled' : (curToken < 1)}">
@@ -243,6 +83,9 @@
                                 </li>
                             </ul>
                         </nav>
+                    </th>
+                    <th>
+                        <button class="btn btn-default" ng-click="refreshHITs()">Refresh</button>
                     </th>
                 </tr>
                 <tr>
@@ -322,6 +165,11 @@
                                                           tooltip-placement="bottom"
                                                           tooltip-append-to-body="true"></span> Completed
                                                 </th>
+                                                <th><span class="glyphicon glyphicon-check" ng-click="qualifyAll(hit)"
+                                                          tooltip="Assign qualifications to all participants"
+                                                          tooltip-placement="bottom"
+                                                          tooltip-append-to-body="true"></span> Assign qualification
+                                                </th>
                                                 <th><span class="glyphicon glyphicon-collapse-down" ng-click="showAll(hit)"
                                                           tooltip="Show all answers"
                                                           tooltip-placement="bottom"
@@ -370,6 +218,7 @@
                                                     </div>
                                                 </td>
                                                 <td></td>
+                                                <td></td>
                                                 <td>
                                                     <button class="btn btn-default" ng-click="getAssignmentsCSV(hit)">
                                                         Download CSV
@@ -379,7 +228,12 @@
                                             </thead>
                                             <tbody>
                                             <tr ng-repeat="assignment in hit.assignments">
-                                                <td>{{ assignment.assignmentId }}</td>
+                                                <td>
+                                                    <span tooltip="{{ assignment.assignmentId }}"
+                                                          tooltip-append-to-body="true">
+                                                        {{ assignment.assignmentId | shortId }}
+                                                    </span>
+                                                </td>
                                                 <td>{{ assignment.workerId }}</td>
 
                                                 <td>
@@ -465,6 +319,27 @@
                                                 </td>
 
                                                 <td>
+                                                    <input type="checkbox"
+                                                           ng-class="{'disabled' : (assignment.qualificationPending)}"
+                                                           ng-model="assignment.qualificationAssigned"
+                                                           ng-change="assignQualification(assignment, hit.experimentUid)">
+
+                                                    <i ng-show="assignment.qualificationSuccess"
+                                                       class="fa fa-check text-success"
+                                                       aria-hidden="true"></i>
+                                                    <i ng-show="assignment.qualificationPending"
+                                                       class="fa fa-refresh fa-spin text-info"
+                                                       aria-hidden="true"></i>
+                                                    <span ng-if="assignment.qualificationError !== null">
+                                    Error: {{ assignment.qualificationError  }}
+                                  </span>
+
+                                                    <span ng-if="assignment.completedSuccess">
+                                    <span class="text-success glyphicon glyphicon-ok" aria-hidden="true"></span>
+                                  </span>
+                                                </td>
+
+                                                <td>
                                                     <button ng-if="!assignment.showAnswers"
                                                             ng-click="assignment.showAnswers = !assignment.showAnswers"
                                                             type="button" class="btn btn-sm">
@@ -501,7 +376,7 @@
                                             </tbody>
                                             <tfoot>
                                             <tr ng-if="hit.assignmentsNextToken !== null">
-                                                <th colspan="6" class="text-center">
+                                                <th colspan="8" class="text-center">
                                                     <nav aria-label="More Assignments">
                                                         <ul class="pager">
                                                             <li><a ng-click="moreAssignmentsForHIT(hit)">More</a></li>
@@ -550,6 +425,7 @@
                                                     </div>
                                                 </td>
                                                 <td></td>
+                                                <td></td>
                                                 <td>
                                                     <button class="btn btn-default" ng-click="getAssignmentsCSV(hit)">
                                                         Download CSV
@@ -572,6 +448,11 @@
                                                           tooltip="Mark all as having completed {{experiment.name}}"
                                                           tooltip-placement="bottom"
                                                           tooltip-append-to-body="true"></span> Completed
+                                                </th>
+                                                <th><span class="glyphicon glyphicon-check" ng-click="qualifyAll(hit)"
+                                                          tooltip="Assign qualifications to all participants"
+                                                          tooltip-placement="bottom"
+                                                          tooltip-append-to-body="true"></span> Assign qualification
                                                 </th>
                                                 <th><span class="glyphicon glyphicon-collapse-down" ng-click="showAll(hit)"
                                                           tooltip="Show all answers"

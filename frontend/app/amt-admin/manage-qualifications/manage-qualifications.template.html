@@ -49,7 +49,7 @@
                         <div class="form-inline pull-right">
                             <div class="form-group">
                                 <button class="btn btn-default"
-                                        ng-disabled="addQualificationsStatus !== 0"
+                                        ng-disabled="addQualificationsStatus !== 0 && addQualificationStatus !== 2"
                                         ng-click="openAddQualificationsDialog()">
                                     Add participants
                                     <i ng-show="addQualificationsStatus === 3"
@@ -116,7 +116,7 @@
                         No qualification type selected
                     </div>
                     <div class="panel-body">
-                        <p>Select an experiment with an associated qualification type on the left to manage the AMT
+                        <p>Select an experiment on the left to manage qualifications to track the AMT
                             workers who have previously participated in the experiment.</p>
                     </div>
                 </div>
@@ -260,7 +260,7 @@
                         <p ng-bind-html="addQualificationsError | to_trusted"></p>
                     </div>
                 </div>
-                <div class="new-dialog" ng-show="addQualificationsStatus !== 1">
+                <div class="new-dialog" ng-show="addQualificationsStatus !== 1 && addQualificationsStatus !== 2">
                     <form name="addQualificationsForm">
                         <div class="form-group">
                             <p class="form-control-static">

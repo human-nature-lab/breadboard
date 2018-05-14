@@ -19,9 +19,11 @@ function AMTAdminSrv($http, $q, $timeout) {
       setSandbox: setSandbox,
       createDummyHIT: createDummyHIT,
       updateAssignmentCompleted: updateAssignmentCompleted,
-      createHIT: createHIT,
       getAMTAssignments: getAMTAssignments,
-      getAMTWorkers: getAMTWorkers
+      getAMTWorkers: getAMTWorkers,
+      assignParticipantQualification: assignParticipantQualification,
+      removeParticipantQualification: removeParticipantQualification,
+      getQualificationScore: getQualificationScore
     },
     sandbox = true;
 
@@ -195,22 +197,49 @@ function AMTAdminSrv($http, $q, $timeout) {
         });
   }
 
-  function createHIT(title, description, reward, maxAssignments, hitLifetime, tutorialTime, assignmentDuration, keywords, disallowPrevious, experimentId, experimentInstanceId) {
+  function assignParticipantQualification(qualificationTypeId, workerId) {
     var payload = {
-      'title': title,
-      'description': description,
-      'reward': reward + '',
-      'maxAssignments': maxAssignments,
-      'hitLifetime': hitLifetime,
-      'assignmentDuration': assignmentDuration,
-      'keywords': keywords,
-      'tutorialTime': tutorialTime,
-      'disallowPrevious': disallowPrevious,
-      'experimentId': experimentId + '',
-      'experimentInstanceId': experimentInstanceId + ''
+      'workerId': workerId,
+      'qualificationTypeId': qualificationTypeId
     };
 
-    return $http.post('/amtadmin/createHIT' + ((sandbox) ? '?sandbox=true' : ''), payload)
+    return $http.post('/amtadmin/assignParticipantQualification' + ((sandbox) ? '?sandbox=true' : ''), payload)
+      .then(function (response) {
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
+        },
+        function (response) {
+          return $q.reject(response);
+        });
+  }
+
+  function removeParticipantQualification(qualificationTypeId, workerId) {
+    var payload = {
+      'workerId': workerId,
+      'qualificationTypeId': qualificationTypeId
+    };
+
+    return $http.post('/amtadmin/removeParticipantQualification' + ((sandbox) ? '?sandbox=true' : ''), payload)
+      .then(function (response) {
+          if (response.status < 400) {
+            return $q.when(response);
+          }
+          return $q.reject(response);
+        },
+        function (response) {
+          return $q.reject(response);
+        });
+  }
+
+  function getQualificationScore(qualificationTypeId, workerId) {
+    var payload = {
+      'workerId': workerId,
+      'qualificationTypeId': qualificationTypeId
+    };
+
+    return $http.post('/amtadmin/getQualificationScore' + ((sandbox) ? '?sandbox=true' : ''), payload)
       .then(function (response) {
           if (response.status < 400) {
             return $q.when(response);
