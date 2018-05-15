@@ -1,28 +1,7 @@
 function SelectQualificationsCtrl($scope, ManageQualificationSrv) {
   $scope.addQualificationRequirementStatus = 0;
   $scope.addQualificationRequirementError = '';
-  $scope.qualificationTypes = [
-    {
-      label: "Masters (5% fee)",
-      qualificationTypeId: ($scope.sandbox) ? "2ARFPLSP75KLA8M8DH1HTEQVJT3SY6" : "2F1QJWKUDD8XADTFD2Q0G6UTO95ALH"
-    },
-    {
-      label: "Number of HITs Approved",
-      qualificationTypeId: "00000000000000000040"
-    },
-    {
-      label: "Locale",
-      qualificationTypeId: "00000000000000000071"
-    },
-    {
-      label: "Adult",
-      qualificationTypeId: "00000000000000000060"
-    },
-    {
-      label: "Percent assignments approved",
-      qualificationTypeId: "000000000000000000L0"
-    }
-  ];
+  $scope.qualificationTypes = [];
   $scope.selectedQualificationType = undefined;
   $scope.otherExperiments = '';
   $scope.comparator = '';
@@ -42,7 +21,33 @@ function SelectQualificationsCtrl($scope, ManageQualificationSrv) {
     ManageQualificationSrv.listQualificationTypes($scope.sandbox)
       .then(
         function(response) {
-          $scope.qualificationTypes = $scope.qualificationTypes.concat(response.data.qualificationTypes);
+          $scope.qualificationTypes = [
+            {
+              label: "Masters (5% fee)",
+              qualificationTypeId: ($scope.sandbox) ? "2ARFPLSP75KLA8M8DH1HTEQVJT3SY6" : "2F1QJWKUDD8XADTFD2Q0G6UTO95ALH"
+            },
+            {
+              label: "Number of HITs Approved",
+              qualificationTypeId: "00000000000000000040"
+            },
+            {
+              label: "Locale",
+              qualificationTypeId: "00000000000000000071"
+            },
+            {
+              label: "Adult",
+              qualificationTypeId: "00000000000000000060"
+            },
+            {
+              label: "Percent assignments approved",
+              qualificationTypeId: "000000000000000000L0"
+            }
+          ];
+          angular.forEach(response.data.qualificationTypes, function(qualificationType) {
+            if (qualificationType.hasOwnProperty('qualificationTypeId') && qualificationType.qualificationTypeId !== null) {
+              $scope.qualificationTypes.push(qualificationType);
+            }
+          });
           $scope.qualificationTypes.push({
             label: 'Other experiment',
             qualificationTypeId: 'OTHER_EXPERIMENT'
@@ -52,6 +57,10 @@ function SelectQualificationsCtrl($scope, ManageQualificationSrv) {
           console.error(error);
       });
   }
+
+  $scope.$watch('sandbox', function() {
+    initController();
+  });
 
   function initDialog() {
     $scope.selectedQualificationType = undefined;
