@@ -174,7 +174,9 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
       def timerUpdateRate = 1000
       def tim = new Timer()
       tim.scheduleAtFixedRate({
-        player.timers[name].elapsed += timerUpdateRate
+        if (player.timers && player.timers.containsKey(name)) {
+          player.timers[name].elapsed += timerUpdateRate
+        }
         // Updating this property triggers an update
         // when breadboard is in event based update mode
         player.timerUpdatedAt = System.currentTimeMillis()
@@ -189,6 +191,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         }
         tim.cancel()
       }
+      return tim
     }
   }
 
