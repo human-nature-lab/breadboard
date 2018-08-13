@@ -41,6 +41,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
   //TODO: consider tracking number of edges and number of vertices to avoid iterating over graph to count number of edges or vertices
 
   def eventTracker
+  def timers = []
 
   public BreadboardGraph(baseGraph, eventTracker) {
     super(baseGraph)
@@ -217,10 +218,11 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
       tim.scheduleAtFixedRate({
         if (player.timers.containsKey(name)) {
           player.timers[name].elapsed += timerUpdateRate
-          if (player.timers[name].elapsed > player.timers[name].duration) {
+          if (player.timers[name].elapsed >= player.timers[name].duration) {
             tim.cancel()
           }
-        } else if (tim) {
+        } else {
+          // This ensures that the timer is cancelled if it is removed from the players timers map
           tim.cancel()
         }
         // Updating this property triggers an update
