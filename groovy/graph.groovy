@@ -15,6 +15,20 @@ class GroovyTimerTask extends TimerTask {
   }
 }
 
+class PlayerTimer extends Timer {
+  private Closure cancelClosure
+  PlayerTimer (cancelClosure) {
+    super()
+    this.cancelClosure = cancelClosure
+  }
+
+  @Override
+  void cancel () {
+    super.cancel()
+    this.cancelClosure()
+  }
+}
+
 class TimerMethods {
   static TimerTask runEvery(Timer timer, long delay, long period, Closure codeToRun) {
     TimerTask task = new GroovyTimerTask(closure: codeToRun)
@@ -159,36 +173,62 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
                              "timer":timer]
       */
 
-      player.timers[name] = [
-          type          : type,
-          elapsed       : 0,
-          duration      : time * 1000,
-          timerText     : timerText,
-          direction     : direction,
-          currencyAmount: currencyAmount,
-          appearance    : appearance,
-          order         : player.timers.size()
+      def playerTimer = [
+              type          : type,
+              elapsed       : 0,
+              duration      : time * 1000,
+              timerText     : timerText,
+              direction     : direction,
+              currencyAmount: currencyAmount,
+              appearance    : appearance,
+              order         : player.timers.size(),
+              id            : name,
+              playerId      : player.id
       ]
+
+      this.timers.add(playerTimer)
+      player.timers[name] = playerTimer
+
+      def getAvailableThreads = {
+        Thread.getAllStackTraces().keySet().size()
+      }
+
+      def getUsedThreads = {
+        int nbRunning = 0
+        for (Thread t : Thread.getAllStackTraces().keySet()) {
+          if (t.getState()==Thread.State.RUNNABLE) nbRunning++
+        }
+        nbRunning
+      }
+
+      def cancelTimer = {
+        if (result != null) {
+          result(player)
+        }
+        player.timers.remove(name)
+        this.timers.remove(playerTimer)
+        println "Global timers remaining: " + this.timers.size() + " Threads: " + getUsedThreads() + ' / ' + getAvailableThreads()
+      }
 
       // Update the elapsed time for this timer
       def timerUpdateRate = 1000
-      def tim = new Timer()
+      def tim = new PlayerTimer(cancelTimer)
+
       tim.scheduleAtFixedRate({
-        player.timers[name].elapsed += timerUpdateRate
+        if (player.timers.containsKey(name)) {
+          player.timers[name].elapsed += timerUpdateRate
+          if (player.timers[name].elapsed > player.timers[name].duration) {
+            tim.cancel()
+          }
+        } else if (tim) {
+          tim.cancel()
+        }
         // Updating this property triggers an update
         // when breadboard is in event based update mode
         player.timerUpdatedAt = System.currentTimeMillis()
       } as GroovyTimerTask, 0, timerUpdateRate)
-      tim.runAfter(time * 1000) {
-        //println "Removing timer: " + name
-        if (player.timers) {
-          player.timers.remove(name)
-        }
-        if (result != null) {
-          result(player)
-        }
-        tim.cancel()
-      }
+
+      return tim
     }
   }
 
