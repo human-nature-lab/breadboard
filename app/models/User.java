@@ -114,12 +114,6 @@ public class User extends Model {
 
     ArrayList<String> experimentNames = new ArrayList<String>();
 
-    /*
-    for (Experiment experiment : ownedExperiments) {
-      experimentNames.add(experiment.name);
-    }
-    */
-
     user.put("email", this.email);
 
     user.put("defaultLanguage", (this.defaultLanguage == null) ? null : this.defaultLanguage.toJson());

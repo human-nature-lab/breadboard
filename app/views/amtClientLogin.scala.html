@@ -7,16 +7,16 @@
         <link rel="shortcut icon" type="image/png" href="/assets/img/favicon.ico">
     </head>
     <body>
-    	<p>
-    		The game you are trying to join is not active, either:
-    		<ul>
-    			<li>it has been completed, or</li> 
-    			<li>it is experiencing technical difficulties.</li>
-    		</ul>
-    	</p>
-    	<p>
-    		Please return this HIT, you may check back later to see if the game is active.
-    	</p>
+      <p>
+        The game you are trying to join is not active, either:
+        <ul>
+          <li>it has been completed, or</li>
+          <li>it is experiencing technical difficulties.</li>
+        </ul>
+      </p>
+      <p>
+        Please return this HIT, you may check back later to see if the game is active.
+      </p>
     </body>
 </html>
 } else { @if(Boolean.TRUE.equals(experimentInstance.hasStarted) && (experimentInstance.getHit() != null && (! experimentInstance.getHit().hasWorker(workerId)))) {
@@ -35,7 +35,7 @@
       <div id="contentDiv">
         <h3>The game you are trying to join has already begun.</h3>
         <p><strong>Please return this HIT</strong>, we hope you will participate in another of our games in the future.</p>
-    	</div>
+      </div>
     </body>
 </html>
 } else {
@@ -49,15 +49,15 @@
         <script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
         <script src="/assets/lib/modernizr/modernizr-latest.js" type="text/javascript"></script>
 
-		<div id="mainDiv">
-		  <div id="gameDiv">
+    <div id="mainDiv">
+      <div id="gameDiv">
         <div id="browserTests">
           <h3>Testing...</h3>
           <ol class="tests">
           </ol>
 
             <script>
-              var tests = ["svg", "inlinesvg", "websockets"];	
+              var tests = ["svg", "inlinesvg", "websockets"];
               var failed = 0;
 
               var start = (new Date()).getTime();
@@ -73,26 +73,26 @@
                 $("#connectionSpeed").val(kbps);
           
                 if (kbps >= minSpeed) {
-                  $("ol.tests").append("<li>Passed. (connection speed)</li>"); 		
+                  $("ol.tests").append("<li>Passed. (connection speed)</li>");
                 } else {
-                  $("ol.tests").append("<li>Failed! (connection speed)</li>"); 		
+                  $("ol.tests").append("<li>Failed! (connection speed)</li>");
                 }
 
                 for (var i = 0; i < tests.length; i++) {
                   if (Modernizr[tests[i]]) {
-                    $("ol.tests").append("<li>Passed. (" + tests[i] + ")</li>"); 		
+                    $("ol.tests").append("<li>Passed. (" + tests[i] + ")</li>");
                   } else {
                     failed++;
-                    $("ol.tests").append("<li>Failed! (" + tests[i] + ")</li>"); 		
+                    $("ol.tests").append("<li>Failed! (" + tests[i] + ")</li>");
                   }
                 }
 
                 if (failed > 0) {
-                  $("#browserTests").append("<h3>Failed " + failed + " out of " + (tests.length + 1) + " tests!</h3>"); 		
+                  $("#browserTests").append("<h3>Failed " + failed + " out of " + (tests.length + 1) + " tests!</h3>");
                   $("button.begin").css("visibility", "hidden");
                 } else {
-                  $("#browserTests").append("<h3>Passed all tests.</h3>"); 		
-                  $("#amtIntroText").append("<p>When you are ready, accept the HIT and click 'Begin.'</p>"); 		
+                  $("#browserTests").append("<h3>Passed all tests.</h3>");
+                  $("#amtIntroText").append("<p>When you are ready, accept the HIT and click 'Begin.'</p>");
                 }
               }
           

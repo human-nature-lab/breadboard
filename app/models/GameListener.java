@@ -1,6 +1,5 @@
 package models;
 
-import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 
 public class GameListener {
@@ -34,32 +33,14 @@ public class GameListener {
     }
   }
 
-
-  public void nextStep() {
-    //To change body of implemented methods use File | Settings | File Templates.
-  }
-
-
   public void finish() {
     if (this.experimentInstance != null && (!this.experimentInstance.isTestInstance())) {
       this.experimentInstance.finish();
       this.experimentInstance.save();
     }
     if (user != null && engine != null) {
-      /*
-      for (Parameter p : user.getExperiment().getParameters()) {
-        if (engine.getBindings(ScriptContext.ENGINE_SCOPE).containsKey(p.name))
-          engine.getBindings(ScriptContext.ENGINE_SCOPE).remove(p.name);
-      }
-      */
       this.out.write(user.toJson());
-
-      // Set User ExperimentInstance to -1 here.
-      // user.setExperimentInstanceId(-1L);
-      // user.update();
-      // Breadboard.instances.get(user.email).tell(new Breadboard.GameFinish(user, out), null);
     }
-
   }
 
 }

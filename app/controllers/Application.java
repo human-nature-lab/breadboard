@@ -4,43 +4,19 @@ import models.*;
 import org.apache.commons.io.FileUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.imgscalr.Scalr;
 import org.mindrot.jbcrypt.BCrypt;
 import play.Logger;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.*;
-import play.mvc.Content;
 import play.mvc.Http.MultipartFormData;
 import play.mvc.Http.MultipartFormData.FilePart;
 import views.html.*;
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
 import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Application extends Controller {
-
-  /*
-  public static Result login() {
-    if (User.findRowCount() == 0) {
-      return ok(createFirstUser.render(Form.form(CreateFirstUser.class)));
-    } else {
-      return ok(login.render(Form.form(Login.class)));
-  }
-  }
-  */
-
-  /*
-  public static Result createFirstUser() {
-    if (User.findRowCount() == 0) {
-      return ok(createFirstUser.render(Form.form(CreateFirstUser.class)));
-    } else {
-      return ok(login.render(Form.form(Login.class)));
-    }
-  }
-  */
 
   public static Result addFirstUser() {
 
@@ -65,12 +41,6 @@ public class Application extends Controller {
       return badRequest("Please provide email, password, and default language.");
     }
 
-    /*
-    session("email", email);
-    String uid = UUID.randomUUID().toString();
-    session("uid", uid);
-    */
-
     User user = new User();
     user.email = email;
     user.password = BCrypt.hashpw(password, BCrypt.gensalt());
@@ -79,7 +49,6 @@ public class Application extends Controller {
     user.defaultLanguage = defaultLanguage;
     user.experimentInstanceId = -1L;
     user.selectedExperiment = null;
-    //user.uid = uid;
     user.save();
 
     // TODO: Make method for creating demo experiments and associating with new user
@@ -123,12 +92,6 @@ public class Application extends Controller {
         result.put("email", email);
         result.put("juid", juid);
         return ok(result);
-        /*
-        if (user.role.equals("admin")) {
-        } else if (user.role.equals("amt_admin")) {
-          return redirect(routes.AMTAdmin.index());
-        }
-        */
       }
 
       return badRequest(login.render(loginForm));
@@ -137,8 +100,6 @@ public class Application extends Controller {
 
   public static Result logout() {
     session().clear();
-    //flash("success", "You've been logged out");
-    //return redirect(routes.Application.login());
     return unauthorized();
   }
 

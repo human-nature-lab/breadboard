@@ -224,11 +224,24 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         } else {
           // This ensures that the timer is cancelled if it is removed from the players timers map
           tim.cancel()
+        if (player.timers && player.timers.containsKey(name)) {
+          player.timers[name].elapsed += timerUpdateRate
         }
         // Updating this property triggers an update
         // when breadboard is in event based update mode
         player.timerUpdatedAt = System.currentTimeMillis()
       } as GroovyTimerTask, 0, timerUpdateRate)
+
+      tim.runAfter(time * 1000) {
+        //println "Removing timer: " + name
+        if (player.timers) {
+          player.timers.remove(name)
+        }
+        if (result != null) {
+          result(player)
+        }
+        tim.cancel()
+      }
 
       return tim
     }

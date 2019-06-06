@@ -38,26 +38,26 @@ public class Experiment extends Model {
   public String uid;
 
   @OneToMany(cascade = CascadeType.ALL)
-  public List<Step> steps = new ArrayList<Step>();
+  public List<Step> steps = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL)
-  public List<Content> content = new ArrayList<Content>();
+  public List<Content> content = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL)
-  public List<Parameter> parameters = new ArrayList<Parameter>();
+  public List<Parameter> parameters = new ArrayList<>();
 
   @JsonIgnore
   public ContentFetcher contentFetcher = new ContentFetcher(this);
 
   @OneToMany(cascade = CascadeType.ALL)
-  public List<ExperimentInstance> instances = new ArrayList<ExperimentInstance>();
+  public List<ExperimentInstance> instances = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL)
-  public List<Image> images = new ArrayList<Image>();
+  public List<Image> images = new ArrayList<>();
 
   @ManyToMany
   @JoinTable(name = "experiments_languages")
-  public List<Language> languages = new ArrayList<Language>();
+  public List<Language> languages = new ArrayList<>();
 
   public static final Long TEST_INSTANCE_ID = 0L;
   public ExperimentInstance TEST_INSTANCE = null;

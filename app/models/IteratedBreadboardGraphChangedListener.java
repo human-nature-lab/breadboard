@@ -5,14 +5,12 @@ import actors.ClientUpdateActorProtocol;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
-import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener;
 import play.Logger;
 import play.libs.Akka;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import akka.actor.*;
@@ -21,10 +19,9 @@ import scala.concurrent.duration.Duration;
 public class IteratedBreadboardGraphChangedListener implements BreadboardGraphChangedListener {
   private Graph graph;
   private Long updateIteration = 0L;
-  private ArrayList<ClientListener> adminListeners = new ArrayList<ClientListener>();
-  private HashMap<String, Client> clientListeners = new HashMap<String, Client>();
+  private ArrayList<ClientListener> adminListeners = new ArrayList<>();
+  private HashMap<String, Client> clientListeners = new HashMap<>();
 
-  private ScheduledExecutorService executor;
   static ActorRef clientUpdateActor;
 
   public IteratedBreadboardGraphChangedListener(Graph graph) {
@@ -35,7 +32,6 @@ public class IteratedBreadboardGraphChangedListener implements BreadboardGraphCh
       Logger.debug("clientUpdateRate = null");
       clientUpdateRate = 1000L;
     }
-    //ActorRef clientUpdateActor = Akka.system().actorFor("breadboard-client-update-actor");
     Akka.system().scheduler().schedule(
         Duration.create(0, TimeUnit.MILLISECONDS),
         Duration.create(clientUpdateRate, TimeUnit.MILLISECONDS),
@@ -44,13 +40,6 @@ public class IteratedBreadboardGraphChangedListener implements BreadboardGraphCh
         Akka.system().dispatcher(),
         null
     );
-    /*
-    //Logger.debug("Creating a new executor");
-    executor = Executors.newSingleThreadScheduledExecutor();
-    ClientUpdateTask clientUpdateTask = new ClientUpdateTask();
-    Logger.debug("clientUpdateRate = " + clientUpdateRate);
-    executor.scheduleWithFixedDelay(clientUpdateTask, 0, clientUpdateRate, TimeUnit.MILLISECONDS);
-    */
   }
 
   private class ClientUpdateTask implements Runnable {
@@ -71,15 +60,6 @@ public class IteratedBreadboardGraphChangedListener implements BreadboardGraphCh
         }
       }
     }
-  }
-
-  public ScheduledExecutorService getExecutor() {
-    return executor;
-  }
-
-  public void stopExecutor() {
-    Logger.debug("executor.shutdown()");
-    executor.shutdown();
   }
 
   public HashMap<String, Client> getClientListeners() {
@@ -110,88 +90,55 @@ public class IteratedBreadboardGraphChangedListener implements BreadboardGraphCh
     return this.adminListeners;
   }
 
-  /*
-  public ArrayList<Client> getClientListeners() {
-    ArrayList<Client> returnArrayList = new ArrayList<Client>();
-    for (Client client : clientListeners.values()) {
-      returnArrayList.add(client);
-    }
-    return returnArrayList;
-  }
-  */
-
   public void addClientListener(Client clientListener) {
     clientListeners.put(clientListener.id, clientListener);
   }
 
-  public void removeAdminListener(ClientListener adminListener) {
-    adminListeners.remove(adminListener);
-  }
-
   @Override
   public void edgeAdded(Edge edge) {
-    //Logger.debug("EventGraphChangedListener edgeAdded");
     for (ClientListener al : adminListeners)
       al.edgeAdded(edge);
-
-    //clientEdgeChanged(edge);
   }
 
   @Override
   public void edgePropertyChanged(Edge edge, String key, Object oldValue, Object setValue) {
     for (ClientListener al : adminListeners)
       al.edgePropertyChanged(edge, key, setValue);
-
-    //clientEdgePropertyChanged(edge, key, setValue);
   }
 
   @Override
   public void edgePropertyRemoved(Edge edge, String key, Object removedValue) {
     for (ClientListener al : adminListeners)
       al.edgePropertyRemoved(edge, key);
-
-    //clientEdgePropertyChanged(edge, key, removedValue);
   }
 
   @Override
   public void edgeRemoved(Edge edge, Map<String, Object> props) {
     for (ClientListener al : adminListeners)
       al.edgeRemoved(edge);
-
-    //clientEdgeChanged(edge);
   }
 
   @Override
   public void vertexAdded(Vertex vertex) {
     for (ClientListener al : adminListeners)
       al.vertexAdded(vertex);
-
-    //clientVertexChanged(vertex, false);
   }
 
   @Override
   public void vertexPropertyChanged(Vertex vertex, String key, Object oldValue, Object setValue) {
     for (ClientListener al : adminListeners)
       al.vertexPropertyChanged(vertex, key, oldValue, setValue);
-
-    //boolean pvt = (key.equals("private") || key.equals("choices") || key.equals("text"));
-    //clientVertexChanged(vertex, pvt);
   }
 
   @Override
   public void vertexPropertyRemoved(Vertex vertex, String key, Object removedValue) {
     for (ClientListener al : adminListeners)
       al.vertexPropertyRemoved(vertex, key);
-
-    //boolean pvt = (key.equals("private") || key.equals("choices") || key.equals("text"));
-    //clientVertexChanged(vertex, pvt);
   }
 
   @Override
   public void vertexRemoved(Vertex vertex, Map<String, Object> props) {
     for (ClientListener al : adminListeners)
       al.vertexRemoved(vertex);
-
-    //clientVertexChanged(vertex, false);
   }
 }
