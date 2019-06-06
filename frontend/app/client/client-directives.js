@@ -9,7 +9,6 @@ angular.module('client.directives', [])
       link: function(scope,elem,attrs){
         $timeout(function(){
           $compile(elem.contents())(scope);
-					//console.log("inside compile directive");
         });
       }
     };

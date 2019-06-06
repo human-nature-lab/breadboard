@@ -28,10 +28,10 @@ public class EventTracker {
   }
 
   public void track(String name, LinkedHashMap<Object, Object> data) {
-    List<Map<String, String>> nameValues = new ArrayList<Map<String, String>>();
+    List<Map<String, String>> nameValues = new ArrayList<>();
 
     for (Object key : data.keySet()) {
-      Map<String, String> dataMap = new HashMap<String, String>();
+      Map<String, String> dataMap = new HashMap<>();
       dataMap.put("name", key.toString());
       dataMap.put("value", (data.get(key) == null) ? "null" : data.get(key).toString());
       nameValues.add(dataMap);
@@ -51,7 +51,6 @@ public class EventTracker {
     Event event = new Event();
     event.name = name;
     event.experimentInstance = experimentInstance;
-    //event.save();
     for (Map<String, String> nameValue : nameValues) {
       EventData eventData = new EventData();
       eventData.name = nameValue.get("name");

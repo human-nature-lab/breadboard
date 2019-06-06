@@ -11,8 +11,8 @@ import java.util.HashMap;
 
 public class D3Utils {
   public static ObjectNode graphToJsonString(Graph graph) {
-    ArrayList<Vertex> vertices = new ArrayList<Vertex>();
-    ArrayList<Edge> edges = new ArrayList<Edge>();
+    ArrayList<Vertex> vertices = new ArrayList<>();
+    ArrayList<Edge> edges = new ArrayList<>();
 
     for (Vertex v : graph.getVertices())
       vertices.add(v);
@@ -24,18 +24,18 @@ public class D3Utils {
   }
 
   public static ObjectNode toJsonString(ArrayList<Vertex> vertices, ArrayList<Edge> edges) {
-    ArrayList<HashMap<String, Object>> nodes = new ArrayList<HashMap<String, Object>>();
+    ArrayList<HashMap<String, Object>> nodes = new ArrayList<>();
 
     for (int i = 0; i < vertices.size(); i++) {
       Vertex v = vertices.get(i);
 
-      HashMap<String, Object> n = new HashMap<String, Object>();
+      HashMap<String, Object> n = new HashMap<>();
       n.put("id", v.getId().toString());
 
       // TODO: Make this thread safe, the Vertex's properties may be modified during the execution of the loop
       // Will copying the property keys to an array solve the Concurrent Modification problem?
       String[] propertyKeyArray = v.getPropertyKeys().toArray(new String[0]);
-      ArrayList<String> ignoreKeys = new ArrayList<String>();
+      ArrayList<String> ignoreKeys = new ArrayList<>();
 
       for (String key : propertyKeyArray) {
         if (ignoreKeys.indexOf(key) < 0) {
@@ -46,11 +46,11 @@ public class D3Utils {
       nodes.add(n);
     }
 
-    ArrayList<HashMap<String, Object>> links = new ArrayList<HashMap<String, Object>>();
+    ArrayList<HashMap<String, Object>> links = new ArrayList<>();
 
     for (Edge e : edges) {
       if (e.getLabel().equals("connected")) {
-        HashMap<String, Object> l = new HashMap<String, Object>();
+        HashMap<String, Object> l = new HashMap<>();
         l.put("id", Integer.parseInt(e.getId().toString()));
         l.put("name", e.getLabel());
 

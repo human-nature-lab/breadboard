@@ -1,7 +1,6 @@
 import com.avaje.ebean.Ebean;
 import com.avaje.ebean.SqlRow;
 import controllers.LanguageController;
-import exceptions.BreadboardException;
 import models.*;
 import org.apache.commons.io.FileUtils;
 import play.Play;

@@ -33,13 +33,13 @@ public class ExperimentInstance extends Model {
   public String name;
 
   @OneToMany(cascade = CascadeType.ALL, mappedBy = "experimentInstance", orphanRemoval = true)
-  public List<Data> data = new ArrayList<Data>();
+  public List<Data> data = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL, mappedBy = "experimentInstance")
-  public List<Event> events = new ArrayList<Event>();
+  public List<Event> events = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL, mappedBy = "experimentInstance")
-  public List<AMTHit> amtHits = new ArrayList<AMTHit>();
+  public List<AMTHit> amtHits = new ArrayList<>();
 
   @JsonIgnore
   @ManyToOne
@@ -106,7 +106,6 @@ public class ExperimentInstance extends Model {
       throw new IllegalStateException("The current status is not runnable:" + status);
     }
     status = Status.RUNNING;
-    //this.update();
   }
 
   public void test() {
@@ -114,12 +113,10 @@ public class ExperimentInstance extends Model {
       throw new IllegalStateException("The current status is not runnable:" + status);
     }
     status = Status.TESTING;
-    //this.update();
   }
 
   public void finish() {
     status = Status.FINISHED;
-    //this.update();
   }
 
   public void stop() {
@@ -127,7 +124,6 @@ public class ExperimentInstance extends Model {
       throw new IllegalStateException("The current status is not runnable:" + status);
     }
     status = Status.STOPPED;
-    //this.update();
   }
 
   public void setHasStarted(Boolean hasStarted) {

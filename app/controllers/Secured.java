@@ -17,7 +17,6 @@ public class Secured extends Security.Authenticator {
     } else {
       return null;
     }
-//    return ctx.session().get("email");
   }
 
   @Override
@@ -30,6 +29,5 @@ public class Secured extends Security.Authenticator {
     }
     result.put("message", "please login");
     return unauthorized(result);
-//    return redirect(routes.Application.login());
   }
 }
