@@ -1,11 +1,7 @@
 package controllers;
 
-import play.Logger;
 import play.libs.WS;
 import play.mvc.Result;
-
-import java.io.File;
-
 import static play.libs.F.*;
 import static play.libs.F.Promise;
 import static play.mvc.Controller.response;
@@ -29,12 +25,6 @@ public class BundlesController {
             Promise<String> sp = Promise.pure(filePath);
             return sp.map(new Function<String, Result>() {
                 public Result apply(String filePath) {
-                    /*
-                    File f = play.Play.application().getFile("/public/bundles/" + filePath);
-                    return ok(f);
-                    */
-                    //return ok(Assets.at("/public/bundles", filePath));
-                    //return redirect(routes.Assets.at("/public/bundles", filePath));
                     return ok(play.Play.application().resourceAsStream("/public/bundles/" + filePath));
                 }
             });

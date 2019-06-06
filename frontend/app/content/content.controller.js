@@ -38,7 +38,9 @@ export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderB
     autoresize_max_height: ($('#contentDiv').height() - $('#contentNavDiv').height() - $('#contentErrorDiv').height()),
     setup: function(editor) {
       //Focus the editor on load
-      $timeout(function(){ editor.focus(); });
+      $timeout(function(){
+        editor.focus();
+      }, 1000);
       editor.on("keydown", function(e) {
         if(e.ctrlKey && e.keyCode === KEYS.S){
           $scope.saveContent();

@@ -9,7 +9,6 @@ import views.html.*;
 import com.fasterxml.jackson.databind.*;
 import models.*;
 import java.io.*;
-import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -31,10 +30,6 @@ public class ClientController extends Controller
         if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
           return ok( amtError.render() );
         }
-        //final File file = play.Play.application().getFile("public/templates/client.html");
-        //return ok(file, true);
-        //return ok(client.render(experimentId, experimentInstanceId, clientId, connectionSpeed, experiment.clientHtml, experiment.clientGraph));
-        //return ok(play.Play.application().resourceAsStream("/public/templates/client.html"));
         return ok(client.render());
     }
 

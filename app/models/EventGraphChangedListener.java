@@ -4,8 +4,6 @@ import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
-import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener;
-import play.Logger;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -13,8 +11,8 @@ import java.util.Map;
 
 public class EventGraphChangedListener implements BreadboardGraphChangedListener {
   private Graph graph;
-  private ArrayList<ClientListener> adminListeners = new ArrayList<ClientListener>();
-  private static HashMap<String, Client> clientListeners = new HashMap<String, Client>();
+  private ArrayList<ClientListener> adminListeners = new ArrayList<>();
+  private static HashMap<String, Client> clientListeners = new HashMap<>();
 
   public EventGraphChangedListener(Graph graph) {
     this.graph = graph;
@@ -28,14 +26,6 @@ public class EventGraphChangedListener implements BreadboardGraphChangedListener
     return this.adminListeners;
   }
 
-  public ArrayList<Client> getClientListeners() {
-    ArrayList<Client> returnArrayList = new ArrayList<Client>();
-    for (Client client : clientListeners.values()) {
-      returnArrayList.add(client);
-    }
-    return returnArrayList;
-  }
-
   @Override
   public void setGraph(Graph g) {
     this.graph = g;
@@ -43,10 +33,6 @@ public class EventGraphChangedListener implements BreadboardGraphChangedListener
 
   public void addClientListener(Client clientListener) {
     clientListeners.put(clientListener.id, clientListener);
-  }
-
-  public void removeAdminListener(ClientListener adminListener) {
-    adminListeners.remove(adminListener);
   }
 
   @Override
@@ -116,14 +102,6 @@ public class EventGraphChangedListener implements BreadboardGraphChangedListener
     clientVertexChanged(vertex, false);
   }
 
-  private void notifyAdminListeners() {
-    Logger.debug("notifyAdminListeners");
-    /*
-    for (AdminListener al : adminListeners)
-			al.graphChanged(graph);
-		*/
-  }
-
   private void clientEdgePropertyChanged(Edge edge, String key, Object value) {
     // inProps are only visible by the inVertex and outProps are only visible by the outVertex
     if (key.equals("inProps")) {
@@ -153,17 +131,11 @@ public class EventGraphChangedListener implements BreadboardGraphChangedListener
 
     if (clientListeners.containsKey(id1)) {
       Client c1 = clientListeners.get(id1);
-      //c1.vertexAdded(vertices[1]);
-      //c1.edgeAdded(edge);
-
       c1.updateGraph(vertices[0]);
     }
 
     if (clientListeners.containsKey(id2)) {
       Client c2 = clientListeners.get(id2);
-      //c2.vertexAdded(vertices[0]);
-      //c2.edgeAdded(edge);
-
       c2.updateGraph(vertices[1]);
     }
   }
@@ -185,41 +157,10 @@ public class EventGraphChangedListener implements BreadboardGraphChangedListener
     }
   }
 
-  private ArrayList<Client> getClientsByEdge(Edge edge) {
-    ArrayList<Client> returnClientList = new ArrayList<Client>();
-    String inId = (String) edge.getVertex(Direction.IN).getId();
-    String outId = (String) edge.getVertex(Direction.OUT).getId();
-
-    if (clientListeners.containsKey(inId))
-      returnClientList.add(clientListeners.get(inId));
-
-    if (clientListeners.containsKey(outId))
-      returnClientList.add(clientListeners.get(outId));
-
-    return returnClientList;
-  }
-
   private Vertex[] getVerticesByEdge(Edge edge) {
     Vertex[] returnArray = new Vertex[2];
     returnArray[0] = edge.getVertex(Direction.IN);
     returnArray[1] = edge.getVertex(Direction.OUT);
     return returnArray;
   }
-
-  private ArrayList<Client> getClientsByVertex(Vertex vertex) {
-    ArrayList<Client> returnClientList = new ArrayList<Client>();
-
-    // Add the client himself
-    String id = (String) vertex.getId();
-    if (clientListeners.containsKey(id))
-      returnClientList.add(clientListeners.get(id));
-
-    for (Vertex v : vertex.getVertices(Direction.BOTH)) {
-      id = (String) v.getId();
-      if (clientListeners.containsKey(id))
-        returnClientList.add(clientListeners.get(id));
-    }
-    return returnClientList;
-  }
-
 }

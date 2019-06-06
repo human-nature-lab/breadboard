@@ -33,8 +33,6 @@ public class Image extends Model {
   @Constraints.Required
   public String contentType;
 
-  //public String thumbnail;
-
   @JsonIgnore
   public static Model.Finder<Long, Image> find = new Model.Finder(Long.class, Image.class);
 
@@ -64,8 +62,6 @@ public class Image extends Model {
 
     image.put("id", id);
     image.put("fileName", fileName);
-
-    //image.put("thumbnail", thumbnail);
 
     return image;
   }

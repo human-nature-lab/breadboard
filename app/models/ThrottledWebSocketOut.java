@@ -21,36 +21,36 @@ public class ThrottledWebSocketOut {
 
   public synchronized void write(JsonNode message) {
     /*
-		if(System.currentTimeMillis() - lastSent < wait || scheduled) {
-			queue.offer(message);
-			if (! scheduled) {
-				timer.schedule(new TimerTask() {
-					@Override
-					public void run() {
-						//System.out.println("TimerTask.run()");
-						ObjectNode outNode = Json.newObject();
-						
-						ArrayList<JsonNode> jsonNodes = new ArrayList<JsonNode>();
-						while (! queue.isEmpty()) {
-							jsonNodes.add(queue.poll());
-						}
-						outNode.put("queuedMessages", Json.toJson(jsonNodes));
+    if(System.currentTimeMillis() - lastSent < wait || scheduled) {
+      queue.offer(message);
+      if (! scheduled) {
+        timer.schedule(new TimerTask() {
+          @Override
+          public void run() {
+            //System.out.println("TimerTask.run()");
+            ObjectNode outNode = Json.newObject();
 
-						out.write(outNode);
+            ArrayList<JsonNode> jsonNodes = new ArrayList<JsonNode>();
+            while (! queue.isEmpty()) {
+              jsonNodes.add(queue.poll());
+            }
+            outNode.put("queuedMessages", Json.toJson(jsonNodes));
 
-						lastSent = System.currentTimeMillis();
-						scheduled = false; 
-					}
-				}, wait);
-				scheduled = true;
-			}
-		} else {
-			out.write(message);
-			//System.out.println("queue.size() = " + queue.size());
-			
-			lastSent = System.currentTimeMillis();
-		}
-		*/
+            out.write(outNode);
+
+            lastSent = System.currentTimeMillis();
+            scheduled = false;
+          }
+        }, wait);
+        scheduled = true;
+      }
+    } else {
+      out.write(message);
+      //System.out.println("queue.size() = " + queue.size());
+
+      lastSent = System.currentTimeMillis();
+    }
+    */
     out.write(message);
   }
 }

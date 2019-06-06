@@ -48,10 +48,10 @@ public class AMTHit extends Model {
 
   // TODO: Remove amtWorkers
   @OneToMany(cascade = CascadeType.ALL, mappedBy = "amtHit")
-  public List<AMTWorker> amtWorkers = new ArrayList<AMTWorker>();
+  public List<AMTWorker> amtWorkers = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL, mappedBy = "amtHit")
-  public List<AMTAssignment> amtAssignments = new ArrayList<AMTAssignment>();
+  public List<AMTAssignment> amtAssignments = new ArrayList<>();
 
   @JsonIgnore
   public static Model.Finder<Long, AMTHit> find = new Model.Finder(Long.class, AMTHit.class);

@@ -1,6 +1,5 @@
 package models;
 
-import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -42,6 +41,11 @@ public class Translation extends Model implements Serializable {
   }
 
   public Translation() {}
+
+  public Translation(Translation t) {
+    this.html = t.html;
+    this.language = t.language;
+  }
 
   public Long getId() {
     return id;

@@ -1,0 +1,194 @@
+<div class="container-fluid">
+    <div class="panel panel-default">
+        <div class="panel-heading">
+            <h3 class="panel-title">Qualification requirements</h3>
+        </div>
+        <div class="panel-body">
+            <table class="table table-condensed">
+                <thead>
+                    <tr>
+                        <th>Qualification</th>
+                        <th>Experiment UID</th>
+                        <th>Comparator</th>
+                        <th>Integer values</th>
+                        <th>Locales</th>
+                        <th>Actions guarded</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                  <tr ng-repeat="qr in qualificationRequirements">
+                      <td>{{ qr.selectedQualificationType.label }}</td>
+                      <td>{{ qr.otherExperiment }}</td>
+                      <td>{{ qr.comparator }}</td>
+                      <td>{{ qr.integerValues }}</td>
+                      <td>{{ localesToString(qr.locales) }}</td>
+                      <td>{{ qr.actionsGuarded }}</td>
+                      <td>
+                          <button type="button"
+                                  class="form-control btn btn-default btn-sm"
+                                  ng-click="removeQualificationRequirement($index)">
+                                    <span class="glyphicon glyphicon-remove"
+                                          tooltip="Remove qualification requirement"
+                                          tooltip-append-to-body="true"
+                                          aria-hidden="true">
+                                    </span>
+                          </button>
+                      </td>
+                  </tr>
+                </tbody>
+            </table>
+            <button type="button"
+                    class="btn btn-default"
+                    ng-click="openAddQualificationRequirementDialog()">
+                <span class="glyphicon glyphicon-plus"
+                      tooltip="Add a qualification requirement."
+                      tooltip-append-to-body="true"
+                      aria-hidden="true">
+                </span>
+            </button>
+        </div>
+    </div>
+
+
+    <div id="addQualificationRequirementDialog" style="display: none;">
+        <div class="panel panel-danger" ng-show="addQualificationRequirementStatus === 3">
+            <div class="panel-heading">
+                <h3 class="panel-title">Error</h3>
+            </div>
+            <div class="panel-body">
+                <p ng-bind-html="addQualificationRequirementError | to_trusted"></p>
+            </div>
+        </div>
+        <div class="new-dialog" ng-show="addQualificationRequirementStatus !== 1">
+            <form name="addQualificationRequirementForm">
+                <div class="form-group">
+                    <label class="control-label" for="selectedQualificationType">Qualification</label>
+                    <select ng-disabled="addQualificationRequirementStatus == 1"
+                            class="form-control"
+                            id="selectedQualificationType"
+                            ng-model="selectedQualificationType"
+                            ng-options="qualificationType.label for qualificationType in qualificationTypes track by qualificationType.qualificationTypeId">
+                    </select>
+                </div>
+                <div class="form-group" ng-show="selectedQualificationType && selectedQualificationType.qualificationTypeId === 'OTHER_EXPERIMENT'">
+                    <label class="control-label" for="otherExperiments">Experiment UID</label>
+                    <input type="text"
+                           placeholder="Enter the experiment's UID"
+                           ng-disabled="addQualificationRequirementStatus == 1"
+                           class="form-control"
+                           id="otherExperiments"
+                           ng-model="otherExperiments">
+                    </input>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="comparator">Comparator</label>
+                    <select ng-disabled="addQualificationRequirementStatus == 1"
+                            class="form-control"
+                            id="comparator"
+                            ng-model="comparator">
+                        <option value=""></option>
+                        <option value="LessThan">Less than</option>
+                        <option value="LessThanOrEqualTo">Less than or equal to</option>
+                        <option value="EqualTo">Equal to</option>
+                        <option value="GreaterThanOrEqualTo">Greater than or equal to</option>
+                        <option value="GreaterThan">Greater than</option>
+                        <option value="NotEqualTo">Not equal to</option>
+                        <option value="Exists">Exists</option>
+                        <option value="DoesNotExist">Does not exist</option>
+                        <option value="In">In</option>
+                        <option value="NotIn">Not in</option>
+                    </select>
+                </div>
+                <div class="form-group" ng-show="selectedQualificationType && selectedQualificationType.qualificationTypeId !== '00000000000000000071' && comparator !== 'Exists' && comparator !== 'DoesNotExist'">
+                    <label class="control-label" for="integerValues">Integer values</label>
+                    <input type="text"
+                           placeholder="Enter one or more comma separated integers"
+                           pattern="/^[0-9,]/"
+                           ng-disabled="addQualificationRequirementStatus == 1"
+                           class="form-control"
+                           id="integerValues"
+                           ng-model="integerValues">
+                    </input>
+                </div>
+                <div class="panel panel-default"
+                     ng-show="selectedQualificationType && selectedQualificationType.qualificationTypeId === '00000000000000000071'">
+                    <div class="panel-heading">
+                        <h3 class="panel-title">Locales</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="form-horizontal">
+                            <div class="form-group" ng-repeat="locale in locales">
+                                <label class="control-label col-md-2" for="country_{{ $index }}">Country</label>
+                                <div class="col-md-3">
+                                    <input type="text"
+                                           placeholder="(e.g. US)"
+                                           ng-disabled="addQualificationRequirementStatus == 1"
+                                           class="form-control"
+                                           id="country_{{ $index }}"
+                                           ng-model="locale.country">
+                                    </input>
+                                </div>
+                                <label class="control-label col-md-3" for="subdivision_{{ $index }}">Subdivision</label>
+                                <div class="col-md-3">
+                                    <input type="text"
+                                           placeholder="(e.g. CT)"
+                                           ng-disabled="addQualificationRequirementStatus == 1"
+                                           class="form-control"
+                                           id="subdivision_{{ $index }}"
+                                           ng-model="locale.subdivision">
+                                    </input>
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="button"
+                                            class="form-control btn btn-default btn-sm"
+                                            ng-click="removeLocale($index)">
+                                    <span class="glyphicon glyphicon-remove"
+                                          tooltip="Remove locale"
+                                          tooltip-append-to-body="true"
+                                          aria-hidden="true">
+                                    </span>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <div class="col-md-11"></div>
+                                <div class="col-md-1">
+                                    <button type="button"
+                                            class="form-control btn btn-default btn-sm"
+                                            ng-click="addLocale()">
+                                        <span class="glyphicon glyphicon-plus"
+                                              tooltip="Add locale"
+                                              tooltip-append-to-body="true"
+                                              aria-hidden="true">
+                                        </span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="control-label" for="actionsGuarded">Actions guarded</label>
+                    <select ng-disabled="addQualificationRequirementStatus == 1"
+                            class="form-control"
+                            id="actionsGuarded"
+                            ng-model="actionsGuarded">
+                        <option value=""></option>
+                        <option value="Accept">Accept</option>
+                        <option value="PreviewAndAccept">Preview and accept</option>
+                        <option value="DiscoverPreviewAndAccept">Discover, preview, and accept</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-default"
+                            type="submit"
+                            ng-disabled="addQualificationRequirementForm.$invalid"
+                            ng-click="addQualificationRequirement()">Add
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

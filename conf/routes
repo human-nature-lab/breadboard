@@ -29,9 +29,18 @@ POST        /amtadmin/sendBonus/:assignmentId                                   
 POST        /amtadmin/updateAssignmentCompleted/:assignmentId                    controllers.AMTAdmin.updateAssignmentCompleted(assignmentId: String)
 POST        /amtadmin/createHIT                                                  controllers.AMTAdmin.createHIT(sandbox: Boolean ?= false)
 GET         /amtadmin/getAMTWorkers/:experimentId                                controllers.AMTAdmin.getAMTWorkers(experimentId: Long, sandbox: Boolean ?= false, limit: Integer ?= 50, offset: Integer ?= 0, search: String ?= "")
+POST        /amtadmin/importAMTWorkers/:experimentId                             controllers.AMTAdmin.importAMTWorkers(experimentId: Long, sandbox: Boolean ?= false)
+POST        /amtadmin/assignParticipantQualification                             controllers.AMTAdmin.assignParticipantQualification(sandbox: Boolean ?= false)
+POST        /amtadmin/removeParticipantQualification                             controllers.AMTAdmin.removeParticipantQualification(sandbox: Boolean ?= false)
+POST        /amtadmin/getQualificationScore                                      controllers.AMTAdmin.getQualificationScore(sandbox: Boolean ?= false)
+GET         /amtadmin/getExperimentQualificationTypeId/:experimentUid            controllers.AMTAdmin.getExperimentQualificationTypeId(experimentUid: String, sandbox: Boolean ?= false)
+GET         /amtadmin/listWorkersWithQualificationType/:qualificationTypeId      controllers.AMTAdmin.listWorkersWithQualificationType(qualificationTypeId: String, maxResults: Integer ?= 20, nextToken: String ?= null, sandbox: Boolean ?= false)
+POST        /amtadmin/disassociateQualificationFromWorker/:qualificationTypeId   controllers.AMTAdmin.disassociateQualificationFromWorker(qualificationTypeId: String, sandbox: Boolean ?= false)
+GET         /amtadmin/listQualificationTypes                                     controllers.AMTAdmin.listQualificationTypes(sandbox: Boolean ?= false)
+PUT         /amtadmin/addQualificationType/:experimentUid                        controllers.AMTAdmin.addQualificationType(experimentUid: String, sandbox: Boolean ?= false)
 
 # AMT Workers Controller
-GET         /experiment/:experimentId/amtassignments                                controllers.AMTAssignmentController.getAMTAssignments(experimentId: Long, sandbox: Boolean ?= false)
+GET         /experiment/:experimentId/amtassignments                             controllers.AMTAssignmentController.getAMTAssignments(experimentId: Long, sandbox: Boolean ?= false)
 
 # Customize Dialog
 GET         /customize/clientHtml/:experimentId                                  controllers.CustomizeController.getClientHtml(experimentId: Long)

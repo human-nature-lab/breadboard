@@ -49,7 +49,9 @@ public class Content extends Model {
 
   public Content(Content c) {
     this.name = c.name;
-    this.translations = c.translations;
+    for (Translation t : c.translations) {
+      this.translations.add(new Translation(t));
+    }
   }
 
   public String toString() {

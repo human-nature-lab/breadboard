@@ -352,7 +352,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   $scope.submitAMTTask = function (lifetimeInSeconds, tutorialTime) {
-    //console.log('submitAMTTask', lifetimeInSeconds, tutorialTime);
     $breadboardFactory.send({
       "action": "SubmitAMTTask",
       "lifetimeInSeconds": lifetimeInSeconds,
@@ -584,6 +583,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.amtAdminDialogOptions = {
     title: 'AMT',
+    autoOpen: false,
+    width: windowWidth,
+    height: windowHeight - 9, // Not sure why the AMT dialog is 9 pixels higher than the others...
+    position: [margin, topDivHeight],
+    buttons: {}
+  };
+
+  $scope.testingDialogOptions = {
+    title: 'Testing',
     autoOpen: false,
     width: windowWidth,
     height: windowHeight - 9, // Not sure why the AMT dialog is 9 pixels higher than the others...

@@ -5,7 +5,7 @@ import play.Project._
 object ApplicationBuild extends Build {
 
     val appName         = "breadboard"
-    val appVersion      = "v2.3.0"
+    val appVersion      = "v2.3.1"
 
     val appDependencies = Seq(
       javaCore,
@@ -25,7 +25,7 @@ object ApplicationBuild extends Build {
       "net.sf.jung" % "jung2" % "2.0.1",
       "org.mindrot" % "jbcrypt" % "0.3m",
       "com.google.code.gson" % "gson" % "2.8.2",
-      "com.amazonaws" % "aws-java-sdk" % "1.11.245"
+      "com.amazonaws" % "aws-java-sdk" % "1.11.328"
     )
 
     val main = play.Project(appName, appVersion, appDependencies).settings(

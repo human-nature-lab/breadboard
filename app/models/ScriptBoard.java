@@ -7,7 +7,6 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
-import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener;
 import com.tinkerpop.gremlin.groovy.GremlinGroovyPipeline;
 import groovy.util.ObservableMap;
 import org.apache.commons.io.FileUtils;
@@ -25,7 +24,6 @@ import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
-import java.io.StringReader;
 import java.util.*;
 
 public class ScriptBoard extends UntypedActor {
@@ -66,8 +64,8 @@ public class ScriptBoard extends UntypedActor {
   private void init() {
     results = new HashMap();
     mapper = new ObjectMapper();
-    admins = new ArrayList<Admin>();
-    clients = new HashMap<String, Client>();
+    admins = new ArrayList<>();
+    clients = new HashMap<>();
     eventTracker = new EventTracker();
     manager = new ScriptEngineManager();
   }
@@ -100,10 +98,30 @@ public class ScriptBoard extends UntypedActor {
       engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", experiment.contentFetcher);
     }
 
-    // Run the test Groovy script here
-    File scriptFile = new File(Play.application().path().toString() + "/groovy/hello.groovy");
-    String scriptString = FileUtils.readFileToString(scriptFile, "UTF-8");
-    engine.eval(scriptString);
+    // Load Groovy scripts
+    File utilFile = new File(Play.application().path().toString() + "/groovy/util.groovy");
+    String utilString = FileUtils.readFileToString(utilFile, "UTF-8");
+    engine.eval(utilString);
+
+    File graphFile = new File(Play.application().path().toString() + "/groovy/graph.groovy");
+    String graphString = FileUtils.readFileToString(graphFile, "UTF-8");
+    engine.eval(graphString);
+
+    File actionsFile = new File(Play.application().path().toString() + "/groovy/actions.groovy");
+    String actionsString = FileUtils.readFileToString(actionsFile, "UTF-8");
+    engine.eval(actionsString);
+
+    File stepFile = new File(Play.application().path().toString() + "/groovy/step.groovy");
+    String stepString = FileUtils.readFileToString(stepFile, "UTF-8");
+    engine.eval(stepString);
+
+    File timerFile = new File(Play.application().path().toString() + "/groovy/timer.groovy");
+    String timerString = FileUtils.readFileToString(timerFile, "UTF-8");
+    engine.eval(timerString);
+
+    File testFile = new File(Play.application().path().toString() + "/groovy/test.groovy");
+    String testString = FileUtils.readFileToString(testFile, "UTF-8");
+    engine.eval(testString);
 
     // get script object on which we want to implement the interface with
     Object a = engine.get("a");
@@ -131,41 +149,6 @@ public class ScriptBoard extends UntypedActor {
       Logger.debug("graphChangedListener != null");
       graphChangedListener.setGraph((Graph) g);
     }
-
-    /*
-    TODO: Why would we need to recreate the graph listener here?
-    IteratedBreadboardGraphChangedListener oldGraphChangedListener = graphChangedListener;
-    if (oldGraphChangedListener != null) {
-      // Stop the old executor before starting the new one
-      oldGraphChangedListener.stopExecutor();
-      try {
-        Logger.debug("Awaiting termination");
-        oldGraphChangedListener.getExecutor().awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS);
-      } catch (InterruptedException e) {
-        Logger.debug("InterruptedException: " + e.getLocalizedMessage());
-      }
-      Logger.debug("Executor terminated");
-    }
-
-    graphChangedListener = new IteratedBreadboardGraphChangedListener((Graph) g);
-
-    //graphChangedListener.getExecutor().get
-
-    // if there are any existing adminListeners they need to be added as listeners to the new graph
-    if (oldGraphChangedListener != null) {
-      Logger.debug("oldGraphChangedListener.getClientListeners().size(): " + oldGraphChangedListener.getClientListeners().size());
-      for (ClientListener listener : oldGraphChangedListener.getAdminListeners()) {
-        graphChangedListener.addAdminListener(listener);
-      }
-
-      // same with client listeners
-      for (Client client : oldGraphChangedListener.getClientListeners()) {
-        graphChangedListener.addClientListener(client);
-      }
-    }
-
-    Logger.debug("graphChangedListener.getClientListeners().size(): " + graphChangedListener.getClientListeners().size());
-    */
 
     graphInterface.addListener(graphChangedListener);
 
@@ -237,14 +220,6 @@ public class ScriptBoard extends UntypedActor {
         client.setOut(out);
       }
 
-      /*
-      in.onClose(new Callback0() {
-        public void invoke() {
-              Logger.debug("Websocket Closed!");
-          }
-      });
-      */
-
       in.onMessage(new Callback<JsonNode>() {
         public void invoke(JsonNode event) {
           try {
@@ -257,9 +232,6 @@ public class ScriptBoard extends UntypedActor {
               String referer = jsonInput.get("referer").toString();
               String connection = jsonInput.get("connection").toString();
               String accept = jsonInput.get("accept").toString();
-//              String cacheControl = jsonInput.get("cacheControl").toString();
-//              String acceptCharset = jsonInput.get("acceptCharset").toString();
-//              String cookie = jsonInput.get("cookie").toString();
               String acceptLanguage = jsonInput.get("acceptLanguage").toString();
               String acceptEncoding = jsonInput.get("acceptEncoding").toString();
               String userAgent = jsonInput.get("userAgent").toString();
@@ -272,7 +244,6 @@ public class ScriptBoard extends UntypedActor {
                 data.put("clientId", clientId);
                 data.put("referer", referer);
                 data.put("connection", connection);
-//                data.put("acceptCharset", acceptCharset);
                 data.put("acceptLanguage", acceptLanguage);
                 data.put("acceptEncoding", acceptEncoding);
                 data.put("userAgent", userAgent);
@@ -384,13 +355,6 @@ public class ScriptBoard extends UntypedActor {
 
           if (breadboardMessage.user != null && breadboardMessage.user.selectedExperiment != null) {
             Logger.debug("SendStep: " + sendStep.id + ", " + sendStep.name + ", " + sendStep.source);
-            /*
-            Step step = breadboardMessage.user.selectedExperiment.getStep(sendStep.id);
-            if (step != null) {
-              step.setSource(sendStep.source);
-              step.update();
-            }
-            */
             // Now we only run the step
             Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, sendStep.source, breadboardMessage.out), null);
           }
@@ -703,12 +667,6 @@ public class ScriptBoard extends UntypedActor {
     playerActions.choose(uid, params);
     out.write(jsonOutput);
   }
-
-  /*
-  private static void processScript(String script, ThrottledWebSocketOut out){
-    processScript(script, out, "Unnamed Script");
-  }
-  */
 
   private static void processScript(String script, ThrottledWebSocketOut out, String scriptName) {
     if (scriptName == null) scriptName = "Unnamed Script";

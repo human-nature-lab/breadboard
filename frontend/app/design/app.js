@@ -10,6 +10,7 @@ import '../amt-admin/amt-admin.directive';
 import '../create-new-experiment/create-new-experiment.directive';
 import '../customize/customize.directive';
 import '../steps/steps.directive';
+import '../testing/testing.directive';
 import '../content/content.directive';
 import '../directives/instance-parameters/instance-parameters.directive';
 import '../create-first-user/create-first-user.directive';
@@ -30,6 +31,7 @@ angular.module('breadboard', [
   'breadboard.create-new-experiment',
   'breadboard.instance-parameters',
   'breadboard.steps',
+  'breadboard.testing',
   'breadboard.content',
   'breadboard.experiment-import',
   'ui.utils',

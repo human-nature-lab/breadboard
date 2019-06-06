@@ -671,6 +671,17 @@
         </div>
     </div>
 
+    <!-- Testing -->
+    <div>
+        <div ui-jq="dialog" ui-options="testingDialogOptions" id="testingDiv">
+            <testing ng-if="breadboard.experiment && breadboard.experimentInstance"
+                     nodes="nodes"
+                     experiment-id="breadboard.experiment.id"
+                     experiment-instance-id="breadboard.experimentInstance.id">
+            </testing>
+        </div>
+    </div>
+
     <!--div>
         <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
             <div id="stepsTabsDiv">

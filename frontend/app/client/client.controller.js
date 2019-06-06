@@ -1,9 +1,64 @@
 import _ from 'underscore';
+import gremlins from '../util/gremlins.min';
+
 ClientCtrl.$inject = ['$scope', 'clientFactory', '$location', 'clientGraph', 'configService'];
 function ClientCtrl($scope, $clientFactory, $location, clientGraph, configService) {
   $scope.languages = [];
   $scope.selectedLanguage = ($location.search().language) ? $location.search().language : "";
   $scope.timers = [];
+  $scope.testmode = false;
+  $scope.horde = undefined;
+  $scope.gremlinsStarted = false;
+  $scope.$watch('client.player.testmode', function(testmode) {
+    $scope.testmode = (testmode === true || testmode === 'true');
+    startGremlins();
+  });
+
+  var emptyLogger = {
+    log:   function(msg) {},
+    info:  function(msg) {},
+    warn:  function(msg) {},
+    error: function(msg) {}
+  };
+
+  function restartGremlins() {
+    console.log('restartGremlins');
+    if ($scope.horde !== undefined) {
+      $scope.horde.stop();
+    }
+    $scope.gremlinsStarted = false;
+    startGremlins();
+  }
+
+  function startGremlins() {
+    if ($scope.testmode && (! $scope.gremlinsStarted)) {
+      // 2% chance of drop-out
+      if (Math.random() < 0.02) return;
+
+      $scope.gremlinStarted = true;
+      $scope.horde = gremlins.createHorde()
+        .gremlin(gremlins.species.formFiller().triggerInputEvent(true))
+        .gremlin(gremlins.species.targetedClicker()
+          .clickTypes(['click'])
+          .interestingElements(['button'])
+          .percentRandom(0))
+        .gremlin(gremlins.species.reloader())
+        .mogwai(gremlins.mogwais.gizmo())
+        .mogwai(gremlins.mogwais.alert())
+        .strategy(gremlins.strategies.distribution([0.4, 0.4, 0.2]).delay(100))
+        .logger(emptyLogger)
+        .after(restartGremlins)
+        .unleash();
+
+    } else {
+      if ($scope.horde !== undefined) {
+        $scope.horde.stop();
+      }
+    }
+  }
+
+  startGremlins();
+
   $scope.selectLanguage = function(language) {
     $scope.selectedLanguage = language;
     $location.search('language', language);
