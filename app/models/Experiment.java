@@ -300,7 +300,7 @@ public class Experiment extends Model {
     this.clientGraph = clientGraph;
   }
 
-  public Content getContent(Long id) {
+  public Content getExperimentContent(Long id) {
     for (Content c : content) {
       if (c.id.equals(id))
         return c;

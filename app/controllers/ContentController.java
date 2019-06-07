@@ -76,7 +76,7 @@ public class ContentController extends Controller {
     if (isNewContent) {
       content = new Content();
     } else {
-      content = experiment.getContent(contentId);
+      content = experiment.getExperimentContent(contentId);
     }
 
     if (content == null) {
