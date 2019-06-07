@@ -1,3 +1,24 @@
+### [v2.3.0] - 2018-02-26
+#### Added
+- Added module for administering AMT HITs within breadboard
+- Import and export experiments from the browser
+- Supports translating experiment content in multiple languages
+- Improved performance: now defaults to a polling for client updates
+- Player client is now responsive and mobile friendly
+- Improved security
+
+#### Changed
+- UI updates including a new taskbar and tabs that show changed / saved state
+- Players dialog now lists players by ID and formats player data in JSON format 
+- Style, Client Html and Client Graph dialogs have been moved to tabs of a Customize dialog
+- Parameters inputs now enforce selected type, min, and max values
+- Breadboard now supports JDK 7/8/9
+
+#### Fixed
+- Fixed an issue where the bandwidth test fails when AMT workers join a game
+- Fixed an issue where player timers may be inaccurate if their computer's clock differs from the server
+- Fixed an issue where a.remove(Vertex player) and a.remove(String playerId) behavior was inconsistent
+
 ### [v2.2.4] - 2016-07-05 
 #### Added 
 - Added support for html5 'required' attribute in HTML forms added to custom property of public actions
