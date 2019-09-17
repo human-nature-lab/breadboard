@@ -1,70 +1,31 @@
-ConfigService.$inject = ['$http', '$q'];
-export default function ConfigService($http, $q){
-  //let config = null;
-
-  // Makes the initial request for the configuration parameters
-  /*
-  const configPromise = $http.get('state')
-    .then(function(res){
-      config = res.data;
-      //console.log("res", res);
-      return config;
-    }, function(err){
-      console.error("Unable to load client configuration", err);
-    });
-
-  this.hasLoaded = function(){
-    return $q.when(configPromise);
-  };
-    */
-
+/* global Breadboard */
+export default function ConfigService () {
   /**
    * Should be used to access all configuration properties set by the /state route
    * @param {string} key - name of the parameter to get
    * @returns {Promise}
    */
-  this.get = function(key){
-    //return $q.when(configPromise)
-    return $http.get('state', {cache: true})
-      .then(function(res){
-        //return config[key];
-        return res.data[key];
-      }, function(err){
-        throw err;
-      });
-  };
+  this.get = function (key) {
+    return window.Breadboard.loadConfig()
+      .then(function (state) {
+        return state[key]
+      }, function (err) {
+        throw err
+      })
+  }
 
   /**
    * Returns a copy of the configuration object
    * @returns {Promise}
    */
-  this.all = function(){
+  this.all = function () {
     //return $q.when(configPromise)
     //return configPromise
-    return $http.get('state', {cache: true})
-      .then(function(res){
-        //return Object.assign({}, config);
-        return res.data;
-      }, function(err){
-        throw err;
+    return window.Breadboard.loadConfig()
+      .then(function (state) {
+        return state
+      }, function (err) {
+        throw err
       })
-  };
-
-  /**
-   * Set a configuration parameter. This is only set in memory and is not persisted
-   * @param {string} key - name of the configuration key
-   * @param val - value to set it to
-   * @returns {Promise}
-   */
-  /*
-  this.set = function(key, val){
-    return $q.when(configPromise)
-      .then(function(){
-        config[key] = val;
-        return val;
-      }, function(err){
-        throw err;
-      });
   }
-  */
 }

@@ -18,16 +18,19 @@ let compiler = webpack(webpackConfig);
 
 // We give notice in the terminal when it starts bundling and
 // set the time it started
-compiler.plugin('compile', function() {
-    console.log('[Webpack] Bundling...');
-    bundleStart = Date.now();
-});
+compiler.compilers.forEach(comp => {
+    comp.plugin('compile', function() {
+        console.log('[Webpack] Bundling...');
+        bundleStart = Date.now();
+    });
+    comp.plugin('done', function() {
+        console.log('[Webpack] Bundled in ' + (Date.now() - bundleStart) + 'ms!');
+    });
+})
 
 // We also give notice when it is done compiling, including the
 // time it took. Nice to have
-compiler.plugin('done', function() {
-    console.log('[Webpack] Bundled in ' + (Date.now() - bundleStart) + 'ms!');
-});
+
 
 let server = new webpackDevServer(compiler, {
 

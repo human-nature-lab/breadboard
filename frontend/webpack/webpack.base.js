@@ -26,7 +26,7 @@ module.exports = {
                 use: {
                     loader: 'babel-loader',
                     options: {
-                        presets: ['babel-preset-env']
+                        presets: ['@babel/preset-env']
                     }
                 },
                 exclude: /node_modules/,
@@ -65,9 +65,6 @@ module.exports = {
             /angular(\\|\/)core(\\|\/)@angular/,
             path.resolve(__dirname, './app')
         ),
-        new webpack.ProvidePlugin({
-            'fetch': 'imports?this=>global!exports?global.fetch!whatwg-fetch'
-        }),
         new LiveReloadPlugin()
     ]
 };

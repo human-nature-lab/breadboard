@@ -7,18 +7,6 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
   let websocket;
   let nodeChangeListeners = [];
 
-  function websocketRoute(){
-    let uri = '';
-    if(window.location.protocol = 'https:'){
-      uri = 'wss:';
-    } else {
-      uri = 'ws:';
-    }
-    uri += "//" + loc.host + '/connect';
-    // uri += window.location.pathname;
-    return uri;
-  }
-
   function processMessage(data, callback) {
     //console.log('processMessage', data);
     if (data.action !== undefined) {
@@ -73,54 +61,23 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
     }
   }
 
-  let socketUrl;
-  /*
-  let configPromise = configService.all().then(config => {
-    websocket = $websocketFactory(config.connectSocket);
-    websocket.onopen = function (evt) {
-      websocket.send(JSON.stringify( {"action" : "LogIn", "uid" : config.uid }) );
-    };
-  });
-  */
-
-  let websocketMessages = [];
-
   let service = {
-    onmessage: function (callback) {
-      //console.log("onmessage");
-      configService.all()
-        .then((config) => {
-          setTimeout(function() {
-          //console.log(".then()");
-
-            //console.log('config', config);
-          websocket = $websocketFactory(config.connectSocket);
-
-            //console.log("setTimeout");
-            websocket.onmessage = function(message){
-              //console.log("websocket.onmessage");
-
-              //let args = arguments;
-              //debugger;
-              //let data = JSON.parse(args[0].data);
-              let data = JSON.parse(message.data);
-              if (data.hasOwnProperty("queuedMessages")) {
-                for (var i = 0; i < data.queuedMessages.length; i++) {
-                  processMessage(data.queuedMessages[i], callback);
-                }
-              } else {
-                processMessage(data, callback);
-              }
-            };
-
-            websocket.onopen = function (evt) {
-              websocket.send(JSON.stringify( {"action" : "LogIn", "uid" : config.uid }) );
-            };
-          });
-        },
-        function(error) {
-          console.error(error);
-        })
+    async onmessage (callback) {
+      const config = await window.Breadboard.loadConfig()
+      websocket = await window.Breadboard.connect()
+      websocket.onmessage = function(message){
+        let data = JSON.parse(message.data);
+        if (data.hasOwnProperty("queuedMessages")) {
+          for (var i = 0; i < data.queuedMessages.length; i++) {
+            processMessage(data.queuedMessages[i], callback);
+          }
+        } else {
+          processMessage(data, callback);
+        }
+      };
+      websocket.onopen = function (evt) {
+        websocket.send(JSON.stringify({ action: 'LogIn', uid: config.uid }));
+      };
     },
     send: function (message) {
       configService.get('uid').then(function(uid) {
