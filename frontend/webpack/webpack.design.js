@@ -1,7 +1,7 @@
-var config = require('./webpack.base.js');
-config = Object.assign({}, config);
-module.exports = Object.assign({}, config, {
-  entry: ['./app/design.js'],
+const merge = require('webpack-merge')
+const config = require('./webpack.base.js')
+module.exports = merge(Object.create(config), {
+  entry: ['./design/design.js'],
   output: {
   	path: config.output.path,
   	publicPath: config.output.publicPath,

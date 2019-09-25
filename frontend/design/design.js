@@ -1,7 +1,5 @@
 import 'core-js'
 import 'regenerator-runtime'
-import { Breadboard } from './breadboard'
-window.Breadboard = new Breadboard()
 import 'jquery';
 import angular from 'angular';
 import '../lib/jquery-ui/jquery-ui';

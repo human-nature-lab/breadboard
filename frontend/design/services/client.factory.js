@@ -12,12 +12,12 @@ export default function ClientFactory($websocketFactory, $rootScope, $http, $q, 
   return {
     async onmessage (callback) {
       const websocket = await window.Breadboard.connect()
-      websocket.onmessage = function() {
-        let args = arguments;
+      websocket.addEventListener('message', function () {
+        let args = arguments
         $rootScope.$apply(function () {
-          callback.apply(websocket, args);
-        });
-      };
+          callback.apply(websocket, args)
+        })
+      })
     },
     async send (message) {
       const websocket = await window.Breadboard.connect()

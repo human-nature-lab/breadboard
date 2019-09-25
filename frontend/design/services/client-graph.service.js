@@ -8,13 +8,12 @@ export default function ClientGraphService($q, scriptInjector, configService){
   this.load = function(){
     return configService.get('clientGraph')
       .then(contents => {
-        //console.log("Evaluating in global scope", contents);
-        return scriptInjector.injectScript(contents);
+        return scriptInjector.injectScript(contents)
       })
       .then(() => {
-        return window.Graph;
+        return window.Graph
       }, err => {
-        return DefaultGraph;
-      });
+        return DefaultGraph
+      })
   }
 }

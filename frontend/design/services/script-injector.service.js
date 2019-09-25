@@ -29,14 +29,13 @@ export default function ScriptInjectorService($q, $timeout){
     return deferred.promise;
   };
 
-  this.injectScript = function(contents){
+  this.injectScript = function (contents) {
 
-    let geval = eval; // Hacky thing to evaluate script in global scope
-    let timeoutPromise = $timeout(function(){
-      geval(contents);
-    });
-
-    return $q.when(timeoutPromise);
+    let geval = eval // Hacky thing to evaluate script in global scope
+    let timeoutPromise = $timeout(function () {
+      geval(contents)
+    })
+    return $q.when(timeoutPromise)
 
   };
 

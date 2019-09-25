@@ -65,8 +65,8 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
     async onmessage (callback) {
       const config = await window.Breadboard.loadConfig()
       websocket = await window.Breadboard.connect()
-      websocket.onmessage = function(message){
-        let data = JSON.parse(message.data);
+      websocket.addEventListener('message', function (e) {
+        let data = JSON.parse(e.data);
         if (data.hasOwnProperty("queuedMessages")) {
           for (var i = 0; i < data.queuedMessages.length; i++) {
             processMessage(data.queuedMessages[i], callback);
@@ -74,10 +74,10 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
         } else {
           processMessage(data, callback);
         }
-      };
-      websocket.onopen = function (evt) {
-        websocket.send(JSON.stringify({ action: 'LogIn', uid: config.uid }));
-      };
+      })
+      websocket.addEventListener('open', function () {
+        websocket.send(JSON.stringify({ action: 'LogIn', uid: config.uid }))
+      })
     },
     send: function (message) {
       configService.get('uid').then(function(uid) {
