@@ -21,6 +21,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,7 +39,7 @@ public class Experiment extends Model {
   public String uid;
 
   @OneToMany(cascade = CascadeType.ALL)
-  public List<Step> steps = new ArrayList<>();
+  private List<Step> steps = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL)
   public List<Content> content = new ArrayList<>();
@@ -70,6 +71,9 @@ public class Experiment extends Model {
 
   public static final String ON_JOIN_STEP_NAME = "OnJoinStep";
   public static final String ON_LEAVE_STEP_NAME = "OnLeaveStep";
+
+  @Transient
+  public boolean fileMode = true;
 
   /*
    * The CSS Style for the experiment
@@ -153,6 +157,55 @@ public class Experiment extends Model {
     }
   }
 
+  public List<Step> getSteps() {
+    if (fileMode) {
+      ArrayList<Step> returnSteps = new ArrayList<>();
+      File devDirectory = new File(Play.application().path().toString() + "/dev");
+      String[] extensions = {"groovy"};
+      Iterator<File> iter = FileUtils.iterateFiles(devDirectory, extensions, false);
+      while (iter.hasNext()) {
+        try {
+          File stepFile = iter.next();
+          String stepName = stepFile.getName();
+          int indexOfGroovy = stepName.indexOf(".groovy");
+          if (indexOfGroovy > -1) {
+            stepName = stepName.substring(0, indexOfGroovy);
+          }
+          String stepContents = FileUtils.readFileToString(stepFile);
+          Step readStep = new Step();
+          readStep.setName(stepName);
+          readStep.setSource(stepContents);
+          returnSteps.add(readStep);
+        } catch (IOException ioe) {
+          Logger.error("Error reading steps file from the dev directory, check your permissions.");
+        }
+      }
+      return returnSteps;
+    } else {
+      return this.steps;
+    }
+  }
+
+  public void addStep(Step step) {
+    if (fileMode) {
+      File devDirectory = new File(Play.application().path().toString() + "/dev");
+      try {
+        FileUtils.writeStringToFile(new File(devDirectory, step.name.concat(".groovy")), step.source);
+      } catch (IOException ioe) {
+        Logger.error("Error writing step to the dev directory, check your permissions.");
+      }
+    } else {
+      this.steps.add(step);
+    }
+  }
+
+  public void setFileMode(boolean mode) {
+    this.fileMode = mode;
+    if (mode) {
+      // TODO: watch files here
+    }
+  }
+
   public void export() throws IOException {
     File experimentDirectory = new File(Play.application().path().toString() + "/experiments/" + this.name);
     FileUtils.writeStringToFile(new File(experimentDirectory, "style.css"), this.style);
@@ -198,7 +251,9 @@ public class Experiment extends Model {
       } else {
         contents = IOUtils.toString(defaultClientHtml);
       }
-    } catch(IOException e){}
+    } catch(IOException e){
+      Logger.error("Error reading the conf/defaults/client-html.html file.");
+    }
     return contents;
   }
 
@@ -213,7 +268,9 @@ public class Experiment extends Model {
       } else {
         contents = IOUtils.toString(defaultClientGraph);
       }
-    } catch(IOException e){}
+    } catch(IOException e){
+      Logger.error("Error reading the conf/defaults/default-client-graph.js file.");
+    }
     return contents;
   }
 

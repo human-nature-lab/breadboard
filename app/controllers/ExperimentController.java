@@ -232,7 +232,7 @@ public class ExperimentController extends Controller {
       zos.closeEntry();
 
       // Steps
-      for (Step step : experiment.steps) {
+      for (Step step : experiment.getSteps()) {
         e = new ZipEntry("Steps/" + step.name.concat(".groovy"));
         zos.putNextEntry(e);
         zos.write(step.source.getBytes());
@@ -536,7 +536,7 @@ public class ExperimentController extends Controller {
           String source = FileUtils.readFileToString(stepFile);
           step.name = stepName;
           step.source = source;
-          experiment.steps.add(step);
+          experiment.addStep(step);
           Logger.debug("Adding step: " + stepName);
         } else {
           Logger.debug("Skipping " + stepFile.getName() + " with unsupported file extension");
@@ -551,9 +551,9 @@ public class ExperimentController extends Controller {
       Step onJoin = Experiment.generateOnJoinStep();
       Step onLeave = Experiment.generateOnLeaveStep();
       Step init = Experiment.generateInitStep();
-      experiment.steps.add(onJoin);
-      experiment.steps.add(onLeave);
-      experiment.steps.add(init);
+      experiment.addStep(onJoin);
+      experiment.addStep(onLeave);
+      experiment.addStep(init);
     }
     experiment.clientHtml = Experiment.defaultClientHTML();
     experiment.clientGraph = Experiment.defaultClientGraph();

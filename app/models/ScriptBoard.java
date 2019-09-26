@@ -165,7 +165,7 @@ public class ScriptBoard extends UntypedActor {
   }
 
   private void loadSteps(Experiment experiment, ThrottledWebSocketOut out) {
-    for (Step step : experiment.steps) {
+    for (Step step : experiment.getSteps()) {
       //should call RunStep?
       processScript(step.source, out, step.name);
     }
@@ -449,7 +449,7 @@ public class ScriptBoard extends UntypedActor {
             gameListener.start();
 
             // Re-run the Steps
-            for (Step step : instance.experiment.steps)
+            for (Step step : instance.experiment.getSteps())
               Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, step.source, breadboardMessage.out), null);
 
           } // END if (breadboardMessage.user.selectedExperiment != null)

@@ -9,6 +9,7 @@ docs
 logo
 logs
 db
+dev
 project/project
 project/target
 conf/generated.keystore
