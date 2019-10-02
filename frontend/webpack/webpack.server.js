@@ -6,6 +6,8 @@ const webpackConfig = require('./webpack.dev.js')
 // Notify about the path where the server is running
 console.log('[Webpack] Server running at location: ' + __dirname)
 
+const PORT = 8765
+
 // First we fire up Webpack an pass in the configuration file
 const compiler = webpack(webpackConfig)
 
@@ -31,10 +33,12 @@ const server = new webpackDevServer(compiler, {
     // We need to tell Webpack to serve our bundled application
     // from the build path.
     publicPath: '/bundles/',
+    // sockHost: `http://localhost`,
+    sockPort: PORT,
 
     // Configure hot replacement
-    hot: false,
-    liveReload: false,
+    // hot: false,
+    // liveReload: false,
 
     // The rest is terminal configurations
     quiet: false,
@@ -46,6 +50,6 @@ const server = new webpackDevServer(compiler, {
 
 // We fire up the development server and give notice in the terminal
 // that we are starting the initial bundle
-server.listen(8765, 'localhost', function () {
+server.listen(PORT, 'localhost', function () {
     console.log('[Webpack] Bundling project, please wait...')
 })

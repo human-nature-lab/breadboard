@@ -8,11 +8,13 @@
     "esModuleInterop": true,
     "allowSyntheticDefaultImports": true,
     "sourceMap": true,
+    "strict": true,
     "baseUrl": ".",
+    "typeRoots": [
+      "client/**/*.d.ts"
+    ],
     "types": [
       "webpack-env",
-      "mocha",
-      "chai",
       "vuetify"
     ],
     "lib": [
@@ -22,10 +24,7 @@
     ]
   },
   "include": [
-    "src/**/*",
-    "src/**/*"
-  ],
-  "exclude": [
-    "node_modules"
+    "client/**/*",
+    "core/**/*"
   ]
 }
