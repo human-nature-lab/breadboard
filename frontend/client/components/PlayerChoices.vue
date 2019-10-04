@@ -30,7 +30,7 @@
     },
     updated () {
       this.choicesAreEnabled = true
-      console.log('player choices updated')
+      // console.log('player choices updated')
     },
     methods: {
       submit (choice: PlayerChoice) {

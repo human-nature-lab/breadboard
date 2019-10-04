@@ -26,29 +26,37 @@ export class Graph extends Emitter implements GraphEvents {
     }
   }
 
-  addNode (data: NodeData) {
-    const node = {
-      id: data.id,
-      data,
-      x: 0,
-      y: 0,
+  addNodes (data: NodeData[]) {
+    const addedNodes = []
+    for (const datum of data) {
+      const node = {
+        id: datum.id,
+        data: datum,
+        x: 0,
+        y: 0,
+      }
+      this.nodes.push(node)
+      this.nodeIdMap.set(node.id, node)
+      addedNodes.push(node)
     }
-    this.nodes.push(node)
-    this.nodeIdMap.set(node.id, node)
-    this.emit('addNode', node)
+    this.emit('addNodes', addedNodes)
   }
 
-  addEdge (data: LinkData) {
-    const source = this.nodeIdMap.get(data.sourceId)
-    const target = this.nodeIdMap.get(data.targetId)
-    if (source && target) {
-      // delete data.source
-      // delete data.target
-      const edge = { id: data.id, source, target, data, index: this.edges.length - 1 }
-      this.edges.push(edge)
-      this.edgeIdMap.set(data.id, edge)
-      this.emit('addEdge', edge)
+  addEdges (data: LinkData[]) {
+    let addedEdges = []
+    for (const datum of data) {
+      const source = this.nodeIdMap.get(datum.sourceId)
+      const target = this.nodeIdMap.get(datum.targetId)
+      if (source && target) {
+        // delete datum.source
+        // delete datum.target
+        const edge = { id: datum.id, source, target, data: datum, index: this.edges.length - 1 }
+        this.edges.push(edge)
+        this.edgeIdMap.set(datum.id, edge)
+        addedEdges.push(edge)
+      }
     }
+    this.emit('addEdges', addedEdges)
   }
 
   clearEdges () {
@@ -63,28 +71,36 @@ export class Graph extends Emitter implements GraphEvents {
     this.emit('clearNodes')
   }
 
-  removeEdge (edge: Edge): void
-  removeEdge (edgeId: number): void
-  removeEdge (edgeOrId: Edge | number): void {
-    const edgeId = typeof edgeOrId === 'object' ? edgeOrId.id : edgeOrId
-    const index = this.edges.findIndex(e => e.id === edgeId)
-    if (index !== -1) {
-      const edge = this.edges.splice(index, 1)[0]
-      this.edgeIdMap.delete(edgeId)
-      this.emit('removeEdge', edge)
+  removeEdges (edges: Edge[]): void
+  removeEdges (edgeIds: number[]): void
+  removeEdges (edgesOrIds: (Edge | number)[]): void {
+    const removedEdges = []
+    for (const edgeOrId of edgesOrIds) {
+      const edgeId = typeof edgeOrId === 'object' ? edgeOrId.id : edgeOrId
+      const index = this.edges.findIndex(e => e.id === edgeId)
+      if (index !== -1) {
+        const edge = this.edges.splice(index, 1)[0]
+        this.edgeIdMap.delete(edgeId)
+        removedEdges.push(edge)
+      }
     }
+    this.emit('removeEdges', removedEdges)
   }
 
-  removeNode (node: Node): void
-  removeNode (nodeId: string): void
-  removeNode (nodeOrId: Node | string): void {
-    const nodeId = typeof nodeOrId === 'object' ? nodeOrId.id : nodeOrId
-    const index = this.nodes.findIndex(n => n.id === nodeId)
-    if (index !== -1) {
-      const node = this.nodes.splice(index, 1)[0]
-      this.nodeIdMap.delete(nodeId)
-      this.emit('removeNode', node)
+  removeNodes (nodes: Node[]): void
+  removeNodes (nodeIds: string[]): void
+  removeNodes (nodesOrIds: (Node | string)[]): void {
+    const removedNodes = []
+    for (const nodeOrId of nodesOrIds) {
+      const nodeId = typeof nodeOrId === 'object' ? nodeOrId.id : nodeOrId
+      const index = this.nodes.findIndex(n => n.id === nodeId)
+      if (index !== -1) {
+        const node = this.nodes.splice(index, 1)[0]
+        this.nodeIdMap.delete(nodeId)
+        removedNodes.push(node)
+      }
     }
+    this.emit('removeNodes', removedNodes)
   }
 
   /**
@@ -108,43 +124,52 @@ export class Graph extends Emitter implements GraphEvents {
       this.clearEdges()
     }
 
+    const removedNodes = []
     for (const node of this.nodes) {
       // Check for old nodes
       const existingNode = data.nodes.find(n => n.id === node.id)
       if (!existingNode) {
-        this.removeNode(node)
+        removedNodes.push(node)
       } else if (existingNode !== node.data) {
         // TODO: update the existing node
         node.data = existingNode
+
         // this.emit('updateNode', node)
       }
     }
+    if (removedNodes.length) this.removeNodes(removedNodes)
 
+    let removedEdges = []
     for (const edge of this.edges) {
       const existingEdge = data.links.find(l => l.id === edge.id)
       if (!existingEdge) {
-        this.removeEdge(edge)
+        removedEdges.push(edge)
       } else if (existingEdge !== edge.data) {
         // TODO: Update the existing edge
         // this.emit('updateEdge', edge)
       }
     }
+    if (removedEdges.length) this.removeEdges(removedEdges)
 
+    const addedNodes = []
     for (const node of data.nodes) {
       const nodeAlreadyExists = this.nodeIdMap.has(node.id)
       if (!nodeAlreadyExists) {
-        this.addNode(node)
+        addedNodes.push(node)
       }
     }
+    if (addedNodes.length) this.addNodes(addedNodes)
 
+    const addedEdges = []
     for (const link of data.links) {
       const edgeAlreadyExists = this.edgeIdMap.has(link.id)
       if (!edgeAlreadyExists) {
         link.sourceId = data.nodes[link.source].id
         link.targetId = data.nodes[link.target].id
-        this.addEdge(link)
+        addedEdges.push(link)
       }
     }
+    if (addedEdges.length) this.addEdges(addedEdges)
 
   }
 

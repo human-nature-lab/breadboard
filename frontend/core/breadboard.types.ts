@@ -74,10 +74,10 @@ export type BreadboardGraphData = {
 }
 
 export interface GraphEvents {
-  on (event: 'addNode', cb: (node: Node) => void, context?: object): void
-  on (event: 'removeNode', cb: (node: Node) => void, context?: object): void
-  on (event: 'addEdge', cb: (edge: Edge) => void, context?: object): void
-  on (event: 'removeEdge', cb: (edge: Edge) => void, context?: object): void
+  on (event: 'addNodes', cb: (node: Node[]) => void, context?: object): void
+  on (event: 'removeNodes', cb: (node: Node[]) => void, context?: object): void
+  on (event: 'addEdges', cb: (edge: Edge[]) => void, context?: object): void
+  on (event: 'removeEdges', cb: (edge: Edge[]) => void, context?: object): void
   on (event: 'updateNode', cb: (node: Node) => void, context?: object): void
   on (event: 'updateEdge', cb: (edge: Edge) => void, context?: object): void
 }

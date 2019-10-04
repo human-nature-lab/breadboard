@@ -14,7 +14,8 @@ export default {
   async created () {
     const [_, __, config] = await Promise.all([window.Breadboard.connect(), window.Breadboard.login(), window.Breadboard.loadConfig()])
     this.config = config
-    window.Breadboard.on('data', console.log)
+    this.player.id = config.clientId
+    // window.Breadboard.on('data', console.log)
     window.Breadboard.on('style', contents => {
       if (contents.length) {
         window.Breadboard.addStyleFromString(contents)

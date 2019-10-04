@@ -4,32 +4,40 @@
       <g>
         <slot
             name="edge"
-            v-for="edge in graph.edges">
+            v-for="edge in graph.edges"
+            v-bind:edge="edge">
           <line
               class="edge"
+              :key="edge.id"
               :stroke="evaluateProp('edgeStroke', edge)"
               :stroke-width="evaluateProp('edgeStrokeWidth', edge)"
+              :stroke-opacity="evaluateProp('edgeStrokeOpacity', edge)"
               :x1="edge.source.x"
               :y1="edge.source.y"
               :x2="edge.target.x"
               :y2="edge.target.y">
-            <slot name="edge-content" />
           </line>
+          <g :transform="`translate(${(edge.source.x + edge.target.x) / 2}, ${(edge.source.y + edge.target.y) / 2})`">
+            <slot name="edge-label" v-bind:edge="edge"/>
+          </g>
         </slot>
         <slot
             name="node"
             v-bind:node="node"
             v-for="node in graph.nodes">
-          <circle
-              v-bind="node.data"
-              class="node"
-              :class="{ ego : node.id === player.id }"
-              :r="evaluateProp('nodeRadius', node)"
-              :cx="node.x"
-              :cy="node.y"
-              :fill="evaluateProp('nodeFill', node)">
-            <slot node="node-content" />
-          </circle>
+          <g :transform="`translate(${node.x}, ${node.y})`">
+            <circle
+                v-bind="node.data"
+                :key="node.id"
+                class="node"
+                :class="{ ego : node.id === player.id }"
+                :r="evaluateProp('nodeRadius', node)"
+                :stroke="evaluateProp('nodeStroke', node)"
+                :stroke-width="evaluateProp('nodeStrokeWidth', node)"
+                :fill="evaluateProp('nodeFill', node)">
+            </circle>
+            <slot name="node-content" v-bind:node="node" />
+          </g>
         </slot>
       </g>
     </svg>
@@ -61,18 +69,17 @@
         type: Object as () => Graph,
         required: true
       },
-      layout: {
-        type: Object as () => LayoutOptions,
+      layout: <PropOptions<LayoutOptions>>{
+        type: Object,
         default: () => ({
-          chargeStrength: -10000,
-          linkStrength: 10,
-          centerRepel: 10,
-          friction: 0.8
-        } as LayoutOptions)
+          linkDistance: 100,
+          chargeStrength: -500,
+          centerRepel: 500
+        })
       },
       nodeStroke: <PropOptions<string | ObjMapFunc<Node, string>>>{
         type: [String, Function],
-        default: 'lightblue'
+        default: 'black'
       },
       nodeStrokeWidth: <PropOptions<number | ObjMapFunc<Node, number>>>{
         type: [Number, Function],
@@ -110,7 +117,8 @@
     data () {
       return {
         width: 600,
-        height: 600
+        height: 600,
+        listenerIds: {} as { [key: string]: number }
       }
     },
     created () {
@@ -118,72 +126,105 @@
     },
     methods: {
       setupSimulation () {
-        console.log('nodes', this.graph.nodes.length)
-        const simulation = forceSimulation(this.graph.nodes)
-        // @ts-ignore
-        this.simulation = simulation
-        this.updateForces()
-
-        this.graph.on('addNode', (node: Node) => {
-          // @ts-ignore
-          node.isEgo = node.id === this.player.id
-          console.log('addNode', node)
-          this.restartSimulation()
-        })
-        this.graph.on('addEdge', () => {
-          console.log('addEdge')
-          this.restartSimulation()
-        })
-        this.graph.on('removeEdge', () => {
-          console.log('removeEdge')
-          this.restartSimulation()
-        })
-        this.graph.on('removeNode', () => {
-          console.log('removeNode')
-          this.restartSimulation()
-        })
-        this.graph.on('updateEdge', () => console.log('updateEdge'))
-        this.graph.on('updateNode', () => console.log('updateNode'))
-      },
-      restartSimulation () {
-        // @ts-ignore
-        const simulation: Simulation = this.simulation
-        simulation.stop()
-        const nodes = simulation.nodes(this.graph.nodes)
-        const playerId = this.player.id
-        for (const node of nodes) {
-          if (node.id === playerId) {
-            node.fixed = true
+        this.restartSimulation()
+        this.graph.on('addNodes', (nodes: Node[]) => {
+          for (const node of nodes) {
+            // @ts-ignore
+            node.isEgo = node.id === this.player.id
+            if (node.id === this.player.id) {
+              // @ts-ignore
+              node.fx = this.center.x; node.fy = this.center.y
+            }
           }
+          console.log('addNodes')
+          this.restartSimulation()
+          console.log('graph', JSON.parse(JSON.stringify(this.graph)))
+        })
+        this.graph.on('addEdges', () => {
+          console.log('addEdges')
+          this.restartSimulation()
+          this.updateLinkForce()
+        })
+        this.graph.on('removeEdges', () => {
+          console.log('removeEdges')
+          this.restartSimulation()
+        })
+        this.graph.on('removeNodes', () => {
+          console.log('removeNodes')
+          this.restartSimulation()
+        })
+        // this.graph.on('updateEdge', () => console.log('updateEdge'))
+        // this.graph.on('updateNode', () => console.log('updateNode'))
+      },
+      restartSimulation (updateForces = true) {
+        console.log('restarting simulation')
+        // @ts-ignore
+        let simulation: Simulation = this.simulation
+        if (!simulation) {
+          simulation = forceSimulation()
+          // @ts-ignore
+          this.simulation = simulation
         }
-        simulation.force('link').links(this.graph.edges);
+        simulation.nodes(this.graph.nodes)
+        if (updateForces) {
+          simulation.stop()
+          this.updateForces()
+        }
         simulation.alpha(1).restart()
       },
+      updateLinkForce () {
+        const linkForce = forceLink(this.graph.edges)
+        if (this.layout.linkDistance) {
+          linkForce.distance(this.layout.linkDistance)
+        }
+        // @ts-ignore
+        this.simulation.force('link', linkForce)
+      },
       updateForces () {
+        console.log('updating simulation forces')
         // @ts-ignore
         const simulation: Simulation = this.simulation
-        simulation.force('link', forceLink(this.graph.edges).distance(this.layout.linkDistance || this.linkDistance))
-          .force('charge', forceManyBody().strength(this.layout.chargeStrength as number))
-          // .force('center-repel', forceRadial(this.layout.centerRepel as number, this.width, this.height))
-          .force('center', forceCenter(this.width / 2, this.height / 2))
-          .velocityDecay(this.layout.friction as number)
+
+        this.updateLinkForce()
+
+        const manyBody = forceManyBody()
+        if (this.layout.chargeStrength) {
+          manyBody.strength(this.layout.chargeStrength)
+        }
+
+        simulation.force('charge', manyBody)
+          // .force('center', forceCenter(this.center.x, this.center.y))
+
+        if (this.layout.centerRepel) {
+          simulation.force('center-repel', forceRadial(this.layout.centerRepel, this.center.x, this.center.y))
+        }
+
+        if (this.layout.friction) {
+          simulation.velocityDecay(this.layout.friction as number)
+        }
       },
-      evaluateProp (key: keyof Vue, node: Node): string | number {
-        // console.log('evaluating', key)
-        return typeof this[key] === 'function' ? this[key](node, this.player) : this[key]
+      evaluateProp (key: keyof Vue, obj: object): string | number {
+        const res = typeof this[key] === 'function' ? this[key](obj, this.player) : this[key]
+        // console.log('evaluating prop', key, 'returned', res, 'for', obj)
+        return res
       },
       resize () {
         if (this.$refs.container instanceof Element) {
-          this.width = this.$refs.container.clientWidth || 600
-          this.height = this.$refs.container.clientHeight || 600
-          this.updateForces()
-          this.restartSimulation()
+          // this.width = this.$refs.container.clientWidth || 600
+          // this.height = this.$refs.container.clientHeight || 600
+          this.restartSimulation(true)
         }
       }
     },
     computed: {
       linkDistance (): number {
         return (Math.min(this.width, this.height) / 2) - (2 * this.graphPadding) - 50
+      },
+      center (): {x: number, y: number} {
+        return {
+          x: this.width / 2,
+          y: this.height / 2
+        }
       }
     },
   })

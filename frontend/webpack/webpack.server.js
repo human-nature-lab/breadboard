@@ -33,16 +33,16 @@ const server = new webpackDevServer(compiler, {
     // We need to tell Webpack to serve our bundled application
     // from the build path.
     publicPath: '/bundles/',
-    // sockHost: `http://localhost`,
     sockPort: PORT,
 
     // Configure hot replacement
-    // hot: false,
-    // liveReload: false,
+    hot: true,
+    liveReload: false,
+    writeToDisk: false,
 
     // The rest is terminal configurations
     quiet: false,
-    noInfo: true,
+    noInfo: false,
     stats: {
         colors: true
     }

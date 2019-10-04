@@ -19,6 +19,7 @@ angular.module('breadboard.routes', ['ui.router', 'breadboard.middleware', 'ngCo
           $cookieStore.put('email', res.data.email);
           $cookieStore.put('juid', res.data.juid);
           $cookieStore.put('uid', res.data.uid);
+          window.Breadboard.disconnect()
           $state.go('home');
         };
       }]

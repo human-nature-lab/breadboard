@@ -5,9 +5,20 @@ const VueLoaderPlugin = require('vue-loader/lib/plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const buildPath = path.resolve(__dirname, '../../public/bundles/')
 
-/**
- * Base configuration object for Webpack
- */
+const isProd = process.env.NODE_ENV === 'production'
+const plugins =  [
+  new webpack.ContextReplacementPlugin(
+    /angular(\\|\/)core(\\|\/)@angular/,
+    path.resolve(__dirname, './design')
+  ),
+  new VueLoaderPlugin()
+]
+if (isProd) {
+  plugins.push(new MiniCssExtractPlugin({
+    filename: '[name].css',
+  }))
+}
+
 module.exports = {
   output: {
     path: buildPath,
@@ -19,7 +30,7 @@ module.exports = {
       loader: 'vue-loader'
     }, {
       test: /\.(sass|scss)$/,
-      use: [MiniCssExtractPlugin.loader,
+      use: [isProd ? MiniCssExtractPlugin.loader : 'vue-style-loader',
         'css-loader?url=false',
         {
           loader: 'sass-loader',
@@ -54,10 +65,10 @@ module.exports = {
           presets: ['@babel/preset-env']
         }
       },
-      exclude: {
-        include: /node_modules/,
-        exclude: /goodish/
-      }
+      // exclude: {
+      //   include: /node_modules/,
+      //   exclude: /goodish/
+      // }
     }, {
       test: /\.html$/,
       use: ['ngtemplate-loader?relativeTo=frontend&prefix=files', 'html-loader'],
@@ -81,14 +92,5 @@ module.exports = {
   externals: {
     vue: 'Vue'
   },
-  plugins: [
-    new webpack.ContextReplacementPlugin(
-      /angular(\\|\/)core(\\|\/)@angular/,
-      path.resolve(__dirname, './design')
-    ),
-    new VueLoaderPlugin(),
-    new MiniCssExtractPlugin({
-      filename: '[name].css',
-    }),
-  ]
+  plugins: plugins
 }

@@ -33,9 +33,9 @@ module.exports = merge(Object.create(config), {
   	publicPath: config.output.publicPath,
     filename: '[name].js'
   },
-  optimization: {
+  /*optimization: {
     splitChunks: {
       cacheGroups: cacheGroups
     }
-  },
+  },*/
 })

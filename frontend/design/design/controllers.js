@@ -150,6 +150,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     $http.get('/logout').then(function(res){
       // $state.go('login');
       // Remove this redirect once the application cleans up after itself correctly
+      window.Breadboard.disconnect()
       setTimeout(function(){
         window.location.reload();
       });
