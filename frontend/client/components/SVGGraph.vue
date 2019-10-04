@@ -1,5 +1,5 @@
 <template>
-  <div class="svg-container flex flex-grow-0 flex-shrink-0" v-resize="resize" ref="container">
+  <div class="svg-container flex flex-grow-0 flex-shrink-0" ref="container">
     <svg ref="svg" viewBox="0 0 600 600" width="100%" height="100%">
       <g>
         <slot
@@ -111,7 +111,7 @@
       },
       ignoredProps: {
         type: Array as () => String[],
-        default: () => ['text', 'choices', 'x', 'y']
+        default: () => ['text', 'choices', 'x', 'y', 'timers']
       }
     },
     data () {

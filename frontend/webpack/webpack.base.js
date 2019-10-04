@@ -22,7 +22,8 @@ if (isProd) {
 module.exports = {
   output: {
     path: buildPath,
-    publicPath: '/bundles/'
+    publicPath: '/bundles/',
+    chunkFilename: '[name].js'
   },
   module: {
     rules: [{

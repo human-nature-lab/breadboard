@@ -31,15 +31,13 @@ async function client () {
         :graph="graph"
         :nodeBorderWidth="node => node.isEgo ? 2 : 1"
         :nodeFill="node => node.isEgo ? 'blue' : 'lightgrey'"
-        :nodeRadius="node => node.data.score * 2 || 10">
+        :nodeRadius="node => node.data.score * 2 || 30">
         <template v-slot:node-content="{ node }">
-          <text text-anchor="middle" v-if="node.isEgo" fill="white">{{node.id}}</text> <!-- centered label inside the node-content slot -->
-          <image v-else-if="node.data.score < 15" href="/images/33" width="50" height="50" x="-25" y="-25" /> <!-- centered image in the node-content slot -->
-<!--          <image v-else href="https://cdn.imgbin.com/0/24/23/imgbin-cat-kitten-face-tr-s-N5RBq5XrXbz24bjNrUfYMM9zA.jpg" width="50" height="50" x="-25" y="-25" /> &lt;!&ndash; external image &ndash;&gt;-->
-          <image v-else href="/images/34" width="50" height="50" x="-25" y="-25" /> <!-- transparent image background -->
+          <image v-if="node.isEgo" href="https://i.imgur.com/R8aQfWo.png" width="50" height="50" x="-25" y="-25" /> <!-- external image on ego -->
+          <text v-else text-anchor="middle" fill="black">{{node.id}}</text> <!-- centered label inside the node-content slot -->
         </template>
         <template v-slot:edge-label="{ edge }">
-          <text text-anchor="middle">Edge: {{edge.target.id}}</text>  <!-- simple centered edge label -->
+          <text text-anchor="middle" font-size="11px">{{edge.target.id === player.id ? edge.source.id : edge.target.id}}</text>  <!-- simple centered edge label -->
         </template>
       </SVGGraph>
       <v-flex class="w-50 h-screen">

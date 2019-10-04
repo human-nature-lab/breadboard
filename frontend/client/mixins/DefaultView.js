@@ -17,14 +17,30 @@ export default {
     this.player.id = config.clientId
     // window.Breadboard.on('data', console.log)
     window.Breadboard.on('style', contents => {
-      if (contents.length) {
-        window.Breadboard.addStyleFromString(contents)
+      try {
+        if (contents.length) {
+          window.Breadboard.addStyleFromString(contents)
+        }
+      } catch (err) {
+        console.error('Unable to apply custom style to Breadboard')
       }
     })
-    window.Breadboard.on('player', player => {
+
+    window.Breadboard.on('player', async player => {
       // TODO: First check if anything has changed before updating
       this.player = player
       this.player.id = this.config.clientId
+
+      // Inject gremlins if in test mode
+      if (player.testmode) {
+        const { startGremlins } = await import(/* webpackChunkName: "gremlins" */'../gremlins.js')
+        function restartGremlins () {
+          startGremlins(player, restartGremlins)
+        }
+        restartGremlins()
+      }
+
+
     })
     this.graph.attachToBreadboard(window.Breadboard)
   },
