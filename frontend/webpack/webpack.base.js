@@ -56,7 +56,7 @@ module.exports = {
       }],
       exclude: {
         include: /node_modules/,
-        exclude: /goodish/
+        exclude: /(goodish|gremlins-ts)/
       }
     },  {
       test: /\.js$/,

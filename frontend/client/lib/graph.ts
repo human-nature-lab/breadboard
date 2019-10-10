@@ -1,6 +1,7 @@
 import { Emitter } from 'goodish'
 import { BreadboardClass } from '../../core/breadboard'
 import { BreadboardGraphData, Edge, GraphEvents, LinkData, Node, NodeData } from '../../core/breadboard.types'
+import { isEqual, isEqualWith } from 'lodash'
 
 export class Graph extends Emitter implements GraphEvents {
 
@@ -125,31 +126,34 @@ export class Graph extends Emitter implements GraphEvents {
     }
 
     const removedNodes = []
+    const updatedNodes = []
     for (const node of this.nodes) {
       // Check for old nodes
-      const existingNode = data.nodes.find(n => n.id === node.id)
-      if (!existingNode) {
+      const existingNodeData = data.nodes.find(n => n.id === node.id)
+      if (!existingNodeData) {
         removedNodes.push(node)
-      } else if (existingNode !== node.data) {
-        // TODO: update the existing node
-        node.data = existingNode
-
-        // this.emit('updateNode', node)
+      } else if (!isEqualWith(node.data, existingNodeData, this.nodeComparison)) {
+        console.log('node change', JSON.stringify(node), JSON.stringify(existingNodeData))
+        node.data = existingNodeData
+        updatedNodes.push(node)
       }
     }
     if (removedNodes.length) this.removeNodes(removedNodes)
+    if (updatedNodes.length) this.emit('updateNodes', updatedNodes)
 
-    let removedEdges = []
+    const removedEdges = []
+    const updatedEdges = []
     for (const edge of this.edges) {
-      const existingEdge = data.links.find(l => l.id === edge.id)
-      if (!existingEdge) {
+      const existingEdgeData = data.links.find(l => l.id === edge.id)
+      if (!existingEdgeData) {
         removedEdges.push(edge)
-      } else if (existingEdge !== edge.data) {
-        // TODO: Update the existing edge
-        // this.emit('updateEdge', edge)
+      } else if (!isEqual(existingEdgeData, edge.data)) {
+        edge.data = existingEdgeData
+        updatedEdges.push(edge)
       }
     }
     if (removedEdges.length) this.removeEdges(removedEdges)
+    if (updatedEdges.length) this.emit('updateEdges', updatedEdges)
 
     const addedNodes = []
     for (const node of data.nodes) {
@@ -171,6 +175,14 @@ export class Graph extends Emitter implements GraphEvents {
     }
     if (addedEdges.length) this.addEdges(addedEdges)
 
+  }
+
+  private nodeComparison (a: any, b: any, key: string | number | Symbol | undefined): boolean {
+    if (key === 'timers' || key === 'timerUpdatedAt') {
+      return true
+    } else {
+      return isEqual(a, b)
+    }
   }
 
 }

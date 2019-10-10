@@ -77,6 +77,10 @@
           centerRepel: 500
         })
       },
+      centerEgo: {
+        type: Boolean,
+        default: true
+      },
       nodeStroke: <PropOptions<string | ObjMapFunc<Node, string>>>{
         type: [String, Function],
         default: 'black'
@@ -131,7 +135,7 @@
           for (const node of nodes) {
             // @ts-ignore
             node.isEgo = node.id === this.player.id
-            if (node.id === this.player.id) {
+            if (this.centerEgo && node.id === this.player.id) {
               // @ts-ignore
               node.fx = this.center.x; node.fy = this.center.y
             }
@@ -153,8 +157,8 @@
           console.log('removeNodes')
           this.restartSimulation()
         })
-        // this.graph.on('updateEdge', () => console.log('updateEdge'))
-        // this.graph.on('updateNode', () => console.log('updateNode'))
+        this.graph.on('updateEdges', (edges: Edge[]) => console.log('updateEdges', edges))
+        this.graph.on('updateNodes', (nodes: Node[]) => console.log('updateNodes', nodes))
       },
       restartSimulation (updateForces = true) {
         console.log('restarting simulation')

@@ -1,14 +1,14 @@
 # TODO
 - [ ] Locales
-- [ ] Gremlins
-- [ ] Graph API
-    - [ ] Handle node and edge updates with a diff first
+- [x] Gremlins
+- [x] Graph API
+    - [x] Handle node and edge updates with a diff first
     - [x] Basic graph diffing
 - [ ] SVGGraph
-    - [ ] debounce graph updates to avoid multiple, rapid resets of the force-directed graph simulation
-    - [ ] handle input passing
+    - [ ] allow input events to be passed up to the parent
     - [ ] optional centering of the ego node
     - [ ] filter ignored props from binding to SVG
+    - [ ] throttle graph updates to avoid multiple, rapid resets of the force-directed graph simulation???
 - [ ] Component slots
     - [ ] Timer label
     - [ ] Button contents
