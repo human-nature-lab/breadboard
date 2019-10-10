@@ -1,6 +1,8 @@
 import { Graph } from '../lib/graph'
 import { isEqual, isEqualWith } from 'lodash'
+import { Mutex } from 'async-mutex'
 
+const gremlinsMutex = new Mutex()
 export default {
   data () {
     return {
@@ -9,8 +11,7 @@ export default {
         text: 'Loading...',
         choices: []
       },
-      config: null,
-      gremlinsStarted: false
+      config: null
     }
   },
   async created () {
@@ -30,25 +31,9 @@ export default {
     })
 
     window.Breadboard.on('player', async player => {
-      // First check if anything has changed before updating the view
-      const playerHasChanged = !isEqualWith(this.player, player, (a, b, key) => {
-        // Ignore the fact the player id is not included in the payload... It would be great if it were included by default?
-        if (key === 'id' && a.hasOwnProperty('timers') && b.hasOwnProperty('timers')) {
-          return true
-        } else {
-          return isEqual(a, b)
-        }
-      })
-
-      if (playerHasChanged) {
-        this.player = player
-        this.player.id = this.config.clientId
-      } else {
-        return
-      }
-
+      this.player = player
+      this.player.id = this.config.clientId
       this.checkGremlins()
-
     })
 
     this.graph.attachToBreadboard(window.Breadboard)
@@ -58,20 +43,32 @@ export default {
     this.graph.releaseFromBreadboard()
   },
   methods: {
+    log (...args) {
+      console.log(...args)
+    },
     async checkGremlins () {
       // Inject gremlins if in test mode
       let stopGremlins
       let startGremlins
-      if (!this.gremlinsStarted && this.player.testmode) {
-        this.gremlinsStarted = true
-        let d = await import(/* webpackChunkName: "gremlins" */'../gremlins/gremlins.js')
-        startGremlins = d.startGremlins
-        stopGremlins = d.stopGremlins()
+      if (this.player.testmode) {
+        const release = await gremlinsMutex.acquire()
+        if (startGremlins) {
+          release()
+        } else {
+          try {
+            let d = await import(/* webpackChunkName: "gremlins" */'../gremlins/gremlins.js')
+            startGremlins = d.startGremlins
+            stopGremlins = d.stopGremlins
+          } finally {
+            release()
+          }
+        }
+        // The gremlins script takes care of checking for overlapping
         const restartGremlins = () => {
           startGremlins(this.player, restartGremlins)
         }
         restartGremlins()
-      } else if (this.gremlinsStarted && stopGremlins) {
+      } else if (stopGremlins) {
         stopGremlins()
       }
     }

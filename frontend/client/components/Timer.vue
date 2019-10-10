@@ -4,7 +4,22 @@
     :value="value"
     :color="color"
     reactive>
-    <strong>{{message}}</strong>
+    <!-- @slot Add something before the label-->
+    <slot name="prepend" />
+    <!-- @slot Replace the default timer message -->
+    <slot
+        name="label"
+        :timer="timer"
+        :time="time"
+        :remaining="remaining"
+        :value="value"
+        :color="color">
+      <strong>
+        {{message}}
+      </strong>
+    </slot>
+    <!-- @slot Add something after the label -->
+    <slot name="append" />
   </v-progress-linear>
 </template>
 
@@ -19,10 +34,6 @@
       timer: {
         type: Object as () => PlayerTimer,
         required: true
-      },
-      rate: {
-        type: Number,
-        default: 1000
       }
     },
     computed: {

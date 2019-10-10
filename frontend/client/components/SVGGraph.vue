@@ -9,6 +9,7 @@
           <line
               class="edge"
               :key="edge.id"
+              @click="edgeClick(edge, $event)"
               :stroke="evaluateProp('edgeStroke', edge)"
               :stroke-width="evaluateProp('edgeStrokeWidth', edge)"
               :stroke-opacity="evaluateProp('edgeStrokeOpacity', edge)"
@@ -17,7 +18,8 @@
               :x2="edge.target.x"
               :y2="edge.target.y">
           </line>
-          <g :transform="`translate(${(edge.source.x + edge.target.x) / 2}, ${(edge.source.y + edge.target.y) / 2})`">
+          <g :transform="`translate(${(edge.source.x + edge.target.x) / 2}, ${(edge.source.y + edge.target.y) / 2})`"
+             @click="edgeLabelClick(edge, $event)">
             <slot name="edge-label" v-bind:edge="edge"/>
           </g>
         </slot>
@@ -25,9 +27,9 @@
             name="node"
             v-bind:node="node"
             v-for="node in graph.nodes">
-          <g :transform="`translate(${node.x}, ${node.y})`">
+          <g :transform="`translate(${node.x}, ${node.y})`" @click="nodeClick(node, $event)">
             <circle
-                v-bind="node.data"
+                v-bind="filteredObject(node.data, ignoredProps)"
                 :key="node.id"
                 class="node"
                 :class="{ ego : node.id === player.id }"
@@ -115,7 +117,7 @@
       },
       ignoredProps: {
         type: Array as () => String[],
-        default: () => ['text', 'choices', 'x', 'y', 'timers']
+        default: () => ['text', 'choices', 'x', 'y', 'timers', 'timerUpdatedAt']
       }
     },
     data () {
@@ -129,6 +131,13 @@
       this.setupSimulation()
     },
     methods: {
+      filteredObject (obj: { [key: string]: any }, keys: string[]) {
+        let o = Object.assign(obj)
+        for (const key of keys) {
+          delete o[key]
+        }
+        return o
+      },
       setupSimulation () {
         this.restartSimulation()
         this.graph.on('addNodes', (nodes: Node[]) => {
@@ -218,6 +227,15 @@
           // this.height = this.$refs.container.clientHeight || 600
           this.restartSimulation(true)
         }
+      },
+      nodeClick (node: Node, e: MouseEvent) {
+        this.$emit('nodeClick', node, e)
+      },
+      edgeClick (edge: Edge, e: MouseEvent) {
+        this.$emit('edgeClick', edge, e)
+      },
+      edgeLabelClick (edge: Edge, e: MouseEvent) {
+        this.$emit('edgeLabelClick', edge, e)
       }
     },
     computed: {

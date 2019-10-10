@@ -1,7 +1,8 @@
 import { Emitter } from 'goodish'
 import { BreadboardClass } from '../../core/breadboard'
 import { BreadboardGraphData, Edge, GraphEvents, LinkData, Node, NodeData } from '../../core/breadboard.types'
-import { isEqual, isEqualWith } from 'lodash'
+import isEqual from 'lodash/isEqual'
+import isEqualWith from 'lodash/isEqualWith'
 
 export class Graph extends Emitter implements GraphEvents {
 

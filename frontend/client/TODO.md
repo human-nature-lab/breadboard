@@ -4,13 +4,14 @@
 - [x] Graph API
     - [x] Handle node and edge updates with a diff first
     - [x] Basic graph diffing
-- [ ] SVGGraph
-    - [ ] allow input events to be passed up to the parent
-    - [ ] optional centering of the ego node
-    - [ ] filter ignored props from binding to SVG
-    - [ ] throttle graph updates to avoid multiple, rapid resets of the force-directed graph simulation???
+- [x] SVGGraph
+    - [x] allow input events to be passed up to the parent
+        - [x] click
+    - [x] optional centering of the ego node
+    - [x] filter ignored props from binding to SVG
+    - [ ] ~~throttle graph updates to avoid multiple, rapid resets of the force-directed graph simulation???~~
 - [ ] Component slots
-    - [ ] Timer label
+    - [x] Timer label
     - [ ] Button contents
 - [ ] Documentation
     - [ ] SVGGraph properties
