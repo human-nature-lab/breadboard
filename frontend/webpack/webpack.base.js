@@ -90,8 +90,5 @@ module.exports = {
   resolve: {
     extensions: ['.js','.json','.css','.html', '.jsx', '.ts', '.tsx', '.vue']
   },
-  externals: {
-    vue: 'Vue'
-  },
   plugins: plugins
 }

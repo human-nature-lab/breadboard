@@ -9,6 +9,9 @@
 <script lang="ts">
   import Vue from 'vue'
 
+  /**
+   * A container for the HTML content shown to the player
+   */
   export default Vue.extend({
     name: 'PlayerText',
     props: {

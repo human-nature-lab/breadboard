@@ -24,6 +24,9 @@
 </template>
 
 <script lang="ts">
+  /**
+   * The default timer component. This component can be easily extended using slots.
+   */
   import Vue from 'vue'
   import { PlayerTimer } from '../../core/breadboard.types'
   import { toHHMMSS } from '../lib/DateTime'
@@ -67,7 +70,3 @@
     }
   })
 </script>
-
-<style lang="sass" scoped>
-
-</style>

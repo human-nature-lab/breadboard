@@ -2,6 +2,8 @@
   <div class="svg-container flex flex-grow-0 flex-shrink-0" ref="container">
     <svg ref="svg" viewBox="0 0 600 600" width="100%" height="100%">
       <g>
+        <!-- @slot Replace the edge with your own edge. This could be used to replace lines with Bezier curves or arrows.
+                   Positioning has to be done manually. -->
         <slot
             name="edge"
             v-for="edge in graph.edges"
@@ -20,14 +22,15 @@
           </line>
           <g :transform="`translate(${(edge.source.x + edge.target.x) / 2}, ${(edge.source.y + edge.target.y) / 2})`"
              @click="edgeLabelClick(edge, $event)">
+            <!-- @slot Add an element at the center of the edge-->
             <slot name="edge-label" v-bind:edge="edge"/>
           </g>
         </slot>
-        <slot
-            name="node"
-            v-bind:node="node"
-            v-for="node in graph.nodes">
-          <g :transform="`translate(${node.x}, ${node.y})`" @click="nodeClick(node, $event)">
+        <g :transform="`translate(${node.x}, ${node.y})`" @click="nodeClick(node, $event)" v-for="node in graph.nodes">
+          <!-- @slot Replace the entire node with your own node. Positioning is done automagically. This might be used to change the circle to an image or a square -->
+          <slot
+              name="node"
+              v-bind:node="node">
             <circle
                 v-bind="filteredObject(node.data, ignoredProps)"
                 :key="node.id"
@@ -38,9 +41,11 @@
                 :stroke-width="evaluateProp('nodeStrokeWidth', node)"
                 :fill="evaluateProp('nodeFill', node)">
             </circle>
-            <slot name="node-content" v-bind:node="node" />
-          </g>
-        </slot>
+          </slot>
+          <!-- @slot Add something inside the node. This object will be positioned relative to the origin of the node (upper left)
+                     and must be centered manually -->
+          <slot name="node-content" v-bind:node="node" />
+        </g>
       </g>
     </svg>
   </div>
@@ -60,17 +65,35 @@
     centerRepel?: number
     friction?: number
   }
+  /**
+   * The SVG Graph component shows the graph to the player and updates in real time. It allows you to easily react to
+   * click events on nodes and edges within the graph, trivially transform the graph by modifying node sizes and colors,
+   * customize the appearance of the graph with images and text and customize the force-directed layout algorithm without
+   * modifying the component itself.
+   */
   export default Vue.extend({
     name: 'SVGGraph',
     props: {
+      /**
+       * The player object sent up by breadboard
+       * @type PlayerData
+       */
       player: {
         type: Object as () => PlayerData,
         required: true
       },
+      /**
+       * The client graph object
+       * @type Graph
+       */
       graph: {
         type: Object as () => Graph,
         required: true
       },
+      /**
+       * The force-directed layout options
+       * @type LayoutOptions
+       */
       layout: <PropOptions<LayoutOptions>>{
         type: Object,
         default: () => ({
@@ -79,42 +102,73 @@
           centerRepel: 500
         })
       },
+      /**
+       * A boolean indicating whether or not the ego should be centered on the screen
+       */
       centerEgo: {
         type: Boolean,
         default: true
       },
+      /**
+       * Change the color of each node border by supplying a new color or a mapping function
+       */
       nodeStroke: <PropOptions<string | ObjMapFunc<Node, string>>>{
         type: [String, Function],
         default: 'black'
       },
+      /**
+       * Change the size of each node border by supplying a new size or a mapping function
+       */
       nodeStrokeWidth: <PropOptions<number | ObjMapFunc<Node, number>>>{
         type: [Number, Function],
         default: 2
       },
+      /**
+       * Change the fill color of each node using a color string or a mapping function
+       */
       nodeFill: <PropOptions<string | ObjMapFunc<Node, string>>>{
         type: [String, Function],
         default: 'grey'
       },
+      /**
+       * Change the size of each node using a number or a mapping function
+       */
       nodeRadius: <PropOptions<number | ObjMapFunc<Node, number>>>{
         type: [Number, Function],
         default: 30
       },
+      /**
+       * Change the size of each edge using a number or a mapping function
+       */
       edgeStrokeWidth: <PropOptions<number | ObjMapFunc<Edge, number>>>{
         type: [Number, Function],
         default: 2
       },
+      /**
+       * Change the opacity of each edge using a number or a mapping function. This could be used to show decay of edges.
+       */
       edgeOpacity: <PropOptions<number | ObjMapFunc<Edge, number>>>{
         type: [Number, Function],
         default: 1
       },
+      /**
+       * Change the color of each edge using a number or a mapping function.
+       */
       edgeStroke: <PropOptions<string | ObjMapFunc<Edge, string>>>{
         type: [String, Function],
         default: '#999'
       },
+      /**
+       * How much space to try to keep around the edge of the graph. Nodes will try to stay at least this far away from
+       * the borders of the graph
+       */
       graphPadding: {
         type: Number,
         default: 10
       },
+      /**
+       * Any properties that should not be assigned as attributes on the nodes
+       */
       ignoredProps: {
         type: Array as () => String[],
         default: () => ['text', 'choices', 'x', 'y', 'timers', 'timerUpdatedAt']
@@ -248,7 +302,7 @@
           y: this.height / 2
         }
       }
-    },
+    }
   })
 </script>
 

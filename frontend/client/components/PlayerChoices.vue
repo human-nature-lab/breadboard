@@ -15,6 +15,9 @@
   import Vue from 'vue'
   import { PlayerChoice } from '../../core/breadboard.types'
 
+  /**
+   * A container for all of the player choices
+   */
   export default Vue.extend({
     name: 'PlayerChoices',
     props: {

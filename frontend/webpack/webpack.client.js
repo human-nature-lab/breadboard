@@ -33,6 +33,9 @@ module.exports = merge(Object.create(config), {
   	publicPath: config.output.publicPath,
     filename: '[name].js'
   },
+  externals: {
+    vue: 'Vue'
+  }
   /*optimization: {
     splitChunks: {
       cacheGroups: cacheGroups
