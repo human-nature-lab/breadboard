@@ -80,6 +80,21 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
   }
 
   /**
+   * Shortcut for sending a choice via breadboard. Helps keeps params from throwing silent bugs.
+   * @param uuid 
+   * @param params 
+   */
+  sendChoice (uuid: string, params?: SimpleMap<any>) {
+    const data: any = {
+      choiceUID: uuid
+    }
+    if (params && typeof params !== 'string') {
+      data.params = JSON.stringify(params)
+    }
+    return this.send('MakeChoice', data)
+  }
+
+  /**
    * Login method
    */
   async login () {
