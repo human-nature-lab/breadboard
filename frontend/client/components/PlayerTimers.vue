@@ -1,8 +1,12 @@
 <template>
   <v-flex>
-    <Timer v-for="timer in player.timers"
-           :key="timer.id"
-           :timer="timer" />
+    <!-- @slot Replace the timer with a custom timer -->
+    <slot :timer="timer" v-for="timer in player.timers">
+      <Timer :key="timer.id"
+             :timer="timer" >
+    
+      </Timer>
+    </slot>
   </v-flex>
 </template>
 

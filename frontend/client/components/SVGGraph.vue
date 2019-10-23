@@ -10,7 +10,7 @@
             v-bind:edge="edge">
           <line
               class="edge"
-              :key="edge.id"
+              :key="edge.id + '-line'"
               @click="edgeClick(edge, $event)"
               :stroke="evaluateProp('edgeStroke', edge)"
               :stroke-width="evaluateProp('edgeStrokeWidth', edge)"
@@ -21,19 +21,19 @@
               :y2="edge.target.y">
           </line>
           <g :transform="`translate(${(edge.source.x + edge.target.x) / 2}, ${(edge.source.y + edge.target.y) / 2})`"
+             :key="edge.id + '-label'"
              @click="edgeLabelClick(edge, $event)">
             <!-- @slot Add an element at the center of the edge-->
             <slot name="edge-label" v-bind:edge="edge"/>
           </g>
         </slot>
-        <g :transform="`translate(${node.x}, ${node.y})`" @click="nodeClick(node, $event)" v-for="node in graph.nodes">
+        <g :transform="`translate(${node.x}, ${node.y})`" @click="nodeClick(node, $event)" v-for="node in graph.nodes" :key="node.id">
           <!-- @slot Replace the entire node with your own node. Positioning is done automagically. This might be used to change the circle to an image or a square -->
           <slot
               name="node"
               v-bind:node="node">
             <circle
                 v-bind="filteredObject(node.data, ignoredProps)"
-                :key="node.id"
                 class="node"
                 :class="{ ego : node.id === player.id }"
                 :r="evaluateProp('nodeRadius', node)"

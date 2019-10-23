@@ -41,11 +41,11 @@ module.exports = {
             indentedSyntax: true
           }
         }],
-      exclude: /node_modules/,
+      // exclude: /node_modules/,
     }, {
       test: /\.css$/,
       use: ['style-loader','css-loader?url=false'],
-      exclude: /node_modules/,
+      // exclude: /node_modules/,
     }, {
       test: /\.tsx?$/,
       use: [{

@@ -1,8 +1,7 @@
 import { Emitter } from 'goodish'
 import { BreadboardClass } from '../../core/breadboard'
 import { BreadboardGraphData, Edge, GraphEvents, LinkData, Node, NodeData } from '../../core/breadboard.types'
-import isEqual from 'lodash/isEqual'
-import isEqualWith from 'lodash/isEqualWith'
+import { isEqual } from './isEqual'
 
 export class Graph extends Emitter implements GraphEvents {
 
@@ -133,9 +132,13 @@ export class Graph extends Emitter implements GraphEvents {
       const existingNodeData = data.nodes.find(n => n.id === node.id)
       if (!existingNodeData) {
         removedNodes.push(node)
-      } else if (!isEqualWith(node.data, existingNodeData, this.nodeComparison)) {
-        console.log('node change', JSON.stringify(node), JSON.stringify(existingNodeData))
+      } else if (!isEqual(node.data, existingNodeData, ['timers', 'timerUpdatedAt'])) {
+        // TODO: Why is this happening?
+        // console.log('node change')
+        // console.log('old node',  JSON.stringify(node.data))
+        // console.log('new node', JSON.stringify(existingNodeData))
         node.data = existingNodeData
+        // console.log('updated node', JSON.stringify(node.data))
         updatedNodes.push(node)
       }
     }
@@ -176,14 +179,6 @@ export class Graph extends Emitter implements GraphEvents {
     }
     if (addedEdges.length) this.addEdges(addedEdges)
 
-  }
-
-  private nodeComparison (a: any, b: any, key: string | number | Symbol | undefined): boolean {
-    if (key === 'timers' || key === 'timerUpdatedAt') {
-      return true
-    } else {
-      return isEqual(a, b)
-    }
   }
 
 }

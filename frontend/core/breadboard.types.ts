@@ -9,6 +9,7 @@ export interface BreadboardConfig extends SimpleMap<string | number> {
 export interface VueLoadOpts {
   vueVersion?: string
   vuetifyVersion?: string
+  mdiVersion?: string
   useDev?: boolean
 }
 

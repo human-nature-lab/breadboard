@@ -33,3 +33,5 @@ node_modules
 client-graph.js
 client-html.html
 csv
+
+.vscode
