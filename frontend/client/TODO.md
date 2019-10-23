@@ -9,10 +9,14 @@
         - [x] click
     - [x] optional centering of the ego node
     - [x] filter ignored props from binding to SVG
-    - [ ] ~~throttle graph updates to avoid multiple, rapid resets of the force-directed graph simulation???~~
+    - [ ] ~~throttle graph updates to avoid multiple, rapid resets of the force-directed graph simulation???~~ Not necessary
 - [ ] Component slots
+    - [ ] Timer label via PlayerTimers component
+    - [ ] Custom choice label
+    - [ ] Custom choice label via PlayerChoices component
+    - [x] Custom choice slot
     - [x] Timer label
-    - [ ] Button contents
+    - [x] Button contents
 - [ ] Documentation
     - [ ] SVGGraph properties
     - [ ] Events
