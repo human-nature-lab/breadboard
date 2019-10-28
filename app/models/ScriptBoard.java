@@ -37,6 +37,7 @@ public class ScriptBoard extends UntypedActor {
   private static BreadboardGraphInterface graphInterface;
   private static BreadboardGraphChangedListener graphChangedListener;
   private static EventTracker eventTracker = new EventTracker();
+  private static EventBus<Map> eventBus = new EventBus();
 
   private static Random rand = new Random();
 
@@ -68,6 +69,7 @@ public class ScriptBoard extends UntypedActor {
     clients = new HashMap<>();
     eventTracker = new EventTracker();
     manager = new ScriptEngineManager();
+    eventBus.clear();
   }
 
   private void resetEngine(Experiment experiment) throws IOException, ScriptException {
@@ -87,12 +89,15 @@ public class ScriptBoard extends UntypedActor {
       processScript("g.empty()", null, null);
     }
 
+    eventBus.clear();
+
     engine = manager.getEngineByName("gremlin-groovy");
     engine.getBindings(ScriptContext.ENGINE_SCOPE).put("r", rand);
     engine.getBindings(ScriptContext.ENGINE_SCOPE).put("results", results);
 
     engine.getBindings(ScriptContext.ENGINE_SCOPE).put("eventTracker", eventTracker);
     engine.getBindings(ScriptContext.ENGINE_SCOPE).put("gameListener", gameListener);
+    engine.getBindings(ScriptContext.ENGINE_SCOPE).put("events", eventBus);
 
     if (experiment != null) {
       engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", experiment.contentFetcher);
@@ -122,6 +127,10 @@ public class ScriptBoard extends UntypedActor {
     File testFile = new File(Play.application().path().toString() + "/groovy/test.groovy");
     String testString = FileUtils.readFileToString(testFile, "UTF-8");
     engine.eval(testString);
+
+    File eventsFile = new File(Play.application().path().toString() + "/groovy/events.groovy");
+    String eventsString = FileUtils.readFileToString(eventsFile, "UTF-8");
+    engine.eval(eventsString);
 
     // get script object on which we want to implement the interface with
     Object a = engine.get("a");
@@ -256,9 +265,14 @@ public class ScriptBoard extends UntypedActor {
               String choiceUID = jsonInput.get("choiceUID").toString();
               String params = (jsonInput.containsKey("params")) ? jsonInput.get("params").toString() : null;
               makeChoice(choiceUID, params, out);
+            } else if (action.equals("CustomEvent")) {
+              // TODO: Is is possible for this to be emitted before the event has been registered? I think it is..
+              eventBus.emit("CustomEvent", jsonInput);
             }
           } catch (java.io.IOException ignored) {
             Logger.debug("java.io.IOException");
+          } catch (Exception e) {
+            Logger.error(e.getMessage());
           }
         }
       });
