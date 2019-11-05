@@ -27,6 +27,7 @@ import java.util.UUID;
 public class Global extends GlobalSettings {
 
   static Process process = null;
+  public static String VERSION = "v2.4.0";
 
   @Override
   public void onStart(Application app) {
@@ -35,13 +36,14 @@ public class Global extends GlobalSettings {
     SqlRow versionTableCount = Ebean.createSqlQuery(sql).findUnique();
     String count = versionTableCount.getString("table_count");
 
+    // If the breadboard_version table doesn't exist we're < v2.3
     if (count.equals("0")) {
 
       // Create the breadboard_version table
       sql = "create table breadboard_version ( version varchar(255) ); ";
       Ebean.createSqlUpdate(sql).execute();
       // Update the version
-      sql = "insert into breadboard_version values ('v2.3.1'); ";
+      sql = "insert into breadboard_version values ('" + VERSION + "'); ";
       Ebean.createSqlUpdate(sql).execute();
 
       // Create the languages table
@@ -155,6 +157,17 @@ public class Global extends GlobalSettings {
       // TODO: Add message telling user what was done
       // TODO: Load v2.3 version notes as message from file system
 
+      // Upgrade to version 2.4.0
+      version2Point4Upgrade();
+    } else {
+      // The breadboard_version table exists, let's check if we're v2.3 or v2.4
+      sql = "select version from breadboard_version limit 1;";
+      SqlRow versionString = Ebean.createSqlQuery(sql).findUnique();
+      String version = versionString.getString("version");
+      if (version.equals("v2.3.0") || version.equals("v2.3.1")) {
+        // Add v2.4.0 fields
+        version2Point4Upgrade();
+      } // Otherwise, no upgrade needed
     }
 
     //InitialData.insert(app);
@@ -174,6 +187,12 @@ public class Global extends GlobalSettings {
       }
     }
     // TODO: We could build the production resources when the framework starts instead of having to build them manually
+  }
+
+  private void version2Point4Upgrade() {
+    // Changes to support Experiment fileMode
+    String sql = "alter table experiments add column if not exists file_mode bit default 0;";
+    Ebean.createSqlUpdate(sql).execute();
   }
 
   @Override
