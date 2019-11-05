@@ -27,6 +27,10 @@ public class Admin implements ClientListener {
     this.out = out;
   }
 
+  public void update() {
+    this.out.write(this.user.toJson());
+  }
+
   public void graphChanged(Graph wholeGraph) {
     ObjectNode jsonOutput = Json.newObject();
 
@@ -184,5 +188,9 @@ public class Admin implements ClientListener {
 
   public ThrottledWebSocketOut getOut() {
     return this.out;
+  }
+
+  public User getUser() {
+    return this.user;
   }
 }
