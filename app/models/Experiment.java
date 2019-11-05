@@ -72,8 +72,7 @@ public class Experiment extends Model {
   public static final String ON_JOIN_STEP_NAME = "OnJoinStep";
   public static final String ON_LEAVE_STEP_NAME = "OnLeaveStep";
 
-  @Transient
-  public boolean fileMode = true;
+  public Boolean fileMode = false;
 
   /*
    * The CSS Style for the experiment
@@ -157,8 +156,36 @@ public class Experiment extends Model {
     }
   }
 
+  public Boolean getFileMode() {
+    return this.fileMode;
+  }
+
+  public void setFileMode(Boolean fileMode) {
+    this.fileMode = fileMode;
+  }
+
+  public List<Content> getContent() {
+    // TODO: return content from file when filemode is true
+    return this.content;
+  }
+
+  public String getStyle() {
+    // TODO: return style from file when filemode is true
+    return this.style;
+  }
+
+  public String getClientHtml() {
+    // TODO: return clientHtml from file when filemode is true
+    return this.clientHtml;
+  }
+
+  public String getClientGraph() {
+    // TODO: return clientGraph from file when filemode is true
+    return this.clientGraph;
+  }
+
   public List<Step> getSteps() {
-    if (fileMode) {
+    if (getFileMode()) {
       ArrayList<Step> returnSteps = new ArrayList<>();
       File devDirectory = new File(Play.application().path().toString() + "/dev");
       String[] extensions = {"groovy"};
@@ -187,7 +214,8 @@ public class Experiment extends Model {
   }
 
   public void addStep(Step step) {
-    if (fileMode) {
+    /*
+    if (getFileMode()) {
       File devDirectory = new File(Play.application().path().toString() + "/dev");
       try {
         FileUtils.writeStringToFile(new File(devDirectory, step.name.concat(".groovy")), step.source);
@@ -195,15 +223,92 @@ public class Experiment extends Model {
         Logger.error("Error writing step to the dev directory, check your permissions.");
       }
     } else {
+    */
       this.steps.add(step);
-    }
+    //}
   }
 
-  public void setFileMode(boolean mode) {
-    this.fileMode = mode;
-    if (mode) {
-      // TODO: watch files here
+  public void toggleFileMode() {
+    this.setFileMode(!this.getFileMode());
+    this.save();
+    /*
+    Logger.debug("fileMode:");
+    Logger.debug(this.getFileMode().toString());
+    if (this.getFileMode()) {
+      // Start watching the dev directory in a new thread
+      this.fileWatcherActor = Akka.system().actorOf(new Props(FileWatcherActor.class));
+      Long fileWatcherRate = play.Play.application().configuration().getMilliseconds("breadboard.fileWatcherRate");
+      if (fileWatcherRate == null) {
+        Logger.debug("fileWatcherRate = null");
+        fileWatcherRate = 1000L;
+      }
+      Scheduler scheduler = Akka.system().scheduler();
+      this.cancellableFileWatcher = scheduler.schedule(
+          Duration.create(0, TimeUnit.MILLISECONDS),
+          Duration.create(fileWatcherRate, TimeUnit.MILLISECONDS),
+          this.fileWatcherActor,
+          new FileWatcherActorProtocol.FileWatch(),
+          Akka.system().dispatcher(),
+          null
+      );
+
+      Logger.debug((this.cancellableFileWatcher == null) ? "NULL" : this.cancellableFileWatcher.toString());
+
+      Logger.debug("Experiment:");
+      Logger.debug(this.hashCode() + "");
+
+      F.Promise<Boolean> promise = F.Promise.promise(
+          new F.Function0<Boolean>() {
+            public Boolean apply() {
+              Path devPath = FileSystems.getDefault().getPath("dev");
+              try {
+                watcher = FileSystems.getDefault().newWatchService();
+                watchKey = devPath.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+                while (Experiment.this.getFileMode()) {
+                  try {
+                    watchKey = watcher.take();
+                  } catch (InterruptedException x) {
+                    return false;
+                  }
+
+                  for (WatchEvent<?> event: watchKey.pollEvents()) {
+                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
+                    if (ev.kind() == ENTRY_CREATE) {
+                      Logger.debug("ENTRY_CREATE");
+                    } else if (ev.kind() == ENTRY_MODIFY) {
+                      Logger.debug("ENTRY_MODIFY");
+                    } else if (ev.kind() == ENTRY_DELETE) {
+                      Logger.debug("ENTRY_DELETE");
+                    }
+                  }
+
+                  boolean valid = watchKey.reset();
+                  if (!valid) {
+                    Logger.error("Can no longer watch the dev directory, was it deleted?");
+                    return false;
+                  }
+                }
+                Logger.debug("Experiment.this.getFileMode():");
+                Logger.debug(Experiment.this.getFileMode().toString());
+                return true;
+              } catch (IOException ioe) {
+                Logger.error("Error watching dev directory for changes, check your permissions.");
+                return false;
+              }
+            }
+          }
+      );
+    } else {
+      Logger.debug("Toggling file mode to false.");
+      Logger.debug("Experiment:");
+      Logger.debug(this.hashCode() + "");
+      Logger.debug(this.cancellableFileWatcher.toString());
+      if (this.cancellableFileWatcher != null && !this.cancellableFileWatcher.isCancelled()) {
+        Logger.debug("Got here.");
+        this.cancellableFileWatcher.cancel();
+      }
     }
+    */
   }
 
   public void export() throws IOException {
@@ -373,14 +478,6 @@ public class Experiment extends Model {
     return null;
   }
 
-  public Step getStep(Long id) {
-    for (Step s : steps) {
-      if (s.id.equals(id))
-        return s;
-    }
-    return null;
-  }
-
   public Parameter getParameterByName(String name) {
     for (Parameter p : parameters) {
       if (p.name.equals(name))
@@ -402,7 +499,7 @@ public class Experiment extends Model {
   }
 
   public Step getOnJoinStep() {
-    for (Step step : steps) {
+    for (Step step : this.getSteps()) {
       if (ON_JOIN_STEP_NAME.equalsIgnoreCase(step.name)) {
         return step;
       }
@@ -411,7 +508,7 @@ public class Experiment extends Model {
   }
 
   public Step getOnLeaveStep() {
-    for (Step step : steps) {
+    for (Step step : this.getSteps()) {
       if (ON_LEAVE_STEP_NAME.equalsIgnoreCase(step.name)) {
         return step;
       }
@@ -427,9 +524,10 @@ public class Experiment extends Model {
     experiment.put("id", id);
     experiment.put("name", name);
     experiment.put("uid", uid);
+    experiment.put("fileMode", getFileMode());
 
     ArrayNode jsonSteps = experiment.putArray("steps");
-    for (Step s : steps) {
+    for (Step s : getSteps()) {
       jsonSteps.add(s.toJson());
     }
 
@@ -472,4 +570,43 @@ public class Experiment extends Model {
   public String toString() {
     return "Experiment(" + id + ")";
   }
+
+  /*
+  class WatchDevDirectory extends Thread {
+    public void run() {
+      Path devPath = FileSystems.getDefault().getPath("dev");
+      try {
+        watcher = FileSystems.getDefault().newWatchService();
+        watchKey = devPath.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+        while (true) {
+          try {
+            watchKey = watcher.take();
+          } catch (InterruptedException x) {
+            return;
+          }
+
+          for (WatchEvent<?> event: watchKey.pollEvents()) {
+            WatchEvent<Path> ev = (WatchEvent<Path>) event;
+            if (ev.kind() == ENTRY_CREATE) {
+              Logger.debug("ENTRY_CREATE");
+            } else if (ev.kind() == ENTRY_MODIFY) {
+              Logger.debug("ENTRY_MODIFY");
+            } else if (ev.kind() == ENTRY_DELETE) {
+              Logger.debug("ENTRY_DELETE");
+            }
+          }
+
+          boolean valid = watchKey.reset();
+          if (!valid) {
+            Logger.error("Can no longer watch the dev directory, was it deleted?");
+            return;
+          }
+        }
+      } catch (IOException ioe) {
+        Logger.error("Error watching dev directory for changes, check your permissions.");
+      }
+    }
+  }
+  */
 }
+

@@ -205,6 +205,8 @@ public class Breadboard extends UntypedActor {
             } else if (action.equals("DeleteImage")) {
               Long imageId = Long.parseLong(jsonInput.get("imageId").toString());
               breadboardController.tell(new DeleteImage(user, imageId, out), null);
+            } else if (action.equals("ToggleFileMode")) {
+              breadboardController.tell(new ToggleFileMode(user, out), null);
             }
           } else { // END if (user != null)
             Logger.error("user not found with UID: " + user.uid);
@@ -729,6 +731,11 @@ public class Breadboard extends UntypedActor {
         DeleteImage deleteImage = (DeleteImage) message;
         Long imageId = deleteImage.imageId;
         Image.findById(imageId).delete();
+      } else if (message instanceof ToggleFileMode) {
+        Experiment selectedExperiment = breadboardMessage.user.getExperiment();
+        if (selectedExperiment != null) {
+          selectedExperiment.toggleFileMode();
+        }
       }
 
       breadboardMessage.out.write(breadboardMessage.user.toJson());
@@ -1073,6 +1080,12 @@ public class Breadboard extends UntypedActor {
 
   public static class ReloadEngine extends BreadboardMessage {
     public ReloadEngine(User user, ThrottledWebSocketOut out) {
+      super(user, out);
+    }
+  }
+
+  public static class ToggleFileMode extends BreadboardMessage {
+    public ToggleFileMode(User user, ThrottledWebSocketOut out) {
       super(user, out);
     }
   }
