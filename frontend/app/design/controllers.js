@@ -332,7 +332,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       });
   };
 
-  $scope.openImportDialog = function(){
+  $scope.openImportDialog = function() {
 
     $('#importExperimentDialog').dialog({
       title: "Import experiment",
@@ -340,6 +340,13 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     });
 
   };
+
+  $scope.toggleDevMode = function() {
+    $breadboardFactory.send(
+      {
+        "action": "ToggleFileMode"
+      });
+  }
 
   $scope.createExperiment = function () {
     $('#newExperimentDialog').dialog('close');
@@ -656,12 +663,28 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     position: [margin, topDivHeight],
     autoOpen: false,
     dialogClass: 'steps-dialog',
-    buttons: {
-      'Save': function () {
-        saveSteps();
+    buttons: [
+      {
+        text: 'Save',
+        disabled: false,
+        click: function () {
+          saveSteps();
+        }
       }
-    }
+    ]
   };
+
+  $scope.$watch('breadboard.experiment.fileMode', function(newValue) {
+    $('#stepsDiv').dialog('option', 'buttons', [
+      {
+        text: 'Save',
+        disabled: newValue,
+        click: function () {
+          saveSteps();
+        }
+      }
+    ]);
+  });
 
   $scope.customizeDialogOptions = {
     title: 'Customize',

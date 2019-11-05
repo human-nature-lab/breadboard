@@ -59,6 +59,17 @@
                           aria-hidden="true">
                     </span>
                     </button>
+                    <button class="btn btn-default"
+                            id="devButton"
+                            ng-class="{ 'active': (breadboard.experiment.fileMode) }"
+                            ng-click="toggleDevMode()">
+                    <span class="glyphicon glyphicon-hdd"
+                          tooltip="Read experiment from file"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
+                          aria-hidden="true">
+                    </span>
+                    </button>
                 </div>
             </div>
             <div class="form-group experiment-group">
@@ -665,7 +676,9 @@
         <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
             <steps
                     ng-if="breadboard.experiment"
+                    read-only="breadboard.experiment.fileMode"
                     actions="stepsActions"
+                    experiment="breadboard.experiment"
                     experiment-id="breadboard.experiment.id">
             </steps>
         </div>
