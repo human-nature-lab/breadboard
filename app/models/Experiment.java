@@ -9,6 +9,7 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import play.Logger;
 import play.Play;
 import play.data.format.Formats;
@@ -156,6 +157,10 @@ public class Experiment extends Model {
     }
   }
 
+  public String getDirectoryName() {
+    return StringUtils.replace(this.name, " ", "-").concat("_").concat(this.id.toString());
+  }
+
   public Boolean getFileMode() {
     return this.fileMode;
   }
@@ -187,8 +192,12 @@ public class Experiment extends Model {
   public List<Step> getSteps() {
     if (getFileMode()) {
       ArrayList<Step> returnSteps = new ArrayList<>();
-      File devDirectory = new File(Play.application().path().toString() + "/dev");
+      File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/steps");
       String[] extensions = {"groovy"};
+      if (!devDirectory.isDirectory()) {
+        Logger.error("Directory " + devDirectory.getPath() + " does not exist.");
+        return returnSteps;
+      }
       Iterator<File> iter = FileUtils.iterateFiles(devDirectory, extensions, false);
       while (iter.hasNext()) {
         try {
@@ -214,101 +223,12 @@ public class Experiment extends Model {
   }
 
   public void addStep(Step step) {
-    /*
-    if (getFileMode()) {
-      File devDirectory = new File(Play.application().path().toString() + "/dev");
-      try {
-        FileUtils.writeStringToFile(new File(devDirectory, step.name.concat(".groovy")), step.source);
-      } catch (IOException ioe) {
-        Logger.error("Error writing step to the dev directory, check your permissions.");
-      }
-    } else {
-    */
-      this.steps.add(step);
-    //}
+    this.steps.add(step);
   }
 
   public void toggleFileMode() {
     this.setFileMode(!this.getFileMode());
     this.save();
-    /*
-    Logger.debug("fileMode:");
-    Logger.debug(this.getFileMode().toString());
-    if (this.getFileMode()) {
-      // Start watching the dev directory in a new thread
-      this.fileWatcherActor = Akka.system().actorOf(new Props(FileWatcherActor.class));
-      Long fileWatcherRate = play.Play.application().configuration().getMilliseconds("breadboard.fileWatcherRate");
-      if (fileWatcherRate == null) {
-        Logger.debug("fileWatcherRate = null");
-        fileWatcherRate = 1000L;
-      }
-      Scheduler scheduler = Akka.system().scheduler();
-      this.cancellableFileWatcher = scheduler.schedule(
-          Duration.create(0, TimeUnit.MILLISECONDS),
-          Duration.create(fileWatcherRate, TimeUnit.MILLISECONDS),
-          this.fileWatcherActor,
-          new FileWatcherActorProtocol.FileWatch(),
-          Akka.system().dispatcher(),
-          null
-      );
-
-      Logger.debug((this.cancellableFileWatcher == null) ? "NULL" : this.cancellableFileWatcher.toString());
-
-      Logger.debug("Experiment:");
-      Logger.debug(this.hashCode() + "");
-
-      F.Promise<Boolean> promise = F.Promise.promise(
-          new F.Function0<Boolean>() {
-            public Boolean apply() {
-              Path devPath = FileSystems.getDefault().getPath("dev");
-              try {
-                watcher = FileSystems.getDefault().newWatchService();
-                watchKey = devPath.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-                while (Experiment.this.getFileMode()) {
-                  try {
-                    watchKey = watcher.take();
-                  } catch (InterruptedException x) {
-                    return false;
-                  }
-
-                  for (WatchEvent<?> event: watchKey.pollEvents()) {
-                    WatchEvent<Path> ev = (WatchEvent<Path>) event;
-                    if (ev.kind() == ENTRY_CREATE) {
-                      Logger.debug("ENTRY_CREATE");
-                    } else if (ev.kind() == ENTRY_MODIFY) {
-                      Logger.debug("ENTRY_MODIFY");
-                    } else if (ev.kind() == ENTRY_DELETE) {
-                      Logger.debug("ENTRY_DELETE");
-                    }
-                  }
-
-                  boolean valid = watchKey.reset();
-                  if (!valid) {
-                    Logger.error("Can no longer watch the dev directory, was it deleted?");
-                    return false;
-                  }
-                }
-                Logger.debug("Experiment.this.getFileMode():");
-                Logger.debug(Experiment.this.getFileMode().toString());
-                return true;
-              } catch (IOException ioe) {
-                Logger.error("Error watching dev directory for changes, check your permissions.");
-                return false;
-              }
-            }
-          }
-      );
-    } else {
-      Logger.debug("Toggling file mode to false.");
-      Logger.debug("Experiment:");
-      Logger.debug(this.hashCode() + "");
-      Logger.debug(this.cancellableFileWatcher.toString());
-      if (this.cancellableFileWatcher != null && !this.cancellableFileWatcher.isCancelled()) {
-        Logger.debug("Got here.");
-        this.cancellableFileWatcher.cancel();
-      }
-    }
-    */
   }
 
   public void export() throws IOException {
@@ -516,7 +436,6 @@ public class Experiment extends Model {
     return null;
   }
 
-
   @JsonValue
   public ObjectNode toJson() {
     ObjectNode experiment = Json.newObject();
@@ -559,10 +478,6 @@ public class Experiment extends Model {
     }
 
     experiment.put("style", style);
-    /*
-    experiment.put("clientHtml", clientHtml);
-    experiment.put("clientGraph", clientGraph);
-    */
 
     return experiment;
   }
@@ -570,43 +485,5 @@ public class Experiment extends Model {
   public String toString() {
     return "Experiment(" + id + ")";
   }
-
-  /*
-  class WatchDevDirectory extends Thread {
-    public void run() {
-      Path devPath = FileSystems.getDefault().getPath("dev");
-      try {
-        watcher = FileSystems.getDefault().newWatchService();
-        watchKey = devPath.register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
-        while (true) {
-          try {
-            watchKey = watcher.take();
-          } catch (InterruptedException x) {
-            return;
-          }
-
-          for (WatchEvent<?> event: watchKey.pollEvents()) {
-            WatchEvent<Path> ev = (WatchEvent<Path>) event;
-            if (ev.kind() == ENTRY_CREATE) {
-              Logger.debug("ENTRY_CREATE");
-            } else if (ev.kind() == ENTRY_MODIFY) {
-              Logger.debug("ENTRY_MODIFY");
-            } else if (ev.kind() == ENTRY_DELETE) {
-              Logger.debug("ENTRY_DELETE");
-            }
-          }
-
-          boolean valid = watchKey.reset();
-          if (!valid) {
-            Logger.error("Can no longer watch the dev directory, was it deleted?");
-            return;
-          }
-        }
-      } catch (IOException ioe) {
-        Logger.error("Error watching dev directory for changes, check your permissions.");
-      }
-    }
-  }
-  */
 }
 

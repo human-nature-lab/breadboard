@@ -325,8 +325,12 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     });
   };
 
+  function getExperimentZipName() {
+     return $scope.breadboard.experiment.name.replace(/ /g, "-") + "_" + $scope.breadboard.experiment.id + ".zip";
+  }
+
   $scope.exportExperiment = function () {
-    downloadService.download("/experiment/export/" + $scope.breadboard.experiment.id, $scope.breadboard.experiment.name + '.zip')
+    downloadService.download("/experiment/export/" + $scope.breadboard.experiment.id, getExperimentZipName())
       .then(function(res){
         console.log("Successfully downloaded experiment");
       });
