@@ -673,7 +673,7 @@ public class ScriptBoard extends UntypedActor {
     out.write(jsonOutput);
   }
 
-  private static void processScript(String script, ThrottledWebSocketOut out, String scriptName) {
+  public static void processScript(String script, ThrottledWebSocketOut out, String scriptName) {
     if (scriptName == null) scriptName = "Unnamed Script";
 
     ObjectNode jsonOutput = Json.newObject();

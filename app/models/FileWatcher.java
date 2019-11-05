@@ -4,6 +4,7 @@ import actors.FileWatcherActor;
 import actors.FileWatcherActorProtocol;
 import akka.actor.ActorRef;
 import akka.actor.Props;
+import com.sun.nio.file.SensitivityWatchEventModifier;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.filefilter.DirectoryFileFilter;
 import org.apache.commons.io.filefilter.FalseFileFilter;
@@ -13,10 +14,7 @@ import scala.concurrent.duration.Duration;
 
 import java.io.File;
 import java.io.IOException;
-import java.nio.file.FileSystems;
-import java.nio.file.Path;
-import java.nio.file.WatchKey;
-import java.nio.file.WatchService;
+import java.nio.file.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
@@ -64,7 +62,7 @@ public class FileWatcher {
 
   public void registerRecursive(Path parent) throws IOException {
     for (File f : FileUtils.listFilesAndDirs(parent.toFile(), FalseFileFilter.INSTANCE, DirectoryFileFilter.DIRECTORY)) {
-      WatchKey watchKey = f.toPath().register(watcher, ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY);
+      WatchKey watchKey = f.toPath().register(watcher, new WatchEvent.Kind[]{ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY}, SensitivityWatchEventModifier.HIGH);
       watchKeys.put(watchKey, f.toPath());
     }
   }
@@ -91,5 +89,9 @@ public class FileWatcher {
 
   public Map<WatchKey, Path> getWatchKeys() {
     return this.watchKeys;
+  }
+
+  public void loadStep(String source, ThrottledWebSocketOut out, String name) {
+    ScriptBoard.processScript(source, out, name);
   }
 }

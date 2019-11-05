@@ -4,7 +4,10 @@ import actors.FileWatcherActorProtocol.FileWatch;
 import akka.actor.UntypedActor;
 import models.Admin;
 import models.FileWatcher;
+import org.apache.commons.io.FileUtils;
 import play.Logger;
+
+import java.io.IOException;
 import java.nio.file.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -51,25 +54,37 @@ public class FileWatcherActor extends UntypedActor {
         return;
       }
 
-      /* TODO: Reload step in script engine on change */
       for (WatchEvent<?> event: watchKey.pollEvents()) {
-        changed = true;
         WatchEvent<Path> ev = (WatchEvent<Path>) event;
         Path name = ev.context();
         Path child = dir.resolve(name);
         Logger.debug(child.toString());
-        // Logger.debug(filePath.toAbsolutePath().toString());
-        // File file = devPath.resolve(filePath).toFile();
-        //if (file.isFile()) {
-        //  Logger.debug("file.isFile()");
-        //  Logger.debug(file.getPath());
-        //}
-        //if (filePath.endsWith("/Steps")) {
-        //  Logger.debug("editing step");
-        //}
-        if (ev.kind() == ENTRY_CREATE) {
+
+        if (ev.kind() == ENTRY_CREATE && child.toFile().isDirectory()) {
+          // new directory, need to watch it
+          try {
+            fileWatcher.registerRecursive(child);
+          } catch (IOException ioe) {
+            Logger.error("Unable to watch directory " + child.toFile().getPath() + " check the permissions.");
+          }
           Logger.debug("ENTRY_CREATE");
-        } else if (ev.kind() == ENTRY_MODIFY) {
+        } else if ((ev.kind() == ENTRY_CREATE || ev.kind() == ENTRY_MODIFY) && child.toFile().isFile()) {
+          // A file was modified or created, may need to send it to the script engine and update the admin
+          if (child.toFile().getParent().endsWith("/Steps")) {
+            // Step was modified or created, send to ScriptEngine if it is the currently selected experiment
+            String selectedExperimentDirectory = fileWatcher.getAdminListeners().get(0).getUser().selectedExperiment.getDirectoryName();
+            String changedExperimentDirectory = child.getParent().getParent().getFileName().toString();
+            Logger.debug("changedExperimentDirectory: " + changedExperimentDirectory);
+            if (changedExperimentDirectory.equals(selectedExperimentDirectory)) {
+              try {
+                String stepContents = FileUtils.readFileToString(child.toFile());
+                fileWatcher.loadStep(stepContents, fileWatcher.getAdminListeners().get(0).getOut(), child.getFileName().toString());
+              } catch (IOException ioe) {
+                Logger.error("Unable to read contents of Step " + child.getFileName().toString() + " check your permissions.");
+              }
+            }
+            changed = true;
+          }
           Logger.debug("ENTRY_MODIFY");
         } else if (ev.kind() == ENTRY_DELETE) {
           Logger.debug("ENTRY_DELETE");
