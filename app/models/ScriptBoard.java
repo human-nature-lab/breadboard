@@ -1,6 +1,6 @@
 package models;
 
-import akka.actor.UntypedActor;
+import akka.actor.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -36,6 +36,7 @@ public class ScriptBoard extends UntypedActor {
   private static PlayerActionsInterface playerActions;
   private static BreadboardGraphInterface graphInterface;
   private static BreadboardGraphChangedListener graphChangedListener;
+  private static FileWatcher fileWatcher;
   private static EventTracker eventTracker = new EventTracker();
 
   private static Random rand = new Random();
@@ -151,6 +152,10 @@ public class ScriptBoard extends UntypedActor {
     }
 
     graphInterface.addListener(graphChangedListener);
+
+    if (fileWatcher == null) {
+      fileWatcher = new FileWatcher(admins);
+    }
 
     gameListener.engine = engine;
 
