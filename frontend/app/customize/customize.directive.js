@@ -7,7 +7,9 @@ angular.module('breadboard.customize').directive('customize', function(){
     restrict: 'E',
     scope: {
       experimentId: '=',
-      actions: '='
+      actions: '=',
+      experiment: '=',
+      readOnly: '='
     },
     link: function(scope){
       angular.extend(scope.actions, {

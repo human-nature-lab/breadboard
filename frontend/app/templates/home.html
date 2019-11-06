@@ -302,7 +302,9 @@
             <customize
                     ng-if="breadboard.experiment"
                     actions="customizeActions"
-                    experiment-id="breadboard.experiment.id">
+                    experiment="breadboard.experiment"
+                    experiment-id="breadboard.experiment.id"
+                    read-only="breadboard.experiment.fileMode">
             </customize>
         </div>
     </div>

@@ -18,7 +18,7 @@ public class CustomizeController extends Controller {
     }
 
     ObjectNode returnJson = Json.newObject();
-    returnJson.put("clientHtml", experiment.clientHtml);
+    returnJson.put("clientHtml", experiment.getClientHtml());
     return ok(returnJson);
   }
 
@@ -30,7 +30,7 @@ public class CustomizeController extends Controller {
     }
 
     ObjectNode returnJson = Json.newObject();
-    returnJson.put("clientGraph", experiment.clientGraph);
+    returnJson.put("clientGraph", experiment.getClientGraph());
     return ok(returnJson);
   }
 
@@ -42,7 +42,7 @@ public class CustomizeController extends Controller {
     }
 
     ObjectNode returnJson = Json.newObject();
-    returnJson.put("style", experiment.style);
+    returnJson.put("style", experiment.getStyle());
     return ok(returnJson);
   }
 

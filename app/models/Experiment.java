@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import controllers.ExperimentController;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -22,7 +23,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -170,51 +170,63 @@ public class Experiment extends Model {
   }
 
   public List<Content> getContent() {
-    // TODO: return content from file when filemode is true
+    // TODO: get Content from file if fileMode is true
     return this.content;
   }
 
   public String getStyle() {
-    // TODO: return style from file when filemode is true
-    return this.style;
+    if (getFileMode()) {
+      String returnStyle = "";
+      try {
+        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
+        returnStyle = FileUtils.readFileToString(new File(devDirectory, "style.css"));
+      } catch (IOException ioe) {
+        Logger.error("Error reading style.css file from the dev directory, check your permissions.");
+      }
+      return returnStyle;
+    } else {
+      return this.style;
+    }
   }
 
   public String getClientHtml() {
-    // TODO: return clientHtml from file when filemode is true
-    return this.clientHtml;
+    if (getFileMode()) {
+      String returnClientHtml = "";
+      try {
+        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
+        returnClientHtml = FileUtils.readFileToString(new File(devDirectory, "client-html.html"));
+      } catch (IOException ioe) {
+        Logger.error("Error reading client-html.html file from the dev directory, check your permissions.");
+      }
+      return returnClientHtml;
+    } else {
+      return this.clientHtml;
+    }
   }
 
   public String getClientGraph() {
-    // TODO: return clientGraph from file when filemode is true
-    return this.clientGraph;
+    if (getFileMode()) {
+      String returnClientGraph = "";
+      try {
+        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
+        returnClientGraph = FileUtils.readFileToString(new File(devDirectory, "client-graph.js"));
+      } catch (IOException ioe) {
+        Logger.error("Error reading client-graph.js file from the dev directory, check your permissions.");
+      }
+      return returnClientGraph;
+    } else {
+      return this.clientGraph;
+    }
   }
 
   public List<Step> getSteps() {
     if (getFileMode()) {
       ArrayList<Step> returnSteps = new ArrayList<>();
-      File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/steps");
-      String[] extensions = {"groovy"};
-      if (!devDirectory.isDirectory()) {
-        Logger.error("Directory " + devDirectory.getPath() + " does not exist.");
-        return returnSteps;
-      }
-      Iterator<File> iter = FileUtils.iterateFiles(devDirectory, extensions, false);
-      while (iter.hasNext()) {
-        try {
-          File stepFile = iter.next();
-          String stepName = stepFile.getName();
-          int indexOfGroovy = stepName.indexOf(".groovy");
-          if (indexOfGroovy > -1) {
-            stepName = stepName.substring(0, indexOfGroovy);
-          }
-          String stepContents = FileUtils.readFileToString(stepFile);
-          Step readStep = new Step();
-          readStep.setName(stepName);
-          readStep.setSource(stepContents);
-          returnSteps.add(readStep);
-        } catch (IOException ioe) {
-          Logger.error("Error reading steps file from the dev directory, check your permissions.");
-        }
+      File stepsDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/steps");
+      try {
+        returnSteps = ExperimentController.getStepsFromDirectory(stepsDirectory);
+      } catch (IOException ioe) {
+        Logger.error("Error reading steps file from the dev directory, check your permissions.");
       }
       return returnSteps;
     } else {
@@ -477,7 +489,9 @@ public class Experiment extends Model {
       jsonImages.add(i.toJson());
     }
 
-    experiment.put("style", style);
+    experiment.put("style", getStyle());
+    experiment.put("clientGraphHash", getClientGraph().hashCode());
+    experiment.put("clientHtmlHash", getClientHtml().hashCode());
 
     return experiment;
   }

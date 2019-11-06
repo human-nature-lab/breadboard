@@ -9,6 +9,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
 
   const savedTime = 1000;
 
+  vm.experiment = $scope.experiment;
   vm.experimentId = undefined;
   vm.TAB = TAB;
   vm.selectTab = selectTab;
@@ -60,6 +61,7 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
     serverValue: '',
     clientValue: '',
     codeMirrorOptions: {
+      readOnly: ($scope.readOnly) ? 'nocursor' : false,
       lineNumbers: true,
       matchBrackets: true,
       mode: 'text/css',
@@ -74,6 +76,14 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
     }
   };
 
+  $scope.$watch('readOnly', function(newValue) {
+    let codeMirrorInstances = document.getElementById('customize-div').getElementsByClassName('CodeMirror');
+    for (let i = 0; i < codeMirrorInstances.length; i++) {
+      let cm = codeMirrorInstances[i].CodeMirror;
+      cm.setOption('readOnly', ((newValue) ? 'nocursor' : false));
+    }
+  });
+
   $scope.$watch('experimentId', function(experimentId){
     if (experimentId !== vm.experimentId) {
       vm.selectedTab = undefined;
@@ -84,6 +94,25 @@ function CustomizeCtrl($scope, CustomizeSrv, STATUS, $timeout) {
       vm.style.status = STATUS.UNLOADED;
 
       selectTab(TAB.STYLE, 'styleTab');
+    }
+  });
+
+  $scope.$watch('experiment.style', function(style){
+    if (vm.experiment.fileMode) {
+      vm.style.serverValue = style;
+      vm.style.clientValue = style;
+    }
+  });
+
+  $scope.$watch('experiment.clientGraphHash', function(cgh){
+    if (vm.experiment.fileMode) {
+      getClientGraph();
+    }
+  });
+
+  $scope.$watch('experiment.clientHtmlHash', function(chh){
+    if (vm.experiment.fileMode) {
+      getClientHtml();
     }
   });
 

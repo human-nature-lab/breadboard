@@ -24,6 +24,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -395,7 +396,7 @@ public class ExperimentController extends Controller {
   }
 
 
-  private static void importContent(Experiment experiment, User user, File contentDir) throws IOException{
+  private static void importContent(Experiment experiment, User user, File contentDir) throws IOException {
     for (File langFileOrDir : contentDir.listFiles()){
       if(!langFileOrDir.isDirectory()){
         Logger.debug("Content is in root of Content directory. Attempting to import as default language.");
@@ -431,7 +432,7 @@ public class ExperimentController extends Controller {
    * @param directory
    * @throws IOException
    */
-  private static void importTranslations(Experiment experiment, Language language, File directory) throws IOException{
+  private static void importTranslations(Experiment experiment, Language language, File directory) throws IOException {
 
     for(File file: directory.listFiles()){
       if(FilenameUtils.getExtension(file.getName()).equals("html")){
@@ -527,6 +528,14 @@ public class ExperimentController extends Controller {
 
   // Reusable code for importing steps
   private static void importSteps(Experiment experiment, File stepsDirectory) throws IOException{
+    ArrayList<Step> steps = getStepsFromDirectory(stepsDirectory);
+    for (Step step : steps) {
+      experiment.addStep(step);
+    }
+  }
+
+  public static ArrayList<Step> getStepsFromDirectory(File stepsDirectory) throws IOException {
+    ArrayList<Step> returnSteps = new ArrayList<>();
     File[] stepFiles = stepsDirectory.listFiles();
     if (stepFiles != null) {
       for (File stepFile : stepFiles) {
@@ -536,13 +545,14 @@ public class ExperimentController extends Controller {
           String source = FileUtils.readFileToString(stepFile);
           step.name = stepName;
           step.source = source;
-          experiment.addStep(step);
+          returnSteps.add(step);
           Logger.debug("Adding step: " + stepName);
         } else {
           Logger.debug("Skipping " + stepFile.getName() + " with unsupported file extension");
         }
       }
     }
+    return returnSteps;
   }
 
   private static Experiment newExperiment(User user, Boolean isNewExperiment){

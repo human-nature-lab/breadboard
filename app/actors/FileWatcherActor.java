@@ -59,6 +59,8 @@ public class FileWatcherActor extends UntypedActor {
         Path name = ev.context();
         Path child = dir.resolve(name);
         Logger.debug(child.toString());
+        String selectedExperimentDirectory = (fileWatcher.getAdminListeners().get(0).getUser().selectedExperiment == null) ? "" : fileWatcher.getAdminListeners().get(0).getUser().selectedExperiment.getDirectoryName();
+        boolean selectedExperimentChanged = child.toString().contains(selectedExperimentDirectory);
 
         if (ev.kind() == ENTRY_CREATE && child.toFile().isDirectory()) {
           // new directory, need to watch it
@@ -67,25 +69,20 @@ public class FileWatcherActor extends UntypedActor {
           } catch (IOException ioe) {
             Logger.error("Unable to watch directory " + child.toFile().getPath() + " check the permissions.");
           }
-          Logger.debug("ENTRY_CREATE");
-        } else if ((ev.kind() == ENTRY_CREATE || ev.kind() == ENTRY_MODIFY) && child.toFile().isFile()) {
-          // A file was modified or created, may need to send it to the script engine and update the admin
+          Logger.debug("DIRECTORY ENTRY_CREATE");
+        } else if ((ev.kind() == ENTRY_CREATE || ev.kind() == ENTRY_MODIFY) && child.toFile().isFile() && selectedExperimentChanged) {
+          // A file was modified or created in the selected experiment directory, update the admin
+          changed = true;
           if (child.toFile().getParent().endsWith("/Steps")) {
-            // Step was modified or created, send to ScriptEngine if it is the currently selected experiment
-            String selectedExperimentDirectory = fileWatcher.getAdminListeners().get(0).getUser().selectedExperiment.getDirectoryName();
-            String changedExperimentDirectory = child.getParent().getParent().getFileName().toString();
-            Logger.debug("changedExperimentDirectory: " + changedExperimentDirectory);
-            if (changedExperimentDirectory.equals(selectedExperimentDirectory)) {
-              try {
-                String stepContents = FileUtils.readFileToString(child.toFile());
-                fileWatcher.loadStep(stepContents, fileWatcher.getAdminListeners().get(0).getOut(), child.getFileName().toString());
-              } catch (IOException ioe) {
-                Logger.error("Unable to read contents of Step " + child.getFileName().toString() + " check your permissions.");
-              }
+            // Step was modified or created, send to ScriptEngine
+            try {
+              String stepContents = FileUtils.readFileToString(child.toFile());
+              fileWatcher.loadStep(stepContents, fileWatcher.getAdminListeners().get(0).getOut(), child.getFileName().toString());
+            } catch (IOException ioe) {
+              Logger.error("Unable to read contents of Step " + child.getFileName().toString() + " check your permissions.");
             }
-            changed = true;
           }
-          Logger.debug("ENTRY_MODIFY");
+          Logger.debug("FILE ENTRY_MODIFY || ENTRY_CREATE");
         } else if (ev.kind() == ENTRY_DELETE) {
           Logger.debug("ENTRY_DELETE");
         }
