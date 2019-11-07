@@ -768,7 +768,7 @@ public class ScriptBoard extends UntypedActor {
         initParam(newData, null);
 
       } else if (evt instanceof ObservableMap.PropertyClearedEvent) {
-        List<Parameter> parameters = experimentInstance.experiment.parameters;
+        List<Parameter> parameters = experimentInstance.experiment.getParameters();
         List<String> parameterNames = new ArrayList<String>();
         for (Parameter parameter : parameters) {
           parameterNames.add(parameter.name);
