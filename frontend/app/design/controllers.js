@@ -688,6 +688,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
         }
       }
     ]);
+    $('#customizeDiv').dialog('option', 'buttons', [
+      {
+        text: 'Save',
+        disabled: newValue,
+        click: function () {
+          saveCustomize();
+        }
+      }
+    ]);
   });
 
   $scope.customizeDialogOptions = {
@@ -696,11 +705,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     width: windowWidth,
     height: windowHeight,
     position: [margin, topDivHeight],
-    buttons: {
-      'Save': function () {
-        saveCustomize();
+    buttons: [
+      {
+        text: 'Save',
+        disabled: false,
+        click: function () {
+          saveCustomize();
+        }
       }
-    },
+    ]
   };
 
 
