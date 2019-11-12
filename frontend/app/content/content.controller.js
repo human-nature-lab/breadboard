@@ -98,7 +98,7 @@ export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderB
       copyTranslationHtml();
 
       angular.forEach(vm.content, function(c) {
-        if (c.name === vm.selectedContent.name) {
+        if (vm.selectedContent && (c.name === vm.selectedContent.name)) {
           vm.selectedContent = c;
         }
       });
