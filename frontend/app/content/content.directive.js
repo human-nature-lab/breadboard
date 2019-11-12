@@ -10,7 +10,9 @@ angular.module('breadboard.content').directive('content', function(){
     scope: {
       experimentId: '=',
       experimentLanguages: '=',
-      actions: '='
+      experiment: '=',
+      actions: '=',
+      readOnly: '='
     },
     link: function(scope){
       angular.extend(scope.actions, {

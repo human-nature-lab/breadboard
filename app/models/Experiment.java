@@ -170,7 +170,17 @@ public class Experiment extends Model {
   }
 
   public List<Content> getContent() {
-    // TODO: get Content from file if fileMode is true
+    if (getFileMode()) {
+      ArrayList<Content> returnContent = new ArrayList<>();
+      File contentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/content");
+      try {
+        returnContent = ExperimentController.getContentFromDirectory(contentDirectory);
+      } catch (IOException ioe) {
+        Logger.error("Error reading steps file from the dev directory, check your permissions.");
+      }
+      return returnContent;
+
+    }
     return this.content;
   }
 
@@ -468,7 +478,7 @@ public class Experiment extends Model {
     }
 
     ArrayNode jsonContent = experiment.putArray("content");
-    for (Content c : content) {
+    for (Content c : getContent()) {
       jsonContent.add(c.toJson());
     }
 

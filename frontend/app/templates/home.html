@@ -252,26 +252,6 @@
                     user-id="breadboard.user.id"
                     user-experiments="breadboard.user.experiments">
             </create-new-experiment>
-
-            <!--form class="form" ng-submit="createExperiment()">
-                <p>
-                    Copy
-                    <select name="copyExperiment" ng-options="experiment for experiment in breadboard.user.experiments"
-                            ng-model="copyExperimentName">
-                        <option value="">Default</option>
-                    </select>
-                </p>
-                <p>
-                    <input name="name" ng-model="newExperimentName" placeholder="Name" required>
-                </p>
-
-                <p>
-                    <button jq-button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
-                            style="float: right;" type="submit">
-                        <span class="ui-button-text">Create</span>
-                    </button>
-                </p>
-            </form-->
         </div>
     </div>
 
@@ -290,7 +270,9 @@
     <div>
         <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
             <content experiment-id="breadboard.experiment.id"
+                     experiment="breadboard.experiment"
                      experiment-languages="breadboard.experiment.languages"
+                     read-only="breadboard.experiment.fileMode"
                      ng-if="breadboard.experiment"
                      actions="contentActions"></content>
         </div>
@@ -453,7 +435,6 @@
                     <tbody>
                     <tr>
                         <td>
-                            <!--<input type="file" name="picture">-->
                             <button ngf-select
                                     class="btn btn-default"
                                     ngf-pattern="'image/*'"
@@ -696,26 +677,6 @@
             </testing>
         </div>
     </div>
-
-    <!--div>
-        <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
-            <div id="stepsTabsDiv">
-          <span class="steps-tab selected-{{$parent.selectedStep==step}}"
-                ng-repeat="step in breadboard.experiment.steps | orderBy: 'name'" ng-init="initStep(step)"><a
-                  ng-click="$parent.selectedStep=step">{{step.name}}</a><a title="Delete step"
-                                                                           ng-click="deleteStep(step)"
-                                                                           class="step-titlebar-close ui-corner-all"
-                                                                           role="button"><span
-                  class="step-icon ui-icon-closethick">close</span></a></span><span class="steps-tab"><a
-                    title="Create new step" ng-click="newStep()"><span
-                    class="step-icon ui-icon-plusthick">New step</span></a></span>
-            </div>
-            <div id="stepSourceDiv">
-          <textarea class="codemirror" ui-codemirror ui-codemirror-opts="stepCodemirrorOptions"
-                    ng-model="selectedStep.source" ng-refresh="stepCodemirrorOptions.vimMode"> </textarea>
-            </div>
-        </div>
-    </div-->
 
     <div class="delete-dialog" id="deleteStepDialog" style="display: none;">
         <p id="deleteStepDesc"></p>

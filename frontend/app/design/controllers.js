@@ -652,11 +652,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     height: windowHeight,
     position: [margin, topDivHeight],
     autoOpen: false,
-    buttons: {
-      'Save': function () {
-        saveContent();
+    buttons: [
+      {
+        text: 'Save',
+        disabled: false,
+        click: function () {
+          saveContent();
+        }
       }
-    },
+    ],
     dialogClass: 'contentDialog'
   };
 
@@ -694,6 +698,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
         disabled: newValue,
         click: function () {
           saveCustomize();
+        }
+      }
+    ]);
+    $('#contentDiv').dialog('option', 'buttons', [
+      {
+        text: 'Save',
+        disabled: newValue,
+        click: function () {
+          saveContent();
         }
       }
     ]);

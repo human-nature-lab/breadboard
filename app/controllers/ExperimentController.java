@@ -380,7 +380,7 @@ public class ExperimentController extends Controller {
     // Import Steps
     importSteps(experiment, new File(directory, "/Steps"));
     // Import Content
-    importContent(experiment, user, new File(directory, "/Content"));
+    importContent(experiment, new File(directory, "/Content"));
     // Import Parameters
     importParameters(experiment, new File(directory, "parameters.csv"));
     // Import Images
@@ -396,12 +396,34 @@ public class ExperimentController extends Controller {
   }
 
 
-  private static void importContent(Experiment experiment, User user, File contentDir) throws IOException {
+  private static void importContent(Experiment experiment, File contentDir) throws IOException {
+    ArrayList<Content> content = getContentFromDirectory(contentDir);
+    for (Content c : content) {
+      for (Translation t : c.translations) {
+        boolean hasExperimentLanguage = false;
+        for(Language l: experiment.languages){
+          if(l.id.equals(t.language.id)){
+            hasExperimentLanguage = true;
+          }
+        }
+        if(!hasExperimentLanguage){
+          experiment.languages.add(t.language);
+        }
+      }
+      experiment.content.add(c);
+    }
+  }
+
+  public static ArrayList<Content> getContentFromDirectory(File contentDir) throws IOException {
+    ArrayList<Content> returnContent = new ArrayList<>();
+    // Default to English if the directory isn't specified
+    Language defaultLanguage = Language.findByIso3("eng");
     for (File langFileOrDir : contentDir.listFiles()){
       if(!langFileOrDir.isDirectory()){
         Logger.debug("Content is in root of Content directory. Attempting to import as default language.");
         try {
-          importTranslations(experiment, user.defaultLanguage, contentDir);
+          ArrayList<Content> rootContent = getContentFromSubdirectory(contentDir, defaultLanguage);
+          returnContent.addAll(rootContent);
         } catch(IOException e){
           Logger.error("Unable to import content from 'Content' directory", e);
         } finally{
@@ -413,15 +435,18 @@ public class ExperimentController extends Controller {
 
         // Sometimes the subdirectory is named null or something else
         if(language == null){
-          language = user.defaultLanguage;
+          language = defaultLanguage;
         }
         try{
-          importTranslations(experiment, language, langFileOrDir);
+          ArrayList<Content> languageContent = getContentFromSubdirectory(langFileOrDir, language);
+          returnContent.addAll(languageContent);
         } catch(IOException e){
           Logger.error("Unable to import content from " + langFileOrDir.getName(), e);
         }
       }
     }
+    return returnContent;
+
   }
 
 
@@ -434,44 +459,57 @@ public class ExperimentController extends Controller {
    */
   private static void importTranslations(Experiment experiment, Language language, File directory) throws IOException {
 
+    // Check for existing experiment language and add it if it doesn't exist
+    boolean hasExperimentLanguage = false;
+    for(Language l: experiment.languages){
+      if(l.id.equals(language.id)){
+        hasExperimentLanguage = true;
+      }
+    }
+    if(!hasExperimentLanguage){
+      experiment.languages.add(language);
+    }
+
+    ArrayList<Content> importedContent = getContentFromSubdirectory(directory, language);
+
+    for(Content content: importedContent) {
+      // Check for existing content and create if it doesn't exist
+      boolean contentExists = false;
+      for (Content c : experiment.content) {
+        if (c.name.equals(content.name)) {
+          contentExists = true;
+          Logger.debug("Using existing content: " + content.name + " with language " + language.name);
+          break;
+        }
+      }
+
+      // If content with that name doesn't already exist, import it
+      if (!contentExists) {
+        experiment.content.add(content);
+      }
+    }
+
+  }
+
+  private static ArrayList<Content> getContentFromSubdirectory(File directory, Language language) throws IOException {
+    ArrayList<Content> returnContent = new ArrayList<>();
+
     for(File file: directory.listFiles()){
       if(FilenameUtils.getExtension(file.getName()).equals("html")){
         Translation translation = new Translation();
         translation.language = language;
         translation.html = FileUtils.readFileToString(file);
 
-        // Check for existing experiment language and add it if it doesn't exist
-        boolean hasExperimentLanguage = false;
-        for(Language l: experiment.languages){
-          if(l.id == language.id){
-            hasExperimentLanguage = true;
-          }
-        }
-        if(!hasExperimentLanguage){
-          experiment.languages.add(language);
-        }
-
-        // Check for existing content and create if it doesn't exist
         String contentName = FilenameUtils.removeExtension(file.getName());
-        Content content = null;
-        for (Content c: experiment.content){
-          if(c.name.equals(contentName)) {
-            content = c;
-            Logger.debug("Using existing content: " + content.name + " with language " + language.name);
-            break;
-          }
-        }
-        if(content == null){
-          content = new Content();
-          content.name = contentName;
-          experiment.content.add(content);
-        }
-        Logger.debug("Adding translation to " + content.name + " for language " + language.name);
+        Content content = new Content();
+        content.name = contentName;
         content.translations.add(translation);
-        Logger.debug("Translation length: " + content.translations.size());
+
+        returnContent.add(content);
       }
     }
 
+    return returnContent;
   }
 
   /**
