@@ -10,7 +10,8 @@ angular.module('breadboard.steps').directive('step', function(){
       step: '=',
       selectedStep:'=',
       selectStep:'&',
-      deleteStep:'&'
+      deleteStep:'&',
+      readOnly:'='
     },
     controllerAs: 'vm',
     controller: StepCtrl,

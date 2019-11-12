@@ -8,7 +8,7 @@
         </span>
         <content-name ng-if="vm.content.editName" content="vm.content"></content-name>
         <tab-status status="vm.content.status"></tab-status>
-        <button ng-if="selectedContent === vm.content"
+        <button ng-if="selectedContent === vm.content && !vm.readOnly"
                 class="btn btn-link btn-xxs"
                 title="Delete this content"
                 tooltip="Delete this content"

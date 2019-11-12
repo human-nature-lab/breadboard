@@ -9,6 +9,7 @@ export default function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy, a
   vm.deleteStep = deleteStep;
   vm.sendStep = $scope.actions.sendStep;
   vm.onDeleteStep = $scope.actions.onDeleteStep;
+  vm.readOnly = $scope.readOnly;
 
   vm.selectedStep = {};
   vm.steps = [];
