@@ -161,16 +161,12 @@ public class Experiment extends Model {
     return StringUtils.replace(this.name, " ", "-").concat("_").concat(this.id.toString());
   }
 
-  public Boolean getFileMode() {
-    return this.fileMode;
-  }
-
   public void setFileMode(Boolean fileMode) {
     this.fileMode = fileMode;
   }
 
   public List<Content> getContent() {
-    if (getFileMode()) {
+    if (this.fileMode) {
       ArrayList<Content> returnContent = new ArrayList<>();
       File contentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/content");
       try {
@@ -185,7 +181,7 @@ public class Experiment extends Model {
   }
 
   public String getStyle() {
-    if (getFileMode()) {
+    if (this.fileMode) {
       String returnStyle = "";
       try {
         File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
@@ -200,7 +196,7 @@ public class Experiment extends Model {
   }
 
   public String getClientHtml() {
-    if (getFileMode()) {
+    if (this.fileMode) {
       String returnClientHtml = "";
       try {
         File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
@@ -215,7 +211,7 @@ public class Experiment extends Model {
   }
 
   public String getClientGraph() {
-    if (getFileMode()) {
+    if (this.fileMode) {
       String returnClientGraph = "";
       try {
         File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
@@ -230,7 +226,7 @@ public class Experiment extends Model {
   }
 
   public List<Step> getSteps() {
-    if (getFileMode()) {
+    if (this.fileMode) {
       ArrayList<Step> returnSteps = new ArrayList<>();
       File stepsDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/steps");
       try {
@@ -249,7 +245,7 @@ public class Experiment extends Model {
   }
 
   public void toggleFileMode() {
-    this.setFileMode(!this.getFileMode());
+    this.setFileMode(!this.fileMode);
     this.save();
   }
 
@@ -465,7 +461,7 @@ public class Experiment extends Model {
     experiment.put("id", id);
     experiment.put("name", name);
     experiment.put("uid", uid);
-    experiment.put("fileMode", getFileMode());
+    experiment.put("fileMode", this.fileMode);
 
     ArrayNode jsonSteps = experiment.putArray("steps");
     for (Step s : getSteps()) {

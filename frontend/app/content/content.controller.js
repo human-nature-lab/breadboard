@@ -40,9 +40,7 @@ export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderB
       //Focus the editor on load
       $timeout(function(){
         editor.focus();
-        //editor.setMode("readonly");
         if ($scope.readOnly) {
-          //editor.setMode('readonly');
           editor.getBody().setAttribute('contenteditable', 'false');
           angular.element('.mce-toolbar-grp').css('visibility', 'hidden');
         } else {
@@ -85,7 +83,7 @@ export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderB
       tinymceinstance.getBody().setAttribute('contenteditable', 'true');
       angular.element('.mce-toolbar-grp').css('visibility', 'visible');
     }
-    //tinymceinstance.getBody().setAttribute('contenteditable', (!$scope.readOnly) + "");
+    getContent();
   });
 
   // In the case that fileMode = true, we can safely watch the Steps and update when they change.
