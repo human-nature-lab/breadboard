@@ -27,8 +27,10 @@ public class EventBus <T> {
 
   private HashMap<String, EventHandler<T>> events = new HashMap();
 
-  public void register (String eventName) {
-    this.events.put(eventName, new EventHandler());
+  public EventHandler<T> register (String eventName) {
+    EventHandler<T> handler = new EventHandler();
+    this.events.put(eventName, handler);
+    return handler;
   }
 
   public void unregister (String eventName) {
@@ -36,25 +38,23 @@ public class EventBus <T> {
   }
 
   public void on (String eventName, Closure closure) throws Exception {
-    EventHandler<T> event = getEvent(eventName);
+    EventHandler<T> event = this.events.get(eventName);
+    // Automatically register the event if it hasn't been registered yet
+    if (event == null) {
+      event = register(eventName);
+    }
     event.addClosure(closure);
   }
 
-  private EventHandler<T> getEvent (String eventName) throws Exception {
-    EventHandler<T> event = this.events.get(eventName);
-    if (event == null) {
-      throw new Exception("Event " + eventName + " must be registered before it can be used");
-    }
-    return event;
-  }
-
   public void off (String eventName, Closure closure) throws Exception {
-    EventHandler<T> event = getEvent(eventName);
-    event.removeClosure(closure);
+    EventHandler<T> event = this.events.get(eventName);
+    if (event != null) {
+      event.removeClosure(closure);
+    }
   }
 
   public void emit (String eventName, T... payload) throws Exception {
-    EventHandler<T> event = getEvent(eventName);
+    EventHandler<T> event = this.events.get(eventName);
     event.emit(payload);
   }
 

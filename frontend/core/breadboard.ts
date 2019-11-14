@@ -9,6 +9,9 @@ import DefaultView from '../client/mixins/DefaultView'
 import { BreadboardConfig, BreadboardMessages, VueLoadOpts } from './breadboard.types'
 import { SimpleMap } from '../client/types'
 
+const MAKE_CHOICE = 'MakeChoice'
+const CUSTOM_EVENT = 'CustomEvent'
+
 export class BreadboardClass extends Emitter implements BreadboardMessages {
 
   private socket!: WebSocket
@@ -37,7 +40,7 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
   }
 
   /**
-   * Returns the websocket that's connected to the server.
+   * Returns the websocket that has already been connected to the server.
    * @returns {Promise<WebSocket>}
    */
   async connect (): Promise<WebSocket> {
@@ -71,7 +74,7 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * @param action
    * @param data
    */
-  send (action: string, data: SimpleMap<any>) {
+  sendType (action: string, data: SimpleMap<any> = {}) {
     if (!this.isConnected) throw new Error('Unable to send data when connection is closed')
     const d = Object.assign(data, {
       action
@@ -91,7 +94,28 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
     if (params && typeof params !== 'string') {
       data.params = JSON.stringify(params)
     }
-    return this.send('MakeChoice', data)
+    return this.sendType(MAKE_CHOICE, data)
+  }
+
+  /**
+   * Shortcut for sending a custom event via breadboard. 
+   * @param params 
+   */
+  sendCustom (params?: SimpleMap<any>) {
+    return this.sendType(CUSTOM_EVENT, params)
+  }
+
+  /**
+   * Send a custom event scoped to the current player. This will also trigger any global custom event handlers.
+   * @param params 
+   */
+  async send (eventName: string, data: SimpleMap<any> = {}) {
+    const config = await this.loadConfig()
+    return this.sendCustom({
+      playerId: config.clientId,
+      eventName: eventName,
+      data: data
+    })
   }
 
   /**
@@ -193,7 +217,7 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
   async loadVueDependencies (opts: VueLoadOpts = {}) {
     opts = Object.assign({
       vueVersion: '2.6.10',
-      vuetifyVersion: '2.1.5',
+      vuetifyVersion: '2.1.9',
       mdiVersion: '4.5.95',
       useDev: false
     }, opts)
@@ -215,6 +239,7 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
 
     // Register all Breadboard components globally
     for (const c of window.BreadboardVueComponents) {
+      console.log('Registering component', c.name, c)
       Vue.component(c.name, c.component)
     }
   }

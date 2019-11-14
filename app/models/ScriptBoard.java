@@ -103,34 +103,23 @@ public class ScriptBoard extends UntypedActor {
       engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", experiment.contentFetcher);
     }
 
+    String[] scriptFiles = {
+      "/util.groovy", 
+      "/graph.groovy", 
+      "/actions.groovy", 
+      "/step.groovy", 
+      "/timer.groovy",
+      "/test.groovy",
+      "/events.groovy",
+      "/chat.groovy"
+    };
+
     // Load Groovy scripts
-    File utilFile = new File(Play.application().path().toString() + "/groovy/util.groovy");
-    String utilString = FileUtils.readFileToString(utilFile, "UTF-8");
-    engine.eval(utilString);
-
-    File graphFile = new File(Play.application().path().toString() + "/groovy/graph.groovy");
-    String graphString = FileUtils.readFileToString(graphFile, "UTF-8");
-    engine.eval(graphString);
-
-    File actionsFile = new File(Play.application().path().toString() + "/groovy/actions.groovy");
-    String actionsString = FileUtils.readFileToString(actionsFile, "UTF-8");
-    engine.eval(actionsString);
-
-    File stepFile = new File(Play.application().path().toString() + "/groovy/step.groovy");
-    String stepString = FileUtils.readFileToString(stepFile, "UTF-8");
-    engine.eval(stepString);
-
-    File timerFile = new File(Play.application().path().toString() + "/groovy/timer.groovy");
-    String timerString = FileUtils.readFileToString(timerFile, "UTF-8");
-    engine.eval(timerString);
-
-    File testFile = new File(Play.application().path().toString() + "/groovy/test.groovy");
-    String testString = FileUtils.readFileToString(testFile, "UTF-8");
-    engine.eval(testString);
-
-    File eventsFile = new File(Play.application().path().toString() + "/groovy/events.groovy");
-    String eventsString = FileUtils.readFileToString(eventsFile, "UTF-8");
-    engine.eval(eventsString);
+    for (String file : scriptFiles) {
+      File utilFile = new File(Play.application().path().toString() + "/groovy" + file);
+      String utilString = FileUtils.readFileToString(utilFile, "UTF-8");
+      engine.eval(utilString);
+    }
 
     // get script object on which we want to implement the interface with
     Object a = engine.get("a");
@@ -171,6 +160,7 @@ public class ScriptBoard extends UntypedActor {
       jsonOutput.put("notify", notify);
       admin.getOut().write(jsonOutput);
     }
+    Logger.debug("ScriptEngine reload complete");
   }
 
   private void loadSteps(Experiment experiment, ThrottledWebSocketOut out) {

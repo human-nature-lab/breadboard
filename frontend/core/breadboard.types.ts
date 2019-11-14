@@ -1,9 +1,10 @@
 import { SimpleMap } from '../client/types'
 
 export interface BreadboardConfig extends SimpleMap<string | number> {
-  connectSocket: string,
-  clientGraph: string,
+  connectSocket: string
+  clientGraph: string
   clientHtml: string
+  clientId: string
 }
 
 export interface VueLoadOpts {
