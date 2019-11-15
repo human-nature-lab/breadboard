@@ -7,21 +7,6 @@ import com.tinkerpop.blueprints.util.wrappers.event.EventGraph
 import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener
 import java.beans.PropertyChangeListener
 
-def makePlayerEventHash (String id, String eventName) {
-  return "__player-" + id + "-" + eventName
-}
-
-Vertex.metaClass.on = { String eventName, Closure cb ->
-  events.on(makePlayerEventHash(delegate.id, eventName), cb)
-}
-Vertex.metaClass.off = { String eventName, Closure cb ->
-  events.off(makePlayerEventHash(delegate.id, eventName), cb)  
-}
-Vertex.metaClass.send = { String eventName, Closure cb -> 
-  println "send " + eventName
-  // TODO
-}
-
 class GroovyTimerTask extends TimerTask {
   Closure closure
 

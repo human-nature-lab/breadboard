@@ -42,6 +42,7 @@ export interface BreadboardMessages {
   on (event: 'player', callback: (d: PlayerData) => any, context?: object): void
   on (event: 'style', callback: (d: string) => any, context?: object): void
   on (event: 'data', callback: (d: object) => any, context?: object): void
+  on (event: string, callback: (...d: any[]) => any, context?: object): void
 }
 
 export interface Edge {

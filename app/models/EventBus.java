@@ -37,7 +37,7 @@ public class EventBus <T> {
     this.events.remove(eventName);
   }
 
-  public void on (String eventName, Closure closure) throws Exception {
+  public void on (String eventName, Closure closure) {
     EventHandler<T> event = this.events.get(eventName);
     // Automatically register the event if it hasn't been registered yet
     if (event == null) {
@@ -46,14 +46,14 @@ public class EventBus <T> {
     event.addClosure(closure);
   }
 
-  public void off (String eventName, Closure closure) throws Exception {
+  public void off (String eventName, Closure closure) {
     EventHandler<T> event = this.events.get(eventName);
     if (event != null) {
       event.removeClosure(closure);
     }
   }
 
-  public void emit (String eventName, T... payload) throws Exception {
+  public void emit (String eventName, T... payload) {
     EventHandler<T> event = this.events.get(eventName);
     event.emit(payload);
   }

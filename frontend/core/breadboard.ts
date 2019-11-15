@@ -2,7 +2,7 @@ import 'core-js'
 import 'regenerator-runtime'
 import { http } from './http'
 import { Mutex } from 'async-mutex'
-import { Vue as VueType } from 'vue/types/vue'
+import VueType from 'vue'
 import { Emitter } from 'goodish'
 // @ts-ignore
 import DefaultView from '../client/mixins/DefaultView'
@@ -274,6 +274,10 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
         if (data[key]) {
           this.emit(key, data[key])
         }
+      }
+      if (data.eventName && data.data) {
+        console.log('custom event', data)
+        this.emit(data.eventName, ...data.data)
       }
     })
   }

@@ -9,6 +9,7 @@ import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.gremlin.groovy.GremlinGroovyPipeline;
 import groovy.util.ObservableMap;
+import groovy.lang.Closure;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -40,15 +41,15 @@ public class ScriptBoard extends UntypedActor {
   private static EventBus<Map> eventBus = new EventBus();
 
   private static Random rand = new Random();
-
   private static HashMap<String, Client> clients = new HashMap<>();
 
   // A list of admins currently watching the game.
   private static ArrayList<Admin> admins = new ArrayList<>();
-
   private static UserDataInterface instanceData;
-
   private GameListener gameListener = new GameListener();
+
+  private Long experimentId;
+  private Long instanceId;
 
   public static boolean checkPassword(String _password) {
     // If no password is set, always return true
@@ -90,6 +91,25 @@ public class ScriptBoard extends UntypedActor {
     }
 
     eventBus.clear();
+    eventBus.on("__send-event", new Closure(null) {
+      public void doCall (String clientId, String eventName, Object ...data) {
+        Logger.debug("client send " + clientId);
+        Client client = clients.get(clientId);
+        if (client == null) {
+          Logger.error("Client with id, " + clientId + " has not connected yet");
+          return;
+        }
+        client.send(eventName, data);
+      }
+    });
+    eventBus.on("__broadcast-event", new Closure(null) {
+      public void doCall (String clientId, String eventName, Object ...data) {
+        Logger.debug("client broadcast " + clientId);
+        for (Client client : clients.values()) {
+          client.send(eventName, data);
+        }
+      }
+    });
 
     engine = manager.getEngineByName("gremlin-groovy");
     engine.getBindings(ScriptContext.ENGINE_SCOPE).put("r", rand);
@@ -170,6 +190,10 @@ public class ScriptBoard extends UntypedActor {
     }
   }
 
+  private String makeUniqueClientId (String clientId) {
+    return this.experimentId + "-" + this.instanceId + "-" + clientId;
+  }
+
   private void rebuildScriptBoard(Experiment experiment) throws IOException, ScriptException {
     //init();
     resetEngine(experiment);
@@ -202,7 +226,7 @@ public class ScriptBoard extends UntypedActor {
         return;
       }
 
-      Client client = clients.get(experimentIdString + "-" + experimentInstanceIdString + "-" + clientId);
+      Client client = clients.get(clientId);
 
       if (client == null && experimentInstance.hasStarted) {
         Logger.debug("New client trying to join after game has already started.");
@@ -212,7 +236,7 @@ public class ScriptBoard extends UntypedActor {
       if (client == null) {
         // New client, let's create a new Client object
         client = new Client(clientId, experimentInstance, in, out);
-        clients.put(experimentIdString + "-" + experimentInstanceIdString + "-" + clientId, client);
+        clients.put(clientId, client);
       } else {
         // Reconnecting: let's change the in / out so they continue to receive messages
         client.setIn(in);
