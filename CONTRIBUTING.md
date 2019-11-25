@@ -1,16 +1,25 @@
 # Contributing
-There are many different ways to contribute to the Breadboard open-source project. We welcome issues, code, documentation
+There are many different ways to contribute to the Breadboard project. We welcome issues, code, documentation
 and examples. 
 
 ## Development
 
 ### Environment setup
-Breadboard works with Java 7+. Make sure this SDK is installed before starting development.
+Breadboard works with Java 7+. Make sure the Java SDK is installed before beginning development.
 
 - `cd frontend`
 - `npm install`
 
-#### Windows
+### Running
+#### Backend development
+If modifications will be made to files in the **frontend** directory, use the frontend development instructions instead
+- Start the play framework server using `sbt "run -Dconfig.file=conf/application-prod.conf"`
 
-From a terminal run `sbt "run -Dconfig.file=conf/application-dev.conf"`. This will start a dev server which will
+#### Frontend development
+This uses a slightly different configuration to allow hot module replacement via webpack on frontend files.
+- Start the webpack server using `cd frontend && npm start`
+- Start the play framework server using `sbt "run -Dconfig.file=conf/application-dev.conf"`
+
+
+From a terminal run . This will start a dev server which will
 automatically rebuild the frontend files whenever a file changes.
