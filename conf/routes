@@ -3,7 +3,7 @@
 # ~~~~
 
 # Home page
-#GET         /                                                                    controllers.Application.index()
+GET         /                                                                    controllers.Application.index()
 GET         /state                                                               controllers.Application.getState()
 GET         /connect                                                             controllers.Application.connect()
 GET         /csv/instances/:experimentId                                         controllers.Application.dataCsv(experimentId: Long)
@@ -87,6 +87,4 @@ GET         /logout                                                             
 POST        /saveUserSettings                                                    controllers.Application.saveUserSettings()
 
 # Map static resources from the /public folder to the /assets URL path
-GET         /bundles/*filePath                                                   controllers.BundlesController.asset(filePath: String)
 GET         /assets/*file                                                        controllers.Assets.at(path="/public", file)
-GET         /                                                                    controllers.Assets.at(path="/public/templates", file="breadboard.html")

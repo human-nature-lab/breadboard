@@ -103,9 +103,14 @@ public class Application extends Controller {
     return unauthorized();
   }
 
-  public static Result index() {
-      final File file = play.Play.application().getFile("assets/templates/breadboard.html");
-      return ok(file, true);
+  public static Result index () {
+      // final File file = play.Play.application().getFile("assets/templates/breadboard.html");
+      String assetsRoot = play.Play.application().configuration().getString("breadboard.assetsRoot");
+      if (assetsRoot != null) {
+          return ok(main.render(assetsRoot));
+      } else {
+          return ok(main.render(""));
+      }
   }
 
   @Security.Authenticated(Secured.class)

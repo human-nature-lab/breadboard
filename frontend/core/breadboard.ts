@@ -152,13 +152,16 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
 
   /**
    * Load a script from a url.
-   * @param src
+   * @param url
    * @returns {Promise<boolean>}
    */
-  addScriptFromURL (src: string): Promise<void> {
+  addScriptFromURL (url: string): Promise<void> {
+    if (url.substr(0, 4) !== 'http') {
+      url = this.getCoreRoot() + url
+    }
     return new Promise((resolve, reject) => {
       const script = document.createElement('script')
-      script.src = src
+      script.src = url
       script.onload = () => setTimeout(resolve)
       script.onerror = reject
       document.body.appendChild(script)
@@ -199,6 +202,9 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * @param href
    */
   addStyleFromURL (href: string, type = 'text/css'): Promise<void> {
+    if (href.substr(0, 4) !== 'http') {
+      href = this.getCoreRoot() + href
+    }
     return new Promise((resolve, reject) => {
       const link = document.createElement('link')
       link.href = href
@@ -280,6 +286,17 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
         this.emit(data.eventName, ...data.data)
       }
     })
+  }
+
+  /**
+   * Return the path of the breadboard core script
+   */
+  private getCoreRoot (): String {
+    const scriptTag = Array.from(document.querySelectorAll('script')).find(s => /breadboard.*\.js$/.test(s.src))
+    if (!scriptTag) {
+      return window.location.origin
+    }
+    return new URL(scriptTag.src).origin
   }
 }
 

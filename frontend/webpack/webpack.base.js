@@ -25,6 +25,7 @@ module.exports = {
     publicPath: '/bundles/',
     chunkFilename: '[name].js'
   },
+  mode: isProd ? 'production' : 'development',
   module: {
     rules: [{
       test: /\.vue$/,
