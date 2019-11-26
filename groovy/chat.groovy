@@ -1,5 +1,6 @@
 import com.tinkerpop.blueprints.Vertex
 
+CHAT_KEY = "chatState"
 CHAT_EVENT = "chat"
 chatHandler = { player, data ->
   // Stop listening to this event if the chat has been disabled
@@ -8,15 +9,15 @@ chatHandler = { player, data ->
     return
   }
 
-  def ctrl = player.private.textInput
+  def chatState = player.private[CHAT_KEY]
   def text = data["text"]
   def recipientIds = data["recipients"]
   if (text.length() == 0 || recipientIds.size() == 0) {
     return
   }
   // Check if we've exceeded text max length
-  if (text.length() > ctrl.maxLength) {
-    text = text.substring(0, ctrl.maxLength)
+  if (text.length() > chatState.maxLength) {
+    text = text.substring(0, chatState.maxLength)
   }
   def msg = [
     sender: player.id,
@@ -26,7 +27,7 @@ chatHandler = { player, data ->
 
   println msg.toString()
 
-  if (ctrl.recordEvents) {
+  if (chatState.recordEvents) {
     a.addEvent(CHAT_EVENT, msg)
   }
   
@@ -34,7 +35,7 @@ chatHandler = { player, data ->
   
   recipientIds.each{ id ->
     // Make sure the player is allowed to talk with this player before sending the message to them
-    if (id && id in ctrl.allowedRecipients) {
+    if (id && id in chatState.allowedRecipients) {
       def v = g.getVertex(id)
       if (v && v.private.textInput) {
         pushMessage(v, msg)
@@ -60,7 +61,7 @@ def enableTextChat (Vertex v, Map opts = [:]) {
     }
     println "allowed recipients: " + recipients.toString()
     
-    v.private.textInput = [
+    v.private[CHAT_KEY] = [
       isEnabled: true,
       recordEvents: opts.recordEvents,
       allowedRecipients: recipients,
@@ -78,17 +79,17 @@ def enableTextChat (Vertex v, Map opts = [:]) {
 
 def disableTextChat (Vertex v, removeExisting = true) {
   if (removeExisting && "private" in v && "textInput" in v.private) {
-    v.private.textInput = null
+    v.private.remove(CHAT_KEY)
   }
   v.off(CHAT_EVENT, chatHandler)
 }
 
 pushMessage = { recipient, msg ->
-  def textInput = recipient.private.textInput
-  def messages = textInput.messages
+  def chatState = recipient.private[CHAT_KEY]
+  def messages = chatState.messages
   messages << msg
   // Check if we've exceeded message buffer size
-  if (messages.size() > textInput.messageBufferSize) {
+  if (messages.size() > chatState.messageBufferSize) {
     messages.remove(0)
   }
 }

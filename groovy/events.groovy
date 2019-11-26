@@ -10,14 +10,36 @@ def makePlayerEventHash (String id, String eventName) {
   return "__player-" + id + "-" + eventName
 }
 
+Vertex.metaClass.playerEvents = [].toSet()
 Vertex.metaClass.on = { String eventName, Closure cb ->
-  events.on(makePlayerEventHash(delegate.id, eventName), cb)
+  try {
+    def globalEventName = makePlayerEventHash(delegate.id, eventName)
+    println "player.on " + globalEventName
+    delegate.playerEvents.add(eventName)
+    events.on(globalEventName, cb)
+  } catch (Exception e) {
+    e.printStackTrace()
+  }
 }
+// Method overloads
 Vertex.metaClass.off = { String eventName, Closure cb ->
+  println "olayer.off 1"
+  delegate.playerEvents.remove(eventName)
   events.off(makePlayerEventHash(delegate.id, eventName), cb)  
+}
+Vertex.metaClass.off << { String eventName ->
+  println "player.off 2"
+  delegate.playerEvents.remove(eventName)
+  events.off(makePlayerEventHash(delegate.id, eventName))
 }
 Vertex.metaClass.send = { String eventName, Object ...data -> 
   events.emit(SEND_EVENT, delegate.id, eventName, data)
+}
+Vertex.metaClass.clear = {
+  playerId = delegate.id
+  delegate.playerEvents.each{ String event ->
+    events.off(makePlayerEventHash(playerId, event))
+  }
 }
 
 /**
@@ -27,12 +49,18 @@ Vertex.metaClass.send = { String eventName, Object ...data ->
  * events are also passed in the player vertex as an argument.
  */ 
 events.on(CUSTOM_EVENT, { params ->
-  println "custom event to scoped event"
-  if (PLAYER_ID_PROP in params && PLAYER_ACTION_PROP in params) {
-    def player = g.getVertex(params[PLAYER_ID_PROP])
-    if (player) {
-      def globalEventName = makePlayerEventHash(params[PLAYER_ID_PROP], params[PLAYER_ACTION_PROP])
-      events.emit(globalEventName, player, params[PLAYER_DATA_PROP])
+  println "custom event to player event"
+  try {
+    if (PLAYER_ID_PROP in params && PLAYER_ACTION_PROP in params) {
+      def player = g.getVertex(params[PLAYER_ID_PROP])
+      if (player != null) {
+        def globalEventName = makePlayerEventHash(player.id, params[PLAYER_ACTION_PROP])
+        println "emit global event " + globalEventName
+        events.emit(globalEventName, player, params[PLAYER_DATA_PROP])
+      }
     }
+  } catch (Exception e) {
+    println "custom event exception"
+    e.printStackTrace()
   }
 })
