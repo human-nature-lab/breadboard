@@ -418,8 +418,11 @@ public class ExperimentController extends Controller {
     ArrayList<Content> returnContent = new ArrayList<>();
     // Default to English if the directory isn't specified
     Language defaultLanguage = Language.findByIso3("eng");
+    if (contentDir == null || !contentDir.exists()) {
+      throw new IOException("Directory not found.");
+    }
     for (File langFileOrDir : contentDir.listFiles()){
-      if(!langFileOrDir.isDirectory()){
+      if(!langFileOrDir.isDirectory() && FilenameUtils.getExtension(langFileOrDir.getName()).equalsIgnoreCase("html")) {
         Logger.debug("Content is in root of Content directory. Attempting to import as default language.");
         try {
           ArrayList<Content> rootContent = getContentFromSubdirectory(contentDir, defaultLanguage);
@@ -429,7 +432,7 @@ public class ExperimentController extends Controller {
         } finally{
           break;
         }
-      } else {
+      } else if (langFileOrDir.isDirectory()) {
         // Content is broken out by language
         Language language = Language.findByIso3(langFileOrDir.getName());
 
