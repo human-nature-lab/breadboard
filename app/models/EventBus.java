@@ -1,11 +1,18 @@
 package models;
 
+import play.Logger;
 import groovy.lang.Closure;
+import java.lang.*;
+import java.util.Map;
+import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Collections;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ConcurrentHashMap;
 
 class EventHandler<A> {
-  public ArrayList<Closure<A>> closures = new ArrayList();
+  public List<Closure<A>> closures = Collections.synchronizedList(new ArrayList());
 
   public void addClosure (Closure<A> closure) {
     this.closures.add(closure);
@@ -16,16 +23,22 @@ class EventHandler<A> {
   }
 
   public void emit (A... data) {
-    for (Closure<A> closure : this.closures) {
-      closure.call(data);
+    synchronized (this.closures) {
+      for (Closure<A> closure : this.closures) {
+        closure.call(data);
+      }
     }
+  }
+
+  public void clear () {
+    this.closures.clear();
   }
 
 }
 
 public class EventBus <T> {
 
-  private HashMap<String, EventHandler<T>> events = new HashMap();
+  private Map<String, EventHandler<T>> events = Collections.synchronizedMap(new HashMap());
 
   public EventHandler<T> register (String eventName) {
     EventHandler<T> handler = new EventHandler();
@@ -44,22 +57,37 @@ public class EventBus <T> {
       event = register(eventName);
     }
     event.addClosure(closure);
+    this.logThread("on");
   }
 
+  public void off (String eventName) {
+    this.events.remove(eventName);
+    this.logThread("off 1");
+  }
+  
   public void off (String eventName, Closure closure) {
     EventHandler<T> event = this.events.get(eventName);
     if (event != null) {
       event.removeClosure(closure);
     }
+    this.logThread("off 2");
   }
 
   public void emit (String eventName, T... payload) {
     EventHandler<T> event = this.events.get(eventName);
-    event.emit(payload);
+    if (event != null) {
+      event.emit(payload);
+    }
+    this.logThread("emit");
+  }
+
+  private void logThread (String name) {
+    Logger.debug(name + " thread " + Thread.currentThread().getId() + " size " + this.events.keySet().toString());
   }
 
   public void clear () {
     events.clear();
+    this.logThread("clear");
   }
 
 }

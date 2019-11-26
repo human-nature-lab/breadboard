@@ -267,8 +267,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     return edge
   }
 
-  // TODO: Is there a way to simplify this method so we don't have to pass in the PlayerActions object?
-  def addAI(a, int n, behavior = null) {
+  public addAI(int n, behavior = null) {
     int startId = 1;
 
     if (n > 0) {
