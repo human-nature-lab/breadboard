@@ -1,7 +1,6 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.*;
@@ -207,7 +206,8 @@ public class ExperimentController extends Controller {
 
       // TODO: Write the version based on the build version
       ObjectNode dotBreadboard = Json.newObject();
-      dotBreadboard.put("version", "v2.3.0");
+      String version = play.Play.application().configuration().getString("application.version");
+      dotBreadboard.put("version", version);
       dotBreadboard.put("experimentName", experiment.name);
       dotBreadboard.put("experimentUid", experiment.uid);
 
@@ -279,6 +279,54 @@ public class ExperimentController extends Controller {
     return ok(outputStream.toByteArray());
 
   }
+
+  public static void exportExperimentToDirectory(Long experimentId, File directory) throws IOException {
+    Experiment experiment = Experiment.findById(experimentId);
+    if(experiment == null){
+      throw new IOException("Experiment with the ID " + experimentId + " not found.");
+    }
+
+    // Clean up existing files
+    if (directory.exists() && directory.isDirectory()) {
+      FileUtils.deleteDirectory(directory);
+    }
+
+    // Create the directory
+    FileUtils.forceMkdir(directory);
+
+    String version = play.Play.application().configuration().getString("application.version");
+    ObjectNode dotBreadboard = Json.newObject();
+    dotBreadboard.put("version", version);
+    dotBreadboard.put("experimentName", experiment.name);
+    dotBreadboard.put("experimentUid", experiment.uid);
+
+    FileUtils.writeStringToFile(new File(directory, ".breadboard"), dotBreadboard.toString());
+    FileUtils.writeStringToFile(new File(directory, "style.css"), experiment.getStyle());
+    FileUtils.writeStringToFile(new File(directory, "client-html.html"), experiment.getClientHtml());
+    FileUtils.writeStringToFile(new File(directory, "client-graph.js"), experiment.getClientGraph());
+
+    File stepsDirectory = new File(directory, "Steps");
+    for (Step step : experiment.getSteps()) {
+      FileUtils.writeStringToFile(new File(stepsDirectory, step.name.concat(".groovy")), step.source);
+    }
+
+    File contentDirectory = new File(directory, "Content");
+    for (Content c : experiment.getContent()) {
+      for (Translation t : c.translations) {
+        String language = (t.language == null || t.language.getCode() == null) ? "en" : t.language.getCode();
+        File translationDirectory = new File(contentDirectory, language);
+        FileUtils.writeStringToFile(new File(translationDirectory, c.name.concat(".html")), t.html);
+      }
+    }
+
+    FileUtils.writeStringToFile(new File(directory, "parameters.csv"), experiment.parametersToCsv());
+
+    File imagesDirectory = new File(directory, "Images");
+    for (Image image : experiment.images) {
+      FileUtils.writeByteArrayToFile(new File(imagesDirectory, image.fileName), image.file);
+    }
+  }
+
 
   private static String readFile(String path, Charset encoding) throws IOException{
     byte[] encoded = Files.readAllBytes(Paths.get(path));

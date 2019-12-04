@@ -8,6 +8,8 @@ import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import controllers.ExperimentController;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -158,7 +160,8 @@ public class Experiment extends Model {
   }
 
   public String getDirectoryName() {
-    return StringUtils.replace(this.name, " ", "-").concat("_").concat(this.id.toString());
+    String returnString = StringUtils.replace(this.name, " ", "-").concat("_").concat(this.id.toString());
+    return returnString;
   }
 
   public void setFileMode(Boolean fileMode) {
@@ -168,7 +171,7 @@ public class Experiment extends Model {
   public List<Content> getContent() {
     if (this.fileMode) {
       ArrayList<Content> returnContent = new ArrayList<>();
-      File contentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/content");
+      File contentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/Content");
       try {
         returnContent = ExperimentController.getContentFromDirectory(contentDirectory);
       } catch (IOException ioe) {
@@ -245,8 +248,33 @@ public class Experiment extends Model {
   }
 
   public void toggleFileMode() {
-    this.setFileMode(!this.fileMode);
-    this.save();
+    try {
+      if (this.fileMode) {
+        // Turning fileMode off, let's import the files into the current experiment
+      } else {
+        // Turning fileMode on, let's export the experiment into the appropriate directory
+        File experimentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
+        ExperimentController.exportExperimentToDirectory(this.id, experimentDirectory);
+      }
+
+    } catch (IOException io) {
+
+    } finally {
+      this.setFileMode(!this.fileMode);
+      this.save();
+    }
+  }
+
+  public String parametersToCsv() {
+    CSVFormat format = CSVFormat.DEFAULT.withHeader("Name", "Type", "Min.", "Max.", "Default", "Short Description");
+    StringBuilder stringBuilder = new StringBuilder();
+    try {
+      CSVPrinter csvPrinter = new CSVPrinter(stringBuilder, format);
+      for (Parameter param : parameters) {
+        csvPrinter.printRecord(param.name, param.type, param.minVal, param.maxVal, param.defaultVal, param.description);
+      }
+    } catch (IOException ioe) {}
+    return stringBuilder.toString();
   }
 
   public void export() throws IOException {
