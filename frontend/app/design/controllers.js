@@ -346,10 +346,17 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   $scope.toggleDevMode = function() {
-    $breadboardFactory.send(
-      {
+    let message = "The experiment will be exported to the 'breadboard/dev/" + getExperimentZipName() + "/' directory." +
+      "This will overwrite any existing files. Continue?";
+    if ($scope.breadboard.experiment.fileMode) {
+      message = "The experiment files in 'breadboard/dev/" + getExperimentZipName() + "/' will be imported into the " +
+        "database. This will overwrite the existing experiment. Continue?";
+    }
+    if (window.confirm(message)) {
+      $breadboardFactory.send({
         "action": "ToggleFileMode"
       });
+    }
   }
 
   $scope.createExperiment = function () {
