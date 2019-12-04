@@ -27,7 +27,6 @@ import java.util.UUID;
 public class Global extends GlobalSettings {
 
   static Process process = null;
-  public static String VERSION = "v2.4.0";
 
   @Override
   public void onStart(Application app) {
@@ -43,7 +42,8 @@ public class Global extends GlobalSettings {
       sql = "create table breadboard_version ( version varchar(255) ); ";
       Ebean.createSqlUpdate(sql).execute();
       // Update the version
-      sql = "insert into breadboard_version values ('" + VERSION + "'); ";
+      String version = play.Play.application().configuration().getString("application.version");
+      sql = "insert into breadboard_version values ('" + version + "'); ";
       Ebean.createSqlUpdate(sql).execute();
 
       // Create the languages table
@@ -171,11 +171,11 @@ public class Global extends GlobalSettings {
     }
 
     //InitialData.insert(app);
-    boolean isWin = System.getProperty("os.name").toUpperCase().indexOf("WIN") >= 0;
+    boolean isWin = System.getProperty("os.name").toUpperCase().contains("WIN");
     String cwd = System.getProperty("user.dir");
     // TODO: If omitted, this should default to PROD
     String mode = play.Play.application().configuration().getString("application.mode");
-    if(mode.toUpperCase().equals("DEV")) {
+    if("DEV".equalsIgnoreCase(mode)) {
       // Try to start the assets server
       try {
         ProcessBuilder pb = new ProcessBuilder("node", cwd + "/frontend/webpack/webpack.server.js");
