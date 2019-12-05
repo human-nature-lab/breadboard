@@ -85,7 +85,7 @@ public class Tutorial {
    */
   public addStep (Map step) {
     if (this.isStarted) {
-      throw new Exception("Cant add a tutorial step after the tutorial has started")
+      throw new Exception("Can't add a tutorial step after the tutorial has started")
     }
     if (!step.title) {
       step.title = "Tutorial " + this.steps.size()

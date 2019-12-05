@@ -267,7 +267,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     return edge
   }
 
-  public addAI(int n, behavior = null) {
+  public addAI(a, int n, behavior = null) {
     int startId = 1;
 
     if (n > 0) {
@@ -603,11 +603,17 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     Collections.shuffle(players)
     final int n = numVertices()
 
+    List pairIds = []
     for (int i = 0; i < n; i += 2) {
-      if (players.size() > (i + 1))
-        addTrackedEdge(players.get(i), players.get(i + 1), "connected")
+      if (players.size() > (i + 1)) {
+        def p1 = players.get(i)
+        def p2 = players.get(i + 1)
+        pairIds << [p1.id, p2.id]
+        addTrackedEdge(p1, p2, "connected")
+      }
     }
 
+    return pairIds
   }
 
   def lattice(int maxX) {

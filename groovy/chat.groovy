@@ -4,7 +4,8 @@ CHAT_KEY = "chatState"
 CHAT_EVENT = "chat"
 chatHandler = { player, data ->
   // Stop listening to this event if the chat has been disabled
-  if (!player.private.textInput) {
+  if (!player.private[CHAT_KEY]) {
+    println "removing chat for " + player.id
     player.off(CHAT_EVENT, chatHandler)
     return
   }
@@ -37,7 +38,7 @@ chatHandler = { player, data ->
     // Make sure the player is allowed to talk with this player before sending the message to them
     if (id && id in chatState.allowedRecipients) {
       def v = g.getVertex(id)
-      if (v && v.private.textInput) {
+      if (v && v.private[CHAT_KEY]) {
         pushMessage(v, msg)
       }
     }
