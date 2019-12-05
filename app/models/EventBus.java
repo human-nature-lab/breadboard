@@ -41,44 +41,56 @@ public class EventBus <T> {
   private Map<String, EventHandler<T>> events = Collections.synchronizedMap(new HashMap());
 
   public EventHandler<T> register (String eventName) {
-    EventHandler<T> handler = new EventHandler();
-    this.events.put(eventName, handler);
-    return handler;
+    synchronized (this.events) {
+      EventHandler<T> handler = new EventHandler();
+      this.events.put(eventName, handler);
+      return handler;
+    }
   }
 
   public void unregister (String eventName) {
-    this.events.remove(eventName);
+    synchronized (this.events) {
+      this.events.remove(eventName);
+    }
   }
 
   public void on (String eventName, Closure closure) {
-    EventHandler<T> event = this.events.get(eventName);
-    // Automatically register the event if it hasn't been registered yet
-    if (event == null) {
-      event = register(eventName);
+    synchronized (this.events) {
+      EventHandler<T> event = this.events.get(eventName);
+      // Automatically register the event if it hasn't been registered yet
+      if (event == null) {
+        event = register(eventName);
+      }
+      event.addClosure(closure);
+      this.logThread("on"); 
     }
-    event.addClosure(closure);
-    this.logThread("on");
   }
 
   public void off (String eventName) {
-    this.events.remove(eventName);
-    this.logThread("off 1");
+    synchronized (this.events) {
+      this.events.remove(eventName);
+      this.logThread("off 1");
+    }
   }
   
   public void off (String eventName, Closure closure) {
-    EventHandler<T> event = this.events.get(eventName);
-    if (event != null) {
-      event.removeClosure(closure);
+    synchronized (this.events) {
+      EventHandler<T> event = this.events.get(eventName);
+      if (event != null) {
+        event.removeClosure(closure);
+      }
+      this.logThread("off 2");
     }
-    this.logThread("off 2");
   }
 
   public void emit (String eventName, T... payload) {
-    EventHandler<T> event = this.events.get(eventName);
-    if (event != null) {
-      event.emit(payload);
+    synchronized (this.events) {
+      EventHandler<T> event = this.events.get(eventName);
+      if (event != null) {
+        event.emit(payload);
+      }
+      this.logThread("emit");
     }
-    this.logThread("emit");
   }
 
   private void logThread (String name) {
@@ -86,8 +98,10 @@ public class EventBus <T> {
   }
 
   public void clear () {
-    events.clear();
-    this.logThread("clear");
+    synchronized (this.events) {
+      this.events.clear();
+      this.logThread("clear");
+    }
   }
 
 }

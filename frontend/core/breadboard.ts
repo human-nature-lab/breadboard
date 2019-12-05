@@ -64,6 +64,7 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * Disconnect the websocket
    */
   disconnect () {
+    if (!this.isConnected) return
     this.socket.close()
     this.isConnected = false
     this.removeListeners()
