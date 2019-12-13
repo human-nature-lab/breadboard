@@ -1,14 +1,21 @@
 import com.tinkerpop.blueprints.Vertex
+import groovy.transform.Synchronized
+
 public class Tutorial {
   def isStarted = false
+  def isEnded = false
   def useStepper = true
   def readyUp = true
+  def readySeconds = 30
+  def readyButtonText = "Ready"
   def readyTextKey = "Ready"
   def removeActions = true
   def removeEdges = true
   def removeEvents = true
+  def isReadyUpComplete = false
   def players = []
   def steps = []
+  def onReadyCbs = []
   def stateKey = "tutorial"
   def content
   def actions
@@ -35,15 +42,77 @@ public class Tutorial {
    * other cleanup operations.
    */
   public end () {
-    this.isStarted = false
-    // TODO: Remove the tutorial props from each player
+    this.isEnded = true
+
+    // Remove the tutorial props from each player and do any additional cleanup
     this.players.each{player ->
       this.endPlayer(player)
     }
-   
+
+    // Handle ready up sequence
+    if (this.readyUp) {
+      // TODO: Start ready cleanup timer
+      this.players.each{player -> 
+        player.ready = false
+        this.actions.add(player, [
+          name: this.readyButtonText,
+          result: {
+            println "player ready"
+            try {
+              player.ready = true
+              this.checkPlayersReady()  
+            } catch (Exception e) {
+              println "ready result exception"
+              e.printStackTrace()
+            }
+          }
+        ])
+      }
+    } else {
+      this.cleanup()
+    }
+    
+  }
+
+  private cleanup () {
     // Cleanup unused memory
     this.players = null
     this.steps = null
+    this.onReadyCbs = null
+  }
+
+  /**
+   * Check if all players have pressed the ready button
+   */
+  @Synchronized
+  private checkPlayersReady () {
+    println "checking players ready"
+    try {
+      // Prevent ready up completion from being called twice from various race conditions
+      if (this.isReadyUpComplete) return
+      for (def i = 0; i < this.players.size(); i++) {
+        if (!this.players[i].ready) {
+          return false
+        }
+      }
+      println "all players ready"
+      this.completeReadyUp()
+    } catch (Exception e) {
+      println "allPlayersReady exception"
+      e.printStackTrace()
+    }
+  }
+
+  /**
+   * Perform post ready-up cleanup operations. Removes players who haven't
+   * hit the ready button in the alotted time.
+   */
+  private completeReadyUp () {
+    this.isReadyUpComplete = true
+    // TODO: Filter out players that aren't ready
+    println "complete ready up"
+    this.onReadyCbs.each{ cb -> cb()}
+    this.cleanup()
   }
 
   /**
@@ -57,17 +126,20 @@ public class Tutorial {
     if (this.removeActions) {
       // TODO: Remove the actions for all players
     }
-    // TODO: Remove events for all players
+    // Remove events for all players
     if (this.removeEvents) {
       player.clear()
     }
 
-    player.text = ""
+    if (this.readyUp) {
+      player.text = this.content.get(this.readyTextKey)
+    } else {
+      player.text = "Please wait..."
+    }
 
     // Cleanup tutorial events
     player.off("tutorial-next")
     player.off("tutorial-prev")
-    // TODO: Handle ready up sequence?
     player.private.remove(this.stateKey)
     player.timerUpdatedAt = 1
   }
@@ -96,17 +168,26 @@ public class Tutorial {
   /**
    * Add a content tutorial step by passing in the content key.
    * @param {Map} opts - Same options as addStep + the following
-   * @param {String} opts.contentKey
+   * @param {String} opts.contentKey - The content key to be used
+   * @param {List} [opts.fills] - Any fills to be used by the content engine
    * @param {String} [opts.prevText]
    * @param {String} [opts.nextText]
    */
   public addContent (Map opts) {
-    this.addStep(opts + [
+    def newOpts = opts + [
       title: opts.title ?: opts.contentKey,
       onEnter: {player, state ->
-        player.text = this.content.get(opts.contentKey)
+        if ("fills" in opts) {
+          player.text = this.content.get(opts.contentKey, *opts.fills)
+        } else {
+          player.text = this.content.get(opts.contentKey)
+        }
+        if ("onEnter" in opts) {
+          opts.onEnter(player, state)
+        }
       }
-    ])
+    ]
+    this.addStep(newOpts)
   }
 
   /**
@@ -163,6 +244,7 @@ public class Tutorial {
    */
   private exitStep (Vertex player, Map step) {
     def state = this.getTutorialState(player)
+    println "exit step " + step.toString()
     if ("onExit" in step) {
       step.onExit(player, state)
     }
@@ -184,6 +266,9 @@ public class Tutorial {
    * @param {Vertex} player
    */
   public addPlayer (Vertex player) {
+    if (this.isEnded) {
+      return
+    }
     this.players << player
     if (this.isStarted) {
       this.startPlayer(player)
@@ -241,5 +326,13 @@ public class Tutorial {
     for (player in players) {
       this.addPlayer(player)
     }
+  }
+
+  /**
+   * Add a closure to be called once the tutorial has ended.
+   * @param {Closure} cb - A closure without any arguments
+   */
+  public onReady (Closure cb) {
+    this.onReadyCbs << cb
   }
 }
