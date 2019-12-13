@@ -14,7 +14,6 @@ Vertex.metaClass.playerEvents = [].toSet()
 Vertex.metaClass.on = { String eventName, Closure cb ->
   try {
     def globalEventName = makePlayerEventHash(delegate.id, eventName)
-    println "player.on " + globalEventName
     delegate.playerEvents.add(eventName)
     events.on(globalEventName, cb)
   } catch (Exception e) {
@@ -23,12 +22,10 @@ Vertex.metaClass.on = { String eventName, Closure cb ->
 }
 // Method overloads
 Vertex.metaClass.off = { String eventName, Closure cb ->
-  println "olayer.off 1"
   delegate.playerEvents.remove(eventName)
   events.off(makePlayerEventHash(delegate.id, eventName), cb)  
 }
 Vertex.metaClass.off << { String eventName ->
-  println "player.off 2"
   delegate.playerEvents.remove(eventName)
   events.off(makePlayerEventHash(delegate.id, eventName))
 }

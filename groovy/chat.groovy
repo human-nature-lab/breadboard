@@ -5,9 +5,7 @@ CHAT_EVENT = "chat"
 chatHandler = { player, data ->
   // Stop listening to this event if the chat has been disabled
   if (!player.private[CHAT_KEY]) {
-    println "removing chat for " + player.id
-    player.off(CHAT_EVENT, chatHandler)
-    return
+    return disableTextChat(player)
   }
 
   def chatState = player.private[CHAT_KEY]
@@ -25,8 +23,6 @@ chatHandler = { player, data ->
     recipients: recipientIds,
     text: text
   ]
-
-  println msg.toString()
 
   if (chatState.recordEvents) {
     a.addEvent(CHAT_EVENT, msg)
@@ -57,15 +53,16 @@ def enableTextChat (Vertex v, Map opts = [:]) {
 
     // Automatically allow all neighbors to be recipients if none are specified
     def recipients = opts.recipients
-    if (!recipients) {
-      recipients = v.neighbors.toList().collect{ it.id }
+    if (!opts.recipients) {
+      opts.recipients = v.neighbors.toList().collect{ it.id }
     }
-    println "allowed recipients: " + recipients.toString()
+    
+    a.addEvent("chat-enabled", opts)
     
     v.private[CHAT_KEY] = [
       isEnabled: true,
       recordEvents: opts.recordEvents,
-      allowedRecipients: recipients,
+      allowedRecipients: opts.recipients,
       maxLength: opts.maxLength,
       messageBufferSize: opts.messageBufferSize,
       messages: []
@@ -79,10 +76,11 @@ def enableTextChat (Vertex v, Map opts = [:]) {
 }
 
 def disableTextChat (Vertex v, removeExisting = true) {
-  if (removeExisting && "private" in v && "textInput" in v.private) {
+  if (removeExisting && "private" in v && CHAT_KEY in v.private) {
     v.private.remove(CHAT_KEY)
   }
   v.off(CHAT_EVENT, chatHandler)
+  a.addEvent("chat-removed", [player: v.id])
 }
 
 pushMessage = { recipient, msg ->

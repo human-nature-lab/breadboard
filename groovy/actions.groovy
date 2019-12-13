@@ -1,4 +1,3 @@
-import com.tinkerpop.blueprints.Vertex
 import groovy.json.JsonSlurper
 import java.beans.PropertyChangeListener
 import java.util.concurrent.ConcurrentHashMap
