@@ -1,5 +1,5 @@
 <template>
-  <v-card class="chat-box">
+  <v-card class="chat-box" v-if="chatState">
     <v-layout column class="messages">
       <v-flex v-for="message in messages" class="message" :key="message.id">
         <v-layout>
@@ -13,26 +13,26 @@
 	  </v-layout>
 	  <v-layout column class="chat-input">
       <v-form ref="form">
-            <v-text-field
-        validate-on-blur
-              placeholder="Write a message..."
-              :rules="textRules"
-              @keyup.enter="send"
-              append-outer-icon="mdi-send"
-              :counter="maxLength"
-              @click:append-outer="send"
-              v-model="text">
-            </v-text-field>
-            <v-select 
-                chips
-                clearable
-                multiple
-                small-chips
-                deletable-chips
-                label="Recipients"
-                :rules="recipientRules"
-                :items="recipients" 
-        v-model="selectedRecipients" />
+        <v-text-field
+          validate-on-blur
+          placeholder="Write a message..."
+          :rules="textRules"
+          @keyup.enter="send"
+          append-outer-icon="mdi-send"
+          :counter="maxLength"
+          @click:append-outer="send"
+          v-model="text">
+        </v-text-field>
+        <v-select 
+            chips
+            clearable
+            multiple
+            small-chips
+            deletable-chips
+            label="Recipients"
+            :rules="recipientRules"
+            :items="recipients" 
+            v-model="selectedRecipients" />
       </v-form>
 	  </v-layout>
   </v-card>
@@ -40,36 +40,46 @@
 
 <script lang="ts">
   import Vue from 'vue'
-  import { Message } from './chat.types'
+  import { Message, ChatState } from './chat.types'
+import { PlayerData } from '../../../core/breadboard.types'
 
   export default Vue.extend({
-    props: ['player'],
+    props: {
+      player: {
+        type: Object as () => PlayerData | null
+      },
+      stateKey: {
+        type: String,
+        default: 'chatState'
+      }
+    },
     data: function () {
       return {
         text: '',
-        recipients: [],
+        recipients: [] as string[],
         messageLimit: 10,
         maxLength: 255,
-        selectedRecipients: [],
+        selectedRecipients: [] as string[],
         textRules: [(text: string) => !!text || 'Enter a message'],
         recipientRules: [(vals: string[]) => !!vals.length || 'Select at least one recipient']
       }
     },
     created () {
       console.log('created')
+      this.$watch('player.' + this.stateKey, () => {
+        const state = this.chatState
+        if (state) {
+          this.recipients = state.allowedRecipients
+          if (!this.selectedRecipients.length) {
+            this.selectedRecipients = this.recipients.slice()
+          }
+          this.messageLimit = state.messageBufferSize
+          this.maxLength = state.maxLength
+        }
+      })
     },
     beforeDestroy () {
       console.log('beforeDestroy')
-    },
-    watch: {
-      'player.textInput' () {
-        this.recipients = this.player.textInput.allowedRecipients
-        if (!this.selectedRecipients.length) {
-          this.selectedRecipients = this.recipients.slice()
-        }
-        this.messageLimit = this.player.textInput.messageBufferSize
-        this.maxLength = this.player.textInput.maxLength
-      }
     },
     methods: {
       send (): void {
@@ -85,17 +95,16 @@
       }
     },
     computed: {
+      chatState (): ChatState | null {
+        return this.player && this.player[this.stateKey]
+      },
       myId (): string | null {
       	return this.player ? this.player.id : null
       },
       messages (): Message[]  {
-        const messages = this.player && this.player.textInput ? this.player.textInput.messages : []
+        const messages = this.chatState ? this.chatState.messages : []
       	return messages.slice(-this.messageLimit)
       } 
     }
   })
 </script>
-
-<style lang="sass">
-  
-</style>
