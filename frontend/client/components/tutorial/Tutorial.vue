@@ -18,11 +18,12 @@
 
     <div class="tutorial-foo" v-if="tutorial">
       <v-btn @click="prev" :disabled="!tutorial.index">
-        Previous
+        <v-icon>mdi-chevron-left</v-icon> Previous
       </v-btn>
-      <v-btn @click="next">
-        {{tutorial.index < tutorial.maxSteps - 1 ? 'Next' : 'Done'}}
+      <v-btn @click="next" v-if="tutorial.index < tutorial.maxSteps - 1">
+        Next <v-icon>mdi-chevron-right</v-icon>
       </v-btn>
+      <v-btn @click="next" v-else>Done</v-btn>
     </div>
   </component>
 </template>
