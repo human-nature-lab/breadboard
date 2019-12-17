@@ -326,7 +326,11 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   function getExperimentZipName() {
-     return $scope.breadboard.experiment.name.replace(/ /g, "-") + "_" + $scope.breadboard.experiment.id + ".zip";
+     return getExperimentName() + ".zip";
+  }
+
+  function getExperimentName() {
+    return $scope.breadboard.experiment.name.replace(/ /g, "-") + "_" + $scope.breadboard.experiment.id;
   }
 
   $scope.exportExperiment = function () {
@@ -346,10 +350,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   $scope.toggleDevMode = function() {
-    let message = "The experiment will be exported to the 'breadboard/dev/" + getExperimentZipName() + "/' directory." +
+    let message = "The experiment will be exported to the 'breadboard/dev/" + getExperimentName() + "/' directory." +
       "This will overwrite any existing files. Continue?";
     if ($scope.breadboard.experiment.fileMode) {
-      message = "The experiment files in 'breadboard/dev/" + getExperimentZipName() + "/' will be imported into the " +
+      message = "The experiment files in 'breadboard/dev/" + getExperimentName() + "/' will be imported into the " +
         "database. This will overwrite the existing experiment. Continue?";
     }
     if (window.confirm(message)) {
