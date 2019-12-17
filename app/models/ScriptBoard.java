@@ -131,14 +131,18 @@ public class ScriptBoard extends UntypedActor {
       "/timer.groovy",
       "/test.groovy",
       "/events.groovy",
-      "/chat.groovy"
+      "/chat.groovy",
+      "/tutorial.groovy"
     };
 
     // Load Groovy scripts
     for (String file : scriptFiles) {
       File utilFile = new File(Play.application().path().toString() + "/groovy" + file);
-      String utilString = FileUtils.readFileToString(utilFile, "UTF-8");
+      // Add a null terminator for each file so the script engine can always reload even after errors
+      String utilString = FileUtils.readFileToString(utilFile, "UTF-8") + ";null;";
+      Logger.debug("loading " + file);
       engine.eval(utilString);
+      Logger.debug(file + " load done");
     }
 
     // get script object on which we want to implement the interface with
@@ -487,7 +491,6 @@ public class ScriptBoard extends UntypedActor {
         } // END else if(message instanceof Breadboard.LaunchGame)
         else if (message instanceof Breadboard.SelectInstance) {
           Breadboard.SelectInstance selectInstance = (Breadboard.SelectInstance) message;
-
           rebuildScriptBoard(breadboardMessage.user.selectedExperiment);
           loadSteps(breadboardMessage.user.selectedExperiment, selectInstance.out);
           breadboardMessage.user.setExperimentInstanceId(selectInstance.id);

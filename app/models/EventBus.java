@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Collections;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ConcurrentHashMap;
 
 class EventHandler<A> {
   public List<Closure<A>> closures = Collections.synchronizedList(new ArrayList());
@@ -94,7 +92,7 @@ public class EventBus <T> {
   }
 
   private void logThread (String name) {
-    Logger.debug(name + " thread " + Thread.currentThread().getId() + " size " + this.events.keySet().toString());
+    Logger.debug(name + " thread " + Thread.currentThread().getId() + " size " + this.events.keySet().size());
   }
 
   public void clear () {
