@@ -75,7 +75,7 @@ public class Experiment extends Model {
   public static final String ON_JOIN_STEP_NAME = "OnJoinStep";
   public static final String ON_LEAVE_STEP_NAME = "OnLeaveStep";
 
-  public Boolean fileMode = false;
+  public Boolean fileMode;
 
   /*
    * The CSS Style for the experiment
@@ -251,17 +251,16 @@ public class Experiment extends Model {
     try {
       if (this.fileMode) {
         // Turning fileMode off, let's import the files into the current experiment
+        // TODO
       } else {
         // Turning fileMode on, let's export the experiment into the appropriate directory
         File experimentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
         ExperimentController.exportExperimentToDirectory(this.id, experimentDirectory);
       }
-
-    } catch (IOException io) {
-
-    } finally {
       this.setFileMode(!this.fileMode);
       this.save();
+    } catch (IOException io) {
+      Logger.error("Unable to access the experiment directory, check your file permissions.");
     }
   }
 
