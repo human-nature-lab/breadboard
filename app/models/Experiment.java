@@ -25,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -183,6 +184,16 @@ public class Experiment extends Model {
     return this.content;
   }
 
+  public void removeContent() {
+    Iterator<Content> iter = this.content.iterator();
+    while (iter.hasNext()) {
+      Content c = iter.next();
+      iter.remove();
+      c.delete();
+    }
+    this.update();
+  }
+
   public String getStyle() {
     if (this.fileMode) {
       String returnStyle = "";
@@ -247,14 +258,24 @@ public class Experiment extends Model {
     this.steps.add(step);
   }
 
-  public void toggleFileMode() {
+  public void removeSteps() {
+    Iterator<Step> iter = this.steps.iterator();
+    while (iter.hasNext()) {
+      Step s = iter.next();
+      iter.remove();
+      s.delete();
+    }
+    this.update();
+  }
+
+  public void toggleFileMode(User user) {
     try {
+      File experimentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
       if (this.fileMode) {
         // Turning fileMode off, let's import the files into the current experiment
-        // TODO
+        ExperimentController.importExperimentFromDirectory(this.id, user, experimentDirectory);
       } else {
         // Turning fileMode on, let's export the experiment into the appropriate directory
-        File experimentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
         ExperimentController.exportExperimentToDirectory(this.id, experimentDirectory);
       }
       this.setFileMode(!this.fileMode);
@@ -453,6 +474,16 @@ public class Experiment extends Model {
 
   public List<Parameter> getParameters() {
     return parameters;
+  }
+
+  public void removeParameters() {
+    Iterator<Parameter> iter = this.parameters.iterator();
+    while (iter.hasNext()) {
+      Parameter p = iter.next();
+      iter.remove();
+      p.delete();
+    }
+    this.update();
   }
 
   public boolean hasOnJoinStep() {

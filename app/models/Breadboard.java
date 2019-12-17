@@ -734,7 +734,7 @@ public class Breadboard extends UntypedActor {
       } else if (message instanceof ToggleFileMode) {
         Experiment selectedExperiment = breadboardMessage.user.getExperiment();
         if (selectedExperiment != null) {
-          selectedExperiment.toggleFileMode();
+          selectedExperiment.toggleFileMode(breadboardMessage.user);
         }
       }
 

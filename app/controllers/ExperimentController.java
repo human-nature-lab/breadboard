@@ -254,11 +254,7 @@ public class ExperimentController extends Controller {
       // Create the parameters.csv file
       e = new ZipEntry("parameters.csv");
       zos.putNextEntry(e);
-      String ls = System.getProperty("line.separator");
-      zos.write(("Name,Type,Min.,Max.,Default,Short Description" + ls).getBytes());
-      for (Parameter param : experiment.parameters) {
-        zos.write((param.name + "," + param.type + "," + param.minVal + "," + param.maxVal + "," + param.defaultVal + "," + param.description + ls).getBytes());
-      }
+      zos.write(experiment.parametersToCsv().getBytes());
       zos.closeEntry();
 
       // Write image files to stream
@@ -278,6 +274,39 @@ public class ExperimentController extends Controller {
 
     return ok(outputStream.toByteArray());
 
+  }
+
+  /**
+   * If experimentId is null or invalid, creates a new experiment and returns the newly created experiment ID.
+   * Otherwise, imports the experiment files over the existing experiment and returns the provided experimentID.
+   * @param experimentId  The ID of the experiment to import over, if null or invalid create new experiment
+   * @param user          The User who is making the import request, newly created experiments will be associated with the user
+   * @param directory     The File location of the experiment files to impoart
+   * @return              the experimentId of the imported experiment
+   * @throws IOException
+   */
+  public static Long importExperimentFromDirectory(Long experimentId, User user, File directory) throws IOException {
+    Experiment experiment;
+    if (experimentId == null || ((experiment = Experiment.findById(experimentId)) == null) ) {
+      // New experiment
+      experiment = new Experiment();
+      user.ownedExperiments.add(experiment);
+      user.update();
+      user.saveManyToManyAssociations("ownedExperiments");
+    } else {
+      // Existing experiment, delete before re-importing
+      experiment.removeSteps();
+      experiment.removeContent();
+      experiment.removeParameters();
+    }
+    experiment.setClientGraph(FileUtils.readFileToString(new File(directory, "client-graph.js")));
+    experiment.setClientHtml(FileUtils.readFileToString(new File(directory, "client-html.html")));
+    experiment.setStyle(FileUtils.readFileToString(new File(directory, "style.css")));
+    importParameters(experiment, new File(directory, "parameters.csv"));
+    importSteps(experiment, new File(directory, "/Steps"));
+    importContent(experiment, new File(directory, "/Content"));
+    experiment.save();
+    return experiment.id;
   }
 
   public static void exportExperimentToDirectory(Long experimentId, File directory) throws IOException {
@@ -420,10 +449,8 @@ public class ExperimentController extends Controller {
 
     String style = FileUtils.readFileToString(new File(directory, "style.css"));
     experiment.setStyle(style);
-    String clientGraph = FileUtils.readFileToString(new File(directory, "client-graph.js"));
-    experiment.clientGraph = clientGraph;
-    String clientHtml = FileUtils.readFileToString(new File(directory, "client-html.html"));
-    experiment.clientHtml = clientHtml;
+    experiment.setClientGraph(FileUtils.readFileToString(new File(directory, "client-graph.js")));
+    experiment.setClientHtml(FileUtils.readFileToString(new File(directory, "client-html.html")));
 
     // Import Steps
     importSteps(experiment, new File(directory, "/Steps"));
@@ -654,8 +681,8 @@ public class ExperimentController extends Controller {
       experiment.addStep(onLeave);
       experiment.addStep(init);
     }
-    experiment.clientHtml = Experiment.defaultClientHTML();
-    experiment.clientGraph = Experiment.defaultClientGraph();
+    experiment.setClientHtml(Experiment.defaultClientHTML());
+    experiment.setClientGraph(Experiment.defaultClientGraph());
     // Add the user's default language
     experiment.languages.add(user.defaultLanguage);
     return experiment;
