@@ -255,16 +255,21 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * Create default Vue instance
    * @param template
    */
-  async createDefaultVue (template: string,): Promise<VueType> {
+  async createDefaultVue (template: string, mixin?: object): Promise<VueType> {
     const Vue = window.Vue
     const Vuetify = window.Vuetify
+    const mixins = [DefaultView]
+    if (mixin) {
+      // @ts-ignore
+      mixins.push(mixin)
+    }
     return new Vue({
       vuetify: new Vuetify({
         icons: {
           iconfont: 'mdi'
         }
       }),
-      mixins: [DefaultView],
+      mixins: mixins,
       template: template
     }).$mount('#app')
   }
