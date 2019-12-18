@@ -64,8 +64,6 @@ export default function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy, a
   function updateFromFile() {
     if ($scope.readOnly) {
       vm.steps = orderBy($scope.experiment.steps, 'name', false);
-      // Default to the first step in the case that there is no common step between database and file versions
-      vm.selectedStep = vm.steps[0];
       angular.forEach(vm.steps, function(step) {
         // TODO: Comparing by name is necessary because steps read from file have no ID; if that changes, compare by ID.
         if (step.name === vm.selectedStep.name) {
