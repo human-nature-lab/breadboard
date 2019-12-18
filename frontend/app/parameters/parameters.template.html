@@ -1,0 +1,125 @@
+<form name="parameterForm" >
+    <table class="table" id="parametersTable">
+        <thead>
+        <tr>
+            <th>Name</th>
+            <th>Type</th>
+            <th>Min</th>
+            <th>Max</th>
+            <th>Default</th>
+            <th>Short Description</th>
+            <th></th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr class="parameters">
+            <td><input class="form-control input-sm" style="width: 8em;" type="text" name="parameterName"
+                       ng-model="parameterName" placeholder="Name" ng-readonly="readOnly" required></td>
+            <td>
+                <select class="form-control input-sm" ng-change="clearParameterFields()" style="width: 7em;"
+                        ng-model="parameterType" required ng-disabled="readOnly">
+                    <option></option>
+                    <option value="Boolean">Boolean</option>
+                    <option value="Decimal">Decimal</option>
+                    <option value="Integer">Integer</option>
+                    <option value="Text">Text</option>
+                </select>
+            </td>
+            <td><input class="form-control input-sm" style="width: 5em;"
+                       ng-disabled="parameterType!=='Decimal' && parameterType!=='Integer'"
+                       type="number" name="parameterMin"
+                       max="{{parameterMax}}"
+                       ng-model="parameterMin"
+                       placeholder="min"
+                       ng-readonly="readOnly"
+                       ng-required="parameterType === 'Decimal' || parameterType === 'Integer'" required></td>
+            <td><input class="form-control input-sm" style="width: 5em;" ng-disabled="parameterType!=='Decimal' && parameterType!=='Integer'"
+                       type="number" name="parameterMax"
+                       min="{{parameterMin}}"
+                       ng-model="parameterMax" placeholder="max"
+                       ng-readonly="readOnly"
+                       ng-required="parameterType === 'Decimal' || parameterType === 'Integer'"></td>
+            <td ng-show="!parameterType">
+                <input class="form-control input-sm"
+                       style="width: 6em;"
+                       type="text"
+                       placeholder="Default"
+                       disabled>
+            </td>
+            <td ng-show="parameterType === 'Integer'">
+                <input class="form-control input-sm"
+                       style="width: 6em;"
+                       type="number"
+                       min="{{parameterMin}}"
+                       max="{{parameterMax}}"
+                       step="1"
+                       ng-model="parameterDefaultInteger"
+                       placeholder="Default"
+                       ng-readonly="readOnly"
+                       ng-required="parameterType === 'Integer'">
+            </td>
+            <td ng-show="parameterType === 'Decimal'">
+                <input class="form-control input-sm"
+                       style="width: 6em;"
+                       type="number"
+                       min="{{parameterMin}}"
+                       max="{{parameterMax}}"
+                       step="0.01"
+                       ng-model="parameterDefaultDecimal"
+                       placeholder="Default"
+                       ng-readonly="readOnly"
+                       ng-required="parameterType === 'Decimal'">
+            </td>
+            <td ng-show="parameterType === 'Text'">
+                <input class="form-control input-sm"
+                       style="width: 6em;"
+                       type="text"
+                       ng-model="parameterDefaultText"
+                       placeholder="Default"
+                       ng-readonly="readOnly"
+                       ng-required="parameterType === 'Text'">
+            </td>
+            <td ng-show="parameterType === 'Boolean'">
+                <select class="form-control input-sm" ng-model="parameterDefaultBoolean"
+                        ng-disabled="readOnly" ng-required="parameterType === 'Boolean'">
+                    <option value="true">true</option>
+                    <option value="false">false</option>
+                </select>
+            </td>
+            <td><input class="form-control input-sm" type="text" name="parameterDescription"
+                       ng-model="parameterDescription" placeholder="Short Description" ng-readonly="readOnly" required></td>
+            <td>
+                <button class="btn btn-default btn-sm" title="Create parameter" type="submit"
+                        ng-disabled="parameterForm.$invalid || readOnly" ng-click="createParameter()">
+                                <span class="glyphicon glyphicon-plus"
+                                      aria-hidden="true">
+                                </span>
+                </button>
+            </td>
+        </tr>
+        <tr class="parameters" ng-repeat="elem in experiment.parameters">
+            <td><p class="form-control-static">{{elem.name}}</p></td>
+            <td><p class="form-control-static">{{elem.type}}</p></td>
+            <td><p class="form-control-static">{{elem.minVal}}</p></td>
+            <td><p class="form-control-static">{{elem.maxVal}}</p></td>
+            <td><p class="form-control-static">{{elem.defaultVal}}</p></td>
+            <td><p class="form-control-static">{{elem.description}}</p></td>
+            <td>
+                <button type="button"
+                        onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
+                        onmouseout="$(this).parent().parent().css('background', '');"
+                        class="btn btn-default btn-sm"
+                        title="Delete parameter"
+                        ng-disabled="readOnly"
+                        ng-click="removeParameter(elem.id)">
+                                <span class="glyphicon glyphicon-remove"
+                                      aria-hidden="true">
+                                </span>
+                </button>
+            </td>
+
+        </tr>
+
+        </tbody>
+    </table>
+</form>

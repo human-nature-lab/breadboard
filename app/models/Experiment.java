@@ -473,7 +473,18 @@ public class Experiment extends Model {
   }
 
   public List<Parameter> getParameters() {
-    return parameters;
+    if (this.fileMode) {
+      ArrayList<Parameter> returnParameters = new ArrayList<>();
+      File parameterFile = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/parameters.csv");
+      try {
+        returnParameters = ExperimentController.getParametersFromFile(parameterFile);
+      } catch (IOException ioe) {
+        Logger.error("Error reading steps file from the dev directory, check your permissions.");
+      }
+      return returnParameters;
+
+    }
+    return this.parameters;
   }
 
   public void removeParameters() {
@@ -537,7 +548,7 @@ public class Experiment extends Model {
     }
 
     ArrayNode jsonParameters = experiment.putArray("parameters");
-    for (Parameter p : parameters) {
+    for (Parameter p : getParameters()) {
       jsonParameters.add(p.toJson());
     }
 

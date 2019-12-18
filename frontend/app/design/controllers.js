@@ -156,58 +156,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     });
   };
 
-  $scope.paramType = function (type) {
-    if (type === 'Boolean') {
-      return "checkbox";
-    }
-
-    if (type === 'Decimal' || type === 'Integer') {
-      return "number";
-    }
-
-    return "text";
-  };
-
-  $scope.clearParameterFields = function () {
-      $scope.parameterMin = '';
-      $scope.parameterMax = '';
-      $scope.parameterDefaultInteger = '';
-      $scope.parameterDefaultDecimal = '';
-      $scope.parameterDefaultText = '';
-  };
-
-  $scope.newParameter = function () {
-    var parameterDefault = '';
-    if ($scope.parameterType === 'Integer') parameterDefault = $scope.parameterDefaultInteger + '';
-    if ($scope.parameterType === 'Decimal') parameterDefault = $scope.parameterDefaultDecimal + '';
-    if ($scope.parameterType === 'Boolean') parameterDefault = $scope.parameterDefaultBoolean;
-    if ($scope.parameterType === 'Text') parameterDefault = $scope.parameterDefaultText;
-    $breadboardFactory.send(
-      {
-        "action": "NewParameter",
-        "name": $scope.parameterName,
-        "type": $scope.parameterType,
-        "minVal": $scope.parameterMin + '',
-        "maxVal": $scope.parameterMax + '',
-        "defaultVal": parameterDefault,
-        "description": $scope.parameterDescription
-      });
-    // Clear values
-    $scope.clearParameterFields();
-    $scope.parameterName = '';
-    $scope.parameterType = '';
-    $scope.parameterDescription = '';
-    // Set the default value
-    //$scope.launchParameters[$scope.parameterName] = $scope.parameterDefault;
-  };
-
-  $scope.removeParameter = function (id) {
-    $breadboardFactory.send(
-      {
-        "action": "RemoveParameter",
-        "id": id
-      });
-  };
 
   $scope.playerProperties = function (n) {
     var ignoreProps = ["weight", "x", "y", "px", "fixed", "equals", "py", "text", "choices"];
@@ -771,9 +719,9 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.parametersDialogOptions = {
     title: 'Parameters',
     autoOpen: false,
-    width: (windowWidth * .5),
+    width: windowWidth,
     height: windowHeight,
-    position: [((windowWidth * .5) + margin), topDivHeight],
+    position: [margin, topDivHeight],
     buttons: {}
   };
 

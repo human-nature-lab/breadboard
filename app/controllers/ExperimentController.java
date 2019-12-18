@@ -623,9 +623,15 @@ public class ExperimentController extends Controller {
 
   }
 
-  private static void importParameters(Experiment experiment, File file) throws IOException{
+  private static void importParameters(Experiment experiment, File file) throws IOException {
+    ArrayList<Parameter> parameters = getParametersFromFile(file);
+    experiment.parameters.addAll(parameters);
+    experiment.update();
+  }
 
-    Reader in = new FileReader(file);
+  public static ArrayList<Parameter> getParametersFromFile(File parameterFile) throws IOException {
+    ArrayList<Parameter> returnParameters = new ArrayList<>();
+    Reader in = new FileReader(parameterFile);
     CSVFormat format = CSVFormat.DEFAULT.withHeader("Name", "Type", "Min.", "Max.", "Default", "Short Description").withFirstRecordAsHeader();
     for (CSVRecord record : format.parse(in)) {
       Parameter parameter = new Parameter();
@@ -635,11 +641,9 @@ public class ExperimentController extends Controller {
       parameter.maxVal = record.get("Max.");
       parameter.defaultVal = record.get("Default");
       parameter.description = record.get("Short Description");
-      experiment.parameters.add(parameter);
+      returnParameters.add(parameter);
     }
-
-    in.close();
-
+    return returnParameters;
   }
 
   // Reusable code for importing steps
