@@ -46,13 +46,11 @@ Vertex.metaClass.clear = {
  * events are also passed in the player vertex as an argument.
  */ 
 events.on(CUSTOM_EVENT, { params ->
-  println "custom event to player event"
   try {
     if (PLAYER_ID_PROP in params && PLAYER_ACTION_PROP in params) {
       def player = g.getVertex(params[PLAYER_ID_PROP])
       if (player != null) {
         def globalEventName = makePlayerEventHash(player.id, params[PLAYER_ACTION_PROP])
-        println "emit global event " + globalEventName
         events.emit(globalEventName, player, params[PLAYER_DATA_PROP])
       }
     }

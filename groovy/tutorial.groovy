@@ -17,12 +17,13 @@ public class Tutorial {
   def steps = []
   def onReadyCbs = []
   def stateKey = "tutorial"
-  def content
-  def actions
+  def readyUpTimer
+  def graph, actions, content
 
-  Tutorial (content, actions) {
-    this.content = content
+  Tutorial (graph, actions, content) {
+    this.graph = graph
     this.actions = actions
+    this.content = content
   }
 
   /**
@@ -49,33 +50,51 @@ public class Tutorial {
       this.endPlayer(player)
     }
 
-    // Handle ready up sequence
     if (this.readyUp) {
-      // TODO: Start ready cleanup timer
-      this.players.each{player -> 
-        player.ready = false
-        this.actions.add(player, [
-          name: this.readyButtonText,
-          result: {
-            println "player ready"
-            try {
-              player.ready = true
-              this.checkPlayersReady()  
-            } catch (Exception e) {
-              println "ready result exception"
-              e.printStackTrace()
-            }
-          }
-        ])
-      }
+      this.startReadyUp()
     } else {
       this.cleanup()
     }
     
   }
 
+  /**
+   * Begin the ready up sequence. This is started automatically when the `tutorial.end()` method is called
+   * if `tutorial.readyUp == true`
+   */
+  public startReadyUp () {
+    this.readyUpTimer = new Timer().runAfter(this.readySeconds * 1000) {
+      this.completeReadyUp()
+    }
+    this.graph.addTimer([
+      name: "ready-up",
+      time: this.readySeconds,
+      timerText: "Game begins in "
+    ])
+    this.players.each{player -> 
+      player.ready = false
+      this.actions.add(player, [
+        name: this.readyButtonText,
+        result: {
+          println "player ready"
+          try {
+            player.ready = true
+            this.checkPlayersReady()  
+          } catch (Exception e) {
+            println "ready result exception"
+            e.printStackTrace()
+          }
+        }
+      ])
+    }
+  }
+
   private cleanup () {
+    // TODO: Cleanup
     // Cleanup unused memory
+    if (this.readyUpTimer) {
+      this.readyUpTimer.cancel()
+    }
     this.players = null
     this.steps = null
     this.onReadyCbs = null
@@ -109,7 +128,12 @@ public class Tutorial {
    */
   private completeReadyUp () {
     this.isReadyUpComplete = true
-    // TODO: Filter out players that aren't ready
+    // TODO: Deactivate players that aren't ready
+    this.players.each{ player -> 
+      if (player.timers) {
+        player.timers.remove("ready-up")
+      }
+    }
     println "complete ready up"
     this.onReadyCbs.each{ cb -> cb()}
     this.cleanup()
