@@ -298,4 +298,8 @@ public class Client extends Model {
     return "Client(" + id + ")";
   }
 
+  public void disconnect () {
+    this.out.close();
+  }
+
 }

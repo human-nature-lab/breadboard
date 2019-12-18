@@ -73,6 +73,14 @@ public class ScriptBoard extends UntypedActor {
     eventBus.clear();
   }
 
+  private void disconnectClients () {
+    // Disconnect all connected clients
+    for (Client client : clients.values()) {
+      client.disconnect();
+    }
+    clients.clear();
+  }
+
   private void resetEngine(Experiment experiment) throws IOException, ScriptException {
     // When started, send a message to each Admin
     for (Admin admin : admins) {
@@ -82,7 +90,7 @@ public class ScriptBoard extends UntypedActor {
       jsonOutput.put("notify", notify);
       admin.getOut().write(jsonOutput);
     }
-    Logger.debug("resetEngine");
+    Logger.debug("ScriptEngine reload start");
     if (engine != null) {
       //just in case
       playerActions.turnAIOff();
@@ -90,6 +98,7 @@ public class ScriptBoard extends UntypedActor {
       processScript("g.empty()", null, null);
     }
 
+    // Global events used to communicate via the groovy scripting
     eventBus.clear();
     eventBus.on("__send-event", new Closure(null) {
       public void doCall (String clientId, String eventName, Object ...data) {
@@ -184,6 +193,7 @@ public class ScriptBoard extends UntypedActor {
       jsonOutput.put("notify", notify);
       admin.getOut().write(jsonOutput);
     }
+    this.disconnectClients();
     Logger.debug("ScriptEngine reload complete");
   }
 

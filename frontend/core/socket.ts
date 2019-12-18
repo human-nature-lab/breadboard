@@ -1,6 +1,6 @@
 import { Emitter, clamp, randomInt } from 'goodish'
 
-enum SocketState {
+export enum SocketState {
   CLOSED,
   OPEN,
   CLOSING,
@@ -96,7 +96,7 @@ export class Socket extends Emitter {
   private onOpen () {
     console.log('socket.onOpen')
     this.state = SocketState.OPEN
-    this.nTries = clamp(this.nTries - 1, 0, 30)
+    this.nTries = 1
     this.emit('open')
     this.flush()
   }
