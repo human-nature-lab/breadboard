@@ -8,14 +8,14 @@ import { Emitter } from 'goodish'
 import DefaultView from '../client/mixins/DefaultView'
 import { BreadboardConfig, BreadboardMessages, VueLoadOpts } from './breadboard.types'
 import { SimpleMap } from '../client/types'
+import { Socket } from './socket'
 
 const MAKE_CHOICE = 'MakeChoice'
 const CUSTOM_EVENT = 'CustomEvent'
 
 export class BreadboardClass extends Emitter implements BreadboardMessages {
 
-  private socket!: WebSocket
-  private isConnected: boolean = false
+  private socket!: Socket
   private config!: BreadboardConfig
   private socketMutex = new Mutex()
   private configMutex = new Mutex()
@@ -40,19 +40,18 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
   }
 
   /**
-   * Returns the websocket that has already been connected to the server.
-   * @returns {Promise<WebSocket>}
+   * Returns the connected Socket instance.
+   * @returns {Promise<Socket>}
    */
-  async connect (): Promise<WebSocket> {
+  async connect (): Promise<Socket> {
     const release = await this.socketMutex.acquire()
-    if (this.isConnected) {
+    if (this.socket) {
       release()
       return this.socket
     }
     try {
       const config = await this.loadConfig()
-      this.socket = new WebSocket(config.connectSocket)
-      this.isConnected = true
+      this.socket = new Socket(config.connectSocket)
       this.attachParser()
     } finally {
       release()
@@ -61,12 +60,11 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
   }
 
   /**
-   * Disconnect the websocket
+   * Disconnect the WebSocket
    */
   disconnect () {
-    if (!this.isConnected) return
+    if (!this.socket) return
     this.socket.close()
-    this.isConnected = false
     this.removeListeners()
   }
 
@@ -76,7 +74,6 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * @param data
    */
   sendType (action: string, data: SimpleMap<any> = {}) {
-    if (!this.isConnected) throw new Error('Unable to send data when connection is closed')
     const d = Object.assign(data, {
       action
     })
@@ -124,35 +121,24 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    */
   async login () {
     const config = await this.loadConfig()
-    return new Promise(async resolve => {
-      await this.connect()
-      const sendLogin = () => {
-        this.socket.send(JSON.stringify({
-          action: 'LogIn',
-          clientId: config.clientId,
-          referer: config.referer,
-          connection: config.connection,
-          accept: config.accept,
-          acceptLanguage: config.acceptLanguage,
-          acceptEncoding: config.acceptEncoding,
-          userAgent: config.userAgent,
-          host: config.host,
-          ipAddress: config.ipAddress,
-          requestURI: config.requestURI
-        }))
-        resolve()
-      }
-      if (this.socket.readyState === WebSocket.OPEN) {
-        sendLogin()
-      } else {
-        this.socket.addEventListener('open', sendLogin, { once: true })
-      }
-
-    })
+    await this.connect()
+    this.socket.send(JSON.stringify({
+      action: 'LogIn',
+      clientId: config.clientId,
+      referer: config.referer,
+      connection: config.connection,
+      accept: config.accept,
+      acceptLanguage: config.acceptLanguage,
+      acceptEncoding: config.acceptEncoding,
+      userAgent: config.userAgent,
+      host: config.host,
+      ipAddress: config.ipAddress,
+      requestURI: config.requestURI
+    }))
   }
 
   /**
-   * Load a script from a url.
+   * Load a script from a URL
    * @param url
    * @returns {Promise<boolean>}
    */
@@ -278,9 +264,9 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * Handle parsing breadboard socket events
    */
   private attachParser () {
-    this.socket.addEventListener('message', ev => {
-      this.emit('message', ev)
-      const data = JSON.parse(ev.data)
+    this.socket.on('message', (d: string) => {
+      this.emit('message', d)
+      const data = JSON.parse(d)
       this.emit('data', data)
       for (const key of ['graph', 'player', 'style']) {
         if (data[key]) {
