@@ -261,6 +261,38 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
   }
 
   /**
+   * Loads the legacy, angular.js client code. Replaces the SPA anchor with the old angular ng-app code
+   */
+  async loadAngularClient () {
+    console.log('load angular client')
+    this.addStyleFromURL('/bundles/client.css')
+    this.addStyleFromURL('https://fonts.googleapis.com/css?family=Open+Sans:700,400')
+    this.addStyleFromURL('/assets/css/bootstrap.min.css')
+    this.addStyleFromURL('/assets/css/font-awesome-4.7.0/css/font-awesome.min.css')
+    await Promise.all([
+      this.addScriptFromURL('https://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js'),
+      this.addScriptFromURL('/bundles/client-angular.js')
+    ])
+    await Promise.all([
+      this.addScriptFromURL('https://cdnjs.cloudflare.com/ajax/libs/d3/2.10.0/d3.v2.js'),
+      this.addScriptFromURL('https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.js')
+    ])
+    // @ts-ignore
+    const ang = angular; const init = window.bbClientInit
+    ang.element(document).ready(function() {
+      const t = document.createElement('div')
+      const app = document.createElement('app')
+      app.innerText = 'Loading...'
+      document.body.setAttribute('ng-app', 'breadboard.client')
+      const c = document.getElementById('app')
+      if (!c) throw new Error('Unable to initialize app')
+      document.body.replaceChild(app, c)
+      init()
+      ang.bootstrap(document, ['breadboard.client'])
+    })
+  }
+
+  /**
    * Handle parsing breadboard socket events
    */
   private attachParser () {

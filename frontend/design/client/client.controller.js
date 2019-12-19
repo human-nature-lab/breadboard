@@ -67,14 +67,14 @@ function ClientCtrl($scope, $clientFactory, $location, clientGraph, configServic
     $('#style').text($scope.client.style);
   };
 
-  $clientFactory.onmessage(function (message) {
+  $clientFactory.onmessage(function (data) {
     try {
       if ($scope.client == undefined) {
         $scope.client = {};
         $scope.client.graph = {};
       }
 
-      var data = JSON.parse(message.data);
+      data = JSON.parse(data);
       // For debugging:
       //console.log(data);
       if (data.queuedMessages != undefined) {
@@ -111,12 +111,18 @@ function ClientCtrl($scope, $clientFactory, $location, clientGraph, configServic
     clientId = id;
     return clientGraph.load();
   }).then(Graph => {
-    let parentElement = document.getElementById('#graph');
-    /* Graph here */
-    $scope.clientGraph = new Graph(clientId, parentElement);
-    $scope.$watch('client.graph', function (newValue) {
-      $scope.clientGraph.updateGraph(newValue);
-    }, true);
+    // Poll until the graph div is available
+    let interval = setInterval(() => {
+      const parentElement = document.getElementById('graph');
+      if (parentElement) {
+        /* Graph here */
+        $scope.clientGraph = new Graph(clientId, parentElement);
+        $scope.$watch('client.graph', function (newValue) {
+          $scope.clientGraph.updateGraph(newValue);
+        }, true);
+        clearInterval(interval)
+      }
+    }, 100)
   });
 
 

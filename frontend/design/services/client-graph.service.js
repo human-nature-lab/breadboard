@@ -1,19 +1,14 @@
-import DefaultGraph from '../client/client-graph';
-ClientGraphService.$inject = ['$q', 'scriptInjector', 'configService'];
-export default function ClientGraphService($q, scriptInjector, configService){
+import DefaultGraph from '../client/client-graph'
+export default function ClientGraphService(){
   /**
    * Call this method and wait to load the graph
    * @returns {Promise<Graph>} A promise that contains the graph constructor
    */
-  this.load = function(){
-    return configService.get('clientGraph')
-      .then(contents => {
-        return scriptInjector.injectScript(contents)
-      })
-      .then(() => {
-        return window.Graph
-      }, err => {
-        return DefaultGraph
-      })
+  this.load = function () {
+    if (window.Graph) {
+      return window.Graph
+    } else {
+      return DefaultGraph
+    }
   }
 }

@@ -1,27 +1,23 @@
-ClientFactory.$inject = ['websocketFactory', '$rootScope', '$http', '$q', 'configService'];
-export default function ClientFactory($websocketFactory, $rootScope, $http, $q, configService){
-
-  window.Breadboard.connect().then(websocket => {
-    websocket.onopen = async function () {
-      const clientVars = await configService.all()
-      clientVars.action = 'LogIn';
-      websocket.send(JSON.stringify(clientVars));
-    }
+ClientFactory.$inject = ['websocketFactory', '$rootScope', 'configService'];
+export default function ClientFactory($websocketFactory, $rootScope, configService){
+  Breadboard.connect().then(async () => {
+    const clientVars = await configService.all()
+    Breadboard.sendType('LogIn', clientVars)
   })
 
   return {
     async onmessage (callback) {
-      const websocket = await window.Breadboard.connect()
-      websocket.addEventListener('message', function () {
+      await Breadboard.connect()
+      Breadboard.on('message', function () {
         let args = arguments
         $rootScope.$apply(function () {
-          callback.apply(websocket, args)
+          callback.apply(null, args)
         })
       })
     },
     async send (message) {
-      const websocket = await window.Breadboard.connect()
-      websocket.send(JSON.stringify(message));
+      await Breadboard.connect()
+      Breadboard.socket.send(JSON.stringify(message))
     }
   }
 }

@@ -6,7 +6,7 @@ export default function ConfigService () {
    * @returns {Promise}
    */
   this.get = function (key) {
-    return window.Breadboard.loadConfig()
+    return Breadboard.loadConfig()
       .then(function (state) {
         return state[key]
       }, function (err) {
@@ -21,7 +21,7 @@ export default function ConfigService () {
   this.all = function () {
     //return $q.when(configPromise)
     //return configPromise
-    return window.Breadboard.loadConfig()
+    return Breadboard.loadConfig()
       .then(function (state) {
         return state
       }, function (err) {

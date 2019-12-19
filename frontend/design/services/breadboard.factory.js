@@ -63,9 +63,9 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
 
   let service = {
     async onmessage (callback) {
-      const [config, _] = await Promise.all([window.Breadboard.loadConfig(), window.Breadboard.connect()])
+      const [config, _] = await Promise.all([Breadboard.loadConfig(), Breadboard.connect()])
 
-      window.Breadboard.on('message', d => {
+      Breadboard.on('message', d => {
         const data = JSON.parse(d)
         if (data.hasOwnProperty("queuedMessages")) {
           for (var i = 0; i < data.queuedMessages.length; i++) {
@@ -76,14 +76,14 @@ export default function BreadboardFactory($websocketFactory, $rootScope, $cookie
         }
       })
       // Any messages sent prior to the websocket opening will be queued and sent immediately after the socket opens
-      window.Breadboard.sendType('LogIn', {
+      Breadboard.sendType('LogIn', {
         uid: config.uid
       })
     },
     send: function (message) {
       configService.get('uid').then(function(uid) {
         message.uid = uid;
-        window.Breadboard.socket.send(JSON.stringify(message));
+        Breadboard.socket.send(JSON.stringify(message));
       });
     },
     addNodeChangeListener: function(listener) {
