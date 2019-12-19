@@ -42,7 +42,7 @@ PUT         /amtadmin/addQualificationType/:experimentUid                       
 # AMT Workers Controller
 GET         /experiment/:experimentId/amtassignments                             controllers.AMTAssignmentController.getAMTAssignments(experimentId: Long, sandbox: Boolean ?= false)
 
-# Customize Dialog
+# Customize dialog
 GET         /customize/clientHtml/:experimentId                                  controllers.CustomizeController.getClientHtml(experimentId: Long)
 GET         /customize/clientGraph/:experimentId                                 controllers.CustomizeController.getClientGraph(experimentId: Long)
 GET         /customize/style/:experimentId                                       controllers.CustomizeController.getStyle(experimentId: Long)
@@ -50,15 +50,19 @@ POST        /customize/clientHtml/:experimentId                                 
 POST        /customize/clientGraph/:experimentId                                 controllers.CustomizeController.updateClientGraph(experimentId: Long)
 POST        /customize/style/:experimentId                                       controllers.CustomizeController.updateStyle(experimentId: Long)
 
-# Steps Dialog
+# Steps dialog
 GET         /steps/:experimentId                                                 controllers.StepsController.getSteps(experimentId: Long)
 POST        /steps/:stepId                                                       controllers.StepsController.updateStep(stepId: Long)
 DELETE      /steps/:stepId                                                       controllers.StepsController.deleteStep(stepId: Long)
 
-# Content Dialog
+# Content dialog
 GET         /content/:experimentId                                               controllers.ContentController.getContent(experimentId: Long)
 POST        /content/:contentId                                                  controllers.ContentController.updateContent(contentId: Long)
 DELETE      /content/:contentId                                                  controllers.ContentController.deleteContent(contentId: Long)
+
+# Parameters dialog
+PUT         /parameters/:experimentId                                            controllers.ParametersController.createParameter(experimentId: Long)
+DELETE      /parameters/:experimentId/:parameterId                               controllers.ParametersController.removeParameter(experimentId: Long, parameterId: Long)
 
 # Create New Experiment
 PUT         /experiment                                                          controllers.ExperimentController.createExperiment()

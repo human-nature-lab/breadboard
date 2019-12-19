@@ -71,6 +71,7 @@ public class ExperimentController extends Controller {
     if (user.defaultLanguage != null && copyExperiment == null) {
       experiment.languages.add(user.defaultLanguage);
     }
+    experiment.fileMode = false;
     experiment.save();
 
     user.ownedExperiments.add(experiment);

@@ -1,4 +1,4 @@
-<form name="parameterForm" >
+<form name="parameterForm">
     <table class="table" id="parametersTable">
         <thead>
         <tr>
@@ -13,11 +13,11 @@
         </thead>
         <tbody>
         <tr class="parameters">
-            <td><input class="form-control input-sm" style="width: 8em;" type="text" name="parameterName"
-                       ng-model="parameterName" placeholder="Name" ng-readonly="readOnly" required></td>
+            <td><input class="form-control input-sm" style="width: 15em;" type="text" name="parameterName"
+                       ng-model="vm.parameterName" placeholder="Name" ng-readonly="vm.readOnly" required></td>
             <td>
-                <select class="form-control input-sm" ng-change="clearParameterFields()" style="width: 7em;"
-                        ng-model="parameterType" required ng-disabled="readOnly">
+                <select class="form-control input-sm" ng-change="vm.clearParameterFields()" style="width: 7em;"
+                        ng-model="vm.parameterType" required ng-disabled="vm.readOnly">
                     <option></option>
                     <option value="Boolean">Boolean</option>
                     <option value="Decimal">Decimal</option>
@@ -26,92 +26,95 @@
                 </select>
             </td>
             <td><input class="form-control input-sm" style="width: 5em;"
-                       ng-disabled="parameterType!=='Decimal' && parameterType!=='Integer'"
+                       ng-disabled="vm.parameterType!=='Decimal' && vm.parameterType!=='Integer'"
                        type="number" name="parameterMin"
-                       max="{{parameterMax}}"
-                       ng-model="parameterMin"
+                       max="{{vm.parameterMax}}"
+                       ng-model="vm.parameterMin"
                        placeholder="min"
-                       ng-readonly="readOnly"
-                       ng-required="parameterType === 'Decimal' || parameterType === 'Integer'" required></td>
-            <td><input class="form-control input-sm" style="width: 5em;" ng-disabled="parameterType!=='Decimal' && parameterType!=='Integer'"
+                       ng-readonly="vm.readOnly"
+                       ng-required="vm.parameterType === 'Decimal' || vm.parameterType === 'Integer'" required></td>
+            <td><input class="form-control input-sm" style="width: 5em;"
+                       ng-disabled="vm.parameterType!=='Decimal' && vm.parameterType!=='Integer'"
                        type="number" name="parameterMax"
-                       min="{{parameterMin}}"
-                       ng-model="parameterMax" placeholder="max"
-                       ng-readonly="readOnly"
-                       ng-required="parameterType === 'Decimal' || parameterType === 'Integer'"></td>
-            <td ng-show="!parameterType">
+                       min="{{vm.parameterMin}}"
+                       ng-model="vm.parameterMax" placeholder="max"
+                       ng-readonly="vm.readOnly"
+                       ng-required="vm.parameterType === 'Decimal' || vm.parameterType === 'Integer'"></td>
+            <td ng-show="!vm.parameterType">
                 <input class="form-control input-sm"
                        style="width: 6em;"
                        type="text"
                        placeholder="Default"
                        disabled>
             </td>
-            <td ng-show="parameterType === 'Integer'">
+            <td ng-show="vm.parameterType === 'Integer'">
                 <input class="form-control input-sm"
                        style="width: 6em;"
                        type="number"
-                       min="{{parameterMin}}"
-                       max="{{parameterMax}}"
+                       min="{{vm.parameterMin}}"
+                       max="{{vm.parameterMax}}"
                        step="1"
-                       ng-model="parameterDefaultInteger"
+                       ng-model="vm.parameterDefaultInteger"
                        placeholder="Default"
-                       ng-readonly="readOnly"
-                       ng-required="parameterType === 'Integer'">
+                       ng-readonly="vm.readOnly"
+                       ng-required="vm.parameterType === 'Integer'">
             </td>
-            <td ng-show="parameterType === 'Decimal'">
+            <td ng-show="vm.parameterType === 'Decimal'">
                 <input class="form-control input-sm"
                        style="width: 6em;"
                        type="number"
-                       min="{{parameterMin}}"
-                       max="{{parameterMax}}"
+                       min="{{vm.parameterMin}}"
+                       max="{{vm.parameterMax}}"
                        step="0.01"
-                       ng-model="parameterDefaultDecimal"
+                       ng-model="vm.parameterDefaultDecimal"
                        placeholder="Default"
-                       ng-readonly="readOnly"
-                       ng-required="parameterType === 'Decimal'">
+                       ng-readonly="vm.readOnly"
+                       ng-required="vm.parameterType === 'Decimal'">
             </td>
-            <td ng-show="parameterType === 'Text'">
+            <td ng-show="vm.parameterType === 'Text'">
                 <input class="form-control input-sm"
                        style="width: 6em;"
                        type="text"
-                       ng-model="parameterDefaultText"
+                       ng-model="vm.parameterDefaultText"
                        placeholder="Default"
-                       ng-readonly="readOnly"
-                       ng-required="parameterType === 'Text'">
+                       ng-readonly="vm.readOnly"
+                       ng-required="vm.parameterType === 'Text'">
             </td>
-            <td ng-show="parameterType === 'Boolean'">
-                <select class="form-control input-sm" ng-model="parameterDefaultBoolean"
-                        ng-disabled="readOnly" ng-required="parameterType === 'Boolean'">
+            <td ng-show="vm.parameterType === 'Boolean'">
+                <select class="form-control input-sm" ng-model="vm.parameterDefaultBoolean"
+                        ng-disabled="vm.readOnly" ng-required="vm.parameterType === 'Boolean'">
                     <option value="true">true</option>
                     <option value="false">false</option>
                 </select>
             </td>
             <td><input class="form-control input-sm" type="text" name="parameterDescription"
-                       ng-model="parameterDescription" placeholder="Short Description" ng-readonly="readOnly" required></td>
+                       ng-model="vm.parameterDescription" placeholder="Short Description" ng-readonly="vm.readOnly" required>
+            </td>
             <td>
                 <button class="btn btn-default btn-sm" title="Create parameter" type="submit"
-                        ng-disabled="parameterForm.$invalid || readOnly" ng-click="createParameter()">
+                        ng-disabled="parameterForm.$invalid || vm.readOnly" ng-click="vm.createParameter()">
                                 <span class="glyphicon glyphicon-plus"
                                       aria-hidden="true">
                                 </span>
                 </button>
             </td>
         </tr>
-        <tr class="parameters" ng-repeat="elem in experiment.parameters">
-            <td><p class="form-control-static">{{elem.name}}</p></td>
-            <td><p class="form-control-static">{{elem.type}}</p></td>
-            <td><p class="form-control-static">{{elem.minVal}}</p></td>
-            <td><p class="form-control-static">{{elem.maxVal}}</p></td>
-            <td><p class="form-control-static">{{elem.defaultVal}}</p></td>
-            <td><p class="form-control-static">{{elem.description}}</p></td>
+        <tr class="parameters" ng-repeat="p in experiment.parameters"
+            ng-class="{'bg-success': (p.id == vm.createdId), 'bg-warning': (p.id == vm.overDelete), 'bg-danger': (p.id == vm.removedId)}">
+            <td><p class="form-control-static">{{p.name}}</p></td>
+            <td><p class="form-control-static">{{p.type}}</p></td>
+            <td><p class="form-control-static">{{p.minVal}}</p></td>
+            <td><p class="form-control-static">{{p.maxVal}}</p></td>
+            <td><p class="form-control-static">{{p.defaultVal}}</p></td>
+            <td><p class="form-control-static">{{p.description}}</p></td>
             <td>
                 <button type="button"
-                        onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
-                        onmouseout="$(this).parent().parent().css('background', '');"
+                        ng-mouseover="vm.overDelete = p.id"
+                        ng-mouseleave="vm.overDelete = false"
                         class="btn btn-default btn-sm"
                         title="Delete parameter"
-                        ng-disabled="readOnly"
-                        ng-click="removeParameter(elem.id)">
+                        ng-disabled="vm.readOnly"
+                        ng-click="vm.removeParameter(p.id)">
                                 <span class="glyphicon glyphicon-remove"
                                       aria-hidden="true">
                                 </span>
@@ -119,7 +122,6 @@
             </td>
 
         </tr>
-
         </tbody>
     </table>
 </form>
