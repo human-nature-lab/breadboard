@@ -1,47 +1,49 @@
 <template>
   <v-card class="chat-box" v-if="chatState">
-    <v-layout column class="messages">
-      <v-flex v-for="message in messages" class="message" :key="message.id">
-        <v-layout>
-          <v-flex>
-            <b>{{message.sender === myId ? 'Me' : message.sender}}</b>:  {{message.text}}
-          </v-flex>
-          <v-spacer />
-          <v-flex class="recipients text-right">({{message.recipients.join(', ')}})</v-flex>
-        </v-layout>
-      </v-flex>
-	  </v-layout>
-	  <v-layout column class="chat-input">
-      <v-form ref="form">
-        <v-text-field
-          validate-on-blur
-          placeholder="Write a message..."
-          :rules="textRules"
-          @keyup.enter="send"
-          append-outer-icon="mdi-send"
-          :counter="maxLength"
-          @click:append-outer="send"
-          v-model="text">
-        </v-text-field>
-        <v-select 
-            chips
-            clearable
-            multiple
-            small-chips
-            deletable-chips
-            label="Recipients"
-            :rules="recipientRules"
-            :items="recipients" 
-            v-model="selectedRecipients" />
-      </v-form>
-	  </v-layout>
+    <v-layout column>
+      <v-layout column class="messages">
+        <v-flex v-for="message in messages" class="message" :key="message.id">
+          <v-layout>
+            <v-flex>
+              <b>{{message.sender === myId ? 'Me' : message.sender}}</b>:  {{message.text}}
+            </v-flex>
+            <v-spacer />
+            <v-flex class="recipients text-right">({{message.recipients.join(', ')}})</v-flex>
+          </v-layout>
+        </v-flex>
+      </v-layout>
+      <v-layout column class="chat-input">
+        <v-form ref="form">
+          <v-text-field
+            validate-on-blur
+            placeholder="Write a message..."
+            :rules="textRules"
+            @keyup.enter="send"
+            append-outer-icon="mdi-send"
+            :counter="maxLength"
+            @click:append-outer="send"
+            v-model="text">
+          </v-text-field>
+          <v-select 
+              chips
+              clearable
+              multiple
+              small-chips
+              deletable-chips
+              label="Recipients"
+              :rules="recipientRules"
+              :items="recipients" 
+              v-model="selectedRecipients" />
+        </v-form>
+      </v-layout>
+    </v-layout>
   </v-card>
 </template>
 
 <script lang="ts">
   import Vue from 'vue'
   import { Message, ChatState } from './chat.types'
-import { PlayerData } from '../../../core/breadboard.types'
+  import { PlayerData } from '../../../core/breadboard.types'
 
   export default Vue.extend({
     props: {
@@ -108,3 +110,8 @@ import { PlayerData } from '../../../core/breadboard.types'
     }
   })
 </script>
+
+<style lang="sass" scoped>
+  .messsages
+    overflow: auto
+</style>
