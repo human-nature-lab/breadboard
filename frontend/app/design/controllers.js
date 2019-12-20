@@ -691,9 +691,9 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.imagesDialogOptions = {
     title: 'Images',
-    width: (windowWidth * .5),
+    width: windowWidth,
     height: windowHeight,
-    position: [((windowWidth * .5) + margin), topDivHeight],
+    position: [margin, topDivHeight],
     autoOpen: false,
     buttons: {}
   };

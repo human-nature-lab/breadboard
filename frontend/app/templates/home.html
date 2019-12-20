@@ -458,17 +458,19 @@
                 <table class="table">
                     <thead>
                     <tr>
-                        <th>File Name</th>
-                        <th>Image</th>
-                        <th>URL</th>
+                        <th>Preview</th>
+                        <th>Filename</th>
+                        <th>ID URL</th>
+                        <th>Filename URL</th>
                         <th>Delete</th>
                     </tr>
                     </thead>
                     <tbody>
                     <tr ng-repeat="image in breadboard.experiment.images">
-                        <td>{{image.fileName}}</td>
                         <td><img class="thumbs" ng-src="/images/{{image.id}}"></td>
+                        <td>{{image.fileName}}</td>
                         <td>/images/{{image.id}}</td>
+                        <td>/images/{{breadboard.experiment.id}}/{{image.fileName}}</td>
                         <td>
                             <button title='Delete image'
                                     class="btn btn-default"

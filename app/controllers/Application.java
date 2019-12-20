@@ -4,6 +4,7 @@ import models.*;
 import org.apache.commons.io.FileUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import org.apache.commons.io.FilenameUtils;
 import org.mindrot.jbcrypt.BCrypt;
 import play.Logger;
 import play.data.Form;
@@ -135,7 +136,14 @@ public class Application extends Controller {
         Long eid = Long.parseLong(experimentId);
         Experiment experiment = Experiment.findById(eid);
         Image image = new Image();
-        image.fileName = fileName;
+        String uniqueFileName = fileName;
+        // If there is already an Image with the same filename, append a "-2" to the filename
+        int appendNumber = 2;
+        while (Image.find.where().eq("experiment_id", experimentId).eq("file_name", uniqueFileName).findRowCount() > 0) {
+          uniqueFileName = FilenameUtils.removeExtension(fileName) + "-" + appendNumber + "." + FilenameUtils.getExtension(fileName);
+          appendNumber++;
+        }
+        image.fileName = uniqueFileName;
         image.file = FileUtils.readFileToByteArray(file);
         image.contentType = contentType;
         experiment.images.add(image);
@@ -150,15 +158,6 @@ public class Application extends Controller {
         Logger.error("IOException in uploadImage(): " + ioe.getMessage());
         return ok("Error uploading");
       }
-
-
-      //TODO: For web deployment consider storing images to filesystem
-      //Integer nextId = (Integer)Ebean.nextId(Image.class);
-      //String uniqueFileName = nextId.toString() + "_" + fileName;
-      //Logger.info("uniquefileName = " + uniqueFileName);
-      //String uploadPath = "";
-
-
       return ok("File uploaded");
     } else {
       return ok("Error uploading");
@@ -167,6 +166,23 @@ public class Application extends Controller {
 
   public static Result getImage(Long imageId) {
     Image image = Image.findById(imageId);
+
+    if (image != null) {
+      if (image.contentType != null && image.file != null) {
+        response().setContentType(image.contentType);
+        return ok(image.file);
+      }
+    }
+
+    return notFound();
+  }
+
+  public static Result getImageByFileName(Long experimentId, String fileName) {
+    Image image = Image.find.where()
+        .eq("experiment_id", experimentId)
+        .eq("file_name", fileName)
+        .setMaxRows(1)
+        .findUnique();
 
     if (image != null) {
       if (image.contentType != null && image.file != null) {
