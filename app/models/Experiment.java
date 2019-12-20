@@ -139,20 +139,20 @@ public class Experiment extends Model {
    */
   public Experiment(Experiment experiment) {
     this.uid = UUID.randomUUID().toString();
-    this.style = experiment.style;
-    this.clientHtml = experiment.clientHtml;
-    this.clientGraph = experiment.clientGraph;
+    this.style = experiment.getStyle();
+    this.clientHtml = experiment.getClientHtml();
+    this.clientGraph = experiment.getClientGraph();
 
-    for (Step step : experiment.steps) {
+    for (Step step : experiment.getSteps()) {
       this.steps.add(new Step(step));
     }
-    for (Content c : experiment.content) {
+    for (Content c : experiment.getContent()) {
       this.content.add(new Content(c));
     }
-    for (Parameter param : experiment.parameters) {
+    for (Parameter param : experiment.getParameters()) {
       this.parameters.add(new Parameter(param));
     }
-    for (Image image : experiment.images) {
+    for (Image image : experiment.getImages()) {
       this.images.add(new Image(image));
     }
     for(Language language : experiment.languages) {
@@ -167,6 +167,20 @@ public class Experiment extends Model {
 
   public void setFileMode(Boolean fileMode) {
     this.fileMode = fileMode;
+  }
+
+  public List<Image> getImages() {
+    if (this.fileMode) {
+      ArrayList<Image> returnImages = new ArrayList<>();
+      File imagesDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/Images");
+      try {
+        returnImages = ExperimentController.getImagesFromDirectory(imagesDirectory);
+      } catch (IOException ioe) {
+        Logger.error("Error reading images from the dev directory, check your permissions.");
+      }
+      return returnImages;
+    }
+    return this.images;
   }
 
   public List<Content> getContent() {
@@ -190,6 +204,16 @@ public class Experiment extends Model {
       Content c = iter.next();
       iter.remove();
       c.delete();
+    }
+    this.update();
+  }
+
+  public void removeImages() {
+    Iterator<Image> iter = this.images.iterator();
+    while (iter.hasNext()) {
+      Image i = iter.next();
+      iter.remove();
+      i.delete();
     }
     this.update();
   }
@@ -290,7 +314,7 @@ public class Experiment extends Model {
     StringBuilder stringBuilder = new StringBuilder();
     try {
       CSVPrinter csvPrinter = new CSVPrinter(stringBuilder, format);
-      for (Parameter param : parameters) {
+      for (Parameter param : getParameters()) {
         csvPrinter.printRecord(param.name, param.type, param.minVal, param.maxVal, param.defaultVal, param.description);
       }
     } catch (IOException ioe) {}
@@ -299,17 +323,17 @@ public class Experiment extends Model {
 
   public void export() throws IOException {
     File experimentDirectory = new File(Play.application().path().toString() + "/experiments/" + this.name);
-    FileUtils.writeStringToFile(new File(experimentDirectory, "style.css"), this.style);
-    FileUtils.writeStringToFile(new File(experimentDirectory, "client.html"), this.clientHtml);
-    FileUtils.writeStringToFile(new File(experimentDirectory, "client-graph.js"), this.clientGraph);
+    FileUtils.writeStringToFile(new File(experimentDirectory, "style.css"), this.getStyle());
+    FileUtils.writeStringToFile(new File(experimentDirectory, "client.html"), this.getClientHtml());
+    FileUtils.writeStringToFile(new File(experimentDirectory, "client-graph.js"), this.getClientGraph());
 
     File stepsDirectory = new File(experimentDirectory, "/Steps");
-    for (Step step : this.steps) {
+    for (Step step : this.getSteps()) {
       FileUtils.writeStringToFile(new File(stepsDirectory, step.name.concat(".groovy")), step.source);
     }
 
     File contentDirectory = new File(experimentDirectory, "/Content");
-    for (Content c : this.content) {
+    for (Content c : this.getContent()) {
       // Write to a subdirectory based on the language of the Content or 'en' if language is undefined
       for (Translation t : c.translations) {
         String language = (t.language == null) ? "en" : t.language.code;
@@ -321,12 +345,12 @@ public class Experiment extends Model {
     String ls = System.getProperty("line.separator");
     File parametersFile = new File(experimentDirectory, "parameters.csv");
     FileUtils.writeStringToFile(parametersFile, "Name,Type,Min.,Max.,Default,Short Description" + ls);
-    for (Parameter param : this.parameters) {
+    for (Parameter param : this.getParameters()) {
       FileUtils.writeStringToFile(parametersFile, param.name + "," + param.type + "," + param.minVal + "," + param.maxVal + "," + param.defaultVal + "," + param.description + ls, true);
     }
 
     File imagesDirectory = new File(experimentDirectory, "/Images");
-    for (Image image : this.images) {
+    for (Image image : this.getImages()) {
       FileUtils.writeByteArrayToFile(new File(imagesDirectory, image.fileName), image.file);
     }
   }
@@ -530,7 +554,7 @@ public class Experiment extends Model {
     experiment.put("id", id);
     experiment.put("name", name);
     experiment.put("uid", uid);
-    experiment.put("fileMode", this.fileMode);
+    experiment.put("fileMode", fileMode);
 
     ArrayNode jsonSteps = experiment.putArray("steps");
     for (Step s : getSteps()) {
@@ -560,7 +584,7 @@ public class Experiment extends Model {
     }
 
     ArrayNode jsonImages = experiment.putArray("images");
-    for (Image i : images) {
+    for (Image i : getImages()) {
       jsonImages.add(i.toJson());
     }
 

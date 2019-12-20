@@ -205,7 +205,6 @@ public class ExperimentController extends Controller {
     try(ZipOutputStream zos = new ZipOutputStream(outputStream)) {
       ZipEntry e;
 
-      // TODO: Write the version based on the build version
       ObjectNode dotBreadboard = Json.newObject();
       String version = play.Play.application().configuration().getString("application.version");
       dotBreadboard.put("version", version);
@@ -220,17 +219,17 @@ public class ExperimentController extends Controller {
       // Client style/html/graph
       e = new ZipEntry("style.css");
       zos.putNextEntry(e);
-      zos.write(experiment.style.getBytes());
+      zos.write(experiment.getStyle().getBytes());
       zos.closeEntry();
 
       e = new ZipEntry("client-html.html");
       zos.putNextEntry(e);
-      zos.write(experiment.clientHtml.getBytes());
+      zos.write(experiment.getClientHtml().getBytes());
       zos.closeEntry();
 
       e = new ZipEntry("client-graph.js");
       zos.putNextEntry(e);
-      zos.write(experiment.clientGraph.getBytes());
+      zos.write(experiment.getClientGraph().getBytes());
       zos.closeEntry();
 
       // Steps
@@ -242,7 +241,7 @@ public class ExperimentController extends Controller {
       }
 
       // Content in language subfolders
-      for (Content c : experiment.content){
+      for (Content c : experiment.getContent()){
         for(Translation t : c.translations){
           String language = (t.language == null || t.language.getCode() == null) ? user.defaultLanguage.getCode(): t.language.getCode();
           e = new ZipEntry("Content/" + language + "/" + c.name.concat(".html"));
@@ -259,7 +258,7 @@ public class ExperimentController extends Controller {
       zos.closeEntry();
 
       // Write image files to stream
-      for (Image image : experiment.images) {
+      for (Image image : experiment.getImages()) {
         e = new ZipEntry("Images/" + image.fileName);
         zos.putNextEntry(e);
         zos.write(image.file);
@@ -299,6 +298,7 @@ public class ExperimentController extends Controller {
       experiment.removeSteps();
       experiment.removeContent();
       experiment.removeParameters();
+      experiment.removeImages();
     }
     experiment.setClientGraph(FileUtils.readFileToString(new File(directory, "client-graph.js")));
     experiment.setClientHtml(FileUtils.readFileToString(new File(directory, "client-html.html")));
@@ -306,6 +306,7 @@ public class ExperimentController extends Controller {
     importParameters(experiment, new File(directory, "parameters.csv"));
     importSteps(experiment, new File(directory, "/Steps"));
     importContent(experiment, new File(directory, "/Content"));
+    importImages(experiment, new File(directory, "/Images"));
     experiment.save();
     return experiment.id;
   }
@@ -352,7 +353,7 @@ public class ExperimentController extends Controller {
     FileUtils.writeStringToFile(new File(directory, "parameters.csv"), experiment.parametersToCsv());
 
     File imagesDirectory = new File(directory, "Images");
-    for (Image image : experiment.images) {
+    for (Image image : experiment.getImages()) {
       FileUtils.writeByteArrayToFile(new File(imagesDirectory, image.fileName), image.file);
     }
   }
@@ -597,8 +598,14 @@ public class ExperimentController extends Controller {
    * @param directory
    * @throws IOException
    */
-  private static void importImages(Experiment experiment, File directory) throws IOException{
+  private static void importImages(Experiment experiment, File directory) throws IOException {
+    ArrayList<Image> images = getImagesFromDirectory(directory);
+    experiment.images.addAll(images);
+    experiment.save();
+  }
 
+  public static ArrayList<Image> getImagesFromDirectory(File directory) throws IOException {
+    ArrayList<Image> returnImages = new ArrayList<>();
     File[] imageFiles = directory.listFiles();
     if (imageFiles != null) {
       for (File imageFile : imageFiles) {
@@ -614,14 +621,14 @@ public class ExperimentController extends Controller {
           if(extension.equals("svg")){
             image.contentType += "+xml";
           }
-          experiment.images.add(image);
+          returnImages.add(image);
           Logger.debug("Adding image: " + imageName);
         } else {
           Logger.debug("Skipping file of unsupported type: " + imageName);
         }
       }
     }
-
+    return returnImages;
   }
 
   private static void importParameters(Experiment experiment, File file) throws IOException {

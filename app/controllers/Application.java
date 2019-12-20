@@ -1,17 +1,13 @@
 package controllers;
 
 import models.*;
-import org.apache.commons.io.FileUtils;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.io.FilenameUtils;
 import org.mindrot.jbcrypt.BCrypt;
 import play.Logger;
 import play.data.Form;
 import play.libs.Json;
 import play.mvc.*;
-import play.mvc.Http.MultipartFormData;
-import play.mvc.Http.MultipartFormData.FilePart;
 import views.html.*;
 import java.io.*;
 import java.text.SimpleDateFormat;
@@ -116,95 +112,7 @@ public class Application extends Controller {
     result.put("juid", session("juid"));
     result.put("email", session("email"));
     result.put("connectSocket", play.Play.application().configuration().getString("breadboard.wsUrl"));
-    result.put("imageUploadRoute", routes.Application.uploadImage().toString());
     return ok(result);
-  }
-
-  @Security.Authenticated(Secured.class)
-  public static Result uploadImage() {
-    MultipartFormData body = request().body().asMultipartFormData();
-    FilePart picture = body.getFile("picture");
-    if (picture != null) {
-      String fileName = picture.getFilename();
-      String contentType = picture.getContentType();
-      File file = picture.getFile();
-
-      Map<String, String[]> values = body.asFormUrlEncoded();
-
-      try {
-        String experimentId = values.get("experimentId")[0];
-        Long eid = Long.parseLong(experimentId);
-        Experiment experiment = Experiment.findById(eid);
-        Image image = new Image();
-        String uniqueFileName = fileName;
-        // If there is already an Image with the same filename, append a "-2" to the filename
-        int appendNumber = 2;
-        while (Image.find.where().eq("experiment_id", experimentId).eq("file_name", uniqueFileName).findRowCount() > 0) {
-          uniqueFileName = FilenameUtils.removeExtension(fileName) + "-" + appendNumber + "." + FilenameUtils.getExtension(fileName);
-          appendNumber++;
-        }
-        image.fileName = uniqueFileName;
-        image.file = FileUtils.readFileToByteArray(file);
-        image.contentType = contentType;
-        experiment.images.add(image);
-        experiment.save();
-      } catch (NullPointerException npe) {
-        Logger.error("IOException in uploadImage(): " + npe.getMessage());
-        return ok("Error uploading");
-      } catch (NumberFormatException nfe) {
-        Logger.error("IOException in uploadImage(): " + nfe.getMessage());
-        return ok("Error uploading");
-      } catch (IOException ioe) {
-        Logger.error("IOException in uploadImage(): " + ioe.getMessage());
-        return ok("Error uploading");
-      }
-      return ok("File uploaded");
-    } else {
-      return ok("Error uploading");
-    }
-  }
-
-  public static Result getImage(Long imageId) {
-    Image image = Image.findById(imageId);
-
-    if (image != null) {
-      if (image.contentType != null && image.file != null) {
-        response().setContentType(image.contentType);
-        return ok(image.file);
-      }
-    }
-
-    return notFound();
-  }
-
-  public static Result getImageByFileName(Long experimentId, String fileName) {
-    Image image = Image.find.where()
-        .eq("experiment_id", experimentId)
-        .eq("file_name", fileName)
-        .setMaxRows(1)
-        .findUnique();
-
-    if (image != null) {
-      if (image.contentType != null && image.file != null) {
-        response().setContentType(image.contentType);
-        return ok(image.file);
-      }
-    }
-
-    return notFound();
-  }
-
-  public static Result getImageThumb(Long imageId) {
-    Image image = Image.findById(imageId);
-
-    if (image != null) {
-      if (image.contentType != null && image.thumbFile != null && image.thumbFile.length > 0) {
-        response().setContentType(image.contentType);
-        return ok(image.thumbFile);
-      }
-    }
-
-    return notFound();
   }
 
   @Security.Authenticated(Secured.class)
