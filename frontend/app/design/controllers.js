@@ -403,10 +403,13 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   var sendScript = function () {
-    //console.log("sendScript sending: " + $scope.breadboard.user.currentScript);
-    var script = $scope.breadboard.user.currentScript;
-    if (window.getSelection && window.getSelection().toString().length > 0) {
-      script = window.getSelection().toString();
+    let script = $scope.breadboard.user.currentScript;
+
+    let codeMirrorInstances = document.getElementById('scriptDiv').getElementsByClassName('CodeMirror');
+    let cm = codeMirrorInstances[0].CodeMirror;
+    let selection = cm.getSelection();
+    if (selection.length > 0) {
+      script = selection;
     }
     $breadboardFactory.send(
       {
