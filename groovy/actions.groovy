@@ -181,8 +181,14 @@ class PlayerActions {
       setIdleTimer(playerAction)
 
       for (HashMap c : choices) {
-        if (choices.result == null)
-          return;
+        // If result is not provided, default to empty closure
+        def result = {}
+        if (c.result) {
+          result = c.result
+        } else if (c.results) {
+          // Let's accept both result and results
+          result = c.results
+        }
 
         def choiceMap = [:]
 
@@ -199,7 +205,7 @@ class PlayerActions {
 
         // UUID
         String uuid = UUID.randomUUID().toString()
-        playerAction.putResult(uuid, c.result)
+        playerAction.putResult(uuid, result)
         playerAction.putName(uuid, choiceMap.name)
         if (c.event) {
           playerAction.putEvent(uuid, c.event);
