@@ -30,7 +30,11 @@ export class Socket extends Emitter {
     console.log('socket.connect')
     this.state = SocketState.PENDING
     this.emit('connect')
-    this.socket = new WebSocket(this.url, this.protocols)
+    if (this.protocols) {
+      this.socket = new WebSocket(this.url, this.protocols)
+    } else {
+      this.socket = new WebSocket(this.url)
+    }
     this.socket.onclose = this.onClose.bind(this)
     this.socket.onerror = this.onError.bind(this)
     this.socket.onmessage = this.onMessage.bind(this)
