@@ -141,7 +141,8 @@ public class ScriptBoard extends UntypedActor {
       "/test.groovy",
       "/events.groovy",
       "/chat.groovy",
-      "/tutorial.groovy"
+      "/tutorial.groovy",
+      "/form.groovy"
     };
 
     // Load Groovy scripts
