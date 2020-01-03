@@ -81,7 +81,7 @@ public class Application extends Controller {
       User user = User.findByEmail(email);
 
       if (user != null) {
-        Logger.info("authenticate: uid = " + uid);
+        Logger.debug("authenticate: uid = " + uid);
         user.uid = uid;
         user.update();
         result = Json.newObject();

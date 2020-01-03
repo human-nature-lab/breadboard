@@ -23,12 +23,12 @@ public class ClientLogin extends Controller {
     public String connectionSpeed;
 
     public String validate() {
-      Logger.info("validating experimentId: " + experimentId);
-      Logger.info("validating experimentInstanceId: " + experimentInstanceId);
-      Logger.info("validating hitId: " + hitId);
-      Logger.info("validating assignmentId: " + assignmentId);
-      Logger.info("validating workerId: " + workerId);
-      Logger.info("validating connectionSpeed: " + connectionSpeed);
+      Logger.debug("validating experimentId: " + experimentId);
+      Logger.debug("validating experimentInstanceId: " + experimentInstanceId);
+      Logger.debug("validating hitId: " + hitId);
+      Logger.debug("validating assignmentId: " + assignmentId);
+      Logger.debug("validating workerId: " + workerId);
+      Logger.debug("validating connectionSpeed: " + connectionSpeed);
       // TODO: save hitId with ExperimentInstance when creating it, then validate here.
       return null;
     }
@@ -136,16 +136,16 @@ public class ClientLogin extends Controller {
     }
 
     if (loginForm.hasErrors()) {
-      Logger.info("loginForm.hasErrors()");
+      Logger.debug("loginForm.hasErrors()");
       return badRequest(amtClientLogin.render(Experiment.findById(experimentId), experimentInstance, hitId, assignmentId, workerId, Form.form(AMTLogin.class)));
     } else {
       // If the game has already started, they can't join.
       if (Boolean.TRUE.equals(ExperimentInstance.findById(experimentInstanceId).hasStarted) && (workerId == null || (!amtHit.hasWorker(workerId)))) {
-        Logger.info("Got to amtAuthenticate -> amtGameStarted, workerId = " + workerId + ", AMTWorker.countByWorkerId(workerId) = " + AMTWorker.countByWorkerId(workerId));
+        Logger.debug("Got to amtAuthenticate -> amtGameStarted, workerId = " + workerId + ", AMTWorker.countByWorkerId(workerId) = " + AMTWorker.countByWorkerId(workerId));
         return ok(amtGameStarted.render());
       }
 
-      Logger.info("! loginForm.hasErrors()");
+      Logger.debug("! loginForm.hasErrors()");
       String clientId = assignmentId;
       if (!amtHit.hasWorker(workerId)) {
         AMTWorker amtWorker = new AMTWorker();
@@ -161,10 +161,10 @@ public class ClientLogin extends Controller {
     Form<CLogin> loginForm = Form.form(CLogin.class).bindFromRequest();
 
     if (loginForm.hasErrors()) {
-      Logger.info("loginForm.hasErrors()");
+      Logger.debug("loginForm.hasErrors()");
       return badRequest(clientLogin.render(experimentId, experimentInstanceId, loginForm));
     } else {
-      Logger.info("! loginForm.hasErrors()");
+      Logger.debug("! loginForm.hasErrors()");
       String clientId = loginForm.get().id;
       return redirect(routes.ClientController.index(experimentId, experimentInstanceId, clientId, null));
     }
