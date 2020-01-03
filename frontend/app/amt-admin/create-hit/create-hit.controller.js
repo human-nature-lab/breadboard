@@ -1,19 +1,10 @@
 function CreateHitCtrl($scope, CreateHitSrv) {
-  $scope.disallowPrevious = (window.localStorage.getItem('createHitDisallowPrevious')) ? window.localStorage.getItem('createHitDisallowPrevious') : 'type';
-  $scope.tutorialTime = (window.localStorage.getItem('createHitTutorialTime')) ? Number(window.localStorage.getItem('createHitTutorialTime')) : 300;
-  $scope.lifetime = (window.localStorage.getItem('createHitLifetime')) ? Number(window.localStorage.getItem('createHitLifetime')) : 300;
-  $scope.assignmentDuration = (window.localStorage.getItem('createHitAssignmentDuration')) ? Number(window.localStorage.getItem('createHitAssignmentDuration')) : 5400;
-  $scope.keywords = (window.localStorage.getItem('createHitKeywords')) ? window.localStorage.getItem('createHitKeywords') : '';
-  $scope.maxAssignments = (window.localStorage.getItem('createHitMaxAssignments')) ? Number(window.localStorage.getItem('createHitMaxAssignments')) : 20;
-  $scope.reward = (window.localStorage.getItem('createHitReward')) ? Number(window.localStorage.getItem('createHitReward')) : 1;
-  $scope.description = (window.localStorage.getItem('createHitDescription')) ? window.localStorage.getItem('createHitDescription') : '';
-  $scope.title = (window.localStorage.getItem('createHitTitle')) ? window.localStorage.getItem('createHitTitle') : '';
-  $scope.autoLaunch = (window.localStorage.getItem('createHitAutoLaunch')) ? (window.localStorage.getItem('createHitAutoLaunch') === 'true') : true;
+  setDefaultValues();
   $scope.status = 0; // 0: Show form, 1: Submitting, 2: Successful, 3: Error
   $scope.error = '';
-  $scope.qualificationRequirements = (window.localStorage.getItem('createHitQualificationRequirements')) ? JSON.parse(window.localStorage.getItem('createHitQualificationRequirements')) : [];
 
   $scope.createHIT = createHIT;
+  $scope.clearForm = clearForm;
 
   $scope.$watch('experimentInstance', function(experimentInstance, oldExperimentInstance) {
     if (!experimentInstance) {
@@ -29,6 +20,20 @@ function CreateHitCtrl($scope, CreateHitSrv) {
       }
     }
   }, true);
+
+  function setDefaultValues() {
+    $scope.disallowPrevious = (window.localStorage.getItem('createHitDisallowPrevious')) ? window.localStorage.getItem('createHitDisallowPrevious') : 'type';
+    $scope.tutorialTime = (window.localStorage.getItem('createHitTutorialTime')) ? Number(window.localStorage.getItem('createHitTutorialTime')) : 300;
+    $scope.lifetime = (window.localStorage.getItem('createHitLifetime')) ? Number(window.localStorage.getItem('createHitLifetime')) : 300;
+    $scope.assignmentDuration = (window.localStorage.getItem('createHitAssignmentDuration')) ? Number(window.localStorage.getItem('createHitAssignmentDuration')) : 5400;
+    $scope.keywords = (window.localStorage.getItem('createHitKeywords')) ? window.localStorage.getItem('createHitKeywords') : '';
+    $scope.maxAssignments = (window.localStorage.getItem('createHitMaxAssignments')) ? Number(window.localStorage.getItem('createHitMaxAssignments')) : 20;
+    $scope.reward = (window.localStorage.getItem('createHitReward')) ? Number(window.localStorage.getItem('createHitReward')) : 1;
+    $scope.description = (window.localStorage.getItem('createHitDescription')) ? window.localStorage.getItem('createHitDescription') : '';
+    $scope.title = (window.localStorage.getItem('createHitTitle')) ? window.localStorage.getItem('createHitTitle') : '';
+    $scope.autoLaunch = (window.localStorage.getItem('createHitAutoLaunch')) ? (window.localStorage.getItem('createHitAutoLaunch') === 'true') : true;
+    $scope.qualificationRequirements = (window.localStorage.getItem('createHitQualificationRequirements')) ? JSON.parse(window.localStorage.getItem('createHitQualificationRequirements')) : [];
+  }
 
   function createHIT() {
     if ($scope.sandbox || confirm("Are you sure you want to post this HIT to AMT?")) {
@@ -76,7 +81,23 @@ function CreateHitCtrl($scope, CreateHitSrv) {
     window.localStorage.setItem('createHitQualificationRequirements', JSON.stringify($scope.qualificationRequirements));
     window.localStorage.setItem('createHitAutoLaunch', $scope.autoLaunch);
   }
+
+  function clearForm() {
+    window.localStorage.removeItem('createHitTitle');
+    window.localStorage.removeItem('createHitDescription');
+    window.localStorage.removeItem('createHitReward');
+    window.localStorage.removeItem('createHitMaxAssignments');
+    window.localStorage.removeItem('createHitLifetime');
+    window.localStorage.removeItem('createHitTutorialTime');
+    window.localStorage.removeItem('createHitAssignmentDuration');
+    window.localStorage.removeItem('createHitKeywords');
+    window.localStorage.removeItem('createHitDisallowPrevious');
+    window.localStorage.removeItem('createHitQualificationRequirements');
+    window.localStorage.removeItem('createHitAutoLaunch');
+    setDefaultValues();
+  }
 }
+
 
 CreateHitCtrl.$inject = ['$scope', 'CreateHitSrv'];
 
