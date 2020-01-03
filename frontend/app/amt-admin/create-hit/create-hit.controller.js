@@ -31,34 +31,36 @@ function CreateHitCtrl($scope, CreateHitSrv) {
   }, true);
 
   function createHIT() {
-    $scope.status = 1;
-    CreateHitSrv.createHIT(
-      $scope.title,
-      $scope.description,
-      $scope.reward,
-      $scope.maxAssignments,
-      $scope.lifetime,
-      $scope.tutorialTime,
-      $scope.assignmentDuration,
-      $scope.keywords,
-      $scope.disallowPrevious,
-      $scope.experiment.id,
-      $scope.experimentInstance.id,
-      $scope.qualificationRequirements,
-      $scope.sandbox)
-      .then(function (amtHit) {
-          $scope.status = 2;
-          if ($scope.autoLaunch) {
-            $scope.onCreateHit()($scope.lifetime, $scope.tutorialTime);
-          } else {
-            $scope.experimentInstance.hits.push(amtHit.data);
-          }
-          saveFormToLocalStorage();
-        },
-        function(error) {
-          $scope.status = 3;
-          $scope.error = error.data;
-        });
+    if ($scope.sandbox || confirm("Are you sure you want to post this HIT to AMT?")) {
+      $scope.status = 1;
+      CreateHitSrv.createHIT(
+        $scope.title,
+        $scope.description,
+        $scope.reward,
+        $scope.maxAssignments,
+        $scope.lifetime,
+        $scope.tutorialTime,
+        $scope.assignmentDuration,
+        $scope.keywords,
+        $scope.disallowPrevious,
+        $scope.experiment.id,
+        $scope.experimentInstance.id,
+        $scope.qualificationRequirements,
+        $scope.sandbox)
+        .then(function (amtHit) {
+            $scope.status = 2;
+            if ($scope.autoLaunch) {
+              $scope.onCreateHit()($scope.lifetime, $scope.tutorialTime);
+            } else {
+              $scope.experimentInstance.hits.push(amtHit.data);
+            }
+            saveFormToLocalStorage();
+          },
+          function(error) {
+            $scope.status = 3;
+            $scope.error = error.data;
+          });
+    }
   }
 
   function saveFormToLocalStorage() {
