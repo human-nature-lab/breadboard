@@ -45,3 +45,7 @@ a {
 .dropdown.form-control-static.language{
     position: relative;
 }
+
+nav.navbar {
+    font-size: 0.9em;
+}

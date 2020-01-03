@@ -1,13 +1,17 @@
 .text-transparent {
-    opacity: 0;
+  opacity: 0;
 }
 
 a {
-    cursor:pointer;
+  cursor:pointer;
 }
 
 .btn-xxs {
-    font-size: 10px;
-    line-height: 1;
-    padding: 1px 5px;
+  font-size: 10px;
+  line-height: 1;
+  padding: 1px 5px;
+}
+
+ul.nav.nav-tabs {
+  font-size: 0.9em;
 }

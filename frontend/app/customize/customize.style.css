@@ -1,3 +1,7 @@
 .text-transparent {
-    opacity: 0;
+  opacity: 0;
+}
+
+ul.nav.nav-tabs {
+  font-size: 0.9em;
 }
