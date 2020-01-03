@@ -461,7 +461,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.downloadEventCsv = function (experimentInstance) {
     csvService.getInstanceData(experimentInstance.id)
       .then(function(success) {
-          let filename = experimentInstance.name + '.csv';
+          let filename = experimentInstance.name + '_' + experimentInstance.id + '.csv';
           let blob = new Blob([success.data], {type: 'text/csv'});
 
           if (window.navigator && window.navigator.msSaveOrOpenBlob) {
