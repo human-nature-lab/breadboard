@@ -210,7 +210,7 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
   async loadVueDependencies (opts: VueLoadOpts = {}) {
     opts = Object.assign({
       vueVersion: '2.6.10',
-      vuetifyVersion: '2.1.9',
+      vuetifyVersion: '2.2.1',
       mdiVersion: '4.5.95',
       useDev: false
     }, opts)

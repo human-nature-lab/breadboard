@@ -45,7 +45,6 @@ export class Socket extends Emitter {
    * Put the socket into a closing state
    */
   public close () {
-    console.log('socket.close')
     if (this.state !== SocketState.CLOSING && this.state !== SocketState.CLOSED) {
       this.socket.close()
       this.state = SocketState.CLOSING
@@ -57,7 +56,6 @@ export class Socket extends Emitter {
    * Flush the messages buffer
    */
   private flush () {
-    console.log('socket.flush')
     if (this.socket.readyState !== WebSocket.OPEN) return
     for (const message of this.buffer) {
       this._send(message)
@@ -70,7 +68,6 @@ export class Socket extends Emitter {
    * @param message 
    */
   private _send (message: any) {
-    console.log('socket._send', message)
     this.socket.send(message)
   }
 
@@ -98,9 +95,7 @@ export class Socket extends Emitter {
    * Handle the WebSocket.onopen event internally
    */
   private onOpen () {
-    console.log('socket.onOpen')
     this.state = SocketState.OPEN
-    this.nTries = 1
     this.emit('open')
     this.flush()
   }
@@ -110,7 +105,6 @@ export class Socket extends Emitter {
    * @param data 
    */
   private onMessage (ev: MessageEvent) {
-    console.log('socket.onMessage', ev)
     this.emit('message', ev.data, ev)
   }
 
@@ -119,19 +113,18 @@ export class Socket extends Emitter {
    * @param event
    */
   private onError (event: Event) {
-    console.log('socket.onError', event)
     this.emit('error', event)
     console.error(event)
   }
 
   /**
-   * Handel the WebSocket.onclose event internally
+   * Handle the WebSocket.onclose event internally
    */
   private onClose () {
-    console.log('socket.onClose')
     if (this.state !== SocketState.CLOSING) {
       this.nTries++
-      const wait = clamp(this.nTries * 2000 + randomInt(1000, 5000), 1000, this.maxWait)
+      // Exponential back-off w/ randomness to make it easier for the server to come back online w/out a huge, immediate traffic spike
+      const wait = clamp(this.nTries * 2000 + randomInt(500, 1500), 1000, this.maxWait)
       console.debug(`Connection closed. Retrying in ${wait}ms....`)
       setTimeout(this.connect, wait)
     }
