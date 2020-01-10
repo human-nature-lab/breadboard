@@ -20,5 +20,19 @@ html
   flex-shrink: 0
 .m-auto
   margin: auto
-.pb-2
-  padding-bottom: 1.3em
+
+$sizes: (1: 1em, 2: 1.3em, 4: 1.6em, 6: 1.8em, 8: 2em)
+$dirs: ("t": "-top", "b": "-bottom", "r": "-right", "l": "-left")
+$types: ("p": "padding", "m": "margin")
+
+@each $n, $size in $sizes
+  @each $t, $type in $types
+    .#{$t}y-#{$n}
+      #{$type}-top: $size
+      #{$type}-bottom: $size
+    .#{$t}x-#{$n}
+      #{$type}-left: $size
+      #{$type}-right: $size
+    @each $d, $dir in $dirs
+      .#{$t}#{$d}-#{$n}
+        #{$type}-#{$dir}: $size

@@ -1,53 +1,97 @@
 <template>
   <v-flex v-if="block">
-    <v-layout column>
-      <v-flex>
-        {{block.content}}
-      </v-flex>
-      <table class="w-full padded">
+    <HtmlBLock :block="block" />
+    <v-input :errorMessages="errorMessages">
+      <v-simple-table class="w-full padded">
         <tr>
           <th></th>
-          <th v-for="rank in block.scale" :key="rank.value" class="centered">
-            {{rank.content}}
+          <th v-for="choice in block.choices" :key="choice.value" class="centered">
+            {{choice.content}}
           </th>
         </tr>
         <RadioRow 
-          v-for="(question, index) in block.questions" 
-          :key="index" 
+          v-for="(question, index) in block.items" 
+          :key="index"
           :label="question.content"
           :options="options"
-          v-model="values[index]"
-          />
-      </table>
-    </v-layout>
+          :value="value[index]"
+          :disabled="disabled"
+          @input="updateVal(index, $event)" />
+      </v-simple-table>
+    </v-input>
+    
   </v-flex>
 </template>
 
 <script lang="ts">
   import Vue from 'vue'
-  import { ScaleQuestion } from '../form.types'
+  import HtmlBLock from './HtmlBlock.vue'
+  import { ScaleQuestion, QuestionResult, KeyLabel, Prim } from '../form.types'
+  import { isRequired } from './rules'
 
   export default Vue.extend({
     name: 'ScaleQuestion',
+    components: { HtmlBLock },
     props: {
       block: {
         type: Object as () => ScaleQuestion,
         required: true
+      },
+      disabled: {
+        type: Boolean,
+        default: false
       }
     },
     data () {
       return {
-        values: []
+        prevBlockName: '',
+        isDirty: false,
+        value: [] as (string | number | null)[]
       }
     },
     watch: {
-      'block.questions' () {
-        this.values.length = this.block.questions.length
+      'block.items' (newItems: KeyLabel[]) {
+        this.initValue()
       }
+    },
+    created () {
+      this.initValue()
     },
     computed: {
       options (): string[] {
-        return this.block.scale.map(s => s.value)
+        return this.block.choices.map(s => s.value)
+      },
+      rules (): Function[] {
+        const rules = []
+        if (this.block.isRequired) {
+          rules.push((value: Prim[]) => {
+            return !!value.length && value.filter(v => v !== null).length === this.block.items.length || `${this.block.name} is required.`
+          })
+        }
+        return rules
+      },
+      errorMessages (): string[] {
+        const messages = []
+        for (const rule of this.rules) {
+          const res = rule(this.value)
+          if (res !== true) {
+            messages.push(res)
+          }
+        }
+        return this.isDirty ? messages : []
+      }
+    },
+    methods: {
+      initValue () {
+        if (this.block && this.block.name === this.prevBlockName) return
+        this.isDirty = false
+        this.value = Array.from( { length: this.block.items.length }).fill(null) as null[]
+        this.prevBlockName = this.block.name
+      },
+      updateVal (index: number, value: string) {
+        this.isDirty = true
+        this.$set(this.value, index, this.value[index] !== value ? value : null)
+        this.$emit('update', this.value)
       }
     }
   })
@@ -56,6 +100,6 @@
 <style lang="sass">
   .padded
     padding: 4px 10px
-  .centered
-    text-align: center
+  // .centered
+  //   text-align: center
 </style>

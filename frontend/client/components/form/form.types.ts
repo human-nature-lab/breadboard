@@ -1,9 +1,20 @@
 export enum BlockType {
-  MULTIPLE_SELECT = 'MULTIPLE_SELECT',
-  MULTIPLE_CHOICE = 'MULTIPLE_CHOICE',
+  CHOICE = 'CHOICE',
   HTML = 'HTML',
   TEXT = 'TEXT',
   SCALE = 'SCALE'
+}
+
+export type Prim = string | number | boolean | null
+
+export interface FormError {
+  error: string
+}
+
+export interface QuestionResult<T> {
+  value: T
+  updatedAt: Date
+  createdAt: Date
 }
 
 export interface KeyLabel {
@@ -11,29 +22,31 @@ export interface KeyLabel {
   value: string
 }
 
-export interface ScaleQuestion {
+export interface BaseBlock {
+  type: BlockType
+  isRequired: boolean
+  name: string
+}
+
+export interface ScaleQuestion extends BaseBlock {
   type: BlockType.SCALE
   content: string
-  scale: KeyLabel[]
-  questions: KeyLabel[]
+  choices: KeyLabel[]
+  items: KeyLabel[]
 }
 
-export interface MultipleChoiceQuestion {
-  type: BlockType.MULTIPLE_CHOICE
+export interface ChoiceQuestion extends BaseBlock {
+  type: BlockType.CHOICE
+  multiple?: boolean
   choices: KeyLabel[]
 }
 
-export interface MultipleSelectQuestion {
-  type: BlockType.MULTIPLE_SELECT
-  choices: KeyLabel[]
-}
-
-export interface HtmlQuestion {
+export interface HtmlQuestion extends BaseBlock {
   type: BlockType.HTML
   content: string
 }
 
-type Block = ScaleQuestion | MultipleChoiceQuestion | MultipleSelectQuestion | HtmlQuestion
+type Block = ScaleQuestion | ChoiceQuestion | HtmlQuestion
 
 export interface PlayerForm {
   useStepper: boolean

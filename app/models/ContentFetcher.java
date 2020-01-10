@@ -1,6 +1,7 @@
 package models;
 
 
+import java.util.Map;
 import com.avaje.ebean.Expr;
 import play.Logger;
 
@@ -47,13 +48,23 @@ public class ContentFetcher {
     return "";
   }
 
-  public String get(String name, Object... parameters) {
-    String returnContent = this.get(name);
+  /**
+   * Interpolate numbered curly brackets in a string. Ex: ("These are 3 numbers: {0}, {1}, and {2}", [1, 2, 3]) -> "This is one: 1, 2, and 3"
+   * @param content
+   * @param parameters
+   * @return
+   */
+  public String interpolate (String content, Object[] parameters) {
+    String returnContent = content;
     for (int i = 0; i < parameters.length; i++) {
       returnContent = returnContent.replace("{" + i + "}", parameters[i].toString());
     }
-
     return returnContent;
+  }
+
+  public String get(String name, Object... parameters) {
+    String content = this.get(name);
+    return this.interpolate(content, parameters);
   }
 
   public String getTranslated(String name, String languageCode, Object... parameters) {

@@ -2,8 +2,7 @@ import java.util.Collections
 import java.util.WeakHashMap
 
 enum BlockType {
-  MULTIPLE_SELECT,
-  MULTIPLE_CHOICE,
+  CHOICE,
   HTML,
   TEXT,
   SCALE
@@ -11,67 +10,236 @@ enum BlockType {
   // RANDOM_LOGIC("random_logic")
 }
 
-public class Block {
-  Closure onExit
-  Closure onInit
+enum TextType {
+  TEXT,
+  DECIMAL,
+  INTEGER
 }
 
-public class MultipleSelectQuestion extends Block {
-  BlockType type = BlockType.MULTIPLE_SELECT
-  MultipleSelectQuestion (Map opts) {
+public class FormBase {
 
+  /**
+   * Convert possible types of value / label combinations into a consistent value / content map
+   * Values are passed in one by one and can resemble any of the following:
+   * - just the value such as "2" or "Dog"
+   * - just the value as a map such as [ value: "2" ] or [ value: "Dog" ]
+   * - a value with the content such as [ value: "2", content: "Two" ] or [ value: 1, contentKey: "Dog" ]
+   */
+  private Map mapValueLabel (def val) {
+    if (val in Map) {
+      if (!("content" in val)) {
+        val.content = val.value
+      }
+      return val
+    } else {
+      return [
+        value: val,
+        content: val
+      ]
+    }
+  }
+
+  /**
+   * Get the randomization value if it's defined
+   */
+  private Boolean getRandom (Map opts) {
+    if ("randomize" in opts) {
+      return opts["randomize"]
+    } else {
+      return false
+    }
+  }
+}
+
+FormBase.metaClass.fetchContent = { Map opts ->
+  // TODO: Handle locale property
+  if (!("content" in opts || "contentKey" in opts)) {
+    throw new Exception("Must supply either the 'content' or 'contentKey' property")
+  }
+  String content = opts.get("content") ?: c.get(opts.contentKey)
+  if ("fills" in opts) {
+    content = c.interpolate(content, opts.fills)
+  }
+  return content
+}
+
+/**
+ * Accessible alias for a.addEvent
+ */
+FormBase.metaClass.addEvent = { String name, Map data -> 
+  a.addEvent(name, data)
+}
+
+public class Block extends FormBase {
+  Closure onExit
+  Closure onInit
+  BlockType type
+  Map content = [:] // Used to fetch content later
+
+  Block (Map opts) {
+    content.content = opts.content
+    content.contentKey = opts.contentKey
+    content.fills = opts.fills
+  }
+
+  private String getPlayerContent (Vertex player, Map opts) {
+    // TODO: Handle player locale prop
+    return this.fetchContent(opts)
+  }
+
+  /**
+   * Method for assigning this block to the player. Allows for custom serialization
+   */
+  public Map assignTo (Vertex player) {
+    return [
+      type: this.type,
+      content: this.getPlayerContent(player, this.content)
+    ]
+  }
+}
+
+public class Question extends Block {
+  String name
+  Boolean isRequired = false
+  Question (Map opts) {
+    super(opts)
+    if (!("name" in opts)) {
+      throw new Exception("Questions must have the 'name' property")
+    }
+    this.name = opts.name
+    if ("required" in opts) {
+      this.isRequired = opts.required
+    }
+  }
+
+  public Map assignTo (Vertex player) {
+    Map vals = super.assignTo(player)
+    vals.name = this.name
+    vals.isRequired = this.isRequired
+    return vals
+  }
+
+  public Map formatResult (String form, String playerId, Map result) {
+    return [
+      name: this.name,
+      type: this.type,
+      form: form,
+      player: playerId,
+      value: result.value,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt
+    ]
+  }
+
+  public void saveResult (Map result) {
+    this.addEvent("question-result", result)
   }
 }
 
 public class HTMLBlock extends Block {
-  BlockType type = BlockType.HTML
-  String content
   HTMLBlock (Map opts) {
-    if (!("content" in opts)) {
-      throw Exception("Must supply the content property for an HTMLBlock")
+    super(opts)
+    this.type = BlockType.HTML
+  }
+
+  public Map assignTo (Vertex player) {
+    Map vals = super.assignTo(player)
+    return vals
+  }
+}
+
+public class ChoiceQuestion extends Question {
+  Boolean multiple = false
+  Boolean isRandom
+  def choices = []
+  ChoiceQuestion (Map opts) {
+    super(opts)
+    this.type = BlockType.CHOICE
+    if (!("choices" in opts)) {
+      throw new Exception("Must include 'choices' list when creating a multiple choice question")
     }
-    this.content = opts.content
+
+    if ("multiple" in opts) {
+      this.multiple = opts.multiple
+    }
+
+    this.isRandom = this.getRandom(opts)
+    this.choices = opts.choices.collect{ this.mapValueLabel(it) }
+
+  }
+
+  /**
+   * Mutate the result map before it is stored in the db
+   */
+  public Map formatResult (String form, String playerId, Map res) {
+    def formattedRes = super.formatResult(form, playerId, res)
+    formattedRes.multiple = this.multiple
+    return formattedRes
+  }
+
+  public Map assignTo (Vertex player) {
+    Map vals = super.assignTo(player)
+    vals.multiple = this.multiple
+    vals.choices = this.choices
+    if (this.isRandom) {
+      Collections.shuffle(vals.choices)
+    }
+    return vals
   }
 }
 
-public class MultipleChoiceQuestion extends Block {
-  BlockType type = BlockType.MULTIPLE_CHOICE
-  MultipleChoiceQuestion (Map opts) {
-
-  }
-}
-
-public class TextQuestion extends Block {
-  BlockType type = BlockType.TEXT
-  String content
+public class TextQuestion extends Question {
+  
   TextQuestion (Map opts) {
-    this.content = opts.content
+    super(opts)
+    this.type = BlockType.TEXT
   }
+
+  public Map assignTo (Vertex player) {
+    Map vals = super.assignTo(player)
+    return vals
+  }
+
 }
 
-public class ScaleQuestion extends Block {
-  BlockType type = BlockType.SCALE
-  def questions = []
-  def scale = []
-  String content
+public class ScaleQuestion extends Question {
+  
+  def items = []
+  def choices = []
+  Boolean isRandom
   ScaleQuestion (Map opts) {
-    this.content = opts.content
-    this.questions = opts.questions
-    this.scale = opts.scale
+    super(opts)
+    this.type = BlockType.SCALE
+    this.items = opts.items.collect{ this.mapValueLabel(it) }
+    this.choices = opts.choices.collect{ this.mapValueLabel(it) }
+    this.isRandom = this.getRandom(opts)
+  }
+
+  public Map assignTo (Vertex player) {
+    Map vals = super.assignTo(player)
+    vals.type = BlockType.SCALE
+    vals.items = this.items
+    vals.choices = this.choices
+    if (this.isRandom) {
+      Collections.shuffle(vals.items)
+    }
+    return vals
   }
 }
 
-public class PageSection {
+public class PageSection extends FormBase {
   def blocks = []
-  Boolean isStatic = false  // Indicates whether or not this section should be randomized
+  Boolean isRandom = false
 
   PageSection () {}
   PageSection (Map opts) {
-    if ("static" in opts) {
-      this.isStatic = opts.static
-    }
+    this.isRandom = this.getRandom(opts)
     if ("blocks" in opts) {
       opts.blocks.each{
+        this.addBlock(it)
+      }
+    } else if ("questions" in opts) {
+      opts.questions.each{
         this.addBlock(it)
       }
     }
@@ -95,11 +263,8 @@ public class PageSection {
     Block block
     BlockType type = blockDesc.type.toUpperCase() as BlockType
     switch (type) {
-      case BlockType.MULTIPLE_SELECT:
-        block = new MultipleSelectQuestion(blockDesc)
-        break
-      case BlockType.MULTIPLE_CHOICE:
-        block = new MultipleChoiceQuestion(blockDesc)
+      case BlockType.CHOICE:
+        block = new ChoiceQuestion(blockDesc)
         break
       case BlockType.TEXT:
         block = new TextQuestion(blockDesc)
@@ -115,23 +280,24 @@ public class PageSection {
     return this
   }
 
-  /**
-   * Rearrange the blocks in this section
-   */
-  public randomize () {
-    if (this.isStatic) {
-      return
+  public Map assignTo (Vertex player) {
+    def blocks = this.blocks.collect{ it.assignTo(player) }
+    if (this.isRandom) {
+      Collections.shuffle(blocks)
     }
-    Collections.shuffle(this.blocks)
+    return [
+      blocks: blocks
+    ]
   }
 
 }
 
-public class Page {
+public class Page extends FormBase {
   def sections = []
   String title
-  String description
-  Boolean isStatic = true
+  Boolean isRandom
+  Closure onExit
+  Closure onEnter
 
   Page () {}
   /**
@@ -143,18 +309,22 @@ public class Page {
    * @param {Closure} [opts.onEnter] - Closure which is called each time this page is entered by a player.
    */
   Page (Map opts) {
-    if ("blocks" in opts) {
-      this.addSection([
-        blocks: opts.blocks
-      ])
+    if ("blocks" in opts || "questions" in opts) {
+      this.addSection(opts)
     } else if ("sections" in opts) {
       opts.sections.each{
+        this.addSection(it)
+      }
+    } else if ("groups" in opts) {
+      opts.groups.each{
         this.addSection(it)
       }
     }
     if ("title" in opts) {
       this.title = opts.title
     }
+
+    this.isRandom = this.getRandom(opts)
     // TODO: Handle other options
   }
 
@@ -170,24 +340,93 @@ public class Page {
   public addSection (Map sectionDesc) {
     return this.addSection(new PageSection(sectionDesc))
   }
- 
-  public randomize () {
-    this.sections.each{ it.randomize() }
+
+  /**
+   * Validate the results for this page
+   */
+  public Boolean validate (Map results) {
+    for (def section : this.sections) {
+      for (def block : section.blocks) {
+        // Filter out blocks that don't require responses responses
+        if (block instanceof HTMLBlock) continue
+
+        def result = results[block.name]
+        if (block.isRequired && (!result || result.value == null)) {
+          return false
+        } else if (result && "value" in result && "validate" in block && !block.validate(result.value)) {
+          return false
+        }
+      }
+    }
+    return true
   }
 
+  /**
+   * Store the page results in the DB
+   */
+  public void saveResults (String form, Vertex player, Map results) {
+    for (def section : this.sections) {
+      for (def block : section.blocks) {
+        // Filter out blocks that don't require responses responses
+        if (block instanceof HTMLBlock) continue
+        def result = results[block.name]
+        def playerId = player.id
+        if (result && result.value != null) {
+          def res = block.formatResult(form, playerId, result)
+          block.saveResult(res)
+        }
+      }
+    }
+  }
+
+  /**
+   * Perform page exit actions
+   * @param {Vertex} player - The current player
+   * @param {Boolean} isForward - True if we're leaving the page by hitting the next button or "Done"
+   */
+  public exit (Vertex player, Boolean isForward) {
+    if (this.onExit) {
+      this.onExit(player, isForward)
+    }
+  }
+
+  /**
+   * Perform page enter actions
+   * @param {Vertex} player - The current player
+   * @param {Boolean} isForward - True if we're entering the page via the next button (or first entrance of the first page)
+   */
+  public enter (Vertex player, Boolean isForward) {
+    if (this.onEnter) {
+      this.onEnter(player, isForward)
+    }
+    // TODO: When to randomize things?
+  }
+
+  public Map assignTo (Vertex player) {
+    def sections = this.sections.collect{ it.assignTo(player) }
+    if (this.isRandom) {
+      Collections.shuffle(sections)
+    }
+    return [
+      sections: sections
+    ]
+  }
 }
 
 enum FormState {
   PENDING, STARTED, ENDED
 }
 
-public class Form {
+public class Form extends FormBase {
   
   def players = Collections.newSetFromMap(new WeakHashMap<Object, Boolean>()) // Use WeakReferences to players so that they can be garbage collected if removed from the graph
   String name  // The unique key used for this form
   String formsKey = "forms"
-  Boolean useStepper = true
+  Boolean showStepper = true
   Boolean isNonLinear = false
+  Boolean recordResults = true
+  Boolean recordNavigation = false
+  Boolean isRandom
   def pages = []
   def doneClosures = []
   def state = FormState.PENDING
@@ -200,20 +439,27 @@ public class Form {
    */
   Form (Map opts) {
     if (!("name" in opts)) {
-      throw Exception("Form must have a unique name used to identify it")
+      throw new Exception("Form must have a unique name used to identify it")
     }
     this.name = opts.name
     if ("stepper" in opts) {
-      this.useStepper = opts.stepper
+      this.showStepper = opts.stepper
     }
     if ("nonLinear" in opts) {
       this.isNonLinear = opts.nonLinear
     }
+    if ("recordResults" in opts) {
+      this.recordResults = opts.recordResults
+    }
+    if ("recordNav" in opts) {
+      this.recordNavigation = opts.recordNav
+    }
+    this.isRandom = this.getRandom(opts)
   }
 
   public start () {
     if (!this.pages.size()) {
-      println "Add at least one page to the form before starting"
+      throw new Exception("Add at least one page to the form before starting it")
       return
     }
     this.state = FormState.STARTED
@@ -233,16 +479,12 @@ public class Form {
   }
 
   /**
-   * Randomize the order of pages
-   */
-  public randomize (Boolean randomizePageContents) {
-    this.pages.each{ it.randomize() }
-  }
-
-  /**
    * Add a player to this form
    */
   public addPlayer (Vertex player) {
+    // Allow a player to be added to the form multiple times without side-effects
+    if (this.players.contains(player)) return
+    
     this.players.add(player)
     if (this.state == FormState.STARTED) {
       this.startPlayer(player)
@@ -306,42 +548,114 @@ public class Form {
     if (this.name in player.private[this.formsKey]) {
       println "Form " + this.name + " already exists for this player"
     }
+    
+    // Randomize the page order per player
+    def lastIndex = this.pages.size() - 1
+    def pageOrder = (0..lastIndex).toList()
+    if (this.isRandom) {
+      Collections.shuffle(pageOrder)
+    }
+    println player.id + " page order " + pageOrder.toString()
+
     // Create the form state for this player
-    player.private[this.formsKey][this.name] = [
+    def state = [
       location: [
         index: 0,
         size: this.pages.size()
       ],
-      titles: this.pages.collect{ it.title },
+      pages: pageOrder.collect{
+        return [
+          index: it,
+          title: this.pages[it].title
+        ]
+      },
       results: []
     ]
-    this.attachPage(player)
+    player.private[this.formsKey][this.name] = state
+    this.attachPage(player, state)
   }
 
   private getPlayerState (Vertex player) {
     return player.private[this.formsKey][this.name]
   }
 
-  private onPlayerNext (Vertex player, List results) {
+  private onPlayerNext (Vertex player, Map results) {
+
+    if (this.recordNavigation) {
+      this.addEvent("form-next", [
+        form: this.name,
+        player: player.id
+      ])
+    }
+
     def state = this.getPlayerState(player)
-    println player.id + " next"
+    
+    // Run form validators
+    def currentPage = this.getPlayerPage(player, state)
+    if (!currentPage.validate(results)) {
+      return this.sendNavError(player, [
+        error: "Invalid responses"
+      ])
+    }
+
+    if (this.recordResults) {
+      currentPage.saveResults(this.name, player, results)
+    }
+    currentPage.exit(player, true)
+
+    state.location.index++
+    if (state.location.index < this.pages.size()) {
+      def nextPage = this.attachPage(player, state)
+      nextPage.enter(player, true)
+    } else {
+      println "form done " + player.id
+      this.endPlayer(player)
+    }
   }
-  private onPlayerPrev (Vertex player, List results) {
+  private onPlayerPrev (Vertex player, Map results) {
     def state = this.getPlayerState(player)
-    println player.id + " prev"
+    if (this.recordNavigation) {
+      this.addEvent("form-prev", [
+        form: this.name,
+        player: player.id
+      ])
+    }
+    def currentPage = this.getPlayerPage(player, state)
+    currentPage.exit(player, false)
+    if (state.location.index > 0) {
+      state.location.index--
+      def prevPage = this.attachPage(player, state)
+      prevPage.enter(player, false)
+    }
+
   }
-  private onPlayerSeek (Vertex player, List results, Map dest) {
+  private onPlayerSeek (Vertex player, Map results, Map dest) {
     def state = this.getPlayerState(player)
     println player.id + " seek"
   }
 
-  private attachPage (Vertex player) {
-    def state = player.private[this.formsKey][this.name]
-    def page = this.pages[state.location.index]
-    state.page = [
-      title: page.title,
-      description: page.description,
-      sections: page.sections
-    ]
+  /**
+   * Lookup the page based on the players page order then apply that page state.
+   */
+  private Page attachPage (Vertex player, Map state) {
+    def page = this.getPlayerPage(player, state)
+    state.page = page.assignTo(player)
+    return page
+  }
+
+  /**
+   * Get the player's current page even when randomized
+   */
+  private Page getPlayerPage (Vertex player, Map state) {
+    def pageIndex = state.pages[state.location.index].index
+    return this.pages[pageIndex]
+  }
+
+  /**
+   * Let the player know there was a navigation error
+   * @param {Map} err - The error message
+   */
+  private void sendNavError (Vertex player, Map err) {
+    player.send("f-" + this.name + '-e', err)
   }
 }
