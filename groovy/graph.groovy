@@ -44,6 +44,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
           v.onVertexPropertyChanged(v, "private", evt.oldValue, evt.newValue)
         } as PropertyChangeListener)
         vertex.setProperty("private", pvt);
+        vertex.setProperty("_system", [:])
       }
 
       @Override

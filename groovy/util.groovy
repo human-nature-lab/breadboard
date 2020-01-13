@@ -55,3 +55,21 @@ currency = new DecimalFormat('$0.00')
 currency.setRoundingMode(UP)
 
 d = [:] as ObservableMap
+
+final alphaNumeric = (('A'..'Z')+('0'..'9')).join()
+
+/**
+ * Generate a random string from the supplied characters of the given length
+ */
+def randomString (String alphabet, int len) {
+  return new Random().with {
+    (1..len).collect { alphabet[ nextInt( alphabet.length() ) ] }.join()
+  }
+}
+
+/**
+ * Generate a random alphanumeric string of the given length
+ */
+def randomString (int len) {
+  return randomString(alphaNumeric, len)
+}

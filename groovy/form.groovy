@@ -40,7 +40,7 @@ public class FormBase {
   }
 
   /**
-   * Get the randomization value if it's defined
+   * Get the randomization property if it has been provided
    */
   private Boolean getRandom (Map opts) {
     if ("randomize" in opts) {
@@ -469,11 +469,24 @@ public class Form extends FormBase {
     }
   }
 
-  public end () {
-    // TODO: End the form for all players
-    // TODO: Call done closures
+  public clear () {
+    this.players = []
   }
 
+  /**
+   * End the form and perform cleanup for all players
+   */
+  public end () {
+    for (def player: this.players) {
+      this.endPlayer(player)
+    }
+    this.clear()
+  }
+
+  /**
+   * Add a closure to run when the form is completed by a player
+   * @param {Closure<Vertex>} cb - A closure which is passed the player who just completed the form
+   */
   public onDone (Closure cb) {
     this.doneClosures << cb
   }
@@ -520,6 +533,10 @@ public class Form extends FormBase {
    * Ends the form for this player and cleanup resources
    */
   private endPlayer (Vertex player) {
+    // Player must have already been removed
+    if (!(this.formsKey in player.private)) {
+      return
+    }
     // Remove the state information for this form
     player.private[this.formsKey].remove(this.name)
     // If last form, remove forms object
@@ -530,6 +547,10 @@ public class Form extends FormBase {
     player.off("f-" + this.name + "-n")
     player.off("f-" + this.name + "-p")
     player.off("f-" + this.name + "-s")
+
+    for (def cb : this.doneClosures) {
+      cb(player)
+    }
   }
 
   /**
