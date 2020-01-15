@@ -3,8 +3,10 @@ type ArrayLike = { length: number }
 export function isRequired (fieldName: string) {
   const msg = `${fieldName} is required`
   return function (value: any) {
-    if (Array.isArray(value) || typeof value === 'string') {
+    if (typeof value === 'string') {
       return value.length > 0 || msg
+    } else if (Array.isArray(value)) {
+      return value.filter(v => v).length > 0 || msg
     }
     return value !== null && value !== undefined || msg
   }

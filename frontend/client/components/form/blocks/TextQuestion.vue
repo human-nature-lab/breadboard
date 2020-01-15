@@ -4,6 +4,7 @@
     <v-text-field
       :disabled="disabled"
       :required="block.isRequired"
+      :rules="validationRules"
       @change="$emit('update', $event)"
       v-model="content" />
   </v-flex>
@@ -12,6 +13,7 @@
 <script lang="ts">
   import Vue from 'vue'
   import HtmlBlock from './ChoiceQuestion.vue'
+  import { isRequired } from './rules'
 
   export default Vue.extend({
     name: 'TextQuestion',
@@ -29,6 +31,15 @@
     data () {
       return {
         content: ''
+      }
+    },
+    computed: {
+      validationRules (): Function[] {
+        const rules = []
+        if (this.block.isRequired) {
+          rules.push(isRequired(this.block.name))
+        }
+        return rules
       }
     }
   })
