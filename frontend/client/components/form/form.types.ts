@@ -55,8 +55,10 @@ export interface PlayerForm {
     index: number
     size: number
   },
-  titles: string[]
-  results: object[]
+  pages: {
+    index: number
+    title: string
+  }[]
   page: {
     title: string
     sections: {

@@ -1,5 +1,6 @@
 import java.util.Collections
 import java.util.WeakHashMap
+import java.util.HashMap
 
 enum BlockType {
   CHOICE,
@@ -101,6 +102,7 @@ public class Block extends FormBase {
 public class Question extends Block {
   String name
   Boolean isRequired = false
+  def answer
   Question (Map opts) {
     super(opts)
     if (!("name" in opts)) {
@@ -109,6 +111,9 @@ public class Question extends Block {
     this.name = opts.name
     if ("required" in opts) {
       this.isRequired = opts.required
+    }
+    if ("answer" in opts) {
+      this.answer = opts.answer
     }
   }
 
@@ -142,7 +147,7 @@ public class HTMLBlock extends Block {
     this.type = BlockType.HTML
   }
 
-  public Map assignTo (Vertex player) {
+  public Map assignTo (Vertex player, int seed) {
     Map vals = super.assignTo(player)
     return vals
   }
@@ -177,14 +182,22 @@ public class ChoiceQuestion extends Question {
     return formattedRes
   }
 
-  public Map assignTo (Vertex player) {
+  public Map assignTo (Vertex player, int seed) {
     Map vals = super.assignTo(player)
     vals.multiple = this.multiple
     vals.choices = this.choices
     if (this.isRandom) {
-      Collections.shuffle(vals.choices)
+      Collections.shuffle(vals.choices, new Random(seed))
     }
     return vals
+  }
+
+  public Boolean isCorrect (response) {
+    if (this.multiple) {
+      return this.answer.every{ a -> response.contains(a) }
+    } else {
+      return this.answer == response
+    }
   }
 }
 
@@ -195,9 +208,13 @@ public class TextQuestion extends Question {
     this.type = BlockType.TEXT
   }
 
-  public Map assignTo (Vertex player) {
+  public Map assignTo (Vertex player, int seed) {
     Map vals = super.assignTo(player)
     return vals
+  }
+
+  public Boolean isCorrect (val) {
+    return this.answer == val
   }
 
 }
@@ -215,33 +232,43 @@ public class ScaleQuestion extends Question {
     this.isRandom = this.getRandom(opts)
   }
 
-  public Map assignTo (Vertex player) {
+  public Map assignTo (Vertex player, int seed) {
     Map vals = super.assignTo(player)
     vals.type = BlockType.SCALE
     vals.items = this.items
     vals.choices = this.choices
     if (this.isRandom) {
-      Collections.shuffle(vals.items)
+      Collections.shuffle(vals.items, new Random(seed))
     }
     return vals
+  }
+
+  // Check that the answer has every correct value
+  public Boolean isCorrect (List response) {
+    println "Scale.isCorrect"
+    return this.answer.every{ a -> response.contains(a) }
   }
 }
 
 public class PageSection extends FormBase {
   def blocks = []
   Boolean isRandom = false
+  int subset = 0
 
   PageSection () {}
   PageSection (Map opts) {
     this.isRandom = this.getRandom(opts)
     if ("blocks" in opts) {
-      opts.blocks.each{
-        this.addBlock(it)
+      for (int i = 0; i < opts.blocks.size(); i++) {
+        this.addBlock(opts.blocks.getAt(i))
       }
     } else if ("questions" in opts) {
-      opts.questions.each{
-        this.addBlock(it)
+      for (int i = 0; i < opts.questions.size(); i++) {
+        this.addBlock(opts.questions.getAt(i))
       }
+    }
+    if ("subset" in opts) {
+      this.subset = opts.subset
     }
   }
 
@@ -280,16 +307,28 @@ public class PageSection extends FormBase {
     return this
   }
 
-  public Map assignTo (Vertex player) {
-    def blocks = this.blocks.collect{ it.assignTo(player) }
-    if (this.isRandom) {
-      Collections.shuffle(blocks)
+  public Map assignTo (Vertex player, int seed) {
+    def blocks = []
+    this.blocks.eachWithIndex{block, index -> 
+      def b = block.assignTo(player, seed + index)
+      b.index = index
+      blocks << b
+    }
+
+    // Randomization is implied by the subset operation
+    if (this.subset > 0) {
+      blocks = this.randomBlocks(blocks, this.subset, new Random(seed))
+    } else if (this.isRandom) {
+      Collections.shuffle(blocks, new Random(seed))
     }
     return [
       blocks: blocks
     ]
   }
+}
 
+PageSection.metaClass.randomBlocks = { blocks, int n, Random r -> 
+  return randomSubset(blocks, n, r)
 }
 
 public class Page extends FormBase {
@@ -342,15 +381,19 @@ public class Page extends FormBase {
   }
 
   /**
-   * Validate the results for this page
+   * Validate the types of results for this page
    */
-  public Boolean validate (Map results) {
-    for (def section : this.sections) {
-      for (def block : section.blocks) {
-        // Filter out blocks that don't require responses responses
+  public Boolean validate (Map results, Map state) {
+    for (def section : state.page.sections) {
+      def pageSection = this.sections[section.index]
+      for (def blockRep : section.blocks) {
+        def block = pageSection.blocks[blockRep.index]
+
+        // Exclude blocks without data
         if (block instanceof HTMLBlock) continue
 
         def result = results[block.name]
+        println "validating " + block.name + " result " + result
         if (block.isRequired && (!result || result.value == null)) {
           return false
         } else if (result && "value" in result && "validate" in block && !block.validate(result.value)) {
@@ -362,9 +405,9 @@ public class Page extends FormBase {
   }
 
   /**
-   * Store the page results in the DB
+   * Format and store the page results in the DB
    */
-  public void saveResults (String form, Vertex player, Map results) {
+  public saveResults (String form, Vertex player, Map results) {
     for (def section : this.sections) {
       for (def block : section.blocks) {
         // Filter out blocks that don't require responses responses
@@ -399,18 +442,23 @@ public class Page extends FormBase {
     if (this.onEnter) {
       this.onEnter(player, isForward)
     }
-    // TODO: When to randomize things?
   }
 
-  public Map assignTo (Vertex player) {
-    def sections = this.sections.collect{ it.assignTo(player) }
+  public Map assignTo (Vertex player, int seed) {
+    def sections = []
+    this.sections.eachWithIndex{ section, index ->
+      def s = section.assignTo(player, seed + index)
+      s.index = index
+      sections << s
+    }
     if (this.isRandom) {
-      Collections.shuffle(sections)
+      Collections.shuffle(sections, new Random(seed))
     }
     return [
       sections: sections
     ]
   }
+
 }
 
 enum FormState {
@@ -420,6 +468,7 @@ enum FormState {
 public class Form extends FormBase {
   
   def players = Collections.newSetFromMap(new WeakHashMap<Object, Boolean>()) // Use WeakReferences to players so that they can be garbage collected if removed from the graph
+  def playerResults = new HashMap()
   String name  // The unique key used for this form
   String formsKey = "forms"
   Boolean showStepper = true
@@ -427,6 +476,7 @@ public class Form extends FormBase {
   Boolean recordResults = true
   Boolean recordNavigation = false
   Boolean isRandom
+  Random r = new Random()
   def pages = []
   def doneClosures = []
   def state = FormState.PENDING
@@ -457,6 +507,10 @@ public class Form extends FormBase {
     this.isRandom = this.getRandom(opts)
   }
 
+  /**
+   * Start the form. Once this is called, the form will be shown to all added players and any players added
+   * after the form has been started will automatically be shown the form.
+   */
   public start () {
     if (!this.pages.size()) {
       throw new Exception("Add at least one page to the form before starting it")
@@ -469,8 +523,62 @@ public class Form extends FormBase {
     }
   }
 
+  /**
+   * Clear out all players / results for this form
+   */
   public clear () {
-    this.players = []
+    this.players.clear()
+    this.playerResults.clear()
+  }
+
+  /**
+   * This method will calculate the percentage of correct responses for this player
+   * @param {Vertex} player - The player to get the score for
+   */
+  public Map getScore (Vertex player) {
+    def score = [
+      correct: 0,
+      incorrect: 0,
+      total: 0,
+      skipped: 0
+    ]
+    def results = this.playerResults.get(player.id)
+    println player.id + " results: " + results
+    if (results.pages.size() != this.pages.size()) {
+      return score
+    }
+    for (int i = 0; i < this.pages.size(); i++) {
+      def pageResults = results.pages[i]
+      def page = this.pages[i]
+      for (def section : page.sections) {
+        for (def block : section.blocks) {
+          if (block instanceof HTMLBlock) continue
+          if (pageResults[block.name] == null) {
+            score.skipped++
+          } else if (block.answer != null) {
+            if (block.answer instanceof Closure && block.answer(pageResults[block.name])) {
+              score.correct++
+            } else if (block.isCorrect(pageResults[block.name])) {
+              score.correct++
+            } else {
+              score.incorrect++
+            }
+          } else {
+            score.skipped++
+          }
+          score.total++
+        }
+      }
+    }
+    return score
+  }
+
+  /**
+   * Convert a score into a percentage. Takes into account skipped questions.
+   * @param {Map} score - The score returned from the `getScore` method
+   */
+  public Double calculatePercent (Map score) {
+    return score.total - score.skipped == 0 ? 1 : score.correct / (score.total - score.skipped) 
   }
 
   /**
@@ -480,7 +588,6 @@ public class Form extends FormBase {
     for (def player: this.players) {
       this.endPlayer(player)
     }
-    this.clear()
   }
 
   /**
@@ -493,6 +600,7 @@ public class Form extends FormBase {
 
   /**
    * Add a player to this form
+   * @param {Vertex} player - The player to add
    */
   public addPlayer (Vertex player) {
     // Allow a player to be added to the form multiple times without side-effects
@@ -504,6 +612,9 @@ public class Form extends FormBase {
     }
   }
 
+  /**
+   * Add a single page instance
+   */
   public addPage (Page page) {
     this.pages << page
     return page
@@ -529,9 +640,6 @@ public class Form extends FormBase {
     return this
   }
 
-  /**
-   * Ends the form for this player and cleanup resources
-   */
   private endPlayer (Vertex player) {
     // Player must have already been removed
     if (!(this.formsKey in player.private)) {
@@ -576,10 +684,10 @@ public class Form extends FormBase {
     if (this.isRandom) {
       Collections.shuffle(pageOrder)
     }
-    println player.id + " page order " + pageOrder.toString()
 
     // Create the form state for this player
     def state = [
+      seed: this.r.nextInt(),
       location: [
         index: 0,
         size: this.pages.size()
@@ -593,13 +701,28 @@ public class Form extends FormBase {
       results: []
     ]
     player.private[this.formsKey][this.name] = state
+
+    // Create the form results state for this player
+    def playerResults = [
+      pageOrder: pageOrder,
+      pages: []
+    ]
+    this.playerResults[player.id] = playerResults
+
+    // Compute the current page data for this player
     this.attachPage(player, state)
   }
 
+  /**
+   * Alias for accessing the form state for this player
+   */
   private getPlayerState (Vertex player) {
     return player.private[this.formsKey][this.name]
   }
 
+  /**
+   * Closure called when the player presses the next or done buttons
+   */
   private onPlayerNext (Vertex player, Map results) {
 
     if (this.recordNavigation) {
@@ -613,7 +736,7 @@ public class Form extends FormBase {
     
     // Run form validators
     def currentPage = this.getPlayerPage(player, state)
-    if (!currentPage.validate(results)) {
+    if (!currentPage.validate(results, state)) {
       return this.sendNavError(player, [
         error: "Invalid responses"
       ])
@@ -622,6 +745,15 @@ public class Form extends FormBase {
     if (this.recordResults) {
       currentPage.saveResults(this.name, player, results)
     }
+    def playerRes = this.playerResults[player.id]
+    def storeResults = [:]
+    results.each{key, item -> 
+      storeResults[key] = item.value
+    }
+    playerRes.pages[state.pages[state.location.index].index] = storeResults
+
+    println "player results " + playerRes
+
     currentPage.exit(player, true)
 
     state.location.index++
@@ -633,6 +765,10 @@ public class Form extends FormBase {
       this.endPlayer(player)
     }
   }
+
+  /**
+   * Closure called when player presses the previous button
+   */
   private onPlayerPrev (Vertex player, Map results) {
     def state = this.getPlayerState(player)
     if (this.recordNavigation) {
@@ -648,8 +784,11 @@ public class Form extends FormBase {
       def prevPage = this.attachPage(player, state)
       prevPage.enter(player, false)
     }
-
   }
+
+  /**
+   * Closure called when the player seeks to a page
+   */
   private onPlayerSeek (Vertex player, Map results, Map dest) {
     def state = this.getPlayerState(player)
     println player.id + " seek"
@@ -660,7 +799,7 @@ public class Form extends FormBase {
    */
   private Page attachPage (Vertex player, Map state) {
     def page = this.getPlayerPage(player, state)
-    state.page = page.assignTo(player)
+    state.page = page.assignTo(player, state.seed)
     return page
   }
 

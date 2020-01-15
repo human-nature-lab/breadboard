@@ -48,13 +48,14 @@
 </template>
 
 <script lang="ts">
-  import Vue, { Component } from 'vue'
+  import Vue, { Component, PropOptions } from 'vue'
   import { PlayerWithForms, PlayerForm, BlockType, QuestionResult, Prim, BaseBlock, FormError } from './form.types'
   import ScaleQuestion from './blocks/ScaleQuestion.vue'
   import HtmlBlock from './blocks/HtmlBlock.vue'
   import ChoiceQuestion from './blocks/ChoiceQuestion.vue'
   import TextQuestion from './blocks/TextQuestion.vue'
 
+  type PlayerForms = { [key: string]: PlayerForm }
   const bb = window.Breadboard
   export default Vue.extend({
     name: 'Form',
@@ -67,8 +68,8 @@
         type: String,
         default: 'forms'
       },
-      name: {
-        type: String
+      name: <PropOptions<string | string[]>>{
+        type: [String, Array]
       }
     },
     data () {
@@ -77,7 +78,8 @@
         valid: false,                     // indicates state of frontend validators
         dir: null as string | null,       // keeps track of which button was pressed
         error: null as FormError | null,  // Applied if error in form navigation
-        results: {} as { [key: string]: QuestionResult<Prim | Prim[]> }
+        results: {} as { [key: string]: QuestionResult<Prim | Prim[]> },
+        prevName: null as string | null
       }
     },
     created () {
@@ -86,22 +88,18 @@
         this.isBusy = false
         this.error = err
       })
-      this.$watch(`player.${this.formsKey}.${this.name}`, (newForm: PlayerForm, oldForm: PlayerForm) => {
-        if (oldForm && newForm && newForm.location.index === oldForm.location.index || !newForm) return
-        this.isBusy = false
-        this.results = {}
-        for (const section of newForm.page.sections) {
-          for (const block of section.blocks) {
-            console.log('block', block.name)
-            if (block.name) {
-              const res = {
-                value: (block.type === BlockType.CHOICE && block.multiple) || block.type === BlockType.SCALE ? [] : null,
-                updatedAt: new Date(),
-                createdAt: new Date()
-              } as QuestionResult<Prim | Prim[]>
-              this.results[block.name] = res
-            }
+      this.$watch(`player.${this.formsKey}`, (newForms: PlayerForms, oldForms: PlayerForms) => {
+        if (this.formName) {
+          if (!oldForms) {
+            console.log('no old forms')
+            return this.makeResults()
           }
+          const newForm = newForms[this.formName]
+          const oldForm = oldForms[this.formName]
+          if (newForm && oldForm && newForm.pages[newForm.location.index].index !== oldForm.pages[oldForm.location.index].index) {
+            console.log('page changed')
+            this.makeResults()
+          }          
         }
       })
     },
@@ -109,16 +107,16 @@
       next () {
         this.isBusy = true
         this.dir = 'next'
-        bb.send('f-' + this.name + '-n', this.results)
+        bb.send('f-' + this.formName + '-n', this.results)
       },
       prev () {
         this.isBusy = true
         this.dir = 'prev'
-        bb.send('f-' + this.name + '-p', this.results)
+        bb.send('f-' + this.formName + '-p', this.results)
       },
       seek (index: number) {
         this.isBusy = true
-        bb.send('f-' + this.name + '-s', this.results)
+        bb.send('f-' + this.formName + '-s', this.results)
       },
       updateResult (block: BaseBlock, value: any) {
         const res = this.results[block.name]
@@ -126,6 +124,25 @@
         if (res) {
           res.value = value
           res.updatedAt = new Date()
+        }
+      },
+      makeResults () {
+        if (this.form) {
+          this.isBusy = false
+          this.results = {}
+          for (const section of this.form.page.sections) {
+            for (const block of section.blocks) {
+              console.log('block', block.name)
+              if (block.name) {
+                const res = {
+                  value: (block.type === BlockType.CHOICE && block.multiple) || block.type === BlockType.SCALE ? [] : null,
+                  updatedAt: new Date(),
+                  createdAt: new Date()
+                } as QuestionResult<Prim | Prim[]>
+                this.results[block.name] = res
+              }
+            }
+          }
         }
       },
       blockComponent (type: BlockType): Component {
@@ -142,13 +159,39 @@
       }
     },
     computed: {
-      form (): PlayerForm | null {
-        // @ts-ignore
-        if (!this.player || !this.player[this.formsKey] || !this.player[this.formsKey][this.name]) {
-          return null
+      formName (): string | null {
+        let rName: string | null = null
+        if (Array.isArray(this.name)) {
+          for (const name of this.name) {
+            if (this.forms[name]) {
+              rName = name
+              break
+            }
+          }
+        } else if (this.name) {
+          rName = this.name
+        } else {
+          const keys = Object.keys(this.forms)
+          rName = keys.length ? keys[0] : null
         }
-        //@ts-ignore
-        return this.player[this.formsKey][this.name]
+        if (rName !== this.prevName) {
+          console.log('name changed')
+          this.$nextTick(this.makeResults)
+        }
+        this.prevName = rName
+        return rName
+      },
+      forms (): { [key: string]: PlayerForm } {
+        // @ts-ignore
+        if (!this.player || !this.player[this.formsKey]) {
+          return {}
+        } else {
+          // @ts-ignore
+          return this.player[this.formsKey]
+        }
+      },
+      form (): PlayerForm | null {
+        return this.formName ? this.forms[this.formName] : null
       }
     }
   })

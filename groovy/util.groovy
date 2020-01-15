@@ -73,3 +73,18 @@ def randomString (String alphabet, int len) {
 def randomString (int len) {
   return randomString(alphaNumeric, len)
 }
+
+/**
+ * Naive solution which shuffles the collection and takes the first N
+ * items.
+ */
+def randomSubset (List vals, int n, Random random) {    
+  def indices = (0..(vals.size() - 1)).toList()
+  Collections.shuffle(indices, random)
+  indices = indices.take(n)
+  println "indices " + n + " " + indices.toString()
+  return indices.collect{ vals[it] }
+}
+def randomSubset (List vals, int n) {
+  return randomSubset(vals, n, new Random())
+}
