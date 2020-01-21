@@ -92,10 +92,12 @@ public class ScriptBoard extends UntypedActor {
     }
     Logger.debug("ScriptEngine reload start");
     if (engine != null) {
-      //just in case
+      // just in case
       playerActions.turnAIOff();
-      //clean up the graph
+      // clean up the graph
       processScript("g.empty()", null, null);
+      // Reset the timers
+      processScript("timers.cancel()", null, null);
     }
 
     // Global events used to communicate via the groovy scripting
@@ -134,10 +136,10 @@ public class ScriptBoard extends UntypedActor {
 
     String[] scriptFiles = {
       "/util.groovy", 
+      "/timer.groovy",
       "/graph.groovy", 
       "/actions.groovy", 
       "/step.groovy", 
-      "/timer.groovy",
       "/test.groovy",
       "/events.groovy",
       "/chat.groovy",

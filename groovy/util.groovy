@@ -88,3 +88,26 @@ def randomSubset (List vals, int n, Random random) {
 def randomSubset (List vals, int n) {
   return randomSubset(vals, n, new Random())
 }
+
+
+// Extend this for simple access to the content and action interfaces
+public class BreadboardBase {}
+
+BreadboardBase.metaClass.fetchContent = { Map opts ->
+  // TODO: Handle locale property
+  if (!("content" in opts || "contentKey" in opts)) {
+    throw new Exception("Must supply either the 'content' or 'contentKey' property")
+  }
+  String content = opts.get("content") ?: c.get(opts.contentKey)
+  if ("fills" in opts) {
+    content = c.interpolate(content, opts.fills)
+  }
+  return content
+}
+
+/**
+ * Accessible alias for a.addEvent
+ */
+BreadboardBase.metaClass.addEvent = { String name, Map data -> 
+  a.addEvent(name, data)
+}
