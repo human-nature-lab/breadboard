@@ -17,7 +17,7 @@ enum TextType {
   INTEGER
 }
 
-public class FormBase {
+public class FormBase extends BreadboardBase {
 
   /**
    * Convert possible types of value / label combinations into a consistent value / content map
@@ -50,25 +50,6 @@ public class FormBase {
       return false
     }
   }
-}
-
-FormBase.metaClass.fetchContent = { Map opts ->
-  // TODO: Handle locale property
-  if (!("content" in opts || "contentKey" in opts)) {
-    throw new Exception("Must supply either the 'content' or 'contentKey' property")
-  }
-  String content = opts.get("content") ?: c.get(opts.contentKey)
-  if ("fills" in opts) {
-    content = c.interpolate(content, opts.fills)
-  }
-  return content
-}
-
-/**
- * Accessible alias for a.addEvent
- */
-FormBase.metaClass.addEvent = { String name, Map data -> 
-  a.addEvent(name, data)
 }
 
 public class Block extends FormBase {
@@ -363,8 +344,15 @@ public class Page extends FormBase {
       this.title = opts.title
     }
 
+    if ("onEnter" in opts) {
+      this.onEnter = opts.onEnter
+    }
+
+    if ("onExit" in opts) {
+      this.onExit = opts.onExit
+    }
+
     this.isRandom = this.getRandom(opts)
-    // TODO: Handle other options
   }
 
   public addSection (PageSection section) {
@@ -800,6 +788,8 @@ public class Form extends FormBase {
   private Page attachPage (Vertex player, Map state) {
     def page = this.getPlayerPage(player, state)
     state.page = page.assignTo(player, state.seed)
+    state.showStepper = this.showStepper
+    state.nonLinear = this.isNonLinear
     return page
   }
 
