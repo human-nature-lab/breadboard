@@ -7,22 +7,6 @@ import com.tinkerpop.blueprints.util.wrappers.event.EventGraph
 import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener
 import java.beans.PropertyChangeListener
 
-class GroovyTimerTask extends TimerTask {
-  Closure closure
-
-  void run() {
-    closure()
-  }
-}
-
-class TimerMethods {
-  static TimerTask runEvery(Timer timer, long delay, long period, Closure codeToRun) {
-    TimerTask task = new GroovyTimerTask(closure: codeToRun)
-    timer.schedule task, delay, period
-    task
-  }
-}
-
 class BreadboardGraph extends EventGraph<TinkerGraph> {
   //TODO: consider tracking number of edges and number of vertices to avoid iterating over graph to count number of edges or vertices
 
@@ -120,7 +104,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     def appearance = params.appearance ?: ""
 
     if (time) {
-      addTimer(time, name, timerText, direction, type, currencyAmount, result, player, appearance)
+      return addTimer(time, name, timerText, direction, type, currencyAmount, result, player, appearance)
     }
   }
 
@@ -192,7 +176,6 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         }
         tim.cancel()
       }
-      return tim
     }
   }
 

@@ -74,7 +74,7 @@ class TimerMethods {
   }
 }
 
-class GlobalTimer extends BreadboardBase {
+class SharedTimer extends BreadboardBase {
   def players = []
   def doneClosures = []
   Number updateRate = 1000
@@ -88,15 +88,16 @@ class GlobalTimer extends BreadboardBase {
   String direction = "down"
   String currencyAmount = "0"
   String appearance = ""
+  Boolean hasEnded = false
   Map content
   private BBTimer timer
 
-  GlobalTimer (int seconds) {
+  SharedTimer (int seconds) {
     this([
       time: seconds
     ])
   }
-  GlobalTimer (Map opts) {
+  SharedTimer (Map opts) {
     if ("time" in opts) {
       this.duration = opts.time * 1000
     } else if ("duration" in opts) {
@@ -161,11 +162,11 @@ class GlobalTimer extends BreadboardBase {
   public onDone (Closure cb) {
     this.doneClosures << cb
   }
-  
+
   /**
-   * End the timer for all players. Can be called before the time has expired to end it early.
+   * Cancel the timer and remove it from each player
    */
-  public end () {
+  public cancel () {
     if (!this.timer) return
     this.timer.purge()
     this.timer.cancel()
@@ -174,6 +175,15 @@ class GlobalTimer extends BreadboardBase {
     this.players.each{player ->
       this.endPlayer(player)
     }
+  }
+  
+  /**
+   * End the timer for all players. Can be called before the time has expired to end it early.
+   */
+  public end () {
+    if (this.hasEnded) return
+    this.hasEnded = true
+    this.cancel()
     this.doneClosures.each{ cb ->
       cb()
     }

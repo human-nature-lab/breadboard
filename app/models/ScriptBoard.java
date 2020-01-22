@@ -143,7 +143,6 @@ public class ScriptBoard extends UntypedActor {
       "/test.groovy",
       "/events.groovy",
       "/chat.groovy",
-      "/tutorial.groovy",
       "/form.groovy",
       "/ready.groovy"
     };
@@ -204,7 +203,7 @@ public class ScriptBoard extends UntypedActor {
   private void loadSteps(Experiment experiment, ThrottledWebSocketOut out) {
     for (Step step : experiment.steps) {
       //should call RunStep?
-      processScript(step.source, out, step.name);
+      processScript(step.source + ";null;", out, step.name);
     }
   }
 
