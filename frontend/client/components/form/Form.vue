@@ -4,12 +4,12 @@
     :value="form.location.index">
     <v-stepper-header 
       :non-linear="form.nonLinear"
-      v-if="form.showStepper">
+      v-if="form.showStepper && form.pages.length > 1">
       <v-stepper-step 
-        v-for="(title, index) in form.titles"
-        :key="title"
+        v-for="(page, index) in form.pages"
+        :key="index"
         :complete="form.location.index > index"
-        :step="index">{{title}}</v-stepper-step>
+        :step="index">{{page.title}}</v-stepper-step>
     </v-stepper-header>
     <v-form v-model="valid" v-if="form">
       <v-container>
@@ -26,9 +26,10 @@
               @update="updateResult(block, $event)" />
           </v-flex>
         </v-layout>
+        <slot />
         <v-divider />
         <v-layout class="tutorial-foo mt-2">
-          <v-btn @click="prev" :disabled="!form.location.index || isBusy" :loading="isBusy && dir === 'prev'">
+          <v-btn v-if="form.pages.length > 1" @click="prev" :disabled="!form.location.index || isBusy" :loading="isBusy && dir === 'prev'">
             <v-icon>mdi-chevron-left</v-icon> Previous
           </v-btn>
           <v-spacer />
