@@ -100,7 +100,7 @@ BreadboardBase.metaClass.fetchContent = { Map opts ->
   }
   String content = opts.get("content") ?: c.get(opts.contentKey)
   if ("fills" in opts) {
-    content = c.interpolate(content, opts.fills)
+    content = c.interpolate(content, *opts.fills)
   }
   return content
 }

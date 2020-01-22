@@ -473,7 +473,9 @@ public class Form extends FormBase {
    * @param {Map} opts
    * @param {String} name - The unique key to use to identify this form
    * @param {Boolean} [stepper=true] - Indicates whether or not the progress through the form should be shown
-   * @param {Boolean} [sequential=true] - Indicates whether the form can only be navigated in order (this is the default) or if the players can jump to different pages
+   * @param {Boolean} [nonLinear=false] - Indicates whether the form can only be navigated in order (this is the default) or if the players can jump to different pages
+   * @param {Boolean} [recordResults=true] - Record an event for each page submission
+   * @param {Boolean} [recordNav=false] - Record an event for each form navigation
    */
   Form (Map opts) {
     if (!("name" in opts)) {
@@ -587,10 +589,20 @@ public class Form extends FormBase {
   }
 
   /**
+   * Add multiple players to this form at once
+   */
+  public addPlayers (def players) {
+    players.each{
+      this.addPlayer(it)
+    }
+  }
+
+  /**
    * Add a player to this form
    * @param {Vertex} player - The player to add
    */
   public addPlayer (Vertex player) {
+    if (player == null) return // TODO: Why are null players being passed into the onJoinStep to begin with?
     // Allow a player to be added to the form multiple times without side-effects
     if (this.players.contains(player)) return
     

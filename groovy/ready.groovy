@@ -1,5 +1,5 @@
 public class ReadyUpSequence extends FormBase {
-  def readyUpTimer
+  SharedTimer readyUpTimer
   def isStarted = false
   def key = "ready-up"
   def time = 30
@@ -54,6 +54,7 @@ public class ReadyUpSequence extends FormBase {
    * Remove a player from the ready up sequence
    */
   public removePlayer (Vertex player) {
+    this.clearPlayer(player)
     this.players.removeElement(player)
   }
 
@@ -63,30 +64,18 @@ public class ReadyUpSequence extends FormBase {
   public start () {
     if (this.isStarted) return
     this.isStarted = true
-    this.readyUpTimer = new Timer()
-    this.readyUpTimer.runAfter(this.time * 1000) {
+    this.readyUpTimer = new SharedTimer([
+      content: this.timerContent,
+      name: this.key,
+      time: this.time
+    ])
+    this.readyUpTimer.onDone{
       this.end()
     }
-    def timer = [
-      type: "time",
-      direction: "down",
-      elapsed: 0,
-      timerText: this.fetchContent(this.timerContent),
-      duration: this.time * 1000,
-      order: 0,
-      name: this.key
-    ]
-    def updateRate = 1000
-    this.readyUpTimer.scheduleAtFixedRate({
-      timer.elapsed += updateRate
-    } as GroovyTimerTask, 0, updateRate)
+    this.readyUpTimer.addPlayers(this.players)
     def readyText = this.fetchContent(this.readyContent)
     def buttonText = this.fetchContent(this.readyButtonContent)
     this.players.each{ player -> 
-      if (player.timers == null) {
-        player.timers = [:]
-      }
-      player.timers[this.key] = timer
       player.text = readyText
       this.addAction(player, [
         name: buttonText,
@@ -128,9 +117,6 @@ public class ReadyUpSequence extends FormBase {
     def readyPlayers = []
     def notReadyPlayers = []
     this.players.each{
-      if (it.timers != null && this.key in it.timers) {
-        it.timers.remove(this.key)
-      }
       this.clearActions(it)
 
       if (it._system.isReady) {

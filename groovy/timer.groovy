@@ -20,15 +20,15 @@ class BBTimer extends Timer {
 }
 
 BBTimer.metaClass.register = {
-  timers.register(delegate)
+  __timers.register(delegate)
 }
 
 BBTimer.metaClass.unregister = {
-  timers.unregister(delegate)
+  __timers.unregister(delegate)
 }
 
 /**
- * Global class which manages timers in the script engine
+ * Timers registry. Handles cleaning them up property when necessary
  */
 class BBTimers {
   ArrayList<BBTimer> timers = Collections.synchronizedList(new ArrayList())
@@ -56,7 +56,8 @@ class BBTimers {
 
 }
 
-timers = new BBTimers()
+// Global timers registry. Gets cleaned up when the ScriptBoard resets
+__timers = new BBTimers()
 
 class GroovyTimerTask extends TimerTask {
   Closure closure
@@ -97,6 +98,24 @@ class SharedTimer extends BreadboardBase {
       time: seconds
     ])
   }
+  /**
+   * Create a shared timer via a Map
+   * @param {Map} opts
+   * @param {Number} [opts.time] - Timer time in seconds
+   * @param {Number} [opts.duration] - Timer time in milliseconds
+   * @param {Vertex} [opts.player] - A player to add this timer to
+   * @param {Vertex[]} [opts.players] - A list of players to add this timer to
+   * @param {Boolean} [opts.lazy] - Start the timer when the first player is added
+   * @param {Closure} [opts.result] - Call this closure when the timer expires
+   * @param {String} [opts.timerText] - The timer label to display
+   * @param {String} [opts.name] - The unique key to use for this timer
+   * @param {Number} [opts.updateRate] - How often this timer should update
+   * @param {String} [opts.type="time"] - Valid options are "time" and "currency"
+   * @param {String} [opts.direction = "down"] - Valid options are "up" or "down"
+   * @param {Number} [opts.currencyAmount] - Initial currency for the timer
+   * @param {String} [opts.appearance=""] - The color to use to display the timer
+   * @param {Map} [opts.content] - A content map to use for fetching the timer label content
+   */
   SharedTimer (Map opts) {
     if ("time" in opts) {
       this.duration = opts.time * 1000
@@ -106,23 +125,37 @@ class SharedTimer extends BreadboardBase {
       throw new Exception("'time' or 'duration' properties must be present to start a timer")
     }
     
-    if ("updateRate" in opts) {
-      this.updateRate = opts.updateRate
+    if ("player" in opts) {
+      this.addPlayer(opts.player)
+    }
+    if ("players" in opts) {
+      this.addPlayers(opts.players)
+    }
+    if ("result" in opts) {
+      this.onDone(opts.result)
     }
     if ("timerText" in opts) {
       this.content = [
         content: opts.timerText
       ]
     }
-    if ("immediate" in opts && opts.immediate) {
-      this.startTimer()
+    def props = ["updateRate", "type", "direction", "currencyAmount", "appearance", "content"]
+    props.each{ prop ->
+      if (prop in opts) {
+        this."${prop}" = opts[prop]
+      }
     }
     this.name = "name" in opts ? opts.name : UUID.randomUUID().toString()
+
+    if (!opts.lazy) {
+      this.startTimer()
+    }
 
   }
 
   /**
    * Add multiple players at once
+   * @param {Vertex[]} players - An iterable list of players to add to this timer
    */
   public addPlayers (players) {
     players.each{
@@ -132,6 +165,7 @@ class SharedTimer extends BreadboardBase {
 
   /**
    * Add a single player to this timer
+   * @param {Vertex} player - The player to add to this timer
    */
   public addPlayer (Vertex player) {
     if (player == null) {
@@ -158,29 +192,29 @@ class SharedTimer extends BreadboardBase {
 
   /**
    * Register a closure to be called when the timer has ended
+   * @param {Closure} cb - Closure without arguments
    */
   public onDone (Closure cb) {
     this.doneClosures << cb
   }
 
   /**
-   * Cancel the timer and remove it from each player
+   * Cancel the timer early and remove it from each player
    */
   public cancel () {
     if (!this.timer) return
     this.timer.purge()
     this.timer.cancel()
     this.timer = null
-    println "end global timer " + this.name
     this.players.each{player ->
       this.endPlayer(player)
     }
   }
   
   /**
-   * End the timer for all players. Can be called before the time has expired to end it early.
+   * End the timer for all players. Should use cancel to end the timer early.
    */
-  public end () {
+  private end () {
     if (this.hasEnded) return
     this.hasEnded = true
     this.cancel()
@@ -189,6 +223,9 @@ class SharedTimer extends BreadboardBase {
     }
   }
 
+  /**
+   * Stop displaying this timer for this player
+   */
   private endPlayer (Vertex player) {
     player.timers.remove(this.name)
   }
@@ -212,6 +249,7 @@ class SharedTimer extends BreadboardBase {
 
   /**
    * This updates the timer for each player attached to this timer.
+   * @param {Int} delta - The number of milliseconds to increase the timer by.
    */
   public tick (int delta) {
     this.elapsed += delta
