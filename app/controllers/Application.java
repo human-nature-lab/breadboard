@@ -105,12 +105,8 @@ public class Application extends Controller {
 
   public static Result index () {
       // final File file = play.Play.application().getFile("assets/templates/breadboard.html");
-      String assetsRoot = play.Play.application().configuration().getString("breadboard.assetsRoot");
-      if (assetsRoot != null) {
-          return ok(main.render(assetsRoot));
-      } else {
-          return ok(main.render(""));
-      }
+      String assetsRoot = play.Play.application().configuration().getString("breadboard.assetsRoot", "/assets");
+      return ok(main.render(assetsRoot));
   }
 
   @Security.Authenticated(Secured.class)
