@@ -15,7 +15,7 @@
           </div>
         </div>
         <div class="clues-container" v-else>
-          No down clues right now
+          Down clues are locked
         </div>
       </v-container>
     </v-flex>
@@ -34,7 +34,7 @@
           </div>
         </div>
         <div class="clues-container" v-else>
-          No across clues right now 
+          Across clues are locked 
         </div>
       </v-container>
     </v-flex>

@@ -37,7 +37,7 @@
         default: 10
       },
       type: {
-        type: Number as ()=> CELL_TYPE,
+        type: Number as () => CELL_TYPE,
         required: true
       },
       label: {
