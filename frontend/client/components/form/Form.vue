@@ -1,15 +1,15 @@
 <template>
   <v-stepper 
     v-if="form"
-    :value="form.location.index">
+    :value="form.location.index + 1">
     <v-stepper-header 
       :non-linear="form.nonLinear"
       v-if="form.showStepper && form.pages.length > 1">
       <v-stepper-step 
         v-for="(page, index) in form.pages"
-        :key="index"
+        :key="index + 1"
         :complete="form.location.index > index"
-        :step="index">{{page.title}}</v-stepper-step>
+        :step="index + 1">{{page.title}}</v-stepper-step>
     </v-stepper-header>
     <v-form v-model="valid" v-if="form">
       <v-container>
