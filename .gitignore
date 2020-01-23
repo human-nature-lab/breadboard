@@ -30,7 +30,6 @@ experiments
 dev.bat
 dev.sh
 node_modules
-client-graph.js
 client-html.html
 csv
 
