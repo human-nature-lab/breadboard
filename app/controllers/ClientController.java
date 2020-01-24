@@ -30,7 +30,7 @@ public class ClientController extends Controller
         if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
           return ok( amtError.render() );
         }
-        String assetsRoot = play.Play.application().configuration().getString("breadboard.assetsRoot");
+        String assetsRoot = play.Play.application().configuration().getString("breadboard.assetsRoot", "/assets");
         if (assetsRoot != null) {
             return ok(client.render(assetsRoot));
         } else {
