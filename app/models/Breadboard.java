@@ -205,6 +205,8 @@ public class Breadboard extends UntypedActor {
             } else if (action.equals("DeleteImage")) {
               Long imageId = Long.parseLong(jsonInput.get("imageId").toString());
               breadboardController.tell(new DeleteImage(user, imageId, out), null);
+            } else if (action.equals("ToggleFileMode")) {
+              breadboardController.tell(new ToggleFileMode(user, out), null);
             }
           } else { // END if (user != null)
             Logger.error("user not found with UID: " + user.uid);
@@ -312,7 +314,7 @@ public class Breadboard extends UntypedActor {
           if (copyFrom != null) {
             experiment = new Experiment(copyFrom);
             boolean foundOnJoin = false, foundOnLeave = false;
-            for (Step step : experiment.steps) {
+            for (Step step : experiment.getSteps()) {
               if (Experiment.ON_JOIN_STEP_NAME.equals(step.name)) {
                 foundOnJoin = true;
               } else if (Experiment.ON_LEAVE_STEP_NAME.equals(step.name)) {
@@ -321,11 +323,11 @@ public class Breadboard extends UntypedActor {
             }
             if (!foundOnJoin) {
               Step onJoin = Experiment.generateOnJoinStep();
-              experiment.steps.add(onJoin);
+              experiment.addStep(onJoin);
             }
             if (!foundOnLeave) {
               Step onLeave = Experiment.generateOnLeaveStep();
-              experiment.steps.add(onLeave);
+              experiment.addStep(onLeave);
             }
           }
         }
@@ -334,9 +336,9 @@ public class Breadboard extends UntypedActor {
           Step onJoin = Experiment.generateOnJoinStep();
           Step onLeave = Experiment.generateOnLeaveStep();
           Step init = Experiment.generateInitStep();
-          experiment.steps.add(onJoin);
-          experiment.steps.add(onLeave);
-          experiment.steps.add(init);
+          experiment.addStep(onJoin);
+          experiment.addStep(onLeave);
+          experiment.addStep(init);
           experiment.clientHtml = Experiment.defaultClientHTML();
           experiment.clientGraph = Experiment.defaultClientGraph();
         }
@@ -375,7 +377,7 @@ public class Breadboard extends UntypedActor {
             String source = FileUtils.readFileToString(stepFile);
             step.name = stepName;
             step.source = source;
-            importedExperiment.steps.add(step);
+            importedExperiment.addStep(step);
             Logger.debug("Adding step: " + stepName);
           }
         }
@@ -605,7 +607,7 @@ public class Breadboard extends UntypedActor {
               "\tprintln \"" + nameVariableName + ".done\"\n" +
               "}\n";
 
-          selectedExperiment.steps.add(newStep);
+          selectedExperiment.addStep(newStep);
           selectedExperiment.save();
         }
       } else if (message instanceof DeleteStep) {
@@ -729,6 +731,11 @@ public class Breadboard extends UntypedActor {
         DeleteImage deleteImage = (DeleteImage) message;
         Long imageId = deleteImage.imageId;
         Image.findById(imageId).delete();
+      } else if (message instanceof ToggleFileMode) {
+        Experiment selectedExperiment = breadboardMessage.user.getExperiment();
+        if (selectedExperiment != null) {
+          selectedExperiment.toggleFileMode(breadboardMessage.user);
+        }
       }
 
       breadboardMessage.out.write(breadboardMessage.user.toJson());
@@ -1073,6 +1080,12 @@ public class Breadboard extends UntypedActor {
 
   public static class ReloadEngine extends BreadboardMessage {
     public ReloadEngine(User user, ThrottledWebSocketOut out) {
+      super(user, out);
+    }
+  }
+
+  public static class ToggleFileMode extends BreadboardMessage {
+    public ToggleFileMode(User user, ThrottledWebSocketOut out) {
       super(user, out);
     }
   }

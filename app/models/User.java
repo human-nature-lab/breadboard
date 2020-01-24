@@ -138,9 +138,9 @@ public class User extends Model {
       breadboard.put("experiment", selectedExperiment.toJson());
     }
 
-    if (experimentInstanceId == Experiment.TEST_INSTANCE_ID) {
+    if (experimentInstanceId.equals(Experiment.TEST_INSTANCE_ID)) {
       breadboard.put("experimentInstance", selectedExperiment.getTestInstance().toJson());
-    } else if (experimentInstanceId != -1L && experimentInstanceId != null) {
+    } else if (experimentInstanceId != null && experimentInstanceId != -1L) {
       ExperimentInstance ei = ExperimentInstance.findById(experimentInstanceId);
       Logger.debug("experimentInstanceId = " + experimentInstanceId.toString() + (ei == null ? " is null" : ""));
       if (ei != null) {

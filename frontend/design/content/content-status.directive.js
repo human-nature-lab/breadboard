@@ -10,7 +10,8 @@ angular.module('breadboard.content').directive('contentStatus', function(){
       content: '=',
       selectedContent:'=',
       selectContent:'&',
-      deleteContent:'&'
+      deleteContent:'&',
+      readOnly:'='
     },
     controllerAs: 'vm',
     controller: ContentStatusCtrl,

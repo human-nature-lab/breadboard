@@ -59,6 +59,17 @@
                           aria-hidden="true">
                     </span>
                     </button>
+                    <button class="btn btn-default"
+                            id="devButton"
+                            ng-class="{ 'active': (breadboard.experiment.fileMode) }"
+                            ng-click="toggleDevMode()">
+                    <span class="glyphicon glyphicon-hdd"
+                          tooltip="Read experiment from file"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
+                          aria-hidden="true">
+                    </span>
+                    </button>
                 </div>
             </div>
             <div class="form-group experiment-group">
@@ -241,26 +252,6 @@
                     user-id="breadboard.user.id"
                     user-experiments="breadboard.user.experiments">
             </create-new-experiment>
-
-            <!--form class="form" ng-submit="createExperiment()">
-                <p>
-                    Copy
-                    <select name="copyExperiment" ng-options="experiment for experiment in breadboard.user.experiments"
-                            ng-model="copyExperimentName">
-                        <option value="">Default</option>
-                    </select>
-                </p>
-                <p>
-                    <input name="name" ng-model="newExperimentName" placeholder="Name" required>
-                </p>
-
-                <p>
-                    <button jq-button class="ui-button ui-widget ui-state-default ui-corner-all ui-button-text-only"
-                            style="float: right;" type="submit">
-                        <span class="ui-button-text">Create</span>
-                    </button>
-                </p>
-            </form-->
         </div>
     </div>
 
@@ -279,7 +270,9 @@
     <div>
         <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
             <content experiment-id="breadboard.experiment.id"
+                     experiment="breadboard.experiment"
                      experiment-languages="breadboard.experiment.languages"
+                     read-only="breadboard.experiment.fileMode"
                      ng-if="breadboard.experiment"
                      actions="contentActions"></content>
         </div>
@@ -291,7 +284,9 @@
             <customize
                     ng-if="breadboard.experiment"
                     actions="customizeActions"
-                    experiment-id="breadboard.experiment.id">
+                    experiment="breadboard.experiment"
+                    experiment-id="breadboard.experiment.id"
+                    read-only="breadboard.experiment.fileMode">
             </customize>
         </div>
     </div>
@@ -430,62 +425,7 @@
     <!-- Images -->
     <div>
         <div ui-jq="dialog" ui-options="imagesDialogOptions" id="imagesDiv">
-            <div ng-show="breadboard.experiment">
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <th colspan="3">Add Image</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td>
-                            <!--<input type="file" name="picture">-->
-                            <button ngf-select
-                                    class="btn btn-default"
-                                    ngf-pattern="'image/*'"
-                                    ng-model="image.file">
-                                Select an image
-                            </button>
-                        </td>
-                        <td>
-                            {{image.file.name}}
-                        </td>
-                        <td>
-                            <button title='Add image'
-                                    class="btn btn-default"
-                                    ng-click="uploadImage()">
-                                <span class="step-icon ui-icon-plusthick">Upload image</span>
-                            </button>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-                <table class="table">
-                    <thead>
-                    <tr>
-                        <th>File Name</th>
-                        <th>Image</th>
-                        <th>URL</th>
-                        <th>Delete</th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr ng-repeat="image in breadboard.experiment.images">
-                        <td>{{image.fileName}}</td>
-                        <td><img class="thumbs" ng-src="/images/{{image.id}}"></td>
-                        <td>/images/{{image.id}}</td>
-                        <td>
-                            <button title='Delete image'
-                                    class="btn btn-default"
-                                    ng-click='deleteImage(image.id)'><span
-                                    class="step-icon ui-icon-closethick">Delete image</span></button>
-                        </td>
-                    </tr>
-                    </tbody>
-                </table>
-
-            </div>
+            <images experiment="breadboard.experiment" read-only="breadboard.experiment.fileMode"></images>
         </div>
     </div>
 
@@ -500,121 +440,7 @@
     <!-- Parameters -->
     <div>
         <div ui-jq="dialog" ui-options="parametersDialogOptions" id="parametersDiv">
-            <form name="createParameter" >
-                <table class="table" id="parametersTable">
-                    <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Type</th>
-                        <th>Min</th>
-                        <th>Max</th>
-                        <th>Default</th>
-                        <th>Short Description</th>
-                        <th></th>
-                    </tr>
-                    </thead>
-                    <tbody>
-                    <tr>
-                        <td><input class="form-control input-sm" style="width: 8em;" type="text" name="parameterName" ng-model="parameterName"
-                                   placeholder="Name" required></td>
-                        <td>
-                            <select class="form-control input-sm" ng-change="clearParameterFields()" style="width: 7em;" ng-model="parameterType" required>
-                                <option></option>
-                                <option value="Boolean">Boolean</option>
-                                <option value="Decimal">Decimal</option>
-                                <option value="Integer">Integer</option>
-                                <option value="Text">Text</option>
-                            </select>
-                        </td>
-                        <td><input class="form-control input-sm" style="width: 5em;" ng-disabled="parameterType!=='Decimal' && parameterType!=='Integer'"
-                                   type="number" name="parameterMin"
-                                   max="{{parameterMax}}"
-                                   ng-model="parameterMin"
-                                   placeholder="min"
-                                   ng-required="parameterType === 'Decimal' || parameterType === 'Integer'" required></td>
-                        <td><input class="form-control input-sm" style="width: 5em;" ng-disabled="parameterType!=='Decimal' && parameterType!=='Integer'"
-                                   type="number" name="parameterMax"
-                                   min="{{parameterMin}}"
-                                   ng-model="parameterMax" placeholder="max"
-                                   ng-required="parameterType === 'Decimal' || parameterType === 'Integer'"></td>
-                        <td ng-show="!parameterType">
-                            <input class="form-control input-sm"
-                                   style="width: 6em;"
-                                   type="text"
-                                   placeholder="Default"
-                                   disabled>
-                        </td>
-                        <td ng-show="parameterType === 'Integer'">
-                            <input class="form-control input-sm"
-                                   style="width: 6em;"
-                                   type="number"
-                                   min="{{parameterMin}}"
-                                   max="{{parameterMax}}"
-                                   step="1"
-                                   ng-model="parameterDefaultInteger"
-                                   placeholder="Default"
-                                   ng-required="parameterType === 'Integer'">
-                        </td>
-                        <td ng-show="parameterType === 'Decimal'">
-                            <input class="form-control input-sm"
-                                   style="width: 6em;"
-                                   type="number"
-                                   min="{{parameterMin}}"
-                                   max="{{parameterMax}}"
-                                   step="0.01"
-                                   ng-model="parameterDefaultDecimal"
-                                   placeholder="Default"
-                                   ng-required="parameterType === 'Decimal'">
-                        </td>
-                        <td ng-show="parameterType === 'Text'">
-                            <input class="form-control input-sm"
-                                   style="width: 6em;"
-                                   type="text"
-                                   ng-model="parameterDefaultText"
-                                   placeholder="Default"
-                                   ng-required="parameterType === 'Text'">
-                        </td>
-                        <td ng-show="parameterType === 'Boolean'">
-                            <select class="form-control input-sm" ng-model="parameterDefaultBoolean" ng-required="parameterType === 'Boolean'">
-                                <option value="true">true</option>
-                                <option value="false">false</option>
-                            </select>
-                        </td>
-                        <td><input class="form-control input-sm" style="width: 16em;" type="text" name="parameterDescription"
-                                   ng-model="parameterDescription" placeholder="Short Description" required></td>
-                        <td>
-                            <button class="btn btn-default btn-sm" title="Create parameter" type="submit" ng-disabled="createParameter.$invalid" ng-click="newParameter()">
-                                <span class="glyphicon glyphicon-plus"
-                                      aria-hidden="true">
-                                </span>
-                            </button>
-                        </td>
-                    </tr>
-                    <tr class="parameters" ng-repeat="elem in breadboard.experiment.parameters">
-                        <td><p class="form-control-static">{{elem.name}}</p></td>
-                        <td><p class="form-control-static">{{elem.type}}</p></td>
-                        <td><p class="form-control-static">{{elem.minVal}}</p></td>
-                        <td><p class="form-control-static">{{elem.maxVal}}</p></td>
-                        <td><p class="form-control-static">{{elem.defaultVal}}</p></td>
-                        <td><p class="form-control-static">{{elem.description}}</p></td>
-                        <td>
-                            <button type="button"
-                                    onmouseover="$(this).parent().parent().css('background', '-webkit-linear-gradient(top, #b9e0f5 0%,#92bdd6 100%)');"
-                                    onmouseout="$(this).parent().parent().css('background', '');"
-                                    class="btn btn-default btn-sm"
-                                    title="Delete parameter"
-                                    ng-click="removeParameter(elem.id)">
-                                <span class="glyphicon glyphicon-remove"
-                                      aria-hidden="true">
-                                </span>
-                            </button>
-                        </td>
-
-                    </tr>
-
-                    </tbody>
-                </table>
-            </form>
+            <parameters experiment="breadboard.experiment" read-only="breadboard.experiment.fileMode"></parameters>
         </div>
     </div>
 
@@ -665,7 +491,9 @@
         <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
             <steps
                     ng-if="breadboard.experiment"
+                    read-only="breadboard.experiment.fileMode"
                     actions="stepsActions"
+                    experiment="breadboard.experiment"
                     experiment-id="breadboard.experiment.id">
             </steps>
         </div>
@@ -681,26 +509,6 @@
             </testing>
         </div>
     </div>
-
-    <!--div>
-        <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
-            <div id="stepsTabsDiv">
-          <span class="steps-tab selected-{{$parent.selectedStep==step}}"
-                ng-repeat="step in breadboard.experiment.steps | orderBy: 'name'" ng-init="initStep(step)"><a
-                  ng-click="$parent.selectedStep=step">{{step.name}}</a><a title="Delete step"
-                                                                           ng-click="deleteStep(step)"
-                                                                           class="step-titlebar-close ui-corner-all"
-                                                                           role="button"><span
-                  class="step-icon ui-icon-closethick">close</span></a></span><span class="steps-tab"><a
-                    title="Create new step" ng-click="newStep()"><span
-                    class="step-icon ui-icon-plusthick">New step</span></a></span>
-            </div>
-            <div id="stepSourceDiv">
-          <textarea class="codemirror" ui-codemirror ui-codemirror-opts="stepCodemirrorOptions"
-                    ng-model="selectedStep.source" ng-refresh="stepCodemirrorOptions.vimMode"> </textarea>
-            </div>
-        </div>
-    </div-->
 
     <div class="delete-dialog" id="deleteStepDialog" style="display: none;">
         <p id="deleteStepDesc"></p>

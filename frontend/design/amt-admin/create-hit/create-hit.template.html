@@ -102,6 +102,12 @@
                         ng-click="createHIT()">
                     Create HIT
                 </button>
+                <button type="button"
+                        ng-disabled="status == 1" class="btn btn-default"
+                        id="clearFormButton"
+                        ng-click="clearForm()">
+                    Clear form
+                </button>
             </div>
         </div>
     </form>

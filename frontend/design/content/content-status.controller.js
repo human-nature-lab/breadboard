@@ -1,6 +1,7 @@
 function ContentStatusCtrl($scope, STATUS) {
   let vm = this;
 
+  vm.readOnly = $scope.readOnly;
   vm.content = $scope.content;
   vm.selectContent = $scope.selectContent();
   vm.deleteContent = $scope.deleteContent();
@@ -14,7 +15,7 @@ function ContentStatusCtrl($scope, STATUS) {
       }
     });
 
-    if (changed) {
+    if (changed && !vm.readOnly) {
       vm.content.status = STATUS.MODIFIED;
     } else {
       if (!(vm.content.status === STATUS.SAVED)) {

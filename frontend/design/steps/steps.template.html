@@ -6,9 +6,11 @@
                       step="step"
                       select-step="vm.selectStep"
                       delete-step="vm.deleteStep"
-                      selected-step="vm.selectedStep"></step>
-                <li role="presentation" class="dropdown">
+                      selected-step="vm.selectedStep"
+                      read-only="vm.readOnly"></step>
+                <li role="presentation" class="dropdown" ng-class="{ 'disabled' : readOnly }">
                     <a class="dropdown-toggle"
+                       ng-disabled="readOnly"
                        role="button"
                        aria-haspopup="true"
                        aria-expanded="false">
@@ -22,7 +24,7 @@
                     </ul>
                 </li>
             </ul>
-            <div id="stepTab">
+            <div id="stepTab" ng-class="{ 'read-only' : readOnly }">
                 <div class="panel panel-danger" ng-show="vm.selectedStep.error && vm.selectedStep.error.length > 0">
                     <div class="panel-heading">
                         <h3 class="panel-title">Error</h3>

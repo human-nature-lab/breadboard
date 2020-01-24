@@ -1,6 +1,6 @@
 package models;
 
-import akka.actor.UntypedActor;
+import akka.actor.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -37,6 +37,7 @@ public class ScriptBoard extends UntypedActor {
   private static PlayerActionsInterface playerActions;
   private static BreadboardGraphInterface graphInterface;
   private static BreadboardGraphChangedListener graphChangedListener;
+  private static FileWatcher fileWatcher;
   private static EventTracker eventTracker = new EventTracker();
   private static EventBus<Map> eventBus = new EventBus();
 
@@ -186,6 +187,10 @@ public class ScriptBoard extends UntypedActor {
 
     graphInterface.addListener(graphChangedListener);
 
+    if (fileWatcher == null) {
+      fileWatcher = new FileWatcher(admins);
+    }
+
     gameListener.engine = engine;
 
     // When done, send a message to each Admin
@@ -201,7 +206,7 @@ public class ScriptBoard extends UntypedActor {
   }
 
   private void loadSteps(Experiment experiment, ThrottledWebSocketOut out) {
-    for (Step step : experiment.steps) {
+    for (Step step : experiment.getSteps()) {
       //should call RunStep?
       processScript(step.source + ";null;", out, step.name);
     }
@@ -327,7 +332,7 @@ public class ScriptBoard extends UntypedActor {
 
       // Update the client's state
       ObjectNode jsonOutput = Json.newObject();
-      jsonOutput.put("style", experimentInstance.experiment.style);
+      jsonOutput.put("style", experimentInstance.experiment.getStyle());
       Logger.debug("addClient, " + clientId);
       out.write(jsonOutput);
     } catch (NumberFormatException nfe) {
@@ -494,7 +499,7 @@ public class ScriptBoard extends UntypedActor {
             gameListener.start();
 
             // Re-run the Steps
-            for (Step step : instance.experiment.steps)
+            for (Step step : instance.experiment.getSteps())
               Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, step.source, breadboardMessage.out), null);
 
           } // END if (breadboardMessage.user.selectedExperiment != null)
@@ -712,7 +717,7 @@ public class ScriptBoard extends UntypedActor {
     out.write(jsonOutput);
   }
 
-  private static void processScript(String script, ThrottledWebSocketOut out, String scriptName) {
+  public static void processScript(String script, ThrottledWebSocketOut out, String scriptName) {
     if (scriptName == null) scriptName = "Unnamed Script";
 
     ObjectNode jsonOutput = Json.newObject();
@@ -807,7 +812,7 @@ public class ScriptBoard extends UntypedActor {
         initParam(newData, null);
 
       } else if (evt instanceof ObservableMap.PropertyClearedEvent) {
-        List<Parameter> parameters = experimentInstance.experiment.parameters;
+        List<Parameter> parameters = experimentInstance.experiment.getParameters();
         List<String> parameterNames = new ArrayList<String>();
         for (Parameter parameter : parameters) {
           parameterNames.add(parameter.name);

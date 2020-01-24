@@ -240,24 +240,27 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     return super.addVertex(id)
   }
 
-  def addTrackedEdge(v1, v2, label) {
+  def addTrackedEdge(v1, v2, label, track = true) {
     def edge = addEdge(v1, v2, label)
 
-    def data = [[name: "playerId1", value: v1.id.toString()], [name: "playerId2", value: v2.id.toString()]]
-    if (eventTracker) {
-      eventTracker.track("Connected", data)
+    if (track) {
+      def data = [[name: "playerId1", value: v1.id.toString()], [name: "playerId2", value: v2.id.toString()]]
+      if (eventTracker) {
+        eventTracker.track("Connected", data)
+      }
     }
 
     return edge
   }
 
-  public addAI(a, int n, behavior = null) {
-    int startId = 1;
+  // TODO: Is there a way to simplify this method so we don't have to pass in the PlayerActions object?
+  def addAI(a, int n, behavior = null) {
+    int startId = 1
 
     if (n > 0) {
       for (i in 0..n - 1) {
         while (hasVertex("_" + startId))
-          startId++;
+          startId++
 
         def v = addVertex("_" + startId)
         if (behavior == null)
@@ -269,8 +272,6 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
   }
 
   def addAIPlayer(a, String id, behavior = null) {
-    //println("Adding AI Player: " + id)
-    //println("Current players: " + getVertices())
     def v = addPlayer(id)
     if (behavior == null)
       a.ai.add(v)
@@ -298,32 +299,38 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     return true
   }
 
-  def ring(random = true) {
+  def defaultGraphOptions = [
+      filter: { true },
+      track: true,
+      label: "connected",
+      randomize: true,
+      removeEdges: true,
+      trackRemoveEdges: false
+  ]
 
-    List players = getVertices().iterator().toList()
-    final int n = numVertices()
+  def ring(Boolean random) {
+    def options = defaultGraphOptions + [randomize: random]
+    ring(options)
+  }
+
+  def ring(Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List<Vertex> players = setupGraphAlgorithm(options)
+    int n = players.size()
 
     if (n < 3) throw new IllegalArgumentException("Ring algorithm requires at least 3 players.")
-
-    removeEdges()
-
-    if (random) {
-      Collections.shuffle(players)
-    } else {
-      Collections.sort(players, [compare: { a, b -> a.getId().toInteger() - b.getId().toInteger() }] as Comparator)
-    }
 
     for (i in 0..(n - 1)) {
       def p = players.get(i)
       p.index = i
-      addTrackedEdge(p, players.get((i + 1) % n), "connected")
+      addTrackedEdge(p, players.get((i + 1) % n), options.label, options.track)
     }
   }
 
-  def geometricRandom(v) {
-    removeEdges()
-    List players = V.filter { it.active }.iterator().toList()
-    int n = V.filter { it.active }.iterator().toList().size()
+  def geometricRandom(v, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List<Vertex> players = setupGraphAlgorithm(options)
+    int n = players.size()
 
     Random rand = new Random()
     for (i in 0..(n - 1)) {
@@ -338,26 +345,26 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         def p2 = players.get(j)
         def d = (p1.posX - p2.posX)**2 + (p1.posY - p2.posY)**2
         if (d <= v**2) {
-          addTrackedEdge(p1, p2, "connected")
+          addTrackedEdge(p1, p2, options.label, options.track)
         }
       }
     }
   }
 
-  def wattsStrogatz(k, p) {
+  def wattsStrogatz(int k, double p, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List<Vertex> players = setupGraphAlgorithm(options)
+    int n = players.size()
+
     // starting from a ring lattice with k edges per vertex we rewire each edge at random with probability p
-
     // First, create a ring lattice graph with k edges per node
-    List players = getVertices().iterator().toList()
-    final int n = players.size()
     if (n < (2 * k + 1)) throw new IllegalArgumentException("Watts-Strogatz algorithm requires at least 2k + 1 players.")
-    removeEdges()
-
-    Collections.shuffle(players)
 
     for (i in 0..(n - 1)) {
       for (j in 1..k) {
-        addEdge(players.get(i), players.get((i + j) % n), "connected")
+        Vertex p1 = players.get(i)
+        Vertex p2 = players.get((i + j) % n)
+        addEdge(p1, p2, options.label.toString())
       }
     }
 
@@ -366,13 +373,15 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     for (j in 1..k) {
       for (i in 0..(n - 1)) {
         if (r.nextDouble() < p) {
-          def edge = getEdge(players.get(i), players.get((i + j) % n))
+          Vertex p1 = players.get(i)
+          Vertex p2 = players.get((i + j) % n)
+          def edge = getEdge(p1, p2)
           removeEdge(edge)
           def newEdge = false
           while (!newEdge) {
             def randomPlayer = players.get(r.nextInt(n))
             if (getEdge(players.get(i), randomPlayer) == null) {
-              addEdge(players.get(i), randomPlayer, "connected")
+              addEdge(players.get(i), randomPlayer, options.label.toString())
               newEdge = true
             }
           }
@@ -381,40 +390,61 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     }
 
     // Finally, record the final edges in the data
-    E.each { edge ->
-      def data = [[name: "playerId1", value: edge.getVertex(Direction.IN).id], [name: "playerId2", value: edge.getVertex(Direction.OUT).id]]
-      if (eventTracker) {
-        eventTracker.track("Connected", data)
+    if (options.track) {
+      E.each { edge ->
+        def data = [[name: "playerId1", value: edge.getVertex(Direction.IN).id], [name: "playerId2", value: edge.getVertex(Direction.OUT).id]]
+        if (eventTracker) {
+          eventTracker.track("Connected", data)
+        }
       }
     }
   }
 
-  def smallWorld(n) {
-    ring()
+  def smallWorld(int k, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List players = setupGraphAlgorithm(options)
+    int n = players.size()
+
+    // Create a ring network
+    for (i in 0..(n - 1)) {
+      def p = players.get(i)
+      addTrackedEdge(p, players.get((i + 1) % n), options.label, options.track)
+    }
+
+    // Add k edges at random
     def edgesAdded = 0
-    List players = getVertices().iterator().toList()
     Random r = new Random()
-    while (edgesAdded < n) {
+    while (edgesAdded < k) {
       def p1 = players.get(r.nextInt(players.size()))
       def p2 = players.get(r.nextInt(players.size()))
       if ((p1 != p2) && (!p1.both.retain([p2]).hasNext())) {
-        addTrackedEdge(p1, p2, "connected")
+        addTrackedEdge(p1, p2, options.label, options.track)
         edgesAdded++
       }
     }
   }
 
   // This generates a ring network with n additional edges added so a 2-color coloring game is possible
-  def smallWorldColoring(n) {
-    ring()
+  def smallWorldColoring(int k, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List players = setupGraphAlgorithm(options)
+    int n = players.size()
+
+    // Create a ring network
+    for (i in 0..(n - 1)) {
+      def p = players.get(i)
+      p.index = i
+      addTrackedEdge(p, players.get((i + 1) % n), options.label, options.track)
+    }
+
+    // Add k edges where the network is still 2-color solvable
     def edgesAdded = 0
-    List players = getVertices().iterator().toList()
     Random r = new Random()
-    while (edgesAdded < n) {
+    while (edgesAdded < k) {
       def p1 = players.get(r.nextInt(players.size()))
       def p2 = players.get(r.nextInt(players.size()))
       if ((p1 != p2) && (!p1.both.retain([p2]).hasNext()) && (((p1.index - p2.index) % 2) == 1)) {
-        addTrackedEdge(p1, p2, "connected")
+        addTrackedEdge(p1, p2, options.label, options.track)
         edgesAdded++
       }
     }
@@ -426,47 +456,56 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     removeVertices()
   }
 
-  def ringLattice(int m, random = true) {
+  def ringLattice(int m, Boolean random) {
     mRing(m, random)
   }
 
-  def mRing(int m, random = true) {
-    List players = getVertices().iterator().toList()
-    final int n = numVertices()
+  def ringLattice(int m, Map opts = defaultGraphOptions) {
+    mRing(m, opts)
+  }
+
+  def mRing(int m, Boolean random) {
+    def options = defaultGraphOptions + [randomize: random]
+    mRing(m, options)
+  }
+
+  def mRing(int m, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List players = setupGraphAlgorithm(options)
+    int n = players.size()
 
     if (n < (2 * m + 1)) throw new IllegalArgumentException("Ring lattice algorithm requires at least 2k + 1 players.")
 
-    removeEdges()
-
-    if (random) {
-      Collections.shuffle(players)
-    } else {
-      Collections.sort(players, [compare: { a, b -> a.getId().toInteger() - b.getId().toInteger() }] as Comparator)
-    }
-
     for (i in 0..(n - 1)) {
-      for (j in 1..m)
-        addTrackedEdge(players.get(i), players.get((i + j) % n), "connected")
+      for (j in 1..m) {
+        addTrackedEdge(players.get(i), players.get((i + j) % n), options.label, options.track)
+      }
     }
   }
 
   // For compatibility with experiments before this typo was corrected
-  def barbasiAlbert(int v) {
-    barabasiAlbert(v)
+  def barbasiAlbert(int v, Map opts = defaultGraphOptions) {
+    barabasiAlbert(v, opts)
   }
 
-  def barabasiAlbert(int v) {
-    removeEdges()
+  def barabasiAlbert(int v, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List players = setupGraphAlgorithm(options)
+    int n = players.size()
+
     Random rand = new Random()
 
-    def neighborList = [] //Target vertices for new edges.  The array size is always v.
-    def inNetwork = [] //Array with each vertex added once per degree
-    V.shuffle.eachWithIndex { player, i ->
+    def neighborList = [] // Target vertices for new edges.  The array size is always v.
+    def inNetwork = []    // Array with each vertex added once per degree
+
+    for (int i = 0; i < n; i++) {
+      def player = players.get(i)
+
       //If we've already added v players to the inNetwork array
       if (i >= v) {
 
         neighborList.each { neighbor ->
-          addEdge(player, neighbor, "connected")
+          addTrackedEdge(player, neighbor, options.label, options.track)
           inNetwork << neighbor
           inNetwork << player
         }
@@ -490,102 +529,107 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     }
   }
 
-  def random(double connectivity) {
-    removeEdges()
+  def random(double connectivity, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List players = setupGraphAlgorithm(options)
+    int n = players.size()
+
     Random r = new Random()
-    List players = getVertices().iterator().toList()
-    int n = numVertices()
 
     if (n < 2) {
-      return;
+      return
     }
 
     for (i in 0..(n - 2)) {
       for (j in i + 1..(n - 1)) {
         def player = players.get(i)
         def neighbor = players.get(j)
-        //def data = [[name: "playerId", value: player.id.toString()], [name: "neighborId", value: neighbor.id.toString()]]
         if (r.nextDouble() < connectivity) {
-          addTrackedEdge(player, neighbor, "connected")
+          addTrackedEdge(player, neighbor, options.label, options.track)
         }
       }
     }
   }
 
-  def complete() {
-    random(1.0)
+  def complete(Map opts = defaultGraphOptions) {
+    random(1.0, opts)
   }
 
-  def star(int index) {
-    removeEdges()
-
-    List players = getVertices().iterator().toList()
-
-    def player = players.get(index)
-    int n = numVertices()
+  def star (Vertex centerPlayer, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List players = setupGraphAlgorithm(options)
+    int n = players.size()
 
     for (j in 0..(n - 1)) {
       def neighbor = players.get(j)
-      if (!player.id.toString().equals(neighbor.id.toString())) {
-        addTrackedEdge(player, neighbor, "connected")
+      if (!centerPlayer.id.toString().equals(neighbor.id.toString())) {
+        addTrackedEdge(centerPlayer, neighbor, options.label, options.track)
       }
     }
   }
 
-  def star() {
-    Random r = new Random()
-    star(r.nextInt(numVertices()))
+  def star(int index, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List players = V.filter(options.filter).iterator().toList()
+    Vertex player = (Vertex) players.get(index)
+    star(player, options)
   }
 
-  def wheel() {
-    List players = getVertices().iterator().toList()
-    Collections.shuffle(players)
-    final int n = numVertices()
+  def star(Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    int n = V.filter(options.filter).count()
+    Random r = new Random()
+    star(r.nextInt(n), options)
+  }
 
+  def wheel(Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    int n = V.filter(options.filter).count()
     if (n < 5) throw new IllegalArgumentException("Wheel algorithm requires at least 5 players.")
-
-    removeEdges()
+    List players = setupGraphAlgorithm(options)
 
     for (i in 0..(n - 2)) {
-      addTrackedEdge(players.get(n - 1), players.get(i), "connected")
-      addTrackedEdge(players.get(i), players.get((i + 1) % (n - 1)), "connected")
+      addTrackedEdge(players.get(n - 1), players.get(i), options.label, options.track)
+      addTrackedEdge(players.get(i), players.get((i + 1) % (n - 1)), options.label, options.track)
     }
   }
 
-  def grid(int maxX) {
-    removeEdges()
+  def grid(int maxX, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List players = setupGraphAlgorithm(options)
+    int n = players.size()
 
-    List players = getVertices().iterator().toList()
-    Collections.shuffle(players)
-    int maxY = Math.floor(numVertices() / maxX)
+    int maxY = Math.floor(n / maxX)
     for (x in 0..(maxX - 1)) {
       for (y in 0..(maxY - 1)) {
         if ((x + 1) < maxX) {
-          addTrackedEdge(players.get(x + (y * maxX)), players.get(x + (y * maxX) + 1), "connected")
+          addTrackedEdge(players.get(x + (y * maxX)), players.get(x + (y * maxX) + 1), options.label, options.track)
         }
 
         if ((y + 1) < maxY) {
-          addTrackedEdge(players.get(x + (y * maxX)), players.get(x + (maxX * (y + 1))), "connected")
+          addTrackedEdge(players.get(x + (y * maxX)), players.get(x + (maxX * (y + 1))), options.label, options.track)
         }
       }
     }
   }
 
-  def grid() {
+  def grid(Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    int n = V.filter(options.filter).count()
     // As close to a square as we can get
-    grid((int) Math.floor(Math.sqrt(numVertices())))
+    int maxX = (int) Math.floor(Math.sqrt(n))
+
+    grid(maxX, options)
   }
 
-  def ladder() {
-    grid(2)
+  def ladder(Map opts = defaultGraphOptions) {
+    grid(2, opts)
   }
 
-  def pairs() {
-    removeEdges()
-
-    List players = getVertices().iterator().toList()
-    Collections.shuffle(players)
-    final int n = numVertices()
+  def pairs(Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List players = setupGraphAlgorithm(options)
+    final int n = players.size()
 
     List pairIds = []
     for (int i = 0; i < n; i += 2) {
@@ -593,47 +637,75 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         def p1 = players.get(i)
         def p2 = players.get(i + 1)
         pairIds << [p1.id, p2.id]
-        addTrackedEdge(p1, p2, "connected")
+        addTrackedEdge(p1, p2, options.label, options.track)
       }
     }
 
     return pairIds
   }
 
-  def lattice(int maxX) {
-    // Each player should have as close to 4 neighbors as possible
-    List players = getVertices().iterator().toList()
-    Collections.shuffle(players)
-    int maxY = Math.floor(numVertices() / maxX)
+  def lattice(int maxX, Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    List players = setupGraphAlgorithm(options)
+
+    int n = players.size()
+    int maxY = Math.floor(n / maxX)
     for (x in 0..(maxX - 1)) {
       for (y in 0..(maxY - 1)) {
-        addTrackedEdge(players.get(x + (y * maxX)), players.get(((x + 1) % maxX) + (y * maxX)), "connected")
-        addTrackedEdge(players.get(x + (y * maxX)), players.get(x + (((y + 1) % maxY) * maxX)), "connected")
+        addTrackedEdge(players.get(x + (y * maxX)), players.get(((x + 1) % maxX) + (y * maxX)), options.label, options.track)
+        addTrackedEdge(players.get(x + (y * maxX)), players.get(x + (((y + 1) % maxY) * maxX)), options.label, options.track)
       }
     }
   }
 
-  def lattice() {
+  def lattice(Map opts = defaultGraphOptions) {
+    def options = defaultGraphOptions + opts
+    int n = V.filter(options.filter).count()
     // As close to a square as we can get
-    lattice((int) Math.floor(Math.sqrt(numVertices())))
+    int maxX = (int) Math.floor(Math.sqrt(n))
+    lattice(maxX, options)
   }
 
-  def removeEdges(Vertex v) {
-    v.getEdges(Direction.BOTH).each { removeEdge(it) }
+  def setupGraphAlgorithm(Map opts) {
+    def options = defaultGraphOptions + opts
+    if (options.removeEdges) {
+      removeEdges(options.trackRemoveEdges)
+    }
+    List players = V.filter(options.filter).iterator().toList()
+
+    if (options.randomize) {
+      Collections.shuffle(players)
+    }
+
+    return players
   }
 
-  def removeEdges() {
-    getEdges().each(
-        {
-          removeEdge(it)
-        })
+  def removeEdges(Vertex v, track = false) {
+    v.getEdges(Direction.BOTH).each { e->
+      _removeEdge(e, track)
+    }
+  }
+
+  def removeEdges(track = false) {
+    getEdges().each({ e ->
+      _removeEdge(e, track)
+    })
+  }
+
+  def _removeEdge(Edge e, Boolean track) {
+    if (track) {
+      def data = [[name: "playerId1", value: e.getVertex(Direction.IN).id.toString()], [name: "playerId2", value: e.getVertex(Direction.OUT).id.toString()]]
+      if (eventTracker) {
+        eventTracker.track("Disconnected", data)
+      }
+    }
+    removeEdge(e)
   }
 
   def removeVertices() {
-    getVertices().each(
-        {
-          removeVertex(it)
-        })
+    getVertices().each({
+      removeVertex(it)
+    })
   }
 
   def getEdge(Vertex v1, Vertex v2) {
@@ -659,22 +731,17 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     def connectedEdges = v1.getEdges(Direction.BOTH, "connected")
     for (def connectedEdge : connectedEdges) {
       if (connectedEdge.getVertex(Direction.IN) == v2 || connectedEdge.getVertex(Direction.OUT) == v2) {
-        removeEdge(connectedEdge)
+        _removeEdge(connectedEdge, false)
       }
     }
   }
 
   def numVertices() {
-    return getVertices().iterator().size()
+    return getVertices().count()
   }
 
   def numEdges() {
-    def n = 0
-    getEdges().each(
-        {
-          n++
-        })
-    return n
+    return getEdges().count()
   }
 }
 

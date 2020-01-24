@@ -4,7 +4,7 @@
         <span ng-if="!vm.step.editName">{{ vm.step.name }}</span>
         <step-name ng-if="vm.step.editName" step="vm.step"></step-name>
         <tab-status status="vm.step.status"></tab-status>
-        <button ng-if="selectedStep === vm.step && vm.protectedSteps.indexOf(vm.step.name) === -1"
+        <button ng-if="selectedStep === vm.step && vm.protectedSteps.indexOf(vm.step.name) === -1 && !vm.readOnly"
                 class="btn btn-xxs"
                 title="Delete this step"
                 tooltip="Delete this step"

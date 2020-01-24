@@ -3,6 +3,7 @@ function StepCtrl($scope, STATUS, $timeout) {
 
   vm.protectedSteps = ["InitStep", "OnJoinStep", "OnLeaveStep"];
 
+  vm.readOnly = $scope.readOnly;
   vm.step = $scope.step;
   vm.selectStep = $scope.selectStep();
   vm.deleteStep = $scope.deleteStep();

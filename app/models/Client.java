@@ -23,6 +23,7 @@ public class Client extends Model {
   public WebSocket.In<JsonNode> in;
   public ThrottledWebSocketOut out;
   public ExperimentInstance experimentInstance;
+  private int styleHash;
 
   public Client(String id, ExperimentInstance experimentInstance, WebSocket.In<JsonNode> in, ThrottledWebSocketOut out) {
     this.id = id;
@@ -150,6 +151,12 @@ public class Client extends Model {
     }
 
     jsonOutput.put("player", client);
+
+    int hash = experimentInstance.experiment.getStyle().hashCode();
+    if (styleHash != hash) {
+      styleHash = hash;
+      jsonOutput.put("style", experimentInstance.experiment.getStyle());
+    }
 
     out.write(jsonOutput);
   }
@@ -282,7 +289,7 @@ public class Client extends Model {
 
   public ObjectNode toJson() {
     ObjectNode client = Json.newObject();
-    client.put("style", experimentInstance.experiment.style);
+    client.put("style", experimentInstance.experiment.getStyle());
     return client;
   }
 

@@ -26,7 +26,7 @@ public class ContentController extends Controller {
     ObjectNode returnJson = Json.newObject();
 
     ArrayNode jsonSteps = returnJson.putArray("content");
-    for (Content c : experiment.content) {
+    for (Content c : experiment.getContent()) {
       jsonSteps.add(c.toJson());
     }
 

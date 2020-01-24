@@ -1,7 +1,6 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.JsonNode;
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.*;
@@ -24,6 +23,7 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -71,6 +71,7 @@ public class ExperimentController extends Controller {
     if (user.defaultLanguage != null && copyExperiment == null) {
       experiment.languages.add(user.defaultLanguage);
     }
+    experiment.fileMode = false;
     experiment.save();
 
     user.ownedExperiments.add(experiment);
@@ -204,9 +205,9 @@ public class ExperimentController extends Controller {
     try(ZipOutputStream zos = new ZipOutputStream(outputStream)) {
       ZipEntry e;
 
-      // TODO: Write the version based on the build version
       ObjectNode dotBreadboard = Json.newObject();
-      dotBreadboard.put("version", "v2.3.0");
+      String version = play.Play.application().configuration().getString("application.version");
+      dotBreadboard.put("version", version);
       dotBreadboard.put("experimentName", experiment.name);
       dotBreadboard.put("experimentUid", experiment.uid);
 
@@ -218,21 +219,21 @@ public class ExperimentController extends Controller {
       // Client style/html/graph
       e = new ZipEntry("style.css");
       zos.putNextEntry(e);
-      zos.write(experiment.style.getBytes());
+      zos.write(experiment.getStyle().getBytes());
       zos.closeEntry();
 
       e = new ZipEntry("client-html.html");
       zos.putNextEntry(e);
-      zos.write(experiment.clientHtml.getBytes());
+      zos.write(experiment.getClientHtml().getBytes());
       zos.closeEntry();
 
       e = new ZipEntry("client-graph.js");
       zos.putNextEntry(e);
-      zos.write(experiment.clientGraph.getBytes());
+      zos.write(experiment.getClientGraph().getBytes());
       zos.closeEntry();
 
       // Steps
-      for (Step step : experiment.steps) {
+      for (Step step : experiment.getSteps()) {
         e = new ZipEntry("Steps/" + step.name.concat(".groovy"));
         zos.putNextEntry(e);
         zos.write(step.source.getBytes());
@@ -240,7 +241,7 @@ public class ExperimentController extends Controller {
       }
 
       // Content in language subfolders
-      for (Content c : experiment.content){
+      for (Content c : experiment.getContent()){
         for(Translation t : c.translations){
           String language = (t.language == null || t.language.getCode() == null) ? user.defaultLanguage.getCode(): t.language.getCode();
           e = new ZipEntry("Content/" + language + "/" + c.name.concat(".html"));
@@ -253,15 +254,11 @@ public class ExperimentController extends Controller {
       // Create the parameters.csv file
       e = new ZipEntry("parameters.csv");
       zos.putNextEntry(e);
-      String ls = System.getProperty("line.separator");
-      zos.write(("Name,Type,Min.,Max.,Default,Short Description" + ls).getBytes());
-      for (Parameter param : experiment.parameters) {
-        zos.write((param.name + "," + param.type + "," + param.minVal + "," + param.maxVal + "," + param.defaultVal + "," + param.description + ls).getBytes());
-      }
+      zos.write(experiment.parametersToCsv().getBytes());
       zos.closeEntry();
 
       // Write image files to stream
-      for (Image image : experiment.images) {
+      for (Image image : experiment.getImages()) {
         e = new ZipEntry("Images/" + image.fileName);
         zos.putNextEntry(e);
         zos.write(image.file);
@@ -278,6 +275,89 @@ public class ExperimentController extends Controller {
     return ok(outputStream.toByteArray());
 
   }
+
+  /**
+   * If experimentId is null or invalid, creates a new experiment and returns the newly created experiment ID.
+   * Otherwise, imports the experiment files over the existing experiment and returns the provided experimentID.
+   * @param experimentId  The ID of the experiment to import over, if null or invalid create new experiment
+   * @param user          The User who is making the import request, newly created experiments will be associated with the user
+   * @param directory     The File location of the experiment files to impoart
+   * @return              the experimentId of the imported experiment
+   * @throws IOException
+   */
+  public static Long importExperimentFromDirectory(Long experimentId, User user, File directory) throws IOException {
+    Experiment experiment;
+    if (experimentId == null || ((experiment = Experiment.findById(experimentId)) == null) ) {
+      // New experiment
+      experiment = new Experiment();
+      user.ownedExperiments.add(experiment);
+      user.update();
+      user.saveManyToManyAssociations("ownedExperiments");
+    } else {
+      // Existing experiment, delete before re-importing
+      experiment.removeSteps();
+      experiment.removeContent();
+      experiment.removeParameters();
+      experiment.removeImages();
+    }
+    experiment.setClientGraph(FileUtils.readFileToString(new File(directory, "client-graph.js")));
+    experiment.setClientHtml(FileUtils.readFileToString(new File(directory, "client-html.html")));
+    experiment.setStyle(FileUtils.readFileToString(new File(directory, "style.css")));
+    importParameters(experiment, new File(directory, "parameters.csv"));
+    importSteps(experiment, new File(directory, "/Steps"));
+    importContent(experiment, new File(directory, "/Content"));
+    importImages(experiment, new File(directory, "/Images"));
+    experiment.save();
+    return experiment.id;
+  }
+
+  public static void exportExperimentToDirectory(Long experimentId, File directory) throws IOException {
+    Experiment experiment = Experiment.findById(experimentId);
+    if(experiment == null){
+      throw new IOException("Experiment with the ID " + experimentId + " not found.");
+    }
+
+    // Clean up existing files
+    if (directory.exists() && directory.isDirectory()) {
+      FileUtils.deleteDirectory(directory);
+    }
+
+    // Create the directory
+    FileUtils.forceMkdir(directory);
+
+    String version = play.Play.application().configuration().getString("application.version");
+    ObjectNode dotBreadboard = Json.newObject();
+    dotBreadboard.put("version", version);
+    dotBreadboard.put("experimentName", experiment.name);
+    dotBreadboard.put("experimentUid", experiment.uid);
+
+    FileUtils.writeStringToFile(new File(directory, ".breadboard"), dotBreadboard.toString());
+    FileUtils.writeStringToFile(new File(directory, "style.css"), experiment.getStyle());
+    FileUtils.writeStringToFile(new File(directory, "client-html.html"), experiment.getClientHtml());
+    FileUtils.writeStringToFile(new File(directory, "client-graph.js"), experiment.getClientGraph());
+
+    File stepsDirectory = new File(directory, "Steps");
+    for (Step step : experiment.getSteps()) {
+      FileUtils.writeStringToFile(new File(stepsDirectory, step.name.concat(".groovy")), step.source);
+    }
+
+    File contentDirectory = new File(directory, "Content");
+    for (Content c : experiment.getContent()) {
+      for (Translation t : c.translations) {
+        String language = (t.language == null || t.language.getCode() == null) ? "en" : t.language.getCode();
+        File translationDirectory = new File(contentDirectory, language);
+        FileUtils.writeStringToFile(new File(translationDirectory, c.name.concat(".html")), t.html);
+      }
+    }
+
+    FileUtils.writeStringToFile(new File(directory, "parameters.csv"), experiment.parametersToCsv());
+
+    File imagesDirectory = new File(directory, "Images");
+    for (Image image : experiment.getImages()) {
+      FileUtils.writeByteArrayToFile(new File(imagesDirectory, image.fileName), image.file);
+    }
+  }
+
 
   private static String readFile(String path, Charset encoding) throws IOException{
     byte[] encoded = Files.readAllBytes(Paths.get(path));
@@ -371,15 +451,13 @@ public class ExperimentController extends Controller {
 
     String style = FileUtils.readFileToString(new File(directory, "style.css"));
     experiment.setStyle(style);
-    String clientGraph = FileUtils.readFileToString(new File(directory, "client-graph.js"));
-    experiment.clientGraph = clientGraph;
-    String clientHtml = FileUtils.readFileToString(new File(directory, "client-html.html"));
-    experiment.clientHtml = clientHtml;
+    experiment.setClientGraph(FileUtils.readFileToString(new File(directory, "client-graph.js")));
+    experiment.setClientHtml(FileUtils.readFileToString(new File(directory, "client-html.html")));
 
     // Import Steps
     importSteps(experiment, new File(directory, "/Steps"));
     // Import Content
-    importContent(experiment, user, new File(directory, "/Content"));
+    importContent(experiment, new File(directory, "/Content"));
     // Import Parameters
     importParameters(experiment, new File(directory, "parameters.csv"));
     // Import Images
@@ -395,32 +473,60 @@ public class ExperimentController extends Controller {
   }
 
 
-  private static void importContent(Experiment experiment, User user, File contentDir) throws IOException{
+  private static void importContent(Experiment experiment, File contentDir) throws IOException {
+    ArrayList<Content> content = getContentFromDirectory(contentDir);
+    for (Content c : content) {
+      for (Translation t : c.translations) {
+        boolean hasExperimentLanguage = false;
+        for(Language l: experiment.languages){
+          if(l.id.equals(t.language.id)){
+            hasExperimentLanguage = true;
+          }
+        }
+        if(!hasExperimentLanguage){
+          experiment.languages.add(t.language);
+        }
+      }
+      experiment.content.add(c);
+    }
+  }
+
+  public static ArrayList<Content> getContentFromDirectory(File contentDir) throws IOException {
+    ArrayList<Content> returnContent = new ArrayList<>();
+    // Default to English if the directory isn't specified
+    Language defaultLanguage = Language.findByIso3("eng");
+    if (contentDir == null || !contentDir.exists()) {
+      throw new IOException("Directory not found.");
+    }
     for (File langFileOrDir : contentDir.listFiles()){
-      if(!langFileOrDir.isDirectory()){
+      if(!langFileOrDir.isDirectory() && FilenameUtils.getExtension(langFileOrDir.getName()).equalsIgnoreCase("html")) {
         Logger.debug("Content is in root of Content directory. Attempting to import as default language.");
         try {
-          importTranslations(experiment, user.defaultLanguage, contentDir);
+          ArrayList<Content> rootContent = getContentFromSubdirectory(contentDir, defaultLanguage);
+          returnContent.addAll(rootContent);
         } catch(IOException e){
           Logger.error("Unable to import content from 'Content' directory", e);
         } finally{
           break;
         }
-      } else {
+      } else if (langFileOrDir.isDirectory()) {
         // Content is broken out by language
         Language language = Language.findByIso3(langFileOrDir.getName());
 
         // Sometimes the subdirectory is named null or something else
         if(language == null){
-          language = user.defaultLanguage;
+          language = defaultLanguage;
         }
         try{
-          importTranslations(experiment, language, langFileOrDir);
+          ArrayList<Content> languageContent = getContentFromSubdirectory(langFileOrDir, language);
+          returnContent.addAll(languageContent);
         } catch(IOException e){
           Logger.error("Unable to import content from " + langFileOrDir.getName(), e);
         }
       }
     }
+    return returnContent;
+
   }
 
 
@@ -431,7 +537,42 @@ public class ExperimentController extends Controller {
    * @param directory
    * @throws IOException
    */
-  private static void importTranslations(Experiment experiment, Language language, File directory) throws IOException{
+  private static void importTranslations(Experiment experiment, Language language, File directory) throws IOException {
+
+    // Check for existing experiment language and add it if it doesn't exist
+    boolean hasExperimentLanguage = false;
+    for(Language l: experiment.languages){
+      if(l.id.equals(language.id)){
+        hasExperimentLanguage = true;
+      }
+    }
+    if(!hasExperimentLanguage){
+      experiment.languages.add(language);
+    }
+
+    ArrayList<Content> importedContent = getContentFromSubdirectory(directory, language);
+
+    for(Content content: importedContent) {
+      // Check for existing content and create if it doesn't exist
+      boolean contentExists = false;
+      for (Content c : experiment.content) {
+        if (c.name.equals(content.name)) {
+          contentExists = true;
+          Logger.debug("Using existing content: " + content.name + " with language " + language.name);
+          break;
+        }
+      }
+
+      // If content with that name doesn't already exist, import it
+      if (!contentExists) {
+        experiment.content.add(content);
+      }
+    }
+
+  }
+
+  private static ArrayList<Content> getContentFromSubdirectory(File directory, Language language) throws IOException {
+    ArrayList<Content> returnContent = new ArrayList<>();
 
     for(File file: directory.listFiles()){
       if(FilenameUtils.getExtension(file.getName()).equals("html")){
@@ -439,38 +580,16 @@ public class ExperimentController extends Controller {
         translation.language = language;
         translation.html = FileUtils.readFileToString(file);
 
-        // Check for existing experiment language and add it if it doesn't exist
-        boolean hasExperimentLanguage = false;
-        for(Language l: experiment.languages){
-          if(l.id == language.id){
-            hasExperimentLanguage = true;
-          }
-        }
-        if(!hasExperimentLanguage){
-          experiment.languages.add(language);
-        }
-
-        // Check for existing content and create if it doesn't exist
         String contentName = FilenameUtils.removeExtension(file.getName());
-        Content content = null;
-        for (Content c: experiment.content){
-          if(c.name.equals(contentName)) {
-            content = c;
-            Logger.debug("Using existing content: " + content.name + " with language " + language.name);
-            break;
-          }
-        }
-        if(content == null){
-          content = new Content();
-          content.name = contentName;
-          experiment.content.add(content);
-        }
-        Logger.debug("Adding translation to " + content.name + " for language " + language.name);
+        Content content = new Content();
+        content.name = contentName;
         content.translations.add(translation);
-        Logger.debug("Translation length: " + content.translations.size());
+
+        returnContent.add(content);
       }
     }
 
+    return returnContent;
   }
 
   /**
@@ -479,8 +598,14 @@ public class ExperimentController extends Controller {
    * @param directory
    * @throws IOException
    */
-  private static void importImages(Experiment experiment, File directory) throws IOException{
+  private static void importImages(Experiment experiment, File directory) throws IOException {
+    ArrayList<Image> images = getImagesFromDirectory(directory);
+    experiment.images.addAll(images);
+    experiment.save();
+  }
 
+  public static ArrayList<Image> getImagesFromDirectory(File directory) throws IOException {
+    ArrayList<Image> returnImages = new ArrayList<>();
     File[] imageFiles = directory.listFiles();
     if (imageFiles != null) {
       for (File imageFile : imageFiles) {
@@ -496,19 +621,25 @@ public class ExperimentController extends Controller {
           if(extension.equals("svg")){
             image.contentType += "+xml";
           }
-          experiment.images.add(image);
+          returnImages.add(image);
           Logger.debug("Adding image: " + imageName);
         } else {
           Logger.debug("Skipping file of unsupported type: " + imageName);
         }
       }
     }
-
+    return returnImages;
   }
 
-  private static void importParameters(Experiment experiment, File file) throws IOException{
+  private static void importParameters(Experiment experiment, File file) throws IOException {
+    ArrayList<Parameter> parameters = getParametersFromFile(file);
+    experiment.parameters.addAll(parameters);
+    experiment.update();
+  }
 
-    Reader in = new FileReader(file);
+  public static ArrayList<Parameter> getParametersFromFile(File parameterFile) throws IOException {
+    ArrayList<Parameter> returnParameters = new ArrayList<>();
+    Reader in = new FileReader(parameterFile);
     CSVFormat format = CSVFormat.DEFAULT.withHeader("Name", "Type", "Min.", "Max.", "Default", "Short Description").withFirstRecordAsHeader();
     for (CSVRecord record : format.parse(in)) {
       Parameter parameter = new Parameter();
@@ -518,15 +649,21 @@ public class ExperimentController extends Controller {
       parameter.maxVal = record.get("Max.");
       parameter.defaultVal = record.get("Default");
       parameter.description = record.get("Short Description");
-      experiment.parameters.add(parameter);
+      returnParameters.add(parameter);
     }
-
-    in.close();
-
+    return returnParameters;
   }
 
   // Reusable code for importing steps
   private static void importSteps(Experiment experiment, File stepsDirectory) throws IOException{
+    ArrayList<Step> steps = getStepsFromDirectory(stepsDirectory);
+    for (Step step : steps) {
+      experiment.addStep(step);
+    }
+  }
+
+  public static ArrayList<Step> getStepsFromDirectory(File stepsDirectory) throws IOException {
+    ArrayList<Step> returnSteps = new ArrayList<>();
     File[] stepFiles = stepsDirectory.listFiles();
     if (stepFiles != null) {
       for (File stepFile : stepFiles) {
@@ -536,13 +673,14 @@ public class ExperimentController extends Controller {
           String source = FileUtils.readFileToString(stepFile);
           step.name = stepName;
           step.source = source;
-          experiment.steps.add(step);
+          returnSteps.add(step);
           Logger.debug("Adding step: " + stepName);
         } else {
           Logger.debug("Skipping " + stepFile.getName() + " with unsupported file extension");
         }
       }
     }
+    return returnSteps;
   }
 
   private static Experiment newExperiment(User user, Boolean isNewExperiment){
@@ -551,12 +689,12 @@ public class ExperimentController extends Controller {
       Step onJoin = Experiment.generateOnJoinStep();
       Step onLeave = Experiment.generateOnLeaveStep();
       Step init = Experiment.generateInitStep();
-      experiment.steps.add(onJoin);
-      experiment.steps.add(onLeave);
-      experiment.steps.add(init);
+      experiment.addStep(onJoin);
+      experiment.addStep(onLeave);
+      experiment.addStep(init);
     }
-    experiment.clientHtml = Experiment.defaultClientHTML();
-    experiment.clientGraph = Experiment.defaultClientGraph();
+    experiment.setClientHtml(Experiment.defaultClientHTML());
+    experiment.setClientGraph(Experiment.defaultClientGraph());
     // Add the user's default language
     experiment.languages.add(user.defaultLanguage);
     return experiment;

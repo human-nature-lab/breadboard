@@ -1,45 +1,13 @@
 import _ from 'underscore';
-import 'ng-file-upload';
 
 /* Controllers */
-angular.module('breadboard.controllers', ['ngFileUpload']).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state', 'csvService', 'configService', 'Upload', 'downloadService',
-function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, configService, Upload, downloadService) {
+angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state', 'csvService', 'configService', 'downloadService',
+function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, configService, downloadService) {
   /*
   $scope.$watch('selectedLanguage', function(newValue) {
     console.log('selectedLanguage', newValue);
   });
   */
-  $scope.image = {
-    file: null,
-    path: ''
-  };
-
-  configService.get('imageUploadRoute').then(imageUploadRoute => {
-    $scope.image.path = imageUploadRoute;
-  });
-
-  $scope.uploadImage = function(){
-    if(!$scope.image.file) return;
-    Upload.upload({
-      url: $scope.image.path,
-      data: {
-        picture: $scope.image.file,
-        experimentId: $scope.breadboard.experiment.id
-      }
-    }).then(function(resp){
-      if(resp.data === 'Error uploading'){
-        alert("Unable to upload the photo. Please select a new photo.");
-      } else {
-        $scope.update();
-      }
-      $scope.image.file = null;
-    }, function(err){
-      console.error(err);
-      $scope.image.file = null;
-    }, function(evt){
-      console.log("progress", evt);
-    });
-  };
 
   $breadboardFactory.onmessage(function (data) {
     try {
@@ -157,58 +125,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     });
   };
 
-  $scope.paramType = function (type) {
-    if (type === 'Boolean') {
-      return "checkbox";
-    }
-
-    if (type === 'Decimal' || type === 'Integer') {
-      return "number";
-    }
-
-    return "text";
-  };
-
-  $scope.clearParameterFields = function () {
-      $scope.parameterMin = '';
-      $scope.parameterMax = '';
-      $scope.parameterDefaultInteger = '';
-      $scope.parameterDefaultDecimal = '';
-      $scope.parameterDefaultText = '';
-  };
-
-  $scope.newParameter = function () {
-    var parameterDefault = '';
-    if ($scope.parameterType === 'Integer') parameterDefault = $scope.parameterDefaultInteger + '';
-    if ($scope.parameterType === 'Decimal') parameterDefault = $scope.parameterDefaultDecimal + '';
-    if ($scope.parameterType === 'Boolean') parameterDefault = $scope.parameterDefaultBoolean;
-    if ($scope.parameterType === 'Text') parameterDefault = $scope.parameterDefaultText;
-    $breadboardFactory.send(
-      {
-        "action": "NewParameter",
-        "name": $scope.parameterName,
-        "type": $scope.parameterType,
-        "minVal": $scope.parameterMin + '',
-        "maxVal": $scope.parameterMax + '',
-        "defaultVal": parameterDefault,
-        "description": $scope.parameterDescription
-      });
-    // Clear values
-    $scope.clearParameterFields();
-    $scope.parameterName = '';
-    $scope.parameterType = '';
-    $scope.parameterDescription = '';
-    // Set the default value
-    //$scope.launchParameters[$scope.parameterName] = $scope.parameterDefault;
-  };
-
-  $scope.removeParameter = function (id) {
-    $breadboardFactory.send(
-      {
-        "action": "RemoveParameter",
-        "id": id
-      });
-  };
 
   $scope.playerProperties = function (n) {
     var ignoreProps = ["weight", "x", "y", "px", "fixed", "equals", "py", "text", "choices"];
@@ -326,14 +242,22 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     });
   };
 
+  function getExperimentZipName() {
+     return getExperimentName() + ".zip";
+  }
+
+  function getExperimentName() {
+    return $scope.breadboard.experiment.name.replace(/ /g, "-") + "_" + $scope.breadboard.experiment.id;
+  }
+
   $scope.exportExperiment = function () {
-    downloadService.download("/experiment/export/" + $scope.breadboard.experiment.id, $scope.breadboard.experiment.name + '.zip')
+    downloadService.download("/experiment/export/" + $scope.breadboard.experiment.id, getExperimentZipName())
       .then(function(res){
         console.log("Successfully downloaded experiment");
       });
   };
 
-  $scope.openImportDialog = function(){
+  $scope.openImportDialog = function() {
 
     $('#importExperimentDialog').dialog({
       title: "Import experiment",
@@ -341,6 +265,20 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     });
 
   };
+
+  $scope.toggleDevMode = function() {
+    let message = "The experiment will be exported to the 'breadboard/dev/" + getExperimentName() + "/' directory." +
+      "This will overwrite any existing files. Continue?";
+    if ($scope.breadboard.experiment.fileMode) {
+      message = "The experiment files in 'breadboard/dev/" + getExperimentName() + "/' will be imported into the " +
+        "database. This will overwrite the existing experiment. Continue?";
+    }
+    if (window.confirm(message)) {
+      $breadboardFactory.send({
+        "action": "ToggleFileMode"
+      });
+    }
+  }
 
   $scope.createExperiment = function () {
     $('#newExperimentDialog').dialog('close');
@@ -357,13 +295,6 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       "action": "SubmitAMTTask",
       "lifetimeInSeconds": lifetimeInSeconds,
       "tutorialTime": tutorialTime
-    });
-  };
-
-  $scope.deleteImage = function (imageId) {
-    $breadboardFactory.send({
-      "action": "DeleteImage",
-      "imageId": imageId
     });
   };
 
@@ -473,10 +404,13 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   var sendScript = function () {
-    //console.log("sendScript sending: " + $scope.breadboard.user.currentScript);
-    var script = $scope.breadboard.user.currentScript;
-    if (window.getSelection && window.getSelection().toString().length > 0) {
-      script = window.getSelection().toString();
+    let script = $scope.breadboard.user.currentScript;
+
+    let codeMirrorInstances = document.getElementById('scriptDiv').getElementsByClassName('CodeMirror');
+    let cm = codeMirrorInstances[0].CodeMirror;
+    let selection = cm.getSelection();
+    if (selection.length > 0) {
+      script = selection;
     }
     $breadboardFactory.send(
       {
@@ -528,7 +462,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.downloadEventCsv = function (experimentInstance) {
     csvService.getInstanceData(experimentInstance.id)
       .then(function(success) {
-          let filename = experimentInstance.name + '.csv';
+          let filename = experimentInstance.name + '_' + experimentInstance.id + '.csv';
           let blob = new Blob([success.data], {type: 'text/csv'});
 
           if (window.navigator && window.navigator.msSaveOrOpenBlob) {
@@ -642,11 +576,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     height: windowHeight,
     position: [margin, topDivHeight],
     autoOpen: false,
-    buttons: {
-      'Save': function () {
-        saveContent();
+    buttons: [
+      {
+        text: 'Save',
+        disabled: false,
+        click: function () {
+          saveContent();
+        }
       }
-    },
+    ],
     dialogClass: 'contentDialog'
   };
 
@@ -657,12 +595,46 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     position: [margin, topDivHeight],
     autoOpen: false,
     dialogClass: 'steps-dialog',
-    buttons: {
-      'Save': function () {
-        saveSteps();
+    buttons: [
+      {
+        text: 'Save',
+        disabled: false,
+        click: function () {
+          saveSteps();
+        }
       }
-    }
+    ]
   };
+
+  $scope.$watch('breadboard.experiment.fileMode', function(newValue) {
+    $('#stepsDiv').dialog('option', 'buttons', [
+      {
+        text: 'Save',
+        disabled: newValue,
+        click: function () {
+          saveSteps();
+        }
+      }
+    ]);
+    $('#customizeDiv').dialog('option', 'buttons', [
+      {
+        text: 'Save',
+        disabled: newValue,
+        click: function () {
+          saveCustomize();
+        }
+      }
+    ]);
+    $('#contentDiv').dialog('option', 'buttons', [
+      {
+        text: 'Save',
+        disabled: newValue,
+        click: function () {
+          saveContent();
+        }
+      }
+    ]);
+  });
 
   $scope.customizeDialogOptions = {
     title: 'Customize',
@@ -670,19 +642,23 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     width: windowWidth,
     height: windowHeight,
     position: [margin, topDivHeight],
-    buttons: {
-      'Save': function () {
-        saveCustomize();
+    buttons: [
+      {
+        text: 'Save',
+        disabled: false,
+        click: function () {
+          saveCustomize();
+        }
       }
-    },
+    ]
   };
 
 
   $scope.imagesDialogOptions = {
     title: 'Images',
-    width: (windowWidth * .5),
+    width: windowWidth,
     height: windowHeight,
-    position: [((windowWidth * .5) + margin), topDivHeight],
+    position: [margin, topDivHeight],
     autoOpen: false,
     buttons: {}
   };
@@ -708,9 +684,9 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   $scope.parametersDialogOptions = {
     title: 'Parameters',
     autoOpen: false,
-    width: (windowWidth * .5),
+    width: windowWidth,
     height: windowHeight,
-    position: [((windowWidth * .5) + margin), topDivHeight],
+    position: [margin, topDivHeight],
     buttons: {}
   };
 

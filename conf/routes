@@ -8,9 +8,11 @@ GET         /state                                                              
 GET         /connect                                                             controllers.Application.connect()
 GET         /csv/instances/:experimentId                                         controllers.Application.dataCsv(experimentId: Long)
 GET         /csv/data/:experimentInstanceId                                      controllers.Application.eventCsv(experimentInstanceId: Long)
-GET         /images/:id                                                          controllers.Application.getImage(id: Long)
-GET         /thumbs/:id                                                          controllers.Application.getImageThumb(id: Long)
-POST        /uploadImage                                                         controllers.Application.uploadImage()
+GET         /images/:id                                                          controllers.ImagesController.getImage(id: Long)
+GET         /images/:experimentId/:fileName                                      controllers.ImagesController.getImageByFileName(experimentId: Long, fileName: String)
+GET         /thumbs/:id                                                          controllers.ImagesController.getImageThumb(id: Long)
+POST        /images/upload                                                       controllers.ImagesController.uploadImage()
+DELETE      /images/:imageId                                                     controllers.ImagesController.removeImage(imageId: Long)
 GET         /game/:experimentId/:experimentInstanceId/:clientId/connected        controllers.ClientController.index(experimentId: String, experimentInstanceId: String, clientId: String, connectionSpeed: String ?= null)
 GET         /game/:experimentId/:experimentInstanceId/:clientId/state            controllers.ClientController.getState(experimentId: String, experimentInstanceId: String, clientId: String, connectionSpeed: String ?= null)
 GET         /game/:experimentId/:experimentInstanceId/:clientId/connect          controllers.ClientController.connectClient(experimentId: String, experimentInstanceId: String, clientId: String)
@@ -42,7 +44,7 @@ PUT         /amtadmin/addQualificationType/:experimentUid                       
 # AMT Workers Controller
 GET         /experiment/:experimentId/amtassignments                             controllers.AMTAssignmentController.getAMTAssignments(experimentId: Long, sandbox: Boolean ?= false)
 
-# Customize Dialog
+# Customize dialog
 GET         /customize/clientHtml/:experimentId                                  controllers.CustomizeController.getClientHtml(experimentId: Long)
 GET         /customize/clientGraph/:experimentId                                 controllers.CustomizeController.getClientGraph(experimentId: Long)
 GET         /customize/style/:experimentId                                       controllers.CustomizeController.getStyle(experimentId: Long)
@@ -50,15 +52,19 @@ POST        /customize/clientHtml/:experimentId                                 
 POST        /customize/clientGraph/:experimentId                                 controllers.CustomizeController.updateClientGraph(experimentId: Long)
 POST        /customize/style/:experimentId                                       controllers.CustomizeController.updateStyle(experimentId: Long)
 
-# Steps Dialog
+# Steps dialog
 GET         /steps/:experimentId                                                 controllers.StepsController.getSteps(experimentId: Long)
 POST        /steps/:stepId                                                       controllers.StepsController.updateStep(stepId: Long)
 DELETE      /steps/:stepId                                                       controllers.StepsController.deleteStep(stepId: Long)
 
-# Content Dialog
+# Content dialog
 GET         /content/:experimentId                                               controllers.ContentController.getContent(experimentId: Long)
 POST        /content/:contentId                                                  controllers.ContentController.updateContent(contentId: Long)
 DELETE      /content/:contentId                                                  controllers.ContentController.deleteContent(contentId: Long)
+
+# Parameters dialog
+PUT         /parameters/:experimentId                                            controllers.ParametersController.createParameter(experimentId: Long)
+DELETE      /parameters/:experimentId/:parameterId                               controllers.ParametersController.removeParameter(experimentId: Long, parameterId: Long)
 
 # Create New Experiment
 PUT         /experiment                                                          controllers.ExperimentController.createExperiment()

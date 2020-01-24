@@ -40,6 +40,14 @@ export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderB
       //Focus the editor on load
       $timeout(function(){
         editor.focus();
+        if ($scope.readOnly) {
+          editor.getBody().setAttribute('contenteditable', 'false');
+          angular.element('.mce-toolbar-grp').css('visibility', 'hidden');
+        } else {
+          //editor.setMode('design');
+          editor.getBody().setAttribute('contenteditable', 'true');
+          angular.element('.mce-toolbar-grp').css('visibility', 'visible');
+        }
       }, 1000);
       editor.on("keydown", function(e) {
         if(e.ctrlKey && e.keyCode === KEYS.S){
@@ -65,20 +73,57 @@ export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderB
     }
   });
 
+  $scope.$watch('readOnly', function() {
+    let tinymceinstance = tinyMCE.get('tinymceTextarea');
+    if (!tinymceinstance) return;
+    if ($scope.readOnly) {
+      tinymceinstance.getBody().setAttribute('contenteditable', 'false');
+      angular.element('.mce-toolbar-grp').css('visibility', 'hidden');
+    } else {
+      tinymceinstance.getBody().setAttribute('contenteditable', 'true');
+      angular.element('.mce-toolbar-grp').css('visibility', 'visible');
+    }
+    getContent();
+  });
+
+  // In the case that fileMode = true, we can safely watch the Steps and update when they change.
+  $scope.$watch('experiment.content', updateFromFile, true);
+
+  function updateFromFile() {
+    if ($scope.readOnly) {
+      vm.content = orderBy($scope.experiment.content, 'name', false);
+
+      copyTranslationHtml();
+
+      angular.forEach(vm.content, function(c) {
+        if (vm.selectedContent && (c.name === vm.selectedContent.name)) {
+          vm.selectedContent = c;
+        }
+      });
+
+      getSelectedTranslation();
+
+    }
+  }
+
+  function copyTranslationHtml() {
+    angular.forEach(vm.content, function(c) {
+      angular.forEach(c.translations, function(t) {
+        t.clientHtml = t.html;
+      });
+    });
+  }
+
   function getContent() {
     ContentSrv.getContent(vm.experimentId)
       .then(
         function(success){
           vm.content = orderBy(success.data.content, 'name', false);
 
-          angular.forEach(vm.content, function(c) {
-            angular.forEach(c.translations, function(t) {
-              t.clientHtml = t.html;
-            });
-          });
+          copyTranslationHtml();
 
           vm.selectedContent = vm.content[0];
-          vm.selectedTranslation = getSelectedTranslation();
+          getSelectedTranslation();
           $scope.$watch('vm.selectedLanguage', getSelectedTranslation);
           $scope.$watch('vm.selectedContent', getSelectedTranslation);
         },
@@ -93,8 +138,8 @@ export default function ContentCtrl($scope, ContentSrv, STATUS, $timeout, orderB
     if (vm.selectedContent && vm.selectedLanguage) {
       for (let i = 0; i < vm.selectedContent.translations.length; i++) {
         let translation = vm.selectedContent.translations[i];
-        if (translation.language.id === vm.selectedLanguage.id) {
-          vm.selectedTranslation = translation;
+        if (translation.language.code == vm.selectedLanguage.code) {
+          vm.selectedTranslation = vm.selectedContent.translations[i];
         }
       }
 

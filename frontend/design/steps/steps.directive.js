@@ -9,7 +9,9 @@ angular.module('breadboard.steps').directive('steps', function(){
     restrict: 'E',
     scope: {
       experimentId: '=',
-      actions: '='
+      experiment: '=',
+      actions: '=',
+      readOnly: '='
     },
     link: function(scope){
       angular.extend(scope.actions, {

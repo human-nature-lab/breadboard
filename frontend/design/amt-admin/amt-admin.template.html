@@ -85,7 +85,7 @@
                         </nav>
                     </th>
                     <th>
-                        <button class="btn btn-default" ng-click="refreshHITs()">Refresh</button>
+                        <button class="btn btn-default" ng-click="refreshHITs()">Refresh HITs</button>
                     </th>
                 </tr>
                 <tr>
@@ -131,14 +131,14 @@
                             </div>
                             <div class="col-md-12">
                                 <div class="panel panel-default">
-                                    <div class="panel-heading">
-                                        Assignments
+                                    <div class="panel-heading clearfix">
+                                        <span>Assignments</span>
+                                        <button class="btn btn-default pull-right" ng-click="refreshAssignmentsForHIT(hit)">Refresh assignments</button>
                                     </div>
                                     <div class="panel-body">
                                         <span ng-show="hit.assignments === null">Loading...</span>
                                         <span ng-show="hit.assignments !== null && hit.assignments.length === 0">
                                             <p>No assignments found...</p>
-                                            <button class="btn btn-default" ng-click="refreshAssignmentsForHIT(hit)">Refresh</button>
                                         </span>
                                         <table class="table table-condensed" ng-show="hit.assignments !== null && hit.assignments.length > 0">
                                             <thead>
@@ -374,7 +374,7 @@
                                             <tfoot>
                                             <tr ng-if="hit.assignmentsNextToken !== null">
                                                 <th colspan="8" class="text-center">
-                                                    <nav aria-label="More Assignments">
+                                                    <nav aria-label="More assignments">
                                                         <ul class="pager">
                                                             <li><a ng-click="moreAssignmentsForHIT(hit)">More</a></li>
                                                         </ul>

@@ -9,12 +9,14 @@ export default function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy, a
   vm.deleteStep = deleteStep;
   vm.sendStep = $scope.actions.sendStep;
   vm.onDeleteStep = $scope.actions.onDeleteStep;
+  vm.readOnly = $scope.readOnly;
 
   vm.selectedStep = {};
   vm.steps = [];
   vm.createStatus = STATUS.UNLOADED;
   vm.error = '';
   vm.codeMirrorOptions = {
+    readOnly: ($scope.readOnly) ? 'nocursor' : false,
     lineNumbers: true,
     matchBrackets: true,
     mode: 'text/x-groovy',
@@ -27,6 +29,19 @@ export default function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy, a
     vimMode: false,
     showCursorWhenSelecting: true
   };
+
+  $scope.$watch('readOnly', function(newValue) {
+    let codeMirrorInstances = document.getElementById('stepTab').getElementsByClassName('CodeMirror');
+    for (let i = 0; i < codeMirrorInstances.length; i++) {
+      let cm = codeMirrorInstances[i].CodeMirror;
+      cm.setOption('readOnly', ((newValue) ? 'nocursor' : false));
+    }
+    if (newValue) {
+      updateFromFile();
+    } else {
+      updateSteps();
+    }
+  });
 
   // Any reason we can't just pass the experiment steps array into the directive directly? Maybe because this will eventually be a separate AJAX request?
   function updateSteps(){
@@ -43,6 +58,20 @@ export default function StepsCtrl($scope, StepsSrv, STATUS, $timeout, orderBy, a
   updateSteps();
   $scope.$watch('experimentId', updateSteps);
 
+  // In the case that fileMode = true, we can safely watch the Steps and update when they change.
+  $scope.$watch('experiment.steps', updateFromFile, true);
+
+  function updateFromFile() {
+    if ($scope.readOnly) {
+      vm.steps = orderBy($scope.experiment.steps, 'name', false);
+      angular.forEach(vm.steps, function(step) {
+        // TODO: Comparing by name is necessary because steps read from file have no ID; if that changes, compare by ID.
+        if (step.name === vm.selectedStep.name) {
+          vm.selectedStep = step;
+        }
+      });
+    }
+  }
 
   function selectStep(step) {
     if (step === vm.selectedStep) return;

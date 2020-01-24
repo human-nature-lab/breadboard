@@ -9,6 +9,8 @@ import uiJqConfig from '../providers/ui-jq-config.value';
 import '../amt-admin/amt-admin.directive';
 import '../create-new-experiment/create-new-experiment.directive';
 import '../customize/customize.directive';
+import '../parameters/parameters.directive';
+import '../images/images.directive';
 import '../steps/steps.directive';
 import '../testing/testing.directive';
 import '../content/content.directive';
@@ -27,6 +29,8 @@ angular.module('breadboard', [
   'breadboard.routes',
   'breadboard.amt-admin',
   'breadboard.customize',
+  'breadboard.parameters',
+  'breadboard.images',
   'breadboard.create-first-user',
   'breadboard.create-new-experiment',
   'breadboard.instance-parameters',

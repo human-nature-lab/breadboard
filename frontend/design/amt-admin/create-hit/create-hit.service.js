@@ -29,8 +29,6 @@ function CreateHitSrv($http, $q, $timeout) {
       'qualificationRequirements': qualificationRequirements
     };
 
-    console.log('createHIT', payload, sandbox);
-
     return $http.post('/amtadmin/createHIT' + ((sandbox) ? '?sandbox=true' : ''), payload)
       .then(function (response) {
           if (response.status < 400) {
