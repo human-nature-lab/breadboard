@@ -60,6 +60,10 @@
         type: Number,
         default: 2000
       },
+      maxWait: {
+        type: Number,
+        default: 5000
+      },
       clientSideInterpolation: {
         type: Boolean,
         default: true
@@ -85,7 +89,10 @@
     created () {
       this.initialize()
       this.removeInitWatch = this.$watch('player.' + this.propName, this.initialize)
-      this.sendUpdates = debounce(this.sendUpdates.bind(this), this.throttleRate)
+      // @ts-ignore
+      this.throttledUpdates = debounce(this.sendUpdates.bind(this), this.throttleRate, {
+        maxWait: this.maxWait
+      })
       this.$watch('player.' + this.propName + '.lastBatchId', () => {
         // @ts-ignore
         const state = this.player[this.propName]
@@ -97,6 +104,10 @@
           }
         }
       })
+    },
+    beforeDestroy () {
+      // Push down changes before the crossword gets destroyed
+      this.sendUpdates()
     },
     computed: {
       solution: {
@@ -150,7 +161,8 @@
           row: pos.row,
           col: pos.col
         })
-        this.sendUpdates() // throttled
+        // @ts-ignore
+        this.throttledUpdates()
       },
       sendUpdates (): void {
         if (this.updateQueue.length) {
