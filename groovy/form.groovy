@@ -226,7 +226,6 @@ public class ScaleQuestion extends Question {
 
   // Check that the answer has every correct value
   public Boolean isCorrect (List response) {
-    println "Scale.isCorrect"
     return this.answer.every{ a -> response.contains(a) }
   }
 }
@@ -381,7 +380,6 @@ public class Page extends FormBase {
         if (block instanceof HTMLBlock) continue
 
         def result = results[block.name]
-        println "validating " + block.name + " result " + result
         if (block.isRequired && (!result || result.value == null)) {
           return false
         } else if (result && "value" in result && "validate" in block && !block.validate(result.value)) {
@@ -533,22 +531,20 @@ public class Form extends FormBase {
       skipped: 0
     ]
     def results = this.playerResults.get(player.id)
-    println player.id + " results: " + results
-    if (results.pages.size() != this.pages.size()) {
-      return score
-    }
     for (int i = 0; i < this.pages.size(); i++) {
       def pageResults = results.pages[i]
       def page = this.pages[i]
       for (def section : page.sections) {
         for (def block : section.blocks) {
           if (block instanceof HTMLBlock) continue
-          if (pageResults[block.name] == null) {
-            score.skipped++
+          if (!pageResults) {
+            score.incorrect++
           } else if (block.answer != null) {
-            if (block.answer instanceof Closure && block.answer(pageResults[block.name])) {
+            if (!pageResults.containsKey(block.name)) {
+              score.skipped++
+            } else if (block.answer instanceof Closure && block.answer(pageResults[block.name])) {
               score.correct++
-            } else if (block.isCorrect(pageResults[block.name])) {
+            } else if (pageResults[block.name] != null && block.isCorrect(pageResults[block.name])) {
               score.correct++
             } else {
               score.incorrect++
@@ -745,14 +741,11 @@ public class Form extends FormBase {
     if (this.recordResults) {
       currentPage.saveResults(this.name, player, results)
     }
-    def playerRes = this.playerResults[player.id]
-    def storeResults = [:]
-    results.each{key, item -> 
-      storeResults[key] = item.value
-    }
-    playerRes.pages[state.pages[state.location.index].index] = storeResults
 
-    println "player results " + playerRes
+    def pageResults = this.playerResults[player.id].pages[state.pages[state.location.index].index]
+    results.each{key, item ->
+      pageResults[key] = item.value
+    }
 
     currentPage.exit(player, true)
 
@@ -802,6 +795,22 @@ public class Form extends FormBase {
     state.page = page.assignTo(player, state.seed)
     state.showStepper = this.showStepper
     state.nonLinear = this.isNonLinear
+
+    // Initialize player results for this page
+    def playerRes = this.playerResults[player.id]
+    def pageResults = playerRes.pages[state.pages[state.location.index].index]
+    if (!pageResults) {
+      def storeResults = [:]
+      for (def section : state.page.sections) {
+        for (def block : section.blocks) {
+          if (block.type != BlockType.HTML) {
+            storeResults[block.name] = null
+          }
+        }
+      }
+      playerRes.pages[state.pages[state.location.index].index] = storeResults
+    }
+
     return page
   }
 
