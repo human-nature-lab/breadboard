@@ -224,6 +224,17 @@ class SharedTimer extends BreadboardBase {
   }
 
   /**
+   * Remove a single player from the timer.
+   * @param {Vertex} player - The player to remove
+   */
+  public removePlayer (Vertex player) {
+    if (this.players.contains(player)) {
+      this.endPlayer(player)
+      this.players.remove(player)
+    }
+  }
+
+  /**
    * Stop displaying this timer for this player
    */
   private endPlayer (Vertex player) {
