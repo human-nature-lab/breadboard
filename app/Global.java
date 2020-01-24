@@ -163,30 +163,12 @@ public class Global extends GlobalSettings {
       // The breadboard_version table exists, let's check if we're v2.3 or v2.4
       sql = "select version from breadboard_version limit 1;";
       SqlRow versionString = Ebean.createSqlQuery(sql).findUnique();
-      String version = versionString.getString("version");
+      String version = versionString != null ? versionString.getString("version") : "";
       if (version.equals("v2.3.0") || version.equals("v2.3.1")) {
         // Add v2.4.0 fields
         version2Point4Upgrade();
       } // Otherwise, no upgrade needed
     }
-
-    //InitialData.insert(app);
-    boolean isWin = System.getProperty("os.name").toUpperCase().contains("WIN");
-    String cwd = System.getProperty("user.dir");
-    // TODO: If omitted, this should default to PROD
-    String mode = play.Play.application().configuration().getString("application.mode");
-    if("DEV".equalsIgnoreCase(mode)) {
-      // Try to start the assets server
-      try {
-        ProcessBuilder pb = new ProcessBuilder("node", cwd + "/frontend/webpack/webpack.server.js");
-        pb.directory(new File(cwd + "/frontend"));
-        pb.inheritIO();
-        process = pb.start();
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
-    }
-    // TODO: We could build the production resources when the framework starts instead of having to build them manually
   }
 
   private void version2Point4Upgrade() {

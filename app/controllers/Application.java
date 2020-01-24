@@ -100,9 +100,10 @@ public class Application extends Controller {
     return unauthorized();
   }
 
-  public static Result index() {
-      final File file = play.Play.application().getFile("assets/templates/breadboard.html");
-      return ok(file, true);
+  public static Result index () {
+      // final File file = play.Play.application().getFile("assets/templates/breadboard.html");
+      String assetsRoot = play.Play.application().configuration().getString("breadboard.assetsRoot", "/assets");
+      return ok(main.render(assetsRoot));
   }
 
   @Security.Authenticated(Secured.class)

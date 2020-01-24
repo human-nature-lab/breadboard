@@ -55,3 +55,59 @@ currency = new DecimalFormat('$0.00')
 currency.setRoundingMode(UP)
 
 d = [:] as ObservableMap
+
+final alphaNumeric = (('A'..'Z')+('0'..'9')).join()
+
+/**
+ * Generate a random string from the supplied characters of the given length
+ */
+def randomString (String alphabet, int len) {
+  return new Random().with {
+    (1..len).collect { alphabet[ nextInt( alphabet.length() ) ] }.join()
+  }
+}
+
+/**
+ * Generate a random alphanumeric string of the given length
+ */
+def randomString (int len) {
+  return randomString(alphaNumeric, len)
+}
+
+/**
+ * Naive solution which shuffles the collection and takes the first N
+ * items.
+ */
+def randomSubset (List vals, int n, Random random) {    
+  def indices = (0..(vals.size() - 1)).toList()
+  Collections.shuffle(indices, random)
+  indices = indices.take(n)
+  println "indices " + n + " " + indices.toString()
+  return indices.collect{ vals[it] }
+}
+def randomSubset (List vals, int n) {
+  return randomSubset(vals, n, new Random())
+}
+
+
+// Extend this for simple access to the content and action interfaces
+public class BreadboardBase {}
+
+BreadboardBase.metaClass.fetchContent = { Map opts ->
+  // TODO: Handle locale property
+  if (!("content" in opts || "contentKey" in opts)) {
+    throw new Exception("Must supply either the 'content' or 'contentKey' property")
+  }
+  String content = opts.get("content") ?: c.get(opts.contentKey)
+  if ("fills" in opts) {
+    content = c.interpolate(content, *opts.fills)
+  }
+  return content
+}
+
+/**
+ * Accessible alias for a.addEvent
+ */
+BreadboardBase.metaClass.addEvent = { String name, Map data -> 
+  a.addEvent(name, data)
+}

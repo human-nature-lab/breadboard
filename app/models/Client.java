@@ -1,6 +1,7 @@
 package models;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
@@ -277,6 +278,15 @@ public class Client extends Model {
     out.write(jsonOutput);
   }
 
+  public void send (String eventName, Object ...data) {
+    ObjectMapper mapper = new ObjectMapper();
+    ObjectNode json = Json.newObject();
+    json.put("eventName", eventName);
+    json.put("data", Json.toJson(data));
+    // JsonNode json = mapper.convertValue(data, JsonNode.class);
+    out.write(json);
+  }
+
   public ObjectNode toJson() {
     ObjectNode client = Json.newObject();
     client.put("style", experimentInstance.experiment.getStyle());
@@ -293,6 +303,10 @@ public class Client extends Model {
 
   public String toString() {
     return "Client(" + id + ")";
+  }
+
+  public void disconnect () {
+    this.out.close();
   }
 
 }

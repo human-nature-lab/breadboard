@@ -7,22 +7,6 @@ import com.tinkerpop.blueprints.util.wrappers.event.EventGraph
 import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener
 import java.beans.PropertyChangeListener
 
-class GroovyTimerTask extends TimerTask {
-  Closure closure
-
-  void run() {
-    closure()
-  }
-}
-
-class TimerMethods {
-  static TimerTask runEvery(Timer timer, long delay, long period, Closure codeToRun) {
-    TimerTask task = new GroovyTimerTask(closure: codeToRun)
-    timer.schedule task, delay, period
-    task
-  }
-}
-
 class BreadboardGraph extends EventGraph<TinkerGraph> {
   //TODO: consider tracking number of edges and number of vertices to avoid iterating over graph to count number of edges or vertices
 
@@ -44,6 +28,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
           v.onVertexPropertyChanged(v, "private", evt.oldValue, evt.newValue)
         } as PropertyChangeListener)
         vertex.setProperty("private", pvt);
+        vertex.setProperty("_system", [:])
       }
 
       @Override
@@ -119,7 +104,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     def appearance = params.appearance ?: ""
 
     if (time) {
-      addTimer(time, name, timerText, direction, type, currencyAmount, result, player, appearance)
+      return addTimer(time, name, timerText, direction, type, currencyAmount, result, player, appearance)
     }
   }
 
@@ -191,7 +176,6 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
         }
         tim.cancel()
       }
-      return tim
     }
   }
 
@@ -647,10 +631,17 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     List players = setupGraphAlgorithm(options)
     final int n = players.size()
 
+    List pairIds = []
     for (int i = 0; i < n; i += 2) {
-      if (players.size() > (i + 1))
-        addTrackedEdge(players.get(i), players.get(i + 1), options.label, options.track)
+      if (players.size() > (i + 1)) {
+        def p1 = players.get(i)
+        def p2 = players.get(i + 1)
+        pairIds << [p1.id, p2.id]
+        addTrackedEdge(p1, p2, options.label, options.track)
+      }
     }
+
+    return pairIds
   }
 
   def lattice(int maxX, Map opts = defaultGraphOptions) {

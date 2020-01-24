@@ -30,7 +30,12 @@ public class ClientController extends Controller
         if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
           return ok( amtError.render() );
         }
-        return ok(client.render());
+        String assetsRoot = play.Play.application().configuration().getString("breadboard.assetsRoot");
+        if (assetsRoot != null) {
+            return ok(client.render(assetsRoot));
+        } else {
+            return ok(client.render(""));
+        }
     }
 
     public static Result getState(String experimentId, String experimentInstanceId, String clientId, String connectionSpeed){

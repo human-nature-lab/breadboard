@@ -1,0 +1,38 @@
+html
+  overflow-y: unset !important
+.hidden
+  display: none !important
+.h-full
+  height: 100%
+.h-screen
+  height: 100vh
+.h-50
+  height: 50%
+.max-h-50
+  max-height: 50%
+.w-50
+  width: 50%
+.w-full
+  width: 100%
+.flex-grow-0
+  flex-grow: 0
+.flex-shrink-0
+  flex-shrink: 0
+.m-auto
+  margin: auto
+
+$sizes: (1: 1em, 2: 1.3em, 4: 1.6em, 6: 1.8em, 8: 2em)
+$dirs: ("t": "-top", "b": "-bottom", "r": "-right", "l": "-left")
+$types: ("p": "padding", "m": "margin")
+
+@each $n, $size in $sizes
+  @each $t, $type in $types
+    .#{$t}y-#{$n}
+      #{$type}-top: $size
+      #{$type}-bottom: $size
+    .#{$t}x-#{$n}
+      #{$type}-left: $size
+      #{$type}-right: $size
+    @each $d, $dir in $dirs
+      .#{$t}#{$d}-#{$n}
+        #{$type}-#{$dir}: $size
