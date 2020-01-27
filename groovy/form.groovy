@@ -166,7 +166,7 @@ public class ChoiceQuestion extends Question {
   public Map assignTo (Vertex player, int seed) {
     Map vals = super.assignTo(player)
     vals.multiple = this.multiple
-    vals.choices = this.choices
+    vals.choices = this.choices.collect()
     if (this.isRandom) {
       Collections.shuffle(vals.choices, new Random(seed))
     }
@@ -216,7 +216,7 @@ public class ScaleQuestion extends Question {
   public Map assignTo (Vertex player, int seed) {
     Map vals = super.assignTo(player)
     vals.type = BlockType.SCALE
-    vals.items = this.items
+    vals.items = this.items.collect()
     vals.choices = this.choices
     if (this.isRandom) {
       Collections.shuffle(vals.items, new Random(seed))
@@ -234,21 +234,25 @@ public class PageSection extends FormBase {
   def blocks = []
   Boolean isRandom = false
   int subset = 0
+  def questionDefaults = [:]
 
   PageSection () {}
   PageSection (Map opts) {
     this.isRandom = this.getRandom(opts)
+    def keys = ["subset", "questionDefaults"]
+    for (def key : keys) {
+      if (key in opts) {
+        this."${key}" = opts[key]
+      }
+    }
     if ("blocks" in opts) {
       for (int i = 0; i < opts.blocks.size(); i++) {
-        this.addBlock(opts.blocks.getAt(i))
+        this.addBlock(opts.blocks[i])
       }
     } else if ("questions" in opts) {
       for (int i = 0; i < opts.questions.size(); i++) {
-        this.addBlock(opts.questions.getAt(i))
+        this.addBlock(opts.questions[i])
       }
-    }
-    if ("subset" in opts) {
-      this.subset = opts.subset
     }
   }
 
@@ -267,6 +271,7 @@ public class PageSection extends FormBase {
    * @param {BlockType} block.type - The type of block to be used. See [BlockType] for supported types.
    */
   def addBlock (Map blockDesc) {
+    blockDesc = this.questionDefaults + blockDesc
     Block block
     BlockType type = blockDesc.type.toUpperCase() as BlockType
     switch (type) {
@@ -297,9 +302,9 @@ public class PageSection extends FormBase {
 
     // Randomization is implied by the subset operation
     if (this.subset > 0) {
-      blocks = this.randomBlocks(blocks, this.subset, new Random(seed))
+      blocks = this.randomBlocks(blocks.collect(), this.subset, new Random(seed))
     } else if (this.isRandom) {
-      Collections.shuffle(blocks, new Random(seed))
+      Collections.shuffle(blocks.collect(), new Random(seed))
     }
     return [
       blocks: blocks
@@ -317,6 +322,7 @@ public class Page extends FormBase {
   Boolean isRandom
   Closure onExit
   Closure onEnter
+  def sectionDefaults = [:]
 
   Page () {}
   /**
@@ -339,18 +345,13 @@ public class Page extends FormBase {
         this.addSection(it)
       }
     }
-    if ("title" in opts) {
-      this.title = opts.title
-    }
 
-    if ("onEnter" in opts) {
-      this.onEnter = opts.onEnter
+    def keys = ["title", "onEnter", "onExit", "sectionDefaults", "questionDefaults"]
+    for (def key : keys) {
+      if (key in opts) {
+        this."${key}" = opts[key]
+      }
     }
-
-    if ("onExit" in opts) {
-      this.onExit = opts.onExit
-    }
-
     this.isRandom = this.getRandom(opts)
   }
 
@@ -360,11 +361,11 @@ public class Page extends FormBase {
   }
 
   public addSection () {
-    return this.addSection(new PageSection())
+    return this.addSection(new PageSection(this.sectionDefaults))
   }
 
   public addSection (Map sectionDesc) {
-    return this.addSection(new PageSection(sectionDesc))
+    return this.addSection(new PageSection(this.sectionDefaults + sectionDesc))
   }
 
   /**
@@ -466,6 +467,7 @@ public class Form extends FormBase {
   def pages = []
   def doneClosures = []
   def state = FormState.PENDING
+  def pageDefaults, sectionDefaults, questionDefaults
 
   /**
    * @param {Map} opts
@@ -480,17 +482,19 @@ public class Form extends FormBase {
       throw new Exception("Form must have a unique name used to identify it")
     }
     this.name = opts.name
-    if ("stepper" in opts) {
-      this.showStepper = opts.stepper
-    }
-    if ("nonLinear" in opts) {
-      this.isNonLinear = opts.nonLinear
-    }
-    if ("recordResults" in opts) {
-      this.recordResults = opts.recordResults
-    }
-    if ("recordNav" in opts) {
-      this.recordNavigation = opts.recordNav
+    def optsKeys = [
+      stepper: "showStepper",
+      nonLinear: "nonLinear",
+      recordResults: "recordResults",
+      recordNav: "recordNavigation",
+      pageDefaults: "pageDefaults",
+      sectionDefaults: "sectionDefaults",
+      questionDefaults: "questionDefaults"
+    ]
+    optsKeys.each{optKey, key -> 
+      if (optKey in opts) {
+        this."${key}" = opts[optKey]
+      }
     }
     this.isRandom = this.getRandom(opts)
   }

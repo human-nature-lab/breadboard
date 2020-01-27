@@ -9,9 +9,7 @@
   "scripts": {
     "test": "test",
     "build": "webpack -p --config ./webpack/webpack.prod.js",
-    "start": "node ./webpack/webpack.server",
-    "styleguide": "vue-styleguidist server",
-    "styleguide:build": "vui-styleguidist build"
+    "start": "node ./webpack/webpack.server"
   },
   "dependencies": {
     "@uirouter/angularjs": "^1.0.11",
@@ -71,7 +69,6 @@
     "typescript": "^3.6.4",
     "vue": "^2.6.10",
     "vue-loader": "^15.7.1",
-    "vue-styleguidist": "^3.24.2",
     "vue-template-compiler": "^2.6.10",
     "vuetify": "^2.1.10",
     "webpack": "^4.0.0",
