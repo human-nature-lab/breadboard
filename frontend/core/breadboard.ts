@@ -220,6 +220,7 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
     this.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`)
     this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/@mdi/font@${opts.mdiVersion}/css/materialdesignicons.min.css`)
     this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.min.css`)
+    this.addStyleFromURL(`${config.assetsRoot}/bundles/vue-components.css`)
     await this.addScriptFromURL(`https://cdnjs.cloudflare.com/ajax/libs/vue/${opts.vueVersion}/vue.${opts.useDev ? 'common.dev.' : ''}js`)
     await Promise.all([
       this.addScriptFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.js`),
@@ -266,14 +267,15 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * Loads the legacy, angular.js client code. Replaces the SPA anchor with the old angular ng-app code
    */
   async loadAngularClient () {
-    console.log('load angular client')
-    this.addStyleFromURL('/bundles/client.css')
+    const config = await this.loadConfig()
+    this.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`)
+    this.addStyleFromURL(`${config.assetsRoot}/bundles/client-angular.css`)
     this.addStyleFromURL('https://fonts.googleapis.com/css?family=Open+Sans:700,400')
-    this.addStyleFromURL('/assets/css/bootstrap.min.css')
-    this.addStyleFromURL('/assets/css/font-awesome-4.7.0/css/font-awesome.min.css')
+    this.addStyleFromURL(`${config.assetsRoot}/css/bootstrap.min.css`)
+    this.addStyleFromURL(`${config.assetsRoot}/css/font-awesome-4.7.0/css/font-awesome.min.css`)
     await Promise.all([
       this.addScriptFromURL('https://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js'),
-      this.addScriptFromURL('/bundles/client-angular.js')
+      this.addScriptFromURL(`${config.assetsRoot}/bundles/client-angular.js`)
     ])
     await Promise.all([
       this.addScriptFromURL('https://cdnjs.cloudflare.com/ajax/libs/d3/2.10.0/d3.v2.js'),

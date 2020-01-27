@@ -24,7 +24,7 @@
 
 <script lang="ts">
   import Vue from 'vue'
-  import { Crossword, DIRECTION, CURSOR, CELL_TYPE, Position } from './crossword.types'
+  import { Crossword, DIRECTION, CURSOR, CELL_TYPE, Position, KEYS } from './crossword.types'
 
   export default Vue.extend({
     name: 'Crossword',
@@ -153,9 +153,14 @@
         }
       },
       moveCursor (event: KeyboardEvent) {
-        console.log('key', event.keyCode)
-        if (!CURSOR[event.keyCode]) return
-        if (event.keyCode === CURSOR.UP) {
+        if (event.keyCode === KEYS.BACKSPACE) {
+          this.$emit('update:cell', '', this.active)
+          if (this.direction === DIRECTION.ACROSS) {
+            this.moveLeft()
+          } else {
+            this.moveUp()
+          }
+        } else if (event.keyCode === CURSOR.UP) {
           if (this.direction === DIRECTION.ACROSS) {
             this.$emit('update:direction', DIRECTION.DOWN)
           } else {
@@ -178,6 +183,18 @@
             this.$emit('update:direction', DIRECTION.ACROSS)
           } else {
             this.moveRight()
+          }
+        } else if (event.keyCode === KEYS.HOME) {
+          if (this.direction === DIRECTION.DOWN) {
+            this.setActive(0, this.active.col)
+          } else {
+            this.setActive(this.active.row, 0)
+          }
+        } else if (event.keyCode === KEYS.END) {
+          if (this.direction === DIRECTION.DOWN) {
+            this.setActive(this.crossword.size.rows - 1, this.active.col)
+          } else {
+            this.setActive(this.active.row, this.crossword.size.cols - 1)
           }
         }
       }

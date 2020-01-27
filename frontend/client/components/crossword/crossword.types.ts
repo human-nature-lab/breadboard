@@ -47,6 +47,12 @@ export enum CURSOR {
   RIGHT = 39
 }
 
+export enum KEYS {
+  BACKSPACE = 8,
+  HOME = 36,
+  END = 35
+}
+
 export interface Position {
   row: number
   col: number
