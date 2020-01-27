@@ -5,6 +5,7 @@ export interface BreadboardConfig extends SimpleMap<string | number> {
   clientGraph: string
   clientHtml: string
   clientId: string
+  assetsRoot: string
 }
 
 export interface VueLoadOpts {

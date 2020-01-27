@@ -208,20 +208,22 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * @param opts
    */
   async loadVueDependencies (opts: VueLoadOpts = {}) {
+    const config = await this.loadConfig()
     opts = Object.assign({
       vueVersion: '2.6.10',
       vuetifyVersion: '2.2.1',
       mdiVersion: '4.5.95',
       useDev: false
     }, opts)
+    console.log('config', config)
     this.addStyleFromURL('https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900')
-    this.addStyleFromURL('/bundles/client.css')
+    this.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`)
     this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/@mdi/font@${opts.mdiVersion}/css/materialdesignicons.min.css`)
     this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.min.css`)
     await this.addScriptFromURL(`https://cdnjs.cloudflare.com/ajax/libs/vue/${opts.vueVersion}/vue.${opts.useDev ? 'common.dev.' : ''}js`)
     await Promise.all([
       this.addScriptFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.js`),
-      this.addScriptFromURL('/bundles/vue-components.js')
+      this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)
     ])
 
     const Vue = window.Vue

@@ -58,6 +58,7 @@ public class ClientController extends Controller
             result.put((String) pair.getValue(), header);
             it.remove();
         }
+        result.put("assetsRoot", play.Play.application().configuration().getString("breadboard.assetsRoot", "/assets"));
         result.put("ipAddress", request().remoteAddress());
         result.put("requestURI", request().uri());
         result.put("clientId", clientId);
