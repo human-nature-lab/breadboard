@@ -32,6 +32,7 @@ BBTimer.metaClass.unregister = {
  */
 class BBTimers {
   ArrayList<BBTimer> timers = Collections.synchronizedList(new ArrayList())
+  ArrayList<SharedTimer> sharedTimers = Collections.synchronizedList(new ArrayList())
 
   public void cancel () {
     synchronized (this.timers) {
@@ -39,6 +40,10 @@ class BBTimers {
         timer.end()
       }
       this.timers.clear()
+    }
+    // We don't need to cancel shared timers because they depend on the BBTimers which get cancelled above
+    synchronized (this.sharedTimers) {
+      this.sharedTimers.clear()
     }
   }
 
@@ -51,6 +56,18 @@ class BBTimers {
   public void unregister (BBTimer timer) {
     synchronized (this.timers) {
       this.timers.remove(timer)
+    }
+  }
+
+  public void registerShared (SharedTimer timer) {
+    synchronized (this.sharedTimers) {
+      this.sharedTimers << timer
+    }
+  }
+
+  public void unregisterShared (SharedTimer timer) {
+    synchronized (this.sharedTimers) {
+      this.sharedTimers.remove(timer)
     }
   }
 
@@ -146,7 +163,7 @@ class SharedTimer extends BreadboardBase {
       }
     }
     this.name = "name" in opts ? opts.name : UUID.randomUUID().toString()
-
+    this.register()
     if (!opts.lazy) {
       this.startTimer()
     }
@@ -203,14 +220,16 @@ class SharedTimer extends BreadboardBase {
    */
   public cancel () {
     if (!this.timer) return
+    this.unregister()
     this.timer.purge()
     this.timer.cancel()
     this.timer = null
     this.players.each{player ->
       this.endPlayer(player)
     }
+    this.players.clear()
   }
-  
+
   /**
    * End the timer for all players. Should use cancel to end the timer early.
    */
@@ -249,13 +268,65 @@ class SharedTimer extends BreadboardBase {
     this.elapsed = 0
     this.startTime = System.currentTimeMillis()
     this.endTime = this.startTime + this.duration * 1000
+    println "timer ${this.duration} ${this.startTime} ${this.endTime}"
     this.timer = new BBTimer()
+    this.registerTimerEvents()
+  }
+
+  private resetTimer () {
+    this.timer.purge()
+    this.timer.cancel()
+    this.timer = new BBTimer()
+  }
+
+  private registerTimerEvents () {
     this.timer.runAfter(this.duration) {
       this.end()
     }
     this.timer.scheduleAtFixedRate({
       this.tick(this.updateRate)
     } as GroovyTimerTask, this.updateRate, this.updateRate)
+  }
+
+  /**
+   * Set the duration for this timer
+   * @param {int} duration - The new timer duration
+   */ 
+  public setDuration (int duration) {
+    this.duration = duration
+    if (this.timer) {
+      this.resetTimer()
+      this.endTime = this.startTime + this.duration * 1000
+      // Check if we've already exceeded the duration and end if we have
+      if (System.currentTimeMillis() > this.endTime) {
+        return this.end()
+      }
+      this.registerTimerEvents()
+      this.players.each{ player ->
+        if (player.timers != null && this.name in player.timers) {
+          player.timers[this.name].duration = this.duration
+        }
+      }
+    }
+  }
+
+  /**
+   * Add time to an existing timer
+   * @param {int} delta - The number of milliseconds to add
+   */
+  public addTime (int delta) {
+    this.setDuration(this.duration + delta)
+  }
+
+  /**
+   * Restart the timer as though it just started
+   */
+  public restart () {
+    this.resetTimer()
+    this.elapsed = 0
+    this.startTime = System.currentTimeMillis()
+    this.endTime = this.startTime + this.duration * 1000
+    this.registerTimerEvents()
   }
 
   /**
@@ -270,4 +341,13 @@ class SharedTimer extends BreadboardBase {
       }
     }
   }
+}
+
+
+SharedTimer.metaClass.register = {
+  __timers.registerShared(delegate)
+}
+
+SharedTimer.metaClass.unregister = {
+  __timers.unregisterShared(delegate)
 }
