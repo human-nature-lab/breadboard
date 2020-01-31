@@ -283,13 +283,19 @@
         }
       },
       nodeClick (node: Node, e: MouseEvent) {
-        this.$emit('nodeClick', node, e)
+        if (e.isTrusted) {
+          this.$emit('nodeClick', node, e)
+        }
       },
       edgeClick (edge: Edge, e: MouseEvent) {
-        this.$emit('edgeClick', edge, e)
+        if (e.isTrusted) {
+          this.$emit('edgeClick', edge, e)
+        }
       },
       edgeLabelClick (edge: Edge, e: MouseEvent) {
-        this.$emit('edgeLabelClick', edge, e)
+        if (e.isTrusted) {
+          this.$emit('edgeLabelClick', edge, e)
+        }
       }
     },
     computed: {
