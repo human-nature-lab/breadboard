@@ -37,6 +37,37 @@
       timer: {
         type: Object as () => PlayerTimer,
         required: true
+      },
+      timerElapsedTolerance: {
+        type: Number,
+        default: 2000
+      },
+      updateRate: {
+        type: Number,
+        default: 1000
+      }
+    },
+    data () {
+      return {
+        elapsed: this.timer ? this.timer.elapsed : 0
+      }
+    },
+    created () {
+      // @ts-ignore
+      this.interval = setInterval(() => {
+        this.elapsed += this.updateRate
+      }, this.updateRate)
+    },
+    beforeDestroy () {
+      // @ts-ignore
+      clearInterval(this.interval)
+    },
+    watch: {
+      'timer.elapsed' (val) {
+        // We only update the elapsed time based on the server info when it exceeds our tolerance. Typically if we're off by more than a few seconds
+        if (Math.abs(this.elapsed - val) > this.timerElapsedTolerance) {
+          this.elapsed = val
+        }
       }
     },
     computed: {
@@ -51,7 +82,7 @@
           100 * this.timer.elapsed / this.timer.duration
       },
       remaining (): number {
-        return this.timer.duration - this.timer.elapsed
+        return this.timer.duration - this.elapsed
       },
       message (): string {
         let res = this.timer.timerText + ' '

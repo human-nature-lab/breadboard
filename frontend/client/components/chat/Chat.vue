@@ -23,7 +23,7 @@
         <v-layout column class="chat-input">
           <v-text-field
             validate-on-blur
-            placeholder="Write a message..."
+            :placeholder="placeholder"
             :rules="textRules"
             append-outer-icon="mdi-send"
             :counter="maxLength"
@@ -69,6 +69,10 @@
       senderName: {
         type: String,
         default: 'Alter'
+      },
+      placeholder: {
+        type: String,
+        default: 'Write a message...'
       }
     },
     data: function () {
