@@ -38,12 +38,12 @@ class PlayerActions {
     if ((idleTime != null || (warnTime != null && dropTime != null)) && (dropPlayers != null && dropPlayers == true)) {
       def idleTimer1 = [:]
       idleTimer1.player = playerAction.player
-      idleTimer1.timer = new Timer()
+      idleTimer1.timer = new BBTimer()
       idleTimer1.fired = false
 
       def idleTimer2 = [:]
       idleTimer2.player = playerAction.player
-      idleTimer2.timer = new Timer()
+      idleTimer2.timer = new BBTimer()
 
       def time1 = (warnTime != null) ? warnTime : idleTime
       def time2 = (dropTime != null) ? dropTime : idleTime
@@ -391,7 +391,7 @@ class PlayerAI {
   def defaultBehavior = { player ->
     def randomDelay = 1000 + r.nextInt(3000)
     try {
-      def task = new Timer().runAfter(randomDelay) {
+      def task = new BBTimer().runAfter(randomDelay) {
         if (player.getProperty("choices")) {
           def choices = player.getProperty("choices")
           def choice = choices[r.nextInt(choices.size())]
@@ -405,7 +405,7 @@ class PlayerAI {
   }
 
   // A timer so we can stagger AI actions
-  def timer = new Timer()
+  def timer = new BBTimer()
 
   // Is the AI behavior globally turned on?
   // Changed to default to true

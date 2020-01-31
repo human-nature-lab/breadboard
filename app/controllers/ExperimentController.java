@@ -437,6 +437,7 @@ public class ExperimentController extends Controller {
     }
 
     // Write changes to DB
+    experiment.setFileMode(false);
     experiment.save();
 
     user.ownedExperiments.add(experiment);
@@ -449,10 +450,12 @@ public class ExperimentController extends Controller {
 
   private static Boolean import23To23(Experiment experiment, User user, String directory) throws IOException{
 
+    Logger.debug("importing 23 to 23");
     String style = FileUtils.readFileToString(new File(directory, "style.css"));
     experiment.setStyle(style);
     experiment.setClientGraph(FileUtils.readFileToString(new File(directory, "client-graph.js")));
     experiment.setClientHtml(FileUtils.readFileToString(new File(directory, "client-html.html")));
+    experiment.setFileMode(false);
 
     // Import Steps
     importSteps(experiment, new File(directory, "/Steps"));

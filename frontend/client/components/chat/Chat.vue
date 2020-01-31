@@ -1,41 +1,54 @@
 <template>
-  <v-card class="chat-box" v-if="chatState">
-    <v-layout column>
-      <v-layout column class="messages">
-        <v-flex v-for="message in messages" class="message" :key="message.id">
-          <v-layout>
-            <v-flex>
-              <b>{{message.sender === myId ? 'Me' : message.sender}}</b>:  {{message.text}}
-            </v-flex>
-            <v-spacer />
-            <v-flex class="recipients text-right">({{message.recipients.join(', ')}})</v-flex>
-          </v-layout>
+  <v-card class="chat-box h-full" v-if="chatState">
+    <v-layout column class="h-full">
+      <v-layout column class="messages overflow-auto">
+        <v-flex v-if="!messages.length">
+          <slot name="empty">
+            No messages have been sent so far...
+          </slot>
+        </v-flex>
+        <v-flex v-for="message in messages" class="message flex-grow-0" :key="message.id">
+          <slot :message="message">
+            <v-layout>
+              <v-flex >
+                <b v-if="message.sender === myId">Me</b>
+                <b v-else>
+                  {{showRecipients ? message.sender : senderName}}
+                </b>
+                <span>:  {{message.text}}</span>
+              </v-flex>
+              <v-spacer />
+              <v-flex v-if="showRecipients" class="recipients text-right">({{message.recipients.join(', ')}})</v-flex>
+            </v-layout>
+          </slot>
         </v-flex>
       </v-layout>
-      <v-layout column class="chat-input">
-        <v-form ref="form">
+      <v-spacer />
+      <v-form ref="form" @submit.prevent="() => {}">
+        <v-layout column class="chat-input">
           <v-text-field
             validate-on-blur
-            placeholder="Write a message..."
+            :placeholder="placeholder"
             :rules="textRules"
-            @keyup.enter="send"
             append-outer-icon="mdi-send"
             :counter="maxLength"
+            @keyup.enter="send"
             @click:append-outer="send"
             v-model="text">
           </v-text-field>
-          <v-select 
-              chips
-              clearable
-              multiple
-              small-chips
-              deletable-chips
-              label="Recipients"
-              :rules="recipientRules"
-              :items="recipients" 
-              v-model="selectedRecipients" />
-        </v-form>
-      </v-layout>
+          <v-select
+            v-if="showRecipients && recipients.length > 1"
+            chips
+            clearable
+            multiple
+            small-chips
+            deletable-chips
+            label="Recipients"
+            :rules="recipientRules"
+            :items="recipients" 
+            v-model="selectedRecipients" />
+        </v-layout>
+      </v-form>
     </v-layout>
   </v-card>
 </template>
@@ -53,6 +66,18 @@
       stateKey: {
         type: String,
         default: 'chatState'
+      },
+      showRecipients: {
+        type: Boolean,
+        default: true
+      },
+      senderName: {
+        type: String,
+        default: 'Alter'
+      },
+      placeholder: {
+        type: String,
+        default: 'Write a message...'
       }
     },
     data: function () {

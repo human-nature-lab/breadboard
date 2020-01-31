@@ -4,7 +4,6 @@
     <slot :timer="timer" v-for="timer in player.timers">
       <Timer :key="timer.id"
              :timer="timer" >
-    
       </Timer>
     </slot>
   </v-flex>
@@ -12,6 +11,7 @@
 
 <script lang="ts">
   import Vue from 'vue'
+ import { PlayerTimer } from '../../core/breadboard.types'
 
   /**
    * A container for all of the player's timers
@@ -22,6 +22,13 @@
       player: {
         type: Object,
         required: true
+      }
+    },
+    computed: {
+      timers () {
+        const timers: PlayerTimer[] = Object.values(this.player.timers)
+        timers.sort((a, b) => a.order - b.order)
+        return timers
       }
     }
   })

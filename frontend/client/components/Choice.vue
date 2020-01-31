@@ -48,7 +48,9 @@
          * @event click
          * @property {MouseEvent} e
          */
-        this.$emit('click', e)
+        if (e.isTrusted) {
+          this.$emit('click', e)
+        }
       }
     }
   })

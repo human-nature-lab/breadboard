@@ -1,11 +1,11 @@
 <template>
-  <v-layout :column="!row" class="clues align-start">
-    <v-flex class="down pad flex-grow-0 w-full" :class="{'max-h-50': !row}">
-      <v-container class="h-full">
+  <v-layout :column="!row" class="clues align-start h-full">
+    <v-flex class="down pad w-full" >
+      <v-container>
         <h3 class="clue-type">
           Down <ClueLock v-if="player" :unlocked="player.unlockedDown" />
         </h3>
-        <div class="clues-container h-full" v-if="downClues.length">
+        <div class="clues-container" v-if="downClues.length">
           <div class="clue" 
             :class="{active: isActive(clue)}"
             v-for="clue in downClues" 
@@ -19,12 +19,12 @@
         </div>
       </v-container>
     </v-flex>
-    <v-flex class="across pad w-full" :class="{'max-h-50': !row}">
-      <v-container class="h-full">
+    <v-flex class="across pad w-full">
+      <v-container>
         <h3 class="clue-type">
           Across <ClueLock v-if="player" :unlocked="player.unlockedAcross" />
         </h3>
-        <div class="clues-container h-full" v-if="acrossClues.length">
+        <div class="clues-container" v-if="acrossClues.length">
           <div class="clue" 
             :class="{active: isActive(clue)}"
             v-for="clue in acrossClues" 
@@ -112,6 +112,8 @@
 </script>
 
 <style lang="sass" scoped>
+  .clues
+    overflow: auto
   .pad
     margin-bottom: 10px
   .clues-container
