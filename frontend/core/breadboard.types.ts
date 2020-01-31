@@ -29,6 +29,7 @@ export interface PlayerTimer {
   type: 'default' | 'currency' | 'percent'
   currencyAmount: number
   timerText: string
+  order: number
 }
 
 export interface PlayerData extends SimpleMap<any> {

@@ -2,6 +2,11 @@
   <v-card class="chat-box h-full" v-if="chatState">
     <v-layout column class="h-full">
       <v-layout column class="messages overflow-auto">
+        <v-flex v-if="!messages.length">
+          <slot name="empty">
+            No messages have been sent so far...
+          </slot>
+        </v-flex>
         <v-flex v-for="message in messages" class="message flex-grow-0" :key="message.id">
           <slot :message="message">
             <v-layout>
