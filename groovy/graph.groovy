@@ -91,23 +91,6 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     type: "time", appearance: "warning", timerText: "time timer", direction: "down", result: { player-> player.color = r.nextInt(19) + 1 })
     g.addTimer(time: 15, type: "time", appearance: "danger", timerText: "time timer", direction: "up", result: { player-> player.color = r.nextInt(19) + 1 })
    */
-
-  def addTimer(Map params) {
-    def time = params.time ?: null
-    def name = params.name ?: UUID.randomUUID().toString()
-    def timerText = params.timerText ?: ""
-    def direction = params.direction ?: "down"
-    def type = params.type ?: "time"
-    def currencyAmount = params.currencyAmount ?: "0"
-    def result = params.result ?: {}
-    def player = params.player ?: null
-    def appearance = params.appearance ?: ""
-
-    if (time) {
-      return addTimer(time, name, timerText, direction, type, currencyAmount, result, player, appearance)
-    }
-  }
-
   def addTimer(Integer time,
                String name = UUID.randomUUID().toString(),
                String timerText = "",
@@ -117,66 +100,27 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
                Closure result = {},
                Vertex player = null,
                String appearance = "") {
-    def startTime = System.currentTimeMillis()
-    def endTime = startTime + (time * 1000)
+    return addTimer([
+      time: time,
+      name: name,
+      timerText: timerText,
+      direction: direction,
+      type: type,
+      currencyAmount: currencyAmount,
+      result: result,
+      player: player,
+      appearance: appearance
+    ])    
+  }
 
-    if (player == null) {
-      V.each { v ->
-        addTimer(time, name, timerText, direction, type, currencyAmount, result, v, appearance)
-      }
+  def addTimer(Map params) {
+    def sharedTimer = new SharedTimer(params)
+    if ("player" in params && params.player != null) {
+      sharedTimer.addPlayer(params.player)
     } else {
-      if (player.timers == null) {
-        player.timers = [:]
-      }
-
-      /*
-      // TODO: Adding a reference to the timer here, although useful, is causing an exception on JSON serialization:
-      java.lang.IllegalArgumentException: No serializer found for class org.codehaus.groovy.runtime.DefaultGroovyMethods$3
-      and no properties discovered to create BeanSerializer (to avoid exception, disable SerializationFeature.FAIL_ON_EMPTY_BEANS) )
-      (through reference chain: java.util.LinkedHashMap["a12f7856-42aa-4911-9d69-93376ba7ed15"]->java.util.LinkedHashMap["timer"])
-      player.timers[name] = ["startTime":startTime,
-                             "endTime":endTime,
-                             "timerType":type,
-                             "timerText":timerText,
-                             "direction":direction,
-                             "currencyAmount":currencyAmount,
-                             "appearance":appearance,
-                             "timer":timer]
-      */
-
-      player.timers[name] = [
-          type          : type,
-          elapsed       : 0,
-          duration      : time * 1000,
-          timerText     : timerText,
-          direction     : direction,
-          currencyAmount: currencyAmount,
-          appearance    : appearance,
-          order         : player.timers.size()
-      ]
-
-      // Update the elapsed time for this timer
-      def timerUpdateRate = 1000
-      def tim = new Timer()
-      tim.scheduleAtFixedRate({
-        if (player.timers && player.timers.containsKey(name)) {
-          player.timers[name].elapsed += timerUpdateRate
-        }
-        // Updating this property triggers an update
-        // when breadboard is in event based update mode
-        player.timerUpdatedAt = System.currentTimeMillis()
-      } as GroovyTimerTask, 0, timerUpdateRate)
-      tim.runAfter(time * 1000) {
-        //println "Removing timer: " + name
-        if (player.timers) {
-          player.timers.remove(name)
-        }
-        if (result != null) {
-          result(player)
-        }
-        tim.cancel()
-      }
+      sharedTimer.addPlayers(this.V)
     }
+    return sharedTimer
   }
 
   def getSubmitForm(player, dollars, reason = "completed", sandbox = false, comments = false) {

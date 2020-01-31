@@ -41,7 +41,7 @@ class BBTimers {
       }
       this.timers.clear()
     }
-    // We don't need to cancel shared timers because they depend on the BBTimers which get cancelled above
+    // We don't need to cancel shared timers because they depend on the BBTimers which are cancelled above
     synchronized (this.sharedTimers) {
       this.sharedTimers.clear()
     }
@@ -268,7 +268,6 @@ class SharedTimer extends BreadboardBase {
     this.elapsed = 0
     this.startTime = System.currentTimeMillis()
     this.endTime = this.startTime + this.duration * 1000
-    println "timer ${this.duration} ${this.startTime} ${this.endTime}"
     this.timer = new BBTimer()
     this.registerTimerEvents()
   }
