@@ -92,7 +92,7 @@ public class EventBus <T> {
   }
 
   private void logThread (String name) {
-    Logger.debug(name + " thread " + Thread.currentThread().getId() + " size " + this.events.keySet().size());
+    // Logger.debug(name + " thread " + Thread.currentThread().getId() + " size " + this.events.keySet().size());
   }
 
   public void clear () {
