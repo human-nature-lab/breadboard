@@ -43,6 +43,7 @@ public class Experiment extends Model {
   public String uid;
 
   @OneToMany(cascade = CascadeType.ALL)
+  @OrderBy("name asc")
   private List<Step> steps = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL)
