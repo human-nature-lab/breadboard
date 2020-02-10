@@ -302,8 +302,11 @@ public class ScriptBoard extends UntypedActor {
               String params = (jsonInput.containsKey("params")) ? jsonInput.get("params").toString() : null;
               makeChoice(choiceUID, params, out);
             } else if (action.equals("CustomEvent")) {
-              // TODO: Is is possible for this to be emitted before the event has been registered? I think it is..
-              eventBus.emit("CustomEvent", jsonInput);
+              // TODO: Is is possible for this to be emitted before the event has been registered? 
+              //       I think it is and I think it will cause exceptions to be thrown...
+              eventBus.emit("CustomEvent", jsonInput, new HashMap<String, String>() {{
+                put("clientId", clientId);
+            }});
             }
           } catch (java.io.IOException ignored) {
             Logger.debug("java.io.IOException");
