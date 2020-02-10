@@ -1,7 +1,7 @@
 <template>
   <v-alert :value="!isOpen" :color="color" :transition="transition">
     <slot>
-      Unable to communicate with server right now. Please wait....
+      Unable to communicate with server right now. You'll automatically reconnect after {{(time / 1000).toFixed(0)}}s. Please wait....
     </slot>
   </v-alert>
 </template>
@@ -24,7 +24,8 @@
     },
     data () {
       return {
-        isOpen: true
+        isOpen: true,
+        time: 0
       }
     },
     async created () {
@@ -34,16 +35,14 @@
       if (socket.state === SocketState.CLOSED) {
         this.isOpen = false
       }
-      socket.on('close', this.onClose)
-      socket.on('open', this.onOpen)
+      window.Breadboard.on('close', this.onClose)
+      window.Breadboard.on('retry', this.onRetry)
+      window.Breadboard.on('open', this.onOpen)
     },
     destroyed () {
-      // @ts-ignore
-      const socket = this.socket
-      if (socket) {
-        socket.off('close', this.onClose)
-        socket.off('open', this.onOpen)
-      }
+      window.Breadboard.off('close', this.onClose)
+      window.Breadboard.off('retry', this.onRetry)
+      window.Breadboard.off('open', this.onOpen)
     },
     methods: {
       onClose () {
@@ -51,7 +50,10 @@
       },
       onOpen () {
         this.isOpen = true
-      }
+      },
+      onRetry (time: number) {
+        this.time = time
+      } 
     }
   })
 </script>
