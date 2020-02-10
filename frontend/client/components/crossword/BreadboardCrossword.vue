@@ -1,5 +1,5 @@
 <template>
-  <v-flex class="w-50" v-if="player && player.crossword">
+  <v-flex class="w-1/2" v-if="player && player.crossword">
     <Crossword 
       v-model="solution"
       :active="active"
