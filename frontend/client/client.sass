@@ -26,9 +26,16 @@ html
 .overflow-auto
   overflow: auto
 
+$fractions: ("1\\\/3": 1/3, "2\\\/3": 2/3, "1\\\/2": 1/2, "1\\\/4": 1/4, "3\\\/4": 3/4)
 $sizes: (1: 1em, 2: 1.3em, 4: 1.6em, 6: 1.8em, 8: 2em)
 $dirs: ("t": "-top", "b": "-bottom", "r": "-right", "l": "-left")
 $types: ("p": "padding", "m": "margin")
+
+@each $fStr, $fraction in $fractions
+  @each $d, $dir in ("h": "height", "w": "width")
+    .#{$d}-#{$fStr}
+      #{$dir}: percentage($fraction)
+
 
 @each $n, $size in $sizes
   @each $t, $type in $types
