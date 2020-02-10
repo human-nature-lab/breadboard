@@ -183,14 +183,19 @@ public class ChoiceQuestion extends Question {
 }
 
 public class TextQuestion extends Question {
-  
+  String inputType = "text"
+
   TextQuestion (Map opts) {
     super(opts)
+    if ("inputType" in opts) {
+      this.inputType = opts.inputType
+    }
     this.type = BlockType.TEXT
   }
 
   public Map assignTo (Vertex player, int seed) {
     Map vals = super.assignTo(player)
+    vals.inputType = this.inputType
     return vals
   }
 
@@ -334,6 +339,13 @@ public class Page extends FormBase {
    * @param {Closure} [opts.onEnter] - Closure which is called each time this page is entered by a player.
    */
   Page (Map opts) {
+    def keys = ["title", "onEnter", "onExit", "sectionDefaults"]
+    for (def key : keys) {
+      if (key in opts) {
+        this."${key}" = opts[key]
+      }
+    }
+    this.isRandom = this.getRandom(opts)
     if ("blocks" in opts || "questions" in opts) {
       this.addSection(opts)
     } else if ("sections" in opts) {
@@ -345,14 +357,6 @@ public class Page extends FormBase {
         this.addSection(it)
       }
     }
-
-    def keys = ["title", "onEnter", "onExit", "sectionDefaults", "questionDefaults"]
-    for (def key : keys) {
-      if (key in opts) {
-        this."${key}" = opts[key]
-      }
-    }
-    this.isRandom = this.getRandom(opts)
   }
 
   public addSection (PageSection section) {
@@ -456,18 +460,24 @@ public class Form extends FormBase {
   
   def players = Collections.newSetFromMap(new WeakHashMap<Object, Boolean>()) // Use WeakReferences to players so that they can be garbage collected if removed from the graph
   def playerResults = new HashMap()
+  def playerStates = new HashMap()
   String name  // The unique key used for this form
   String formsKey = "forms"
   Boolean showStepper = true
   Boolean isNonLinear = false
   Boolean recordResults = true
   Boolean recordNavigation = false
+  Boolean efficient = false
   Boolean isRandom
   Random r = new Random()
   def pages = []
   def doneClosures = []
   def state = FormState.PENDING
-  def pageDefaults, sectionDefaults, questionDefaults
+  def pageDefaults = [
+    sectionDefaults: [
+      questionDefaults: [:]
+    ]
+  ]
 
   /**
    * @param {Map} opts
@@ -476,6 +486,9 @@ public class Form extends FormBase {
    * @param {Boolean} [nonLinear=false] - Indicates whether the form can only be navigated in order (this is the default) or if the players can jump to different pages
    * @param {Boolean} [recordResults=true] - Record an event for each page submission
    * @param {Boolean} [recordNav=false] - Record an event for each form navigation
+   * @param {Map} [pageDefaults=[:]] - Sets default options for each page added to this form
+   * @param {Map} [sectionDefaults=[:]] - Sets default options for each section added to this form
+   * @param {Map} [questionDefaults=[:]] - Sets default options for each question added to this form
    */
   Form (Map opts) {
     if (!("name" in opts)) {
@@ -484,17 +497,22 @@ public class Form extends FormBase {
     this.name = opts.name
     def optsKeys = [
       stepper: "showStepper",
+      efficient: "efficient",
       nonLinear: "nonLinear",
       recordResults: "recordResults",
       recordNav: "recordNavigation",
-      pageDefaults: "pageDefaults",
-      sectionDefaults: "sectionDefaults",
-      questionDefaults: "questionDefaults"
+      pageDefaults: "pageDefaults"
     ]
     optsKeys.each{optKey, key -> 
       if (optKey in opts) {
         this."${key}" = opts[optKey]
       }
+    }
+    if ("sectionDefaults" in opts) {
+      this.pageDefaults.sectionDefaults = opts.sectionDefaults
+    }
+    if ("questionDefaults" in opts) {
+      this.pageDefaults.sectionDefaults.questionDefaults = opts.questionDefaults
     }
     this.isRandom = this.getRandom(opts)
   }
@@ -625,7 +643,7 @@ public class Form extends FormBase {
    * @param {Map} page - A map which represents a form page. See Page constructor for all options.
    */
   public addPage (Map pageDesc) {
-    def page = new Page(pageDesc)
+    def page = new Page(this.pageDefaults + pageDesc)
     return this.addPage(page)
   }
 
@@ -641,6 +659,7 @@ public class Form extends FormBase {
   }
 
   private endPlayer (Vertex player) {
+    println "end player " + player.id
     // Player must have already been removed
     if (!(this.formsKey in player.private)) {
       return
@@ -652,9 +671,10 @@ public class Form extends FormBase {
       player.private.remove(this.formsKey)
     }
     // Remove form navigation listeners
-    player.off("f-" + this.name + "-n")
-    player.off("f-" + this.name + "-p")
-    player.off("f-" + this.name + "-s")
+    player.off("f-next", this.&onPlayerNext)
+    player.off("f-prev", this.&onPlayerPrev)
+    player.off("f-seek", this.&onPlayerSeek)
+    player.off("f-fetch", this.&onFetchState)
 
     for (def cb : this.doneClosures) {
       cb(player)
@@ -666,16 +686,17 @@ public class Form extends FormBase {
    */
   private startPlayer (Vertex player) {
     // Attach form navigation listeners
-    player.on("f-" + this.name + "-n", this.&onPlayerNext)
-    player.on("f-" + this.name + "-p", this.&onPlayerPrev)
-    player.on("f-" + this.name + "-s", this.&onPlayerSeek)
+    player.on("f-next", this.&onPlayerNext)
+    player.on("f-prev", this.&onPlayerPrev)
+    player.on("f-seek", this.&onPlayerSeek)
+    player.on("f-fetch", this.&onFetchState)
     // Create multi-form map if it doesn't already exist
     if (!(this.formsKey in player.private)) {
       player.private[this.formsKey] = [:]
     }
     // Check if this form has already been started for this player
     if (this.name in player.private[this.formsKey]) {
-      println "Form " + this.name + " already exists for this player"
+      println "Form " + this.name + " has already been assigned for this player"
     }
     
     // Randomize the page order per player
@@ -698,9 +719,19 @@ public class Form extends FormBase {
           title: this.pages[it].title
         ]
       },
+      efficient: this.efficient,
+      showStepper: this.showStepper,
+      nonLinear: this.isNonLinear,
       results: []
     ]
-    player.private[this.formsKey][this.name] = state
+    if (this.efficient) {
+      this.playerStates[player.id] = state
+      player.private[this.formsKey][this.name] = [
+        efficient: true
+      ]
+    } else {
+      player.private[this.formsKey][this.name] = state
+    }
 
     // Create the form results state for this player
     def playerResults = [
@@ -717,14 +748,15 @@ public class Form extends FormBase {
    * Alias for accessing the form state for this player
    */
   private getPlayerState (Vertex player) {
-    return player.private[this.formsKey][this.name]
+    return this.efficient ? this.playerStates[player.id] : player.private[this.formsKey][this.name]
   }
 
   /**
    * Closure called when the player presses the next or done buttons
    */
-  private onPlayerNext (Vertex player, Map results) {
-
+  private onPlayerNext (Vertex player, Map data) {
+    if (this.name != data.name) return
+    def results = data.results
     if (this.recordNavigation) {
       this.addEvent("form-next", [
         form: this.name,
@@ -733,9 +765,11 @@ public class Form extends FormBase {
     }
 
     def state = this.getPlayerState(player)
-    
+    println "next state " + state
+    println "next results " + results
+
     // Run form validators
-    def currentPage = this.getPlayerPage(player, state)
+    Page currentPage = this.getPlayerPage(player, state)
     if (!currentPage.validate(results, state)) {
       return this.sendNavError(player, [
         error: "Invalid responses"
@@ -766,7 +800,9 @@ public class Form extends FormBase {
   /**
    * Closure called when player presses the previous button
    */
-  private onPlayerPrev (Vertex player, Map results) {
+  private onPlayerPrev (Vertex player, Map data) {
+    if (this.name != data.name) return
+    def results = data.results
     def state = this.getPlayerState(player)
     if (this.recordNavigation) {
       this.addEvent("form-prev", [
@@ -784,6 +820,28 @@ public class Form extends FormBase {
   }
 
   /**
+   * Send the current form state to the player
+   */
+  private onFetchState (Vertex player, Map data) {
+    if (data.name != this.name) return
+    println "player get " + player.id
+    if (!player) return
+    if (!this.players.contains(player)) {
+      return player.send("f-error", [
+        form: this.name,
+        error: "Not assigned to this form"
+      ])
+    }
+    Map state = this.getPlayerState(player)
+    println "fetch state " + state
+    Page currentPage = this.getPlayerPage(player, state)
+    player.send("f-fetch", [
+      name: this.name,
+      form: state,
+    ])
+  }
+
+  /**
    * Closure called when the player seeks to a page
    */
   private onPlayerSeek (Vertex player, Map results, Map dest) {
@@ -792,14 +850,9 @@ public class Form extends FormBase {
   }
 
   /**
-   * Lookup the page based on the players page order then apply that page state.
+   * Initialize the current page results if they haven't already been created
    */
-  private Page attachPage (Vertex player, Map state) {
-    def page = this.getPlayerPage(player, state)
-    state.page = page.assignTo(player, state.seed)
-    state.showStepper = this.showStepper
-    state.nonLinear = this.isNonLinear
-
+  private void makePageResults (Vertex player, Map state) {
     // Initialize player results for this page
     def playerRes = this.playerResults[player.id]
     def pageResults = playerRes.pages[state.pages[state.location.index].index]
@@ -814,7 +867,15 @@ public class Form extends FormBase {
       }
       playerRes.pages[state.pages[state.location.index].index] = storeResults
     }
+  }
 
+  /**
+   * Lookup the page based on the players page order then apply that page state.
+   */
+  private Page attachPage (Vertex player, Map state) {
+    def page = this.getPlayerPage(player, state)
+    state.page = page.assignTo(player, state.seed)
+    this.makePageResults(player, state)
     return page
   }
 
@@ -831,6 +892,9 @@ public class Form extends FormBase {
    * @param {Map} err - The error message
    */
   private void sendNavError (Vertex player, Map err) {
-    player.send("f-" + this.name + '-e', err)
+    player.send("f-error", [
+      name: this.name,
+      error: err
+    ])
   }
 }

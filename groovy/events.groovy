@@ -45,10 +45,15 @@ Vertex.metaClass.clear = {
  * routed using a simple hash of the player id and the event name. Player scoped
  * events are also passed in the player vertex as an argument.
  */ 
-events.on(CUSTOM_EVENT, { params ->
+events.on(CUSTOM_EVENT, { Map params, Map clientData ->
   try {
     if (PLAYER_ID_PROP in params && PLAYER_ACTION_PROP in params) {
-      def player = g.getVertex(params[PLAYER_ID_PROP])
+      def playerId = params[PLAYER_ID_PROP]
+      if (clientData.clientId != playerId) {
+        println "Hacking attempt thwarted! Player " + clientData.clientId + " trying to impersonate " + playerId
+        return
+      }
+      def player = g.getVertex(playerId)
       if (player != null) {
         def globalEventName = makePlayerEventHash(player.id, params[PLAYER_ACTION_PROP])
         events.emit(globalEventName, player, params[PLAYER_DATA_PROP])
