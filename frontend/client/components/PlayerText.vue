@@ -1,7 +1,11 @@
 <template>
   <v-flex>
     <v-container>
-      <v-flex v-html="player.text" />
+      <slot name="prepend" />
+      <slot :text="player.text">
+        <p v-html="player.text" />
+      </slot>
+      <slot name="append" />
     </v-container>
   </v-flex>
 </template>
