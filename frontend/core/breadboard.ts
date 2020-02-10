@@ -52,6 +52,10 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
     try {
       const config = await this.loadConfig()
       this.socket = new Socket(config.connectSocket)
+      // Propagate all socket events out to the Breadboard object
+      for (const event of ['connect', 'open', 'close', 'error', 'retry']) {
+        this.socket.on(event, (...args: any) => this.emit(event, ...args))
+      }
       this.attachParser()
     } finally {
       release()
