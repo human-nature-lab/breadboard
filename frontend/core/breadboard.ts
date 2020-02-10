@@ -16,7 +16,7 @@ const CUSTOM_EVENT = 'CustomEvent'
 export class BreadboardClass extends Emitter implements BreadboardMessages {
 
   private socket!: Socket
-  private config!: BreadboardConfig
+  private config!: BreadboardConfig | null
   private socketMutex = new Mutex()
   private configMutex = new Mutex()
 
@@ -67,6 +67,7 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * Disconnect the WebSocket
    */
   disconnect () {
+    this.config = null
     if (!this.socket) return
     this.socket.close()
     this.removeListeners()

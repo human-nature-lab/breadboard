@@ -2,18 +2,6 @@ html
   overflow-y: unset !important
 .hidden
   display: none !important
-.h-full
-  height: 100%
-.h-screen
-  height: 100vh
-.h-50
-  height: 50%
-.max-h-50
-  max-height: 50%
-.w-50
-  width: 50%
-.w-full
-  width: 100%
 .flex-grow-0
   flex-grow: 0
 .flex-shrink-0
@@ -26,13 +14,18 @@ html
 .overflow-auto
   overflow: auto
 
-$fractions: ("1\\\/3": 1/3, "2\\\/3": 2/3, "1\\\/2": 1/2, "1\\\/4": 1/4, "3\\\/4": 3/4)
+$fractions: ("1\\\/3": 1/3, "2\\\/3": 2/3, "1\\\/2": 1/2, "1\\\/4": 1/4, "3\\\/4": 3/4, "full": 1)
 $sizes: (1: 1em, 2: 1.3em, 4: 1.6em, 6: 1.8em, 8: 2em)
 $dirs: ("t": "-top", "b": "-bottom", "r": "-right", "l": "-left")
 $types: ("p": "padding", "m": "margin")
 
-@each $fStr, $fraction in $fractions
-  @each $d, $dir in ("h": "height", "w": "width")
+@each $d, $dir in ("h": "height", "w": "width")
+  @each $mod in ("-min", "-max", "")
+    .#{$d}#{$mod}-full
+      #{$dir}: 100%
+    .#{$d}#{$mod}-screen
+      #{$dir}: 100v#{$d}
+  @each $fStr, $fraction in $fractions
     .#{$d}-#{$fStr}
       #{$dir}: percentage($fraction)
 

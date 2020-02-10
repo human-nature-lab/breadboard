@@ -50,6 +50,7 @@ export class Socket extends Emitter {
       this.state = SocketState.CLOSING
       this._clearBuffer()
     }
+    this.removeListeners()
   }
 
   /**
