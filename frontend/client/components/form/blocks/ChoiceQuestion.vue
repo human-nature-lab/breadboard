@@ -2,13 +2,14 @@
   <v-input :errorMessages="errorMessages">
     <v-layout column v-if="block">
       <HtmlBlock :block="block" />
-        <v-flex v-for="(choice, index) in block.choices" :key="choice.value">
-          <v-checkbox
-            v-bind="selectIcons"
-            :label="'' + choice.content"
-            @change="assign(index, choice.value)" 
-            :value="isAssigned(index, choice.value)" />
-        </v-flex>
+      <v-flex v-for="(choice, index) in block.choices" :key="choice.value">
+        <v-checkbox
+          v-bind="selectIcons"
+          :disabled="disabled"
+          :label="'' + choice.content"
+          @change="assign(index, choice.value)" 
+          :value="isAssigned(index, choice.value)" />
+      </v-flex>
     </v-layout>
   </v-input>
 </template>
@@ -26,6 +27,10 @@
       block: {
         type: Object,
         required: true
+      },
+      disabled: {
+        type: Boolean,
+        default: false
       }
     },
     data () {
@@ -81,6 +86,9 @@
           }
         }
         return messages
+      },
+      hasError (): boolean {
+        return !!this.errorMessages.length
       }
     }
   })

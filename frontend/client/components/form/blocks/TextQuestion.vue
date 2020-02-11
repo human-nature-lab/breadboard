@@ -5,6 +5,7 @@
       :disabled="disabled"
       :required="block.isRequired"
       :rules="validationRules"
+      :type="inputType"
       @change="$emit('update', $event)"
       v-model="content" />
   </v-flex>
@@ -40,6 +41,9 @@
           rules.push(isRequired(this.block.name))
         }
         return rules
+      },
+      inputType (): string {
+        return this.block.inputType || 'text'
       }
     }
   })
