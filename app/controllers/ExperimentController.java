@@ -173,7 +173,7 @@ public class ExperimentController extends Controller {
 
       Logger.debug("Read .breadboard file: experimentVersion = " + eVersion + " experimentUid = " + eUid + " experimentName = " + eName);
 
-      if(eVersion.startsWith("v2.3")){
+      if(eVersion.startsWith("v2.3") || eVersion.startsWith("v2.4")){
         import23To23(experiment, user, outputFolder);
       } else if (eVersion.startsWith("v2.2")) {
         import22To23(experiment, user, outputFolder);
