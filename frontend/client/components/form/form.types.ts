@@ -48,9 +48,17 @@ export interface HtmlQuestion extends BaseBlock {
 
 type Block = ScaleQuestion | ChoiceQuestion | HtmlQuestion
 
+export interface FormPage {
+  title: string
+  sections: {
+    blocks: Block[]
+  }[]
+}
+
 export interface PlayerForm {
   useStepper: boolean
   nonLinear: boolean
+  efficient: boolean
   location: {
     index: number
     size: number
@@ -59,12 +67,7 @@ export interface PlayerForm {
     index: number
     title: string
   }[]
-  page: {
-    title: string
-    sections: {
-      blocks: Block[]
-    }[]
-  }
+  page: FormPage
 }
 
 export interface PlayerWithForms {

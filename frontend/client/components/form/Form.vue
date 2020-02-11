@@ -11,7 +11,10 @@
         :complete="form.location.index > index"
         :step="index + 1">{{page.title}}</v-stepper-step>
     </v-stepper-header>
-    <v-form v-model="valid" v-if="form">
+    <slot name="loading" v-if="useEfficientLoading && fetchTimeoutId">
+      Loading form...
+    </slot>
+    <v-form v-model="valid" v-if="form" @submit.prevent="()=>{}">
       <v-container>
         <v-layout 
           v-for="(section, sectionIndex) in form.page.sections" 
@@ -50,7 +53,7 @@
 
 <script lang="ts">
   import Vue, { Component, PropOptions } from 'vue'
-  import { PlayerWithForms, PlayerForm, BlockType, QuestionResult, Prim, BaseBlock, FormError } from './form.types'
+  import { PlayerWithForms, PlayerForm, BlockType, QuestionResult, Prim, BaseBlock, FormError, FormPage } from './form.types'
   import ScaleQuestion from './blocks/ScaleQuestion.vue'
   import HtmlBlock from './blocks/HtmlBlock.vue'
   import ChoiceQuestion from './blocks/ChoiceQuestion.vue'
@@ -71,6 +74,10 @@
       },
       name: <PropOptions<string | string[]>>{
         type: [String, Array]
+      },
+      fetchTimeout: {
+        type: Number,
+        default: 5000
       }
     },
     data () {
@@ -80,44 +87,94 @@
         dir: null as string | null,       // keeps track of which button was pressed
         error: null as FormError | null,  // Applied if error in form navigation
         results: {} as { [key: string]: QuestionResult<Prim | Prim[]> },
-        prevName: null as string | null
+        prevName: null as string | null,
+        fetchTimeoutId: null as number | null,
+        memForm: null as null | PlayerForm // This gets updated when the form is in "efficient" mode
       }
     },
     created () {
-      window.Breadboard.on(`f-${this.name}-e`, (err: FormError) => {
-        console.error(err)
-        this.isBusy = false
-        this.error = err
-      })
+      this.startListening()
+      if (this.useEfficientLoading) {
+        this.fetch()
+      }
       this.$watch(`player.${this.formsKey}`, (newForms: PlayerForms, oldForms: PlayerForms) => {
         if (this.formName) {
           if (!oldForms) {
             console.log('no old forms')
             return this.makeResults()
+          } else if (!newForms) {
+            this.reset()
           }
           const newForm = newForms[this.formName]
           const oldForm = oldForms[this.formName]
-          if (newForm && oldForm && newForm.pages[newForm.location.index].index !== oldForm.pages[oldForm.location.index].index) {
+          if (newForm && oldForm && !newForm.efficient && newForm.pages[newForm.location.index].index !== oldForm.pages[oldForm.location.index].index) {
             console.log('page changed')
             this.makeResults()
-          }          
+          }
         }
       })
     },
     methods: {
+      reset () {
+        console.log('reset form')
+        this.isBusy = false
+        this.valid = false
+        this.prevName = null
+        this.error = null
+        this.memForm = null
+      },
       next () {
         this.isBusy = true
         this.dir = 'next'
-        bb.send('f-' + this.formName + '-n', this.results)
+        bb.send('f-next', {
+          name: this.formName,
+          results: this.results
+        })
       },
       prev () {
         this.isBusy = true
         this.dir = 'prev'
-        bb.send('f-' + this.formName + '-p', this.results)
+        bb.send('f-prev', {
+          name: this.formName,
+          results: this.results
+        })
       },
       seek (index: number) {
         this.isBusy = true
-        bb.send('f-' + this.formName + '-s', this.results)
+        bb.send('f-seek', {
+          name: this.formName,
+          results: this.results
+        })
+      },
+      fetch () {
+        if (this.fetchTimeoutId) return
+        console.log('fetch')
+        this.isBusy = true
+        bb.send('f-fetch', {
+          name: this.formName
+        })
+        this.fetchTimeoutId = setTimeout(() => {
+          this.fetchTimeoutId = null
+          console.log('fetch timeout')
+          if (this.formName) {
+            this.fetch()
+          }
+        }, this.fetchTimeout)
+      },
+      onError (data: {name: string, err: FormError}) {
+        if (data.name !== this.formName)
+        this.isBusy = false
+        this.error = data.err
+      },
+      onFetch (data: { name: string, form: PlayerForm }) {
+        if (data.name !== this.formName) return
+        this.isBusy = false
+        this.memForm = data.form
+        this.makeResults()
+        if (this.fetchTimeoutId) {
+          clearTimeout(this.fetchTimeoutId)
+          this.fetchTimeoutId = null
+        }
       },
       updateResult (block: BaseBlock, value: any) {
         const res = this.results[block.name]
@@ -133,7 +190,6 @@
           this.results = {}
           for (const section of this.form.page.sections) {
             for (const block of section.blocks) {
-              console.log('block', block.name)
               if (block.name) {
                 const res = {
                   value: (block.type === BlockType.CHOICE && block.multiple) || block.type === BlockType.SCALE ? [] : null,
@@ -157,9 +213,22 @@
           default:
             return HtmlBlock
         }
+      },
+      startListening (): void {
+        window.Breadboard.on('f-error', this.onError)
+        window.Breadboard.on('f-fetch', this.onFetch)
+        window.Breadboard.on('open', this.fetch)
+      },
+      stopListening (): void {
+        window.Breadboard.off('f-error', this.onError)
+        window.Breadboard.off('f-fetch', this.onFetch)
+        window.Breadboard.off('open', this.fetch)
       }
     },
     computed: {
+      useEfficientLoading (): boolean {
+        return this.formName ? this.forms[this.formName].efficient : false
+      },
       formName (): string | null {
         let rName: string | null = null
         if (Array.isArray(this.name)) {
@@ -175,9 +244,10 @@
           const keys = Object.keys(this.forms)
           rName = keys.length ? keys[0] : null
         }
-        if (rName !== this.prevName) {
+        if (rName !== null && rName !== this.prevName) {
           console.log('name changed')
           this.$nextTick(this.makeResults)
+          this.$nextTick(this.fetch)
         }
         this.prevName = rName
         return rName
@@ -192,7 +262,18 @@
         }
       },
       form (): PlayerForm | null {
-        return this.formName ? this.forms[this.formName] : null
+        if (this.formName) {
+          const form = this.forms[this.formName]
+          if (this.memForm && form.efficient) {
+            return this.memForm 
+          } else if (form.page) {
+            return form
+          } else {
+            return null
+          }
+        } else {
+          return null
+        }
       }
     }
   })
