@@ -1,5 +1,5 @@
 <template>
-  <v-flex>
+  <v-flex v-if="player.text">
     <v-container>
       <slot name="prepend" />
       <slot :text="player.text">

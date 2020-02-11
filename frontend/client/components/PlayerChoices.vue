@@ -1,5 +1,5 @@
 <template>
-  <v-flex>
+  <v-flex v-if="hasChoices">
     <v-container>
       <v-layout row>
         <Choice
@@ -44,14 +44,14 @@ export default Vue.extend({
     // console.log('player choices updated')
   },
   methods: {
-    submit(choice: PlayerChoice) {
+    submit (choice: PlayerChoice) {
       window.Breadboard.sendChoice(choice.uid)
       this.choicesAreEnabled = false
     },
     /**
      * This filter allows to easily replace only certain choices and keep the other choices by default
      */
-    useDefaultChoice(choice: { [key: string]: any }): boolean {
+    useDefaultChoice (choice: { [key: string]: any }): boolean {
       if (!this.$slots.choice && !this.$scopedSlots.choice) {
         return true
       } else if (!this.choiceFilter) {
@@ -62,19 +62,22 @@ export default Vue.extend({
     }
   },
   computed: {
-    defaultChoices(): any[] {
+    defaultChoices (): any[] {
       if (this.player && this.player.choices) {
         return this.player.choices.filter((choice: any) => this.useDefaultChoice(choice))
       } else {
         return []
       }
     },
-    slotChoices(): any[] {
+    slotChoices (): any[] {
       if (this.player && this.player.choices) {
         return this.player.choices.filter((choice: any) => !this.useDefaultChoice(choice))
       } else {
         return []
       }
+    },
+    hasChoices (): boolean {
+      return !!this.defaultChoices.length || !!this.slotChoices.length
     }
   }
 })
