@@ -10,16 +10,15 @@
           </th>
         </tr>
         <RadioRow 
-          v-for="(question, index) in block.items" 
-          :key="index"
+          v-for="question in block.items" 
+          :key="question.value"
           :label="question.content"
           :options="options"
-          :value="value[index]"
+          :value="value[question.value]"
           :disabled="disabled"
-          @input="updateVal(index, $event)" />
+          @input="updateVal(question.value, $event)" />
       </v-simple-table>
     </v-input>
-    
   </v-flex>
 </template>
 
@@ -28,6 +27,8 @@
   import HtmlBLock from './HtmlBlock.vue'
   import { ScaleQuestion, QuestionResult, KeyLabel, Prim } from '../form.types'
   import { isRequired } from './rules'
+
+  type ScaleValue = { [key: string]: string|number|null, [key: number]: string|number|null}
 
   export default Vue.extend({
     name: 'ScaleQuestion',
@@ -46,7 +47,7 @@
       return {
         prevBlockName: '',
         isDirty: false,
-        value: [] as (string | number | null)[]
+        value: {} as ScaleValue
       }
     },
     watch: {
@@ -64,8 +65,13 @@
       rules (): Function[] {
         const rules = []
         if (this.block.isRequired) {
-          rules.push((value: Prim[]) => {
-            return !!value.length && value.filter(v => v !== null).length === this.block.items.length || `${this.block.name} is required.`
+          rules.push((value: ScaleValue) => {
+            for (const question of this.block.items) {
+              if (!value[question.value]) {
+                return `${this.block.name} is required.`
+              }
+            }
+            return true
           })
         }
         return rules
@@ -85,12 +91,16 @@
       initValue () {
         if (this.block && this.block.name === this.prevBlockName) return
         this.isDirty = false
-        this.value = Array.from( { length: this.block.items.length }).fill(null) as null[]
+        const d: ScaleValue = {}
+        for (const question of this.block.items) {
+          d[question.value] = null
+        }
+        this.value = d
         this.prevBlockName = this.block.name
       },
-      updateVal (index: number, value: string) {
+      updateVal (key: string|number, value: string) {
         this.isDirty = true
-        this.$set(this.value, index, this.value[index] !== value ? value : null)
+        this.$set(this.value, key, this.value[key] !== value ? value : null)
         this.$emit('update', this.value)
       }
     }

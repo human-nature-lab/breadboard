@@ -105,7 +105,7 @@ public class Question extends Block {
     return vals
   }
 
-  public Map formatResult (String form, String playerId, Map result) {
+  public Map formatResult (String form, String playerId, Map result, Map state) {
     return [
       name: this.name,
       type: this.type,
@@ -157,8 +157,8 @@ public class ChoiceQuestion extends Question {
   /**
    * Mutate the result map before it is stored in the db
    */
-  public Map formatResult (String form, String playerId, Map res) {
-    def formattedRes = super.formatResult(form, playerId, res)
+  public Map formatResult (String form, String playerId, Map res, Map state) {
+    def formattedRes = super.formatResult(form, playerId, res, state)
     formattedRes.multiple = this.multiple
     return formattedRes
   }
@@ -227,6 +227,11 @@ public class ScaleQuestion extends Question {
       Collections.shuffle(vals.items, new Random(seed))
     }
     return vals
+  }
+
+  public Map formatResult (String form, String playerId, Map res, Map state) {
+    def formattedRes = super.formatResult(form, playerId, res, state)
+    return formattedRes
   }
 
   // Check that the answer has every correct value
@@ -398,7 +403,7 @@ public class Page extends FormBase {
   /**
    * Format and store the page results in the DB
    */
-  public saveResults (String form, Vertex player, Map results) {
+  public saveResults (String form, Vertex player, Map results, Map state) {
     for (def section : this.sections) {
       for (def block : section.blocks) {
         // Filter out blocks that don't require responses responses
@@ -406,7 +411,7 @@ public class Page extends FormBase {
         def result = results[block.name]
         def playerId = player.id
         if (result && result.value != null) {
-          def res = block.formatResult(form, playerId, result)
+          def res = block.formatResult(form, playerId, result, state)
           block.saveResult(res)
         }
       }
@@ -724,6 +729,15 @@ public class Form extends FormBase {
       nonLinear: this.isNonLinear,
       results: []
     ]
+
+    if (this.recordResults) {
+      this.addEvent("form-start", [
+        player: player.id,
+        form: this.name,
+        seed: state.seed
+      ])
+    }
+
     if (this.efficient) {
       this.playerStates[player.id] = state
       player.private[this.formsKey][this.name] = [
@@ -765,7 +779,6 @@ public class Form extends FormBase {
     }
 
     def state = this.getPlayerState(player)
-    println "next state " + state
     println "next results " + results
 
     // Run form validators
@@ -777,7 +790,7 @@ public class Form extends FormBase {
     }
 
     if (this.recordResults) {
-      currentPage.saveResults(this.name, player, results)
+      currentPage.saveResults(this.name, player, results, state)
     }
 
     def pageResults = this.playerResults[player.id].pages[state.pages[state.location.index].index]
