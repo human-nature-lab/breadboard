@@ -174,10 +174,13 @@ public class Experiment extends Model {
     if (this.fileMode) {
       ArrayList<Image> returnImages = new ArrayList<>();
       File imagesDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/Images");
-      try {
-        returnImages = ExperimentController.getImagesFromDirectory(imagesDirectory);
-      } catch (IOException ioe) {
-        Logger.error("Error reading images from the dev directory, check your permissions.");
+      if (imagesDirectory.isDirectory()) {
+        try {
+          returnImages = ExperimentController.getImagesFromDirectory(imagesDirectory);
+        } catch (IOException ioe) {
+          Logger.error("Error reading images from " + imagesDirectory + ", check your permissions.");
+          Logger.debug(ioe.getMessage());;
+        }
       }
       return returnImages;
     }
@@ -188,10 +191,13 @@ public class Experiment extends Model {
     if (this.fileMode) {
       ArrayList<Content> returnContent = new ArrayList<>();
       File contentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/Content");
-      try {
-        returnContent = ExperimentController.getContentFromDirectory(contentDirectory);
-      } catch (IOException ioe) {
-        Logger.error("Error reading steps file from the dev directory, check your permissions.");
+      if (contentDirectory.isDirectory()) {
+        try {
+          returnContent = ExperimentController.getContentFromDirectory(contentDirectory);
+        } catch (IOException ioe) {
+          Logger.error("Error reading Content from " + contentDirectory + ", check your permissions.");
+          Logger.debug(ioe.getMessage());;
+        }
       }
       return returnContent;
 
@@ -227,6 +233,7 @@ public class Experiment extends Model {
         returnStyle = FileUtils.readFileToString(new File(devDirectory, "style.css"));
       } catch (IOException ioe) {
         Logger.error("Error reading style.css file from the dev directory, check your permissions.");
+        Logger.debug(ioe.getMessage());;
       }
       return returnStyle;
     } else {
@@ -242,6 +249,7 @@ public class Experiment extends Model {
         returnClientHtml = FileUtils.readFileToString(new File(devDirectory, "client-html.html"));
       } catch (IOException ioe) {
         Logger.error("Error reading client-html.html file from the dev directory, check your permissions.");
+        Logger.debug(ioe.getMessage());;
       }
       return returnClientHtml;
     } else {
@@ -257,6 +265,7 @@ public class Experiment extends Model {
         returnClientGraph = FileUtils.readFileToString(new File(devDirectory, "client-graph.js"));
       } catch (IOException ioe) {
         Logger.error("Error reading client-graph.js file from the dev directory, check your permissions.");
+        Logger.debug(ioe.getMessage());;
       }
       return returnClientGraph;
     } else {
@@ -271,7 +280,8 @@ public class Experiment extends Model {
       try {
         returnSteps = ExperimentController.getStepsFromDirectory(stepsDirectory);
       } catch (IOException ioe) {
-        Logger.error("Error reading steps file from the dev directory, check your permissions.");
+        Logger.error("Error reading Steps from " + stepsDirectory + ", check your permissions.");
+        Logger.debug(ioe.getMessage());;
       }
       return returnSteps;
     } else {
@@ -294,8 +304,8 @@ public class Experiment extends Model {
   }
 
   public void toggleFileMode(User user) {
+    File experimentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
     try {
-      File experimentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
       if (this.fileMode) {
         // Turning fileMode off, let's import the files into the current experiment
         ExperimentController.importExperimentFromDirectory(this.id, user, experimentDirectory);
@@ -305,8 +315,11 @@ public class Experiment extends Model {
       }
       this.setFileMode(!this.fileMode);
       this.save();
-    } catch (IOException io) {
-      Logger.error("Unable to access the experiment directory, check your file permissions.");
+    } catch (IOException ioe) {
+      Logger.error("Unable to access " + experimentDirectory + ", check your file permissions.", ioe);
+      // if (Logger.canLog(Logger.DEBUG)) {
+      //   ioe.printStackTrace(Logger);
+      // }
     }
   }
 
@@ -504,7 +517,8 @@ public class Experiment extends Model {
       try {
         returnParameters = ExperimentController.getParametersFromFile(parameterFile);
       } catch (IOException ioe) {
-        Logger.error("Error reading steps file from the dev directory, check your permissions.");
+        Logger.error("Error reading " + parameterFile + " from the dev directory, check your permissions.");
+        Logger.debug(ioe.getMessage());;
       }
       return returnParameters;
 

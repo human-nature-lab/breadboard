@@ -287,6 +287,7 @@ public class ExperimentController extends Controller {
    */
   public static Long importExperimentFromDirectory(Long experimentId, User user, File directory) throws IOException {
     Experiment experiment;
+    Logger.debug("Importing experiment " + experimentId + " from " + directory);
     if (experimentId == null || ((experiment = Experiment.findById(experimentId)) == null) ) {
       // New experiment
       experiment = new Experiment();
@@ -337,11 +338,17 @@ public class ExperimentController extends Controller {
     FileUtils.writeStringToFile(new File(directory, "client-graph.js"), experiment.getClientGraph());
 
     File stepsDirectory = new File(directory, "Steps");
+    if (!stepsDirectory.isDirectory()) {
+      stepsDirectory.mkdir();
+    }
     for (Step step : experiment.getSteps()) {
       FileUtils.writeStringToFile(new File(stepsDirectory, step.name.concat(".groovy")), step.source);
     }
 
     File contentDirectory = new File(directory, "Content");
+    if (!contentDirectory.isDirectory()) {
+      contentDirectory.mkdir();
+    }
     for (Content c : experiment.getContent()) {
       for (Translation t : c.translations) {
         String language = (t.language == null || t.language.getCode() == null) ? "en" : t.language.getCode();
@@ -353,6 +360,9 @@ public class ExperimentController extends Controller {
     FileUtils.writeStringToFile(new File(directory, "parameters.csv"), experiment.parametersToCsv());
 
     File imagesDirectory = new File(directory, "Images");
+    if (!imagesDirectory.isDirectory()) {
+      imagesDirectory.mkdir();
+    }
     for (Image image : experiment.getImages()) {
       FileUtils.writeByteArrayToFile(new File(imagesDirectory, image.fileName), image.file);
     }
@@ -496,6 +506,9 @@ public class ExperimentController extends Controller {
 
   public static ArrayList<Content> getContentFromDirectory(File contentDir) throws IOException {
     ArrayList<Content> returnContent = new ArrayList<>();
+    if (!contentDir.isDirectory()) {
+      return returnContent;
+    }
     // Default to English if the directory isn't specified
     Language defaultLanguage = Language.findByIso3("eng");
     if (contentDir == null || !contentDir.exists()) {
@@ -610,6 +623,9 @@ public class ExperimentController extends Controller {
   public static ArrayList<Image> getImagesFromDirectory(File directory) throws IOException {
     ArrayList<Image> returnImages = new ArrayList<>();
     File[] imageFiles = directory.listFiles();
+    if (!directory.isDirectory()) {
+      return returnImages;
+    }
     if (imageFiles != null) {
       for (File imageFile : imageFiles) {
         String imageName = FilenameUtils.removeExtension(imageFile.getName());

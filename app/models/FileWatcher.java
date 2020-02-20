@@ -45,11 +45,7 @@ public class FileWatcher {
     }
 
     fileWatcherActor = Akka.system().actorOf(new Props(FileWatcherActor.class));
-    Long fileWatchRate = play.Play.application().configuration().getMilliseconds("breadboard.fileWatchRate");
-    if (fileWatchRate == null) {
-      Logger.debug("fileWatchRate = null");
-      fileWatchRate = 100L;
-    }
+    Long fileWatchRate = play.Play.application().configuration().getMilliseconds("breadboard.fileWatchRate", 100L);
     Akka.system().scheduler().schedule(
         Duration.create(0, TimeUnit.MILLISECONDS),
         Duration.create(fileWatchRate, TimeUnit.MILLISECONDS),
