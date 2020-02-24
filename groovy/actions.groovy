@@ -464,7 +464,6 @@ class PlayerAI {
   }
 }
 
-
 a = new PlayerActions(eventTracker: eventTracker)
 
 def makeChoice(String uid) {

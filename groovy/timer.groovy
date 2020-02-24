@@ -20,11 +20,11 @@ class BBTimer extends Timer {
 }
 
 BBTimer.metaClass.register = {
-  __timers.register(delegate)
+  timers.register(delegate)
 }
 
 BBTimer.metaClass.unregister = {
-  __timers.unregister(delegate)
+  timers.unregister(delegate)
 }
 
 /**
@@ -71,10 +71,14 @@ class BBTimers {
     }
   }
 
+  public BBTimer newTimer () {
+    return new BBTimer()
+  }
+
 }
 
 // Global timers registry. Gets cleaned up when the ScriptBoard resets
-__timers = new BBTimers()
+timers = new BBTimers()
 
 class GroovyTimerTask extends TimerTask {
   Closure closure
@@ -344,9 +348,9 @@ class SharedTimer extends BreadboardBase {
 
 
 SharedTimer.metaClass.register = {
-  __timers.registerShared(delegate)
+  timers.registerShared(delegate)
 }
 
 SharedTimer.metaClass.unregister = {
-  __timers.unregisterShared(delegate)
+  timers.unregisterShared(delegate)
 }

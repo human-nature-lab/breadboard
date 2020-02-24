@@ -98,7 +98,7 @@ public class ScriptBoard extends UntypedActor {
       // clean up the graph
       processScript("g.empty()", null, null);
       // Reset the timers
-      processScript("__timers.cancel()", null, null);
+      processScript("timers.cancel()", null, null);
     }
 
     // Global events used to communicate via the groovy scripting
