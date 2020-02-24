@@ -1,7 +1,7 @@
 <v-app>
     <ConnectionStatus />
     <v-layout row>
-        <SVGGraph class="w-50 h-screen" :player="player" :graph="graph"
+        <SVGGraph class="w-1/2 h-screen" :player="player" :graph="graph"
         @nodeClick="(node, e) => log('node click', node, e)" @edgeClick="(edge, e) => log('edge click', edge, e)"
         @edgeLabelClick="(edge, e) => log('edge label click', edge, e)"
         :nodeBorderWidth="node => node.isEgo ? 2 : 1" :nodeFill="node => node.isEgo ? 'blue' : 'lightgrey'"
@@ -18,7 +18,7 @@
             <!-- simple centered edge label -->
         </template>
     </SVGGraph>
-    <v-flex class="w-50 h-screen">
+    <v-flex class="w-1/2 h-screen">
         <v-container style="background: #ebebeb" class="h-full">
             <v-layout column>
                 <PlayerTimers :player="player"></PlayerTimers>
