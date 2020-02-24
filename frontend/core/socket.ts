@@ -35,10 +35,10 @@ export class Socket extends Emitter {
     } else {
       this.socket = new WebSocket(this.url)
     }
-    this.socket.onclose = this.onClose.bind(this)
-    this.socket.onerror = this.onError.bind(this)
-    this.socket.onmessage = this.onMessage.bind(this)
-    this.socket.onopen = this.onOpen.bind(this)
+    this.socket.addEventListener('close', this.onClose.bind(this))
+    this.socket.addEventListener('error', this.onError.bind(this))
+    this.socket.addEventListener('message', this.onMessage.bind(this))
+    this.socket.addEventListener('open', this.onOpen.bind(this))
   }
 
   /**
@@ -98,6 +98,7 @@ export class Socket extends Emitter {
   private onOpen () {
     this.state = SocketState.OPEN
     this.emit('open')
+    this.nTries = 1
     this.flush()
   }
 
