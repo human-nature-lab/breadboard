@@ -126,7 +126,7 @@ export class Socket extends Emitter {
     if (this.state !== SocketState.CLOSING) {
       this.nTries++
       // Exponential back-off w/ randomness to make it easier for the server to come back online w/out a huge, immediate traffic spike
-      const wait = clamp(this.nTries * 2000 + randomInt(500, 1500), 1000, this.maxWait)
+      const wait = clamp(this.nTries * 2000 + randomInt(500, 4000), 1000, this.maxWait)
       console.debug(`Connection closed. Retrying in ${wait}ms....`)
       this.emit('retry', wait)
       setTimeout(this.connect, wait)

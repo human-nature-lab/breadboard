@@ -214,15 +214,20 @@
             return HtmlBlock
         }
       },
+      checkFetch (): void {
+        if (this.useEfficientLoading) {
+          this.fetch()
+        }
+      },
       startListening (): void {
         window.Breadboard.on('f-error', this.onError)
         window.Breadboard.on('f-fetch', this.onFetch)
-        window.Breadboard.on('open', this.fetch)
+        window.Breadboard.on('open', this.checkFetch)
       },
       stopListening (): void {
         window.Breadboard.off('f-error', this.onError)
         window.Breadboard.off('f-fetch', this.onFetch)
-        window.Breadboard.off('open', this.fetch)
+        window.Breadboard.off('open', this.checkFetch)
       }
     },
     computed: {
