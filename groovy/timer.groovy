@@ -145,20 +145,13 @@ class SharedTimer extends BreadboardBase {
     } else {
       throw new Exception("'time' or 'duration' properties must be present to start a timer")
     }
-    
-    if ("player" in opts) {
-      this.addPlayer(opts.player)
-    }
-    if ("players" in opts) {
-      this.addPlayers(opts.players)
-    }
-    if ("result" in opts) {
-      this.onDone(opts.result)
-    }
     if ("timerText" in opts) {
       this.content = [
         content: opts.timerText
       ]
+    }
+    if ("result" in opts) {
+      this.onDone(opts.result)
     }
     def props = ["updateRate", "type", "direction", "currencyAmount", "appearance", "content"]
     props.each{ prop ->
@@ -167,6 +160,12 @@ class SharedTimer extends BreadboardBase {
       }
     }
     this.name = "name" in opts ? opts.name : UUID.randomUUID().toString()
+    if ("player" in opts) {
+      this.addPlayer(opts.player)
+    }
+    if ("players" in opts) {
+      this.addPlayers(opts.players)
+    }
     this.register()
     if (!opts.lazy) {
       this.startTimer()
