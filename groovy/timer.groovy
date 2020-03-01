@@ -1,5 +1,5 @@
-import java.util.Collections
-
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.ConcurrentHashMap
 /**
  * A custom timer class which will be correctly removed when the script engine reloads
  */
@@ -31,44 +31,32 @@ BBTimer.metaClass.unregister = {
  * Timers registry. Handles cleaning them up property when necessary
  */
 class BBTimers {
-  ArrayList<BBTimer> timers = Collections.synchronizedList(new ArrayList())
-  ArrayList<SharedTimer> sharedTimers = Collections.synchronizedList(new ArrayList())
+  ArrayList<BBTimer> timers = new CopyOnWriteArrayList()
+  ArrayList<SharedTimer> sharedTimers = new CopyOnWriteArrayList()
 
   public void cancel () {
-    synchronized (this.timers) {
-      for (def timer : this.timers) {
-        timer.end()
-      }
-      this.timers.clear()
+    for (def timer : this.timers) {
+      timer.end()
     }
+    this.timers.clear()
     // We don't need to cancel shared timers because they depend on the BBTimers which are cancelled above
-    synchronized (this.sharedTimers) {
-      this.sharedTimers.clear()
-    }
+    this.sharedTimers.clear()
   }
 
   public void register (BBTimer timer) {
-    synchronized (this.timers) {
-      this.timers << timer
-    }
+    this.timers << timer
   }
 
   public void unregister (BBTimer timer) {
-    synchronized (this.timers) {
-      this.timers.remove(timer)
-    }
+    this.timers.remove(timer)
   }
 
   public void registerShared (SharedTimer timer) {
-    synchronized (this.sharedTimers) {
-      this.sharedTimers << timer
-    }
+    this.sharedTimers << timer
   }
 
   public void unregisterShared (SharedTimer timer) {
-    synchronized (this.sharedTimers) {
-      this.sharedTimers.remove(timer)
-    }
+    this.sharedTimers.remove(timer)
   }
 
   public BBTimer newTimer () {
@@ -97,21 +85,22 @@ class TimerMethods {
 }
 
 class SharedTimer extends BreadboardBase {
-  def players = []
+  def players = new CopyOnWriteArrayList()
   def doneClosures = []
   Number updateRate = 1000
   Number startTime
   Number endTime
-  Number elapsed = 0
-  Number duration // millis
-  Number order
-  String name
-  String type = "time"
-  String direction = "down"
-  String currencyAmount = "0"
-  String appearance = ""
   Boolean hasEnded = false
   Map content
+  Map playerTimer = new ConcurrentHashMap([
+    type: "time",
+    direction: "down",
+    duration: 0,
+    elapsed: 0,
+    currencyAmount: "0",
+    appearance: "",
+    order: 0
+  ])
   private BBTimer timer
 
   SharedTimer (int seconds) {
@@ -139,27 +128,27 @@ class SharedTimer extends BreadboardBase {
    */
   SharedTimer (Map opts) {
     if ("time" in opts) {
-      this.duration = opts.time * 1000
+      this.playerTimer.duration = opts.time * 1000
     } else if ("duration" in opts) {
-      this.duration = opts.duration
+      this.playerTimer.duration = opts.duration
     } else {
       throw new Exception("'time' or 'duration' properties must be present to start a timer")
     }
     if ("timerText" in opts) {
-      this.content = [
-        content: opts.timerText
-      ]
+      this.playerTimer.timerText = opts.timerText
+    } else if ("content" in opts) {
+      this.playerTimer.timerText = this.fetchContent(opts.content)
     }
     if ("result" in opts) {
       this.onDone(opts.result)
     }
-    def props = ["updateRate", "type", "direction", "currencyAmount", "appearance", "content"]
+    def props = ["updateRate", "type", "direction", "currencyAmount", "appearance"]
     props.each{ prop ->
       if (prop in opts) {
-        this."${prop}" = opts[prop]
+        this.playerTimer[prop] = opts[prop]
       }
     }
-    this.name = "name" in opts ? opts.name : UUID.randomUUID().toString()
+    this.playerTimer.name = "name" in opts ? opts.name : UUID.randomUUID().toString()
     if ("player" in opts) {
       this.addPlayer(opts.player)
     }
@@ -197,16 +186,7 @@ class SharedTimer extends BreadboardBase {
     if (player.timers == null) {
       player.timers = [:]
     }
-    player.timers[this.name] = [
-      type: this.type,
-      direction: this.direction,
-      duration: this.duration,
-      elapsed: 0,
-      currencyAmount: this.currencyAmount,
-      appearance: this.appearance,
-      timerText: this.fetchContent(this.content),
-      order: this.order ?: player.timers.size()
-    ]
+    player.timers[this.playerTimer.name] = this.playerTimer
     this.startTimer()
   }
 
@@ -227,14 +207,10 @@ class SharedTimer extends BreadboardBase {
     this.timer.purge()
     this.timer.cancel()
     this.timer = null
-    this.players.each{player ->
-      this.endPlayer(player)
-    }
-    this.players.clear()
   }
 
   /**
-   * End the timer for all players. Should use cancel to end the timer early.
+   * End the timer for all players. Should use cancel to end the timer early without removing it from players
    */
   private end () {
     if (this.hasEnded) return
@@ -243,6 +219,10 @@ class SharedTimer extends BreadboardBase {
     this.doneClosures.each{ cb ->
       cb()
     }
+    this.players.each{player ->
+      this.endPlayer(player)
+    }
+    this.players.clear()
   }
 
   /**
@@ -260,7 +240,7 @@ class SharedTimer extends BreadboardBase {
    * Stop displaying this timer for this player
    */
   private endPlayer (Vertex player) {
-    player.timers.remove(this.name)
+    player.timers.remove(this.playerTimer.name)
   }
 
   /**
@@ -268,9 +248,9 @@ class SharedTimer extends BreadboardBase {
    */
   private startTimer () {
     if (this.timer) return
-    this.elapsed = 0
+    this.playerTimer.elapsed = 0
     this.startTime = System.currentTimeMillis()
-    this.endTime = this.startTime + this.duration * 1000
+    this.endTime = this.startTime + this.playerTimer.duration
     this.timer = new BBTimer()
     this.registerTimerEvents()
   }
@@ -282,7 +262,8 @@ class SharedTimer extends BreadboardBase {
   }
 
   private registerTimerEvents () {
-    this.timer.runAfter(this.duration) {
+    int delay = this.endTime - System.currentTimeMillis()
+    this.timer.runAfter(delay) {
       this.end()
     }
     this.timer.scheduleAtFixedRate({
@@ -292,32 +273,27 @@ class SharedTimer extends BreadboardBase {
 
   /**
    * Set the duration for this timer
-   * @param {int} duration - The new timer duration
+   * @param {int} duration - The new timer duration in milliseconds
    */ 
   public setDuration (int duration) {
-    this.duration = duration
+    this.playerTimer.duration = duration
     if (this.timer) {
       this.resetTimer()
-      this.endTime = this.startTime + this.duration * 1000
+      this.endTime = this.startTime + duration
       // Check if we've already exceeded the duration and end if we have
       if (System.currentTimeMillis() > this.endTime) {
         return this.end()
       }
       this.registerTimerEvents()
-      this.players.each{ player ->
-        if (player.timers != null && this.name in player.timers) {
-          player.timers[this.name].duration = this.duration
-        }
-      }
     }
   }
 
   /**
    * Add time to an existing timer
-   * @param {int} delta - The number of milliseconds to add
+   * @param {int} delta - The number of milliseconds to add to the timer
    */
   public addTime (int delta) {
-    this.setDuration(this.duration + delta)
+    this.setDuration(this.playerTimer.duration + delta)
   }
 
   /**
@@ -325,9 +301,9 @@ class SharedTimer extends BreadboardBase {
    */
   public restart () {
     this.resetTimer()
-    this.elapsed = 0
+    this.playerTimer.elapsed = 0
     this.startTime = System.currentTimeMillis()
-    this.endTime = this.startTime + this.duration * 1000
+    this.endTime = this.startTime + this.playerTimer.duration
     this.registerTimerEvents()
   }
 
@@ -336,12 +312,7 @@ class SharedTimer extends BreadboardBase {
    * @param {Int} delta - The number of milliseconds to increase the timer by.
    */
   public tick (int delta) {
-    this.elapsed += delta
-    this.players.each{ player ->
-      if (player.timers != null && this.name in player.timers) {
-        player.timers[this.name].elapsed = this.elapsed
-      }
-    }
+    this.playerTimer.elapsed += delta
   }
 }
 

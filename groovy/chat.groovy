@@ -23,6 +23,7 @@ chatHandler = { player, data ->
     recipients: recipientIds,
     text: text
   ]
+  println "chat " + msg
 
   if (chatState.recordEvents) {
     a.addEvent(CHAT_EVENT, msg)
@@ -42,7 +43,6 @@ chatHandler = { player, data ->
 }
 
 def enableTextChat (Vertex v, Map opts = [:]) {
-  println "enable text chat for " + v.id
   try {
     def defaultOpts = [maxLength: 255, messageBufferSize: 10, recordEvents: true]
     opts = defaultOpts + opts
@@ -56,6 +56,7 @@ def enableTextChat (Vertex v, Map opts = [:]) {
     if (!opts.recipients) {
       opts.recipients = v.neighbors.toList().collect{ it.id }
     }
+    println "enable text chat for " + v.id + " to " + opts.recipients
     
     a.addEvent("chat-enabled", opts)
     

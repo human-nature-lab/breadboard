@@ -837,7 +837,6 @@ public class Form extends FormBase {
    */
   private onFetchState (Vertex player, Map data) {
     if (data.name != this.name) return
-    println "player get " + player.id
     if (!player) return
     if (!this.players.contains(player)) {
       return player.send("f-error", [
@@ -846,7 +845,7 @@ public class Form extends FormBase {
       ])
     }
     Map state = this.getPlayerState(player)
-    println "fetch state " + state
+    println "fetch state for player " + player.id
     Page currentPage = this.getPlayerPage(player, state)
     player.send("f-fetch", [
       name: this.name,
