@@ -111,8 +111,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     for (let i = 0; i < $scope.nodes.length; i++) {
       $scope.nodes[i].selected = '0';
     }
-    node.selected = '1';
-    $scope.breadboardGraph.selectNode(node);
+    if (node) {
+      node.selected = '1';
+      $scope.breadboardGraph.selectNode(node);
+    }
     $scope.selectedNode = node;
   };
 

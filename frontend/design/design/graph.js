@@ -312,12 +312,12 @@ function Graph(_width, _height, parentScope) {
       if (parentScope != undefined) {
         node.on('click', function (d) {
           var selectedNode = d3.select(this);
+          window.Breadboard.emit('graph-select', d.id)
           // if the node is currently selected, deselect it and close the player dialog
           if (selectedNode.attr("selected") == "1") {
             d["selected"] = "0";
             selectedNode.attr("selected", "0");
-            vis.selectAll("line.link").attr("selected", "0");
-            window.Breadboard.emit('player-select', selectedNode.id)
+            vis.selectAll("line.link").attr("selected", "0")
             //$('#playerDiv').dialog('close');
             // TODO:  When a node is deselected, the Player dialog should be emptied
             //parentScope.selectedNodeIndex = -1;
@@ -339,7 +339,7 @@ function Graph(_width, _height, parentScope) {
               }
             });
 
-            if($('#playerDiv').dialog('isOpen') && parentScope.selectedNode.id === nodeId){
+            if($('#playerDiv').dialog('isOpen') && parentScope.selectedNode && parentScope.selectedNode.id === nodeId){
               //$('#playerDiv').dialog('close');
             }else {
               $('#playerDiv').dialog('open');

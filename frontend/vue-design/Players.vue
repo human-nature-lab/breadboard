@@ -37,17 +37,18 @@
     },
     created () {
       this.graph.attachToBreadboard(window.Breadboard)
-      window.Breadboard.on('player-select', this.selectNode)
+      window.Breadboard.on('graph-select', this.selectNode)
     },
     beforeDestroy () {
       this.graph.releaseFromBreadboard()
-      window.Breadboard.off('player-select', this.selectNode)
+      window.Breadboard.off('graph-select', this.selectNode)
     },
     methods: {
       selectNode (nodeId: string, emit = false) {
-        this.selectedNode = this.graph.nodes.find(n => n.id === nodeId)
+        console.log('select', nodeId, this.selectedNode)
+        this.selectedNode = this.selectedNode && this.selectedNode.id === nodeId ? null : this.graph.nodes.find(n => n.id === nodeId)
         if (emit) {
-          window.Breadboard.emit('player-select', nodeId)
+          window.Breadboard.emit('player-select', this.selectedNode ? nodeId : null)
         }
       }
     },
@@ -64,8 +65,8 @@
         }
         if (exp.includes(operator)) {
           const parts = exp.split(operator)
-          const expected = parts[1]
-          const query = parts[0].split('.')
+          const expected = parts[1].trim()
+          const query = parts[0].split('.').map(k => k.trim())
           console.log(query, expected)
           return this.graph.nodes.filter(n => {
             let v: any = n
