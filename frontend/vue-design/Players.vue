@@ -11,7 +11,7 @@
       </div>
     </div>
     <div class="data p-1 h-full overflow-auto">
-      <pre v-if="selectedNode"><code>{{selectedNode}}</code></pre>
+      <vue-json-pretty v-if="selectedNode" :data="selectedNode" :deep="1" />
       <div v-else>
         Select a player to view their data...
       </div>
@@ -21,10 +21,13 @@
 
 <script lang="ts">
   import Vue, { PropOptions } from 'vue'
+  // @ts-ignore
+  import VueJsonPretty from 'vue-json-pretty'
   import { AdminGraph, Node } from './AdminGraph'
 
   export default Vue.extend({
     name: 'App',
+    components: { VueJsonPretty },
     data () {
       return {
         expression: '',

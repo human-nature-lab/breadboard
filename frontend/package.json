@@ -36,7 +36,8 @@
     "ng-file-upload": "^12.2.13",
     "regenerator-runtime": "^0.13.3",
     "tinymce": "^4.1.3",
-    "underscore": "1.8.3"
+    "underscore": "1.8.3",
+    "vue-json-pretty": "^1.6.3"
   },
   "devDependencies": {
     "@babel/core": "^7.6.0",
