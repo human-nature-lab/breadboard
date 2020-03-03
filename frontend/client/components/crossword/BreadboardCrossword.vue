@@ -1,9 +1,10 @@
 <template>
-  <v-flex class="w-1/2" v-if="player && player.crossword">
+  <v-flex v-if="player && player.crossword">
     <Crossword 
       v-model="solution"
       :active="active"
       :direction="direction"
+      :size="size"
       @update:cell="onCellUpdate"
       @update:active="$emit('update:active', $event)"
       @update:direction="$emit('update:direction', $event)"
@@ -74,6 +75,10 @@
       },
       direction: {
         type: String as () => DIRECTION,
+        required: true
+      },
+      size: {
+        type: Number,
         required: true
       }
     },

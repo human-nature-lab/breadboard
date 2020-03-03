@@ -1,6 +1,6 @@
 <template>
-  <div class="crossword h-full" v-if="value !== null" ref="container">  
-    <div class="grid m-auto " v-resize="updateCellSize" :style="{ width: width + 'px', height: width + 'px' }">
+  <div class="crossword" v-if="value !== null">  
+    <div class="grid m-auto " :style="{ width: size + 'px', height: size + 'px' }">
       <template v-for="(row, rowIndex) in crossword.layout">
         <template v-for="(cellType, colIndex) in row">
           <Cell ref="cells"
@@ -50,6 +50,10 @@
           row: -1,
           col: -1
         })
+      },
+      size: {
+        type: Number,
+        required: true
       }
     },
     data () {
@@ -65,16 +69,16 @@
         labels[label.row][label.col] = label.text
       }
       return {
-        cellSize: 20,
         labels,
         DIRECTION,
         CELL_TYPE,
         width: 200
       }
     },
-    mounted () {
-      console.log('value', this.value)
-      this.updateCellSize()
+    computed: {
+      cellSize (): number {
+        return Math.floor(this.size / Math.max(this.crossword.size.cols, this.crossword.size.rows))
+      }
     },
     watch: {
       active: {
@@ -110,15 +114,6 @@
         this.$emit('update:cell', val, this.active)
         if (!val) return
         this.getNextCell()
-      },
-      updateCellSize () {
-        const c = this.$refs.container
-        if (c instanceof Element) {
-          const box = c.getBoundingClientRect()
-          const min = Math.min(box.width, box.height)
-          this.width = min
-          this.cellSize = min / this.crossword.size.cols
-        }
       },
       moveUp () {
         const col = this.active.col
@@ -204,9 +199,6 @@
 
 <style lang="sass" scoped>
   .grid
-    // width: 100%
-    border-bottom: 1px solid grey
-    border-right: 1px solid grey
     overflow: visible
     box-sizing: content-box
     .clearfix::after 

@@ -66,7 +66,7 @@
         this.isBusy = true
         this.invalidPass = false
         window.Breadboard.send('unlock', {
-          password: this.password
+          password: this.password.trim()
         })
       }
     }

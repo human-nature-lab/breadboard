@@ -110,8 +110,9 @@
     cursor: pointer
   .input
     cursor: pointer
-    border-top: 1px solid $border
-    border-left: 1px solid $border
+    border: 1px solid $border
+    // border-left: 1px solid $border
+    // border
     &:hover
       background: lightgrey
   .label

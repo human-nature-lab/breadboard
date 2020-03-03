@@ -207,10 +207,14 @@ class SharedTimer extends BreadboardBase {
     this.timer.purge()
     this.timer.cancel()
     this.timer = null
+    this.players.each{player ->
+      this.endPlayer(player)
+    }
+    this.players.clear()
   }
 
   /**
-   * End the timer for all players. Should use cancel to end the timer early without removing it from players
+   * End the timer for all players. Should use cancel to end the timer early and continue as though it completed successfully
    */
   private end () {
     if (this.hasEnded) return
@@ -219,10 +223,6 @@ class SharedTimer extends BreadboardBase {
     this.doneClosures.each{ cb ->
       cb()
     }
-    this.players.each{player ->
-      this.endPlayer(player)
-    }
-    this.players.clear()
   }
 
   /**
