@@ -1,5 +1,5 @@
 <template>
-  <div class="players flex m-2 h-full overflow-hidden">
+  <div class="players flex h-full overflow-hidden">
     <div class="flex-grow-0 h-full overflow-auto flex-shrink-0 p-1">
       <h5>Players {{numFilteredNodes}} / {{totalNodes}}</h5>
       <input type="text" v-model="expression" placeholder="Filter..." />
@@ -11,9 +11,7 @@
       </div>
     </div>
     <div class="data p-1 h-full overflow-auto">
-      <pre v-if="selectedNode">
-        <code>{{selectedNode}}</code>
-      </pre>
+      <pre v-if="selectedNode"><code>{{selectedNode}}</code></pre>
       <div v-else>
         Select a player to view their data...
       </div>
@@ -52,9 +50,50 @@
     },
     computed: {
       nodes (): Node[] {
-        if (this.expression)
-        // TODO: Filter nodes
-        return this.graph.nodes
+        const exp = this.expression
+        const operators = ['=', '<', '>']
+        let operator = '='
+        for (const op of operators) {
+          if (exp.includes(op)) {
+            operator = op
+            break
+          }
+        }
+        if (exp.includes(operator)) {
+          const parts = exp.split(operator)
+          const expected = parts[1]
+          const query = parts[0].split('.')
+          console.log(query, expected)
+          return this.graph.nodes.filter(n => {
+            let v: any = n
+            for (let i = 0; i < query.length; i++) {
+              const key = query[i]
+              if (v !== null && typeof v === 'object') {
+                v = v[key]
+              } else {
+                return false
+              }
+            }
+            let res: boolean = false
+            switch (operator) {
+              case '=':
+                res = v == expected
+                break 
+              case '<':
+                res = v < expected
+                break
+              case '>':
+                res = v > expected
+                break
+            }
+            console.log(n, v, operator, res)
+            return res
+          })
+        } else if (exp.length) {
+          return this.graph.nodes.filter(n => n.id && n.id.includes(exp))
+        } else {
+          return this.graph.nodes
+        }        
       },
       totalNodes (): number {
         return this.graph.nodes.length
@@ -74,11 +113,11 @@
   .h-full
     height: 100%
   .m-2
-    margin: 1.3em
+    margin: 1.2em
   .p-1
-    margin: 1em
+    padding: 1em
   .p-2
-    margin: 1.3em
+    padding: 1.2em
   .flex
     display: flex
     flex: 1 1 auto
