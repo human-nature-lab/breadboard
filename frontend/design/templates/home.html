@@ -447,34 +447,7 @@
     <!-- Players -->
     <div>
         <div ui-jq="dialog" ui-options="playerDialogOptions" id="playerDiv">
-            <div class="container-fluid scrollable-container">
-                <div class="row scrollable-container">
-                    <div class="col-md-3 scrollable">
-                        <ul class="nav nav-pills nav-stacked">
-                            <li ng-repeat="node in nodes | playerOrder"
-                                role="presentation"
-                                ng-class="{'active':(node.id === selectedNode.id)}">
-                                <a class="pill-condensed" ng-click="selectNode(node)">{{node.id | shortId}}</a>
-                            </li>
-                        </ul>
-                    </div>
-                    <div class="col-md-9 scrollable">
-                        <div ng-show="selectedNode">
-                            <div id="playerStatusDiv">
-                                <h3>Player {{selectedNode.id | shortId}}</h3>
-                                <pre>{{playerProperties(selectedNode) | json}}</pre>
-                            </div>
-                            <div id='playerText' ng-bind-html="selectedNode.text | to_trusted"></div>
-                            <div id='playerChoices'>
-                                <button ng-repeat="choice in selectedNode.choices" class="{{choice.class}}"
-                                        ng-click="makeChoice($index)">
-                                    {{choice.name}}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <div id="vue-player-div"></div>
         </div>
     </div>
 

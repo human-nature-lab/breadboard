@@ -317,6 +317,7 @@ function Graph(_width, _height, parentScope) {
             d["selected"] = "0";
             selectedNode.attr("selected", "0");
             vis.selectAll("line.link").attr("selected", "0");
+            window.Breadboard.emit('player-select', selectedNode.id)
             //$('#playerDiv').dialog('close');
             // TODO:  When a node is deselected, the Player dialog should be emptied
             //parentScope.selectedNodeIndex = -1;

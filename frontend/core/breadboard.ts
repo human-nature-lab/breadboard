@@ -218,19 +218,23 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
       vueVersion: '2.6.10',
       vuetifyVersion: '2.2.1',
       mdiVersion: '4.5.95',
-      useDev: false
+      useDev: false,
+      withVuetify: true
     }, opts)
     console.log('config', config)
     this.addStyleFromURL('https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900')
     this.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`)
-    this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/@mdi/font@${opts.mdiVersion}/css/materialdesignicons.min.css`)
-    this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.min.css`)
+    if (opts.withVuetify) {
+      this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/@mdi/font@${opts.mdiVersion}/css/materialdesignicons.min.css`)
+      this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.min.css`)
+    }
     this.addStyleFromURL(`${config.assetsRoot}/bundles/vue-components.css`)
-    await this.addScriptFromURL(`https://cdnjs.cloudflare.com/ajax/libs/vue/${opts.vueVersion}/vue.${opts.useDev ? 'common.dev.' : ''}js`)
-    await Promise.all([
-      this.addScriptFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.js`),
-      this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)
-    ])
+    await this.addScriptFromURL(`https://cdnjs.cloudflare.com/ajax/libs/vue/${opts.vueVersion}/vue.${opts.useDev ? 'common.dev.' : 'min.'}js`)
+    const deps = [this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)]
+    if (opts.withVuetify) {
+      deps.push(this.addScriptFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.js`))
+    }
+    await Promise.all(deps)
 
     const Vue = window.Vue
     const Vuetify = window.Vuetify

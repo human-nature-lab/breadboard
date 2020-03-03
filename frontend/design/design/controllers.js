@@ -1,4 +1,5 @@
 import _ from 'underscore';
+import '../../vue-design/main'
 
 /* Controllers */
 angular.module('breadboard.controllers', []).controller('AppCtrl', ['$scope', 'breadboardFactory', '$timeout', '$http', '$state', 'csvService', 'configService', 'downloadService',
@@ -101,11 +102,16 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     });
   };
 
+  window.Breadboard.on('player-select', function (nodeId) {
+    const node = $scope.nodes.find(n => n.id === nodeId)
+    $scope.selectNode(node)
+  })
+
   $scope.selectNode = function(node) {
     for (let i = 0; i < $scope.nodes.length; i++) {
-      $scope.nodes[i].selected = "0";
+      $scope.nodes[i].selected = '0';
     }
-    node.selected = "1";
+    node.selected = '1';
     $scope.breadboardGraph.selectNode(node);
     $scope.selectedNode = node;
   };

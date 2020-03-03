@@ -13,6 +13,7 @@ export interface VueLoadOpts {
   vuetifyVersion?: string
   mdiVersion?: string
   useDev?: boolean
+  withVuetify?: boolean
 }
 
 export interface PlayerChoice {
