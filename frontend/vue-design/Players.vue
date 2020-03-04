@@ -11,7 +11,11 @@
       </div>
     </div>
     <div class="data p-1 h-full overflow-auto">
-      <vue-json-pretty v-if="selectedNode" :data="selectedNode" :deep="1" />
+      <template v-if="selectedNode">
+        <vue-json-pretty :data="selectedNode" :deep="1" />
+        <div class="client-content" v-html="selectedNode.text" />
+        <PlayerChoices :player="selectedNode" />
+      </template>
       <div v-else>
         Select a player to view their data...
       </div>
@@ -24,10 +28,11 @@
   // @ts-ignore
   import VueJsonPretty from 'vue-json-pretty'
   import { AdminGraph, Node } from './AdminGraph'
+  import PlayerChoices from '../client/components/PlayerChoices.vue'
 
   export default Vue.extend({
     name: 'App',
-    components: { VueJsonPretty },
+    components: { VueJsonPretty, PlayerChoices },
     data () {
       return {
         expression: '',
@@ -55,7 +60,7 @@
     computed: {
       nodes (): Node[] {
         const exp = this.expression
-        const operators = ['=', '<', '>']
+        const operators = ['=', '<', '>', '~']
         let operator = '='
         for (const op of operators) {
           if (exp.includes(op)) {
@@ -89,6 +94,13 @@
               case '>':
                 res = v > expected
                 break
+              case '~': {
+                if (typeof v !== 'string') {
+                  v = v.toString()
+                }
+                res = v.toLowerCase().includes(expected.toLowerCase())
+                break
+              }
             }
             console.log(n, v, operator, res)
             return res
@@ -116,11 +128,17 @@
     overflow: hidden
   .h-full
     height: 100%
+  .m-1
+    margin: .8em
   .m-2
+    margin: 1em
+  .m-3
     margin: 1.2em
   .p-1
-    padding: 1em
+    padding: .8em
   .p-2
+    padding: 1em
+  .p-3
     padding: 1.2em
   .flex
     display: flex
