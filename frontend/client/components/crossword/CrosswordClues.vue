@@ -2,9 +2,15 @@
   <v-layout :column="!row" class="clues align-start h-full">
     <v-flex class="down pad w-full" >
       <v-container>
-        <h3 class="clue-type">
-          Down <ClueLock v-if="player" :unlocked="player.unlockedDown" />
-        </h3>
+        <v-layout class="clue-type">
+          <v-flex class="flex-grow-0">
+            <h3>Down</h3>
+          </v-flex>
+          <v-flex class="flex-grow-0 clue-lock">
+            <ClueLock v-if="player" :unlocked="player.unlockedDown" />
+          </v-flex>
+          <ClueUnlock type="down" :unlocked="player.unlockedDown" />
+        </v-layout>
         <div class="clues-container" v-if="downClues.length">
           <div class="clue" 
             :class="{active: isActive(clue)}"
@@ -21,9 +27,15 @@
     </v-flex>
     <v-flex class="across pad w-full">
       <v-container>
-        <h3 class="clue-type">
-          Across <ClueLock v-if="player" :unlocked="player.unlockedAcross" />
-        </h3>
+        <v-layout class="clue-type">
+          <v-flex class="flex-grow-0">
+            <h3>Across</h3>
+          </v-flex>
+          <v-flex class="flex-grow-0 clue-lock">
+            <ClueLock v-if="player" :unlocked="player.unlockedAcross" />
+          </v-flex>
+          <ClueUnlock type="across" :unlocked="player.unlockedAcross" />
+        </v-layout>
         <div class="clues-container" v-if="acrossClues.length">
           <div class="clue" 
             :class="{active: isActive(clue)}"
@@ -49,7 +61,7 @@
     name: 'CrosswordClues',
     props: {
       player: {
-        type: Object as () => {data: { unlockedDown: boolean, unlockedAcross: boolean }}
+        type: Object as () => { unlockedDown: boolean, unlockedAcross: boolean }
       },
       labels: {
         type: Array as () => Label[],
@@ -127,4 +139,6 @@
     cursor: pointer
     &:hover, &.active
       background: lightgrey
+  .clue-lock
+    padding: 3px
 </style>

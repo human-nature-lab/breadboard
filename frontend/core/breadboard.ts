@@ -306,6 +306,17 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
   }
 
   /**
+   * Get an instance of the client graph
+   */
+  public async getGraph () {
+    const v = (await import('../client/lib/graph'))
+    const Graph = v.Graph
+    const graph = new Graph()
+    graph.attachToBreadboard(this)
+    return graph
+  }
+
+  /**
    * Handle parsing breadboard socket events
    */
   private attachParser () {

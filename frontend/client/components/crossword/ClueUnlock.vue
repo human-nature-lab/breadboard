@@ -1,5 +1,5 @@
 <template>
-  <v-flex>
+  <v-flex v-if="!unlocked">
     <v-alert color="error" v-show="invalidPass">
       The password was invalid
     </v-alert>
@@ -11,10 +11,9 @@
         type="password"
         dense
         solo
-        prepend-inner-icon="mdi-lock"
         @keydown.enter="attempt">
       <template v-slot:append>
-        <v-btn :disabled="isBusy" :loading="isBusy" @click="attempt" depressed>
+        <v-btn :disabled="isBusy" :loading="isBusy" @click="attempt">
           Unlock
         </v-btn>
       </template>
@@ -29,9 +28,17 @@
   export default Vue.extend({
     name: 'ClueUnlock',
     props: {
+      unlocked: {
+        type: Boolean,
+        default: false
+      },
       errorDuration: {
         type: Number,
         default: 5000
+      },
+      type: {
+        type: String,
+        required: true
       }
     },
     data () {
@@ -41,15 +48,12 @@
         isBusy: false
       }
     },
-    created () {
-      this.unlockResponse = this.unlockResponse.bind(this)
-      window.Breadboard.on(RESPONSE_KEY, this.unlockResponse)
-    },
     beforeDestroy () {
       window.Breadboard.off(RESPONSE_KEY, this.unlockResponse)
     },
     methods: {
       unlockResponse (data: { success: boolean }) {
+        window.Breadboard.off(RESPONSE_KEY, this.unlockResponse)
         setTimeout(() => {
           this.isBusy = false
           this.password = ''
@@ -65,8 +69,10 @@
         if (!this.password || !this.password.length) return
         this.isBusy = true
         this.invalidPass = false
+        window.Breadboard.on(RESPONSE_KEY, this.unlockResponse)
         window.Breadboard.send('unlock', {
-          password: this.password.trim()
+          password: this.password.trim(),
+          type: this.type
         })
       }
     }

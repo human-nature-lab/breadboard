@@ -200,19 +200,21 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
   // TODO: Is there a way to simplify this method so we don't have to pass in the PlayerActions object?
   def addAI(a, int n, behavior = null) {
     int startId = 1
-
+    def added = []
     if (n > 0) {
       for (i in 0..n - 1) {
         while (hasVertex("_" + startId))
           startId++
 
         def v = addVertex("_" + startId)
+        added << v
         if (behavior == null)
           a.ai.add(v)
         else
           a.ai.add(v, behavior)
       }
     }
+    return added
   }
 
   def addAIPlayer(a, String id, behavior = null) {

@@ -135,7 +135,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
 
   $scope.playerProperties = function (n) {
-    var ignoreProps = ["weight", "x", "y", "px", "fixed", "equals", "py", "text", "choices"];
+    var ignoreProps = ['weight', 'x', 'y', 'px', 'fixed', 'equals', 'py', 'text', 'choices'];
     var playerProps = {};
     for (var propertyName in n) {
       if ($.inArray(propertyName, ignoreProps) == -1)
@@ -145,14 +145,14 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
   };
 
   $scope.getClientURL = function(experimentId, experimentInstanceId) {
-    return window.location.protocol + "//" + window.location.hostname + ":" + window.location.port + "/game/" + experimentId + "/" + experimentInstanceId + "/login"
+    return window.location.protocol + '//' + window.location.hostname + ':' + window.location.port + '/game/' + experimentId + '/' + experimentInstanceId + '/login'
   };
 
   $scope.makeChoice = function (i) {
     $breadboardFactory.send(
       {
-        "action": "MakeChoice",
-        "choiceUID": $scope.selectedNode.choices[i].uid
+        action: 'MakeChoice',
+        choiceUID: $scope.selectedNode.choices[i].uid
       });
   };
 
@@ -160,15 +160,15 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     //console.log("update");
     $breadboardFactory.send(
       {
-        "action": "Update"
+        action: 'Update'
       });
   };
 
   $scope.experimentChanged = function () {
     if ($scope.lastExperimentId !== $scope.breadboard.experiment.id) {
       $breadboardFactory.send({
-        "action": "SelectExperiment",
-        "experimentId": $scope.breadboard.experiment.id
+        action: 'SelectExperiment',
+        experimentId: $scope.breadboard.experiment.id
       });
 
       $scope.lastExperimentId = $scope.breadboard.experiment.id;
@@ -177,8 +177,8 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.newExperiment = function () {
 
-    $("#newExperimentDialog input").each(function (index, element) {
-      $(element).val("");
+    $('#newExperimentDialog input').each(function (index, element) {
+      $(element).val('');
     });
 
     $('#newExperimentDialog').dialog({
@@ -189,7 +189,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.openNewInstanceModal = function(){
     // Clear launch parameters
-    $scope.experimentInstanceName = "";
+    $scope.experimentInstanceName = '';
     $scope.launchParameters = {};
 
     // Set default launch parameters
@@ -208,7 +208,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
       $scope.launchParameters[parameter.name] = val;
     }
 
-    $("#newExperimentInstanceDialog").dialog({
+    $('#newExperimentInstanceDialog').dialog({
       title: 'Create an experiment instance',
       width: '80%',
       height: (window.innerHeight * 0.8),
@@ -225,10 +225,10 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     //$('#graphDiv').dialog('open');
     $breadboardFactory.send(
       {
-        "action": "LaunchGame",
-        "experimentId": experimentId,
-        "name": experimentInstanceName,
-        "parameters": $scope.launchParameters
+        action: 'LaunchGame',
+        experimentId: experimentId,
+        name: experimentInstanceName,
+        parameters: $scope.launchParameters
       });
   };
 
@@ -238,37 +238,37 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     $('#deleteExperimentDialog').dialog({
       title: 'Delete Experiment',
       buttons: {
-        'Yes': function () {
-          $breadboardFactory.send({"action": "DeleteExperiment", "selectedExperiment": selectedExperiment});
+        Yes: function () {
+          $breadboardFactory.send({ action: 'DeleteExperiment', selectedExperiment: selectedExperiment});
           $scope.breadboard.user.selectedExperiment = null;
-          $(this).dialog("close");
+          $(this).dialog('close');
         },
-        'No': function () {
-          $(this).dialog("close");
+        No: function () {
+          $(this).dialog('close');
         }
       }
     });
   };
 
   function getExperimentZipName() {
-     return getExperimentName() + ".zip";
+     return getExperimentName() + '.zip';
   }
 
   function getExperimentName() {
-    return $scope.breadboard.experiment.name.replace(/ /g, "-") + "_" + $scope.breadboard.experiment.id;
+    return $scope.breadboard.experiment.name.replace(/ /g, '-') + '_' + $scope.breadboard.experiment.id;
   }
 
   $scope.exportExperiment = function () {
-    downloadService.download("/experiment/export/" + $scope.breadboard.experiment.id, getExperimentZipName())
+    downloadService.download('/experiment/export/' + $scope.breadboard.experiment.id, getExperimentZipName())
       .then(function(res){
-        console.log("Successfully downloaded experiment");
+        console.log('Successfully downloaded experiment');
       });
   };
 
   $scope.openImportDialog = function() {
 
     $('#importExperimentDialog').dialog({
-      title: "Import experiment",
+      title: 'Import experiment',
       width: '600px'
     });
 
@@ -283,7 +283,7 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
     }
     if (window.confirm(message)) {
       $breadboardFactory.send({
-        "action": "ToggleFileMode"
+        action: 'ToggleFileMode'
       });
     }
   }
@@ -300,9 +300,9 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   $scope.submitAMTTask = function (lifetimeInSeconds, tutorialTime) {
     $breadboardFactory.send({
-      "action": "SubmitAMTTask",
-      "lifetimeInSeconds": lifetimeInSeconds,
-      "tutorialTime": tutorialTime
+      action: 'SubmitAMTTask',
+      lifetimeInSeconds: lifetimeInSeconds,
+      tutorialTime: tutorialTime
     });
   };
 

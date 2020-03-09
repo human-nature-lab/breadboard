@@ -1,7 +1,7 @@
 <template>
   <v-alert :value="!isOpen" :color="color" :transition="transition">
     <slot>
-      Unable to communicate with server right now. You'll automatically reconnect after {{(time / 1000).toFixed(0)}}s. Please wait....
+      Unable to communicate with the server right now. You will automatically reconnect after {{(time / 1000).toFixed(0)}}s. Please wait....
     </slot>
   </v-alert>
 </template>

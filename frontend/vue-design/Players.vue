@@ -33,6 +33,12 @@
   export default Vue.extend({
     name: 'App',
     components: { VueJsonPretty, PlayerChoices },
+    props: {
+      propBlacklist: <PropOptions<string[]>>{
+        type: Array,
+        default: () => ['text', 'choices']
+      }
+    },
     data () {
       return {
         expression: '',
@@ -59,6 +65,7 @@
     },
     computed: {
       nodes (): Node[] {
+        let nodes = this.graph.nodes
         const exp = this.expression
         const operators = ['=', '<', '>', '~']
         let operator = '='
@@ -73,7 +80,7 @@
           const expected = parts[1].trim()
           const query = parts[0].split('.').map(k => k.trim())
           console.log(query, expected)
-          return this.graph.nodes.filter(n => {
+          nodes = this.graph.nodes.filter(n => {
             let v: any = n
             for (let i = 0; i < query.length; i++) {
               const key = query[i]
@@ -106,10 +113,17 @@
             return res
           })
         } else if (exp.length) {
-          return this.graph.nodes.filter(n => n.id && n.id.includes(exp))
-        } else {
-          return this.graph.nodes
-        }        
+          let nodes = this.graph.nodes.filter(n => n.id && n.id.includes(exp))
+        } 
+        return nodes.map(n => {
+          const d: Node = { id: n.id }
+          for (const key in n) {
+            if (!this.propBlacklist.includes(key)) {
+              d[key] = n[key]
+            }
+          }
+          return d
+        })     
       },
       totalNodes (): number {
         return this.graph.nodes.length

@@ -31,7 +31,8 @@ module.exports = merge(Object.create(config), {
     'vue-components': './client/vue-components.ts',
     breadboard: './core/breadboard.ts',
     design: './design/design.js',
-    'client-angular': './design/client.js'
+    'client-angular': './design/client.js',
+    graph: './client/lib/graph.ts'
   },
   output: {
     path: config.output.path,
