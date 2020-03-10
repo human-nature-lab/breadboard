@@ -12,7 +12,7 @@
     </div>
     <div class="data p-1 h-full overflow-auto">
       <template v-if="selectedNode">
-        <vue-json-pretty :data="selectedNode" :deep="1" />
+        <vue-json-pretty :data="filteredNode" :deep="1" />
         <div class="client-content" v-html="selectedNode.text" />
         <PlayerChoices :player="selectedNode" />
       </template>
@@ -65,7 +65,6 @@
     },
     computed: {
       nodes (): Node[] {
-        let nodes = this.graph.nodes
         const exp = this.expression
         const operators = ['=', '<', '>', '~']
         let operator = '='
@@ -80,7 +79,7 @@
           const expected = parts[1].trim()
           const query = parts[0].split('.').map(k => k.trim())
           console.log(query, expected)
-          nodes = this.graph.nodes.filter(n => {
+          return this.graph.nodes.filter(n => {
             let v: any = n
             for (let i = 0; i < query.length; i++) {
               const key = query[i]
@@ -113,17 +112,23 @@
             return res
           })
         } else if (exp.length) {
-          let nodes = this.graph.nodes.filter(n => n.id && n.id.includes(exp))
-        } 
-        return nodes.map(n => {
-          const d: Node = { id: n.id }
-          for (const key in n) {
+          return this.graph.nodes.filter(n => n.id && n.id.includes(exp))
+        } else {
+          return this.graph.nodes
+        }
+      },
+      filteredNode (): Node | null {
+        if (this.selectedNode) {
+          const d: Node = { id: this.selectedNode.id }
+          for (const key in this.selectedNode) {
             if (!this.propBlacklist.includes(key)) {
-              d[key] = n[key]
+              d[key] = this.selectedNode[key]
             }
           }
           return d
-        })     
+        } else {
+          return null
+        }
       },
       totalNodes (): number {
         return this.graph.nodes.length

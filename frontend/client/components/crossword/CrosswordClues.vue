@@ -9,9 +9,9 @@
           <v-flex class="flex-grow-0 clue-lock">
             <ClueLock v-if="player" :unlocked="player.unlockedDown" />
           </v-flex>
-          <ClueUnlock type="down" :unlocked="player.unlockedDown" />
+          <ClueUnlock @unlock="$emit('unlock', $event)" type="down" :unlocked="player.unlockedDown" />
         </v-layout>
-        <div class="clues-container" v-if="downClues.length">
+        <div class="clues-container" v-if="downClues.length && player.unlockedDown">
           <div class="clue" 
             :class="{active: isActive(clue)}"
             v-for="clue in downClues" 
@@ -34,9 +34,9 @@
           <v-flex class="flex-grow-0 clue-lock">
             <ClueLock v-if="player" :unlocked="player.unlockedAcross" />
           </v-flex>
-          <ClueUnlock type="across" :unlocked="player.unlockedAcross" />
+          <ClueUnlock @unlock="$emit('unlock', $event)" type="across" :unlocked="player.unlockedAcross" />
         </v-layout>
-        <div class="clues-container" v-if="acrossClues.length">
+        <div class="clues-container" v-if="acrossClues.length && player.unlockedAcross" >
           <div class="clue" 
             :class="{active: isActive(clue)}"
             v-for="clue in acrossClues" 

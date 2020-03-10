@@ -70,10 +70,12 @@
         this.isBusy = true
         this.invalidPass = false
         window.Breadboard.on(RESPONSE_KEY, this.unlockResponse)
-        window.Breadboard.send('unlock', {
+        const d = {
           password: this.password.trim(),
           type: this.type
-        })
+        }
+        window.Breadboard.send('unlock', d)
+        this.$emit('unlock', d)
       }
     }
   })
