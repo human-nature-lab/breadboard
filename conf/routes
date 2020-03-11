@@ -45,12 +45,12 @@ PUT         /amtadmin/addQualificationType/:experimentUid                       
 GET         /experiment/:experimentId/amtassignments                             controllers.AMTAssignmentController.getAMTAssignments(experimentId: Long, sandbox: Boolean ?= false)
 
 # Customize dialog
-GET         /customize/clientHtml/:experimentId                                  controllers.CustomizeController.getClientHtml(experimentId: Long)
-GET         /customize/clientGraph/:experimentId                                 controllers.CustomizeController.getClientGraph(experimentId: Long)
-GET         /customize/style/:experimentId                                       controllers.CustomizeController.getStyle(experimentId: Long)
-POST        /customize/clientHtml/:experimentId                                  controllers.CustomizeController.updateClientHtml(experimentId: Long)
-POST        /customize/clientGraph/:experimentId                                 controllers.CustomizeController.updateClientGraph(experimentId: Long)
-POST        /customize/style/:experimentId                                       controllers.CustomizeController.updateStyle(experimentId: Long)
+GET         /customize/content/:experimentViewId                                 controllers.CustomizeController.getContent(experimentViewId: Long)
+GET         /customize/script/:experimentViewScriptId                            controllers.CustomizeController.getScript(experimentViewScriptId: Long)
+GET         /customize/style/:experimentViewId                                   controllers.CustomizeController.getStyle(experimentViewId: Long)
+POST        /customize/content/:experimentViewId                                 controllers.CustomizeController.updateContent(experimentViewId: Long)
+POST        /customize/script/:experimentViewScriptId                            controllers.CustomizeController.updateScript(experimentViewScriptId: Long)
+POST        /customize/style/:experimentViewId                                   controllers.CustomizeController.updateStyle(experimentViewId: Long)
 
 # Steps dialog
 GET         /steps/:experimentId                                                 controllers.StepsController.getSteps(experimentId: Long)
@@ -94,3 +94,4 @@ POST        /saveUserSettings                                                   
 
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file                                                        controllers.Assets.at(path="/public", file)
+POST        /assetsRoot/*file                                                    controllers.Application.assetsRoot(file)

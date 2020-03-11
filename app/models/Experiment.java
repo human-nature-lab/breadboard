@@ -11,7 +11,6 @@ import controllers.ExperimentController;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import play.Logger;
 import play.Play;
@@ -23,7 +22,6 @@ import play.libs.Json;
 import javax.persistence.*;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -51,6 +49,9 @@ public class Experiment extends Model {
   @OneToMany(cascade = CascadeType.ALL)
   public List<Parameter> parameters = new ArrayList<>();
 
+  @OneToMany(cascade = CascadeType.ALL)
+  public List<ExperimentView> experimentViews = new ArrayList<>();
+
   @JsonIgnore
   public ContentFetcher contentFetcher = new ContentFetcher(this);
 
@@ -77,24 +78,6 @@ public class Experiment extends Model {
   public static final String ON_LEAVE_STEP_NAME = "OnLeaveStep";
 
   public Boolean fileMode;
-
-  /*
-   * The CSS Style for the experiment
-   */
-  @Column(columnDefinition = "text")
-  public String style = "";
-
-  /*
-   * The HTML + JavaScript for the client.
-   */
-  @Column(columnDefinition = "text")
-  public String clientHtml = "";
-
-  /*
-   * The client-graph.js for the client.
-   */
-  @Column(columnDefinition = "text")
-  public String clientGraph = "";
 
   @JsonIgnore
   public static Model.Finder<Long, Experiment> find = new Model.Finder(Long.class, Experiment.class);
@@ -139,10 +122,10 @@ public class Experiment extends Model {
    */
   public Experiment(Experiment experiment) {
     this.uid = UUID.randomUUID().toString();
-    this.style = experiment.getStyle();
-    this.clientHtml = experiment.getClientHtml();
-    this.clientGraph = experiment.getClientGraph();
 
+    for (ExperimentView experimentView : experiment.getExperimentViews()) {
+      this.experimentViews.add(new ExperimentView(experimentView));
+    }
     for (Step step : experiment.getSteps()) {
       this.steps.add(new Step(step));
     }
@@ -170,7 +153,7 @@ public class Experiment extends Model {
   }
 
   public List<Image> getImages() {
-    if (this.fileMode) {
+    if (this.fileMode != null && this.fileMode) {
       ArrayList<Image> returnImages = new ArrayList<>();
       File imagesDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/Images");
       try {
@@ -184,7 +167,7 @@ public class Experiment extends Model {
   }
 
   public List<Content> getContent() {
-    if (this.fileMode) {
+    if (this.fileMode != null && this.fileMode) {
       ArrayList<Content> returnContent = new ArrayList<>();
       File contentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/Content");
       try {
@@ -218,53 +201,8 @@ public class Experiment extends Model {
     this.update();
   }
 
-  public String getStyle() {
-    if (this.fileMode) {
-      String returnStyle = "";
-      try {
-        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
-        returnStyle = FileUtils.readFileToString(new File(devDirectory, "style.css"));
-      } catch (IOException ioe) {
-        Logger.error("Error reading style.css file from the dev directory, check your permissions.");
-      }
-      return returnStyle;
-    } else {
-      return this.style;
-    }
-  }
-
-  public String getClientHtml() {
-    if (this.fileMode) {
-      String returnClientHtml = "";
-      try {
-        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
-        returnClientHtml = FileUtils.readFileToString(new File(devDirectory, "client-html.html"));
-      } catch (IOException ioe) {
-        Logger.error("Error reading client-html.html file from the dev directory, check your permissions.");
-      }
-      return returnClientHtml;
-    } else {
-      return this.clientHtml;
-    }
-  }
-
-  public String getClientGraph() {
-    if (this.fileMode) {
-      String returnClientGraph = "";
-      try {
-        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
-        returnClientGraph = FileUtils.readFileToString(new File(devDirectory, "client-graph.js"));
-      } catch (IOException ioe) {
-        Logger.error("Error reading client-graph.js file from the dev directory, check your permissions.");
-      }
-      return returnClientGraph;
-    } else {
-      return this.clientGraph;
-    }
-  }
-
   public List<Step> getSteps() {
-    if (this.fileMode) {
+    if (this.fileMode != null && this.fileMode) {
       ArrayList<Step> returnSteps = new ArrayList<>();
       File stepsDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/steps");
       try {
@@ -278,8 +216,37 @@ public class Experiment extends Model {
     }
   }
 
+  public List<ExperimentView> getExperimentViews() {
+    if (this.fileMode != null && this.fileMode) {
+      ArrayList<ExperimentView> returnExperimentViews = new ArrayList<>();
+      File experimentViewsDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/views");
+      try {
+        returnExperimentViews = ExperimentController.getExperimentViewsFromDirectory(experimentViewsDirectory);
+      } catch (IOException ioe) {
+        Logger.error("Error reading steps file from the dev directory, check your permissions.");
+      }
+      return returnExperimentViews;
+    } else {
+      return this.experimentViews;
+    }
+  }
+
+  public ExperimentView getExperimentView(String view) {
+    List<ExperimentView> views = this.getExperimentViews();
+    for (ExperimentView v : views) {
+      if (v.view.equals(view)) {
+        return v;
+      }
+    }
+    return null;
+  }
+
   public void addStep(Step step) {
     this.steps.add(step);
+  }
+
+  public void addExperimentView(ExperimentView ev) {
+    this.experimentViews.add(ev);
   }
 
   public void removeSteps() {
@@ -323,9 +290,11 @@ public class Experiment extends Model {
 
   public void export() throws IOException {
     File experimentDirectory = new File(Play.application().path().toString() + "/experiments/" + this.name);
-    FileUtils.writeStringToFile(new File(experimentDirectory, "style.css"), this.getStyle());
-    FileUtils.writeStringToFile(new File(experimentDirectory, "client.html"), this.getClientHtml());
-    FileUtils.writeStringToFile(new File(experimentDirectory, "client-graph.js"), this.getClientGraph());
+
+    File viewsDirectory = new File(experimentDirectory, "Views");
+    for (ExperimentView experimentView : this.getExperimentViews()) {
+      FileUtils.writeStringToFile(new File(viewsDirectory, experimentView.fileName), experimentView.content);
+    }
 
     File stepsDirectory = new File(experimentDirectory, "/Steps");
     for (Step step : this.getSteps()) {
@@ -355,87 +324,6 @@ public class Experiment extends Model {
     }
   }
 
-  public static String defaultClientHTML() {
-    String contents = "";
-    try {
-      InputStream defaultClientHtml = Play.application().resourceAsStream("defaults/client-html.html");
-      if (defaultClientHtml == null) defaultClientHtml = Play.application().resourceAsStream("defaults/default-client-html.html");
-
-      if (defaultClientHtml == null) {
-        Logger.error("Couldn't find the conf/defaults/default-client-html.html file.");
-      } else {
-        contents = IOUtils.toString(defaultClientHtml);
-      }
-    } catch(IOException e){
-      Logger.error("Error reading the conf/defaults/client-html.html file.");
-    }
-    return contents;
-  }
-
-  public static String defaultClientGraph() {
-    String contents = "";
-    try {
-      InputStream defaultClientGraph = Play.application().resourceAsStream("defaults/client-graph.js");
-      if (defaultClientGraph == null) defaultClientGraph = Play.application().resourceAsStream("defaults/default-client-graph.js");
-
-      if (defaultClientGraph == null) {
-        Logger.error("Couldn't find the conf/defaults/default-client-graph.js file.");
-      } else {
-        contents = IOUtils.toString(defaultClientGraph);
-      }
-    } catch(IOException e){
-      Logger.error("Error reading the conf/defaults/default-client-graph.js file.");
-    }
-    return contents;
-  }
-
-  public static Step generateOnJoinStep() {
-    Step onJoin = new Step();
-    onJoin.name = "OnJoinStep";
-    onJoin.source = "onJoinStep = stepFactory.createNoUserActionStep()\n" +
-        "\n" +
-        "onJoinStep.run = { playerId->\n" +
-        "  println \"onJoinStep.run\"\n" +
-        "  def player = g.getVertex(playerId)\n" +
-        "}" +
-        "\n" +
-        "onJoinStep.done = {\n" +
-        "  println \"onJoinStep.done\"\n" +
-        "}";
-
-    return onJoin;
-  }
-
-  public static Step generateOnLeaveStep() {
-    Step onLeave = new Step();
-    onLeave.name = "OnLeaveStep";
-    onLeave.source = "onLeaveStep = stepFactory.createNoUserActionStep()\n" +
-        "\n" +
-        "onLeaveStep.run = {\n" +
-        "  println \"onLeaveStep.run\"\n" +
-        "}" +
-        "\n" +
-        "onLeaveStep.done = {\n" +
-        "  println \"onLeaveStep.done\"\n" +
-        "}";
-    return onLeave;
-  }
-
-  public static Step generateInitStep() {
-    Step init = new Step();
-    init.name = "InitStep";
-    init.source = "initStep = stepFactory.createStep(\"InitStep\")\n" +
-        "\n" +
-        "initStep.run = {\n" +
-        "  println \"initStep.run\"\n" +
-        "}" +
-        "\n" +
-        "initStep.done = {\n" +
-        "  println \"initStep.done\"\n" +
-        "}";
-    return init;
-  }
-
   @Override
   public void delete() {
     Ebean.createSqlUpdate("delete from experiments_languages where experiments_id = :experimentId")
@@ -458,18 +346,6 @@ public class Experiment extends Model {
       i.delete();
     }
     super.delete();
-  }
-
-  public void setStyle(String style) {
-    this.style = style;
-  }
-
-  public void setClientHtml(String clientHtml) {
-    this.clientHtml = clientHtml;
-  }
-
-  public void setClientGraph(String clientGraph) {
-    this.clientGraph = clientGraph;
   }
 
   public Content getExperimentContent(Long id) {
@@ -497,7 +373,7 @@ public class Experiment extends Model {
   }
 
   public List<Parameter> getParameters() {
-    if (this.fileMode) {
+    if (this.fileMode != null && this.fileMode) {
       ArrayList<Parameter> returnParameters = new ArrayList<>();
       File parameterFile = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/parameters.csv");
       try {
@@ -583,14 +459,15 @@ public class Experiment extends Model {
       jsonInstances.add(ei.toJsonStub());
     }
 
-    ArrayNode jsonImages = experiment.putArray("images");
+   ArrayNode jsonImages = experiment.putArray("images");
     for (Image i : getImages()) {
       jsonImages.add(i.toJson());
     }
 
-    experiment.put("style", getStyle());
-    experiment.put("clientGraphHash", getClientGraph().hashCode());
-    experiment.put("clientHtmlHash", getClientHtml().hashCode());
+    ArrayNode jsonViews = experiment.putArray("views");
+    for (ExperimentView ev : this.getExperimentViews()) {
+      jsonViews.add(ev.toJson());
+    }
 
     return experiment;
   }

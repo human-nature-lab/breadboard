@@ -332,7 +332,7 @@ public class ScriptBoard extends UntypedActor {
 
       // Update the client's state
       ObjectNode jsonOutput = Json.newObject();
-      jsonOutput.put("style", experimentInstance.experiment.getStyle());
+      // jsonOutput.put("style", experimentInstance.experiment.getStyle());
       Logger.debug("addClient, " + clientId);
       out.write(jsonOutput);
     } catch (NumberFormatException nfe) {
@@ -630,7 +630,7 @@ public class ScriptBoard extends UntypedActor {
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      Logger.error(e.getMessage());
     }
   }
 

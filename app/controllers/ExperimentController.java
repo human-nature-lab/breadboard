@@ -3,6 +3,7 @@ package controllers;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.google.gson.JsonSyntaxException;
 import models.*;
 
 import net.lingala.zip4j.core.ZipFile;
@@ -68,9 +69,6 @@ public class ExperimentController extends Controller {
     }
 
     experiment.name = newExperimentName;
-    if (user.defaultLanguage != null && copyExperiment == null) {
-      experiment.languages.add(user.defaultLanguage);
-    }
     experiment.fileMode = false;
     experiment.save();
 
@@ -138,21 +136,19 @@ public class ExperimentController extends Controller {
         File subDirectory = outputFiles[0];
         Logger.debug("Single subdirectory found: " + outputFiles);
         File stepsDirectory = new File(subDirectory, "Steps");
-        File contentDirectory = new File(subDirectory, "Content");
-        if(stepsDirectory.exists() || contentDirectory.exists()) {
+        if(stepsDirectory.exists()) {
           outputFolder = subDirectory.getAbsolutePath();
           Logger.debug("Using subdirectory, " + outputFolder + " for import instead.");
         } else {
-          String msg = "No Steps or Content directories found. Please upload a valid experiment";
+          String msg = "No Steps directory found. Please upload a valid experiment";
           Logger.debug(msg);
           deleteDirectory(new File(rootOutputFolder));
           return badRequest(msg);
         }
       } else {
         File stepsDirectory = new File(outputFolder, "Steps");
-        File contentDirectory = new File(outputFolder, "Content");
-        if(!stepsDirectory.exists() || !contentDirectory.exists()){
-          String msg = "No Steps or Content directories found. Please upload a valid experiment";
+        if(!stepsDirectory.exists()){
+          String msg = "No Steps directory found. Please upload a valid experiment";
           Logger.debug(msg);
           deleteDirectory(new File(rootOutputFolder));
           return badRequest(msg);
@@ -173,17 +169,18 @@ public class ExperimentController extends Controller {
 
       Logger.debug("Read .breadboard file: experimentVersion = " + eVersion + " experimentUid = " + eUid + " experimentName = " + eName);
 
-      if(eVersion.startsWith("v2.3")){
-        import23To23(experiment, user, outputFolder);
-      } else if (eVersion.startsWith("v2.2")) {
-        import22To23(experiment, user, outputFolder);
+      if(eVersion.startsWith("v2.4")){
+        import24To24(experiment, user, outputFolder);
       } else {
-        // Default to v2.2 import for now
-        import22To23(experiment, user, outputFolder);
+        // Cannot import from previous versions
+        String msg = "Breadboard v2.4 cannot import experiments from previous versions of breadboard.";
+        Logger.debug(msg);
+        return badRequest(msg);
       }
     } catch(IOException e){
-      Logger.debug("No .breadboard file present");
-      import22To23(experiment, user, outputFolder);
+      String msg = "Breadboard v2.4 cannot import experiments from previous versions of breadboard.";
+      Logger.debug(msg);
+      return badRequest(msg);
     } finally{
       deleteDirectory(new File(rootOutputFolder));
     }
@@ -216,21 +213,12 @@ public class ExperimentController extends Controller {
       zos.write(dotBreadboard.toString().getBytes());
       zos.closeEntry();
 
-      // Client style/html/graph
-      e = new ZipEntry("style.css");
-      zos.putNextEntry(e);
-      zos.write(experiment.getStyle().getBytes());
-      zos.closeEntry();
-
-      e = new ZipEntry("client-html.html");
-      zos.putNextEntry(e);
-      zos.write(experiment.getClientHtml().getBytes());
-      zos.closeEntry();
-
-      e = new ZipEntry("client-graph.js");
-      zos.putNextEntry(e);
-      zos.write(experiment.getClientGraph().getBytes());
-      zos.closeEntry();
+      for (ExperimentView ev : experiment.getExperimentViews()) {
+        e = new ZipEntry("Views/" + ev.fileName);
+        zos.putNextEntry(e);
+        zos.write(ev.content.getBytes());
+        zos.closeEntry();
+      }
 
       // Steps
       for (Step step : experiment.getSteps()) {
@@ -300,18 +288,17 @@ public class ExperimentController extends Controller {
       experiment.removeParameters();
       experiment.removeImages();
     }
-    experiment.setClientGraph(FileUtils.readFileToString(new File(directory, "client-graph.js")));
-    experiment.setClientHtml(FileUtils.readFileToString(new File(directory, "client-html.html")));
-    experiment.setStyle(FileUtils.readFileToString(new File(directory, "style.css")));
     importParameters(experiment, new File(directory, "parameters.csv"));
     importSteps(experiment, new File(directory, "/Steps"));
     importContent(experiment, new File(directory, "/Content"));
     importImages(experiment, new File(directory, "/Images"));
+    importExperimentViews(experiment, new File(directory, "/Views"));
     experiment.save();
     return experiment.id;
   }
 
   public static void exportExperimentToDirectory(Long experimentId, File directory) throws IOException {
+    ObjectMapper mapper = new ObjectMapper();
     Experiment experiment = Experiment.findById(experimentId);
     if(experiment == null){
       throw new IOException("Experiment with the ID " + experimentId + " not found.");
@@ -332,9 +319,11 @@ public class ExperimentController extends Controller {
     dotBreadboard.put("experimentUid", experiment.uid);
 
     FileUtils.writeStringToFile(new File(directory, ".breadboard"), dotBreadboard.toString());
-    FileUtils.writeStringToFile(new File(directory, "style.css"), experiment.getStyle());
-    FileUtils.writeStringToFile(new File(directory, "client-html.html"), experiment.getClientHtml());
-    FileUtils.writeStringToFile(new File(directory, "client-graph.js"), experiment.getClientGraph());
+
+    File viewsDirectory = new File(directory, "Views");
+    for (ExperimentView ev : experiment.getExperimentViews()) {
+      FileUtils.writeStringToFile(new File(viewsDirectory, ev.view.concat(".json")), mapper.writerWithDefaultPrettyPrinter().writeValueAsString(ev));
+    }
 
     File stepsDirectory = new File(directory, "Steps");
     for (Step step : experiment.getSteps()) {
@@ -364,95 +353,7 @@ public class ExperimentController extends Controller {
     return new String(encoded, encoding);
   }
 
-  /**
-   * Specific import function for import v2.2 exports into v2.3 of breadboard. There are some small differences in the
-   * export format that must be dealt with as well as breaking changes to the client-html and client-graph that are
-   * avoided by simply not importing those files.
-   * @param experiment
-   * @param user
-   * @param directory
-   * @return
-   */
-  private static Boolean import22To23(Experiment experiment, User user,  String directory) throws IOException{
-    try {
-      String style = FileUtils.readFileToString(new File(directory, "style.css"));
-      Logger.debug("style: " + style);
-      experiment.setStyle(style);
-    } catch(IOException e){
-      Logger.error("Unable to read style.css", e);
-    }
-    Logger.debug("Skipping client.html. Using default instead. Please merge any customizations by hand");
-    Logger.debug("Skipping client-graph.js. Using default instead. Please merge any customizations by hand.");
-
-    // Import content
-    File contentDir = new File(directory, "/Content");
-    for (File langFileOrDir : contentDir.listFiles()){
-      if(!langFileOrDir.isDirectory()){
-        Logger.debug("Content is in root of Content directory. Attempting to import as default language.");
-        try {
-          importTranslations(experiment, user.defaultLanguage, contentDir);
-        } catch(IOException e){
-          Logger.error("Unable to import content from 'Content' directory", e);
-          return false;
-        } finally{
-          break;
-        }
-      } else {
-        // Content is broken out by language
-        String languageIso3 = langFileOrDir.getName().equals("null") ? user.defaultLanguage.getCode() : langFileOrDir.getName();
-        Language language = Language.findByIso3(languageIso3);
-//        Language language = Language.findByIso3(langFileOrDir.getName());
-        try{
-          importTranslations(experiment, language, langFileOrDir);
-        } catch(IOException e){
-          Logger.error("Unable to import content from " + langFileOrDir.getName(), e);
-        }
-      }
-    }
-
-    // Import steps
-    try {
-      File stepsDirectory = new File(directory, "/Steps");
-      importSteps(experiment, stepsDirectory);
-    } catch(IOException e){
-      Logger.error("Unable to import step", e);
-      return false;
-    }
-
-    // Import parameters
-    try {
-      File parametersFile = new File(directory, "parameters.csv");
-      importParameters(experiment, parametersFile);
-    } catch(IOException e){
-      Logger.error("Unable to import parameters.csv", e);
-    }
-
-    // Import images
-    try {
-      File imagesDirectory = new File(directory, "/Images");
-      importImages(experiment, imagesDirectory);
-    } catch(IOException e){
-      Logger.error("Unable to import images", e);
-      return false;
-    }
-
-    // Write changes to DB
-    experiment.save();
-
-    user.ownedExperiments.add(experiment);
-    user.update();
-    user.saveManyToManyAssociations("ownedExperiments");
-
-    return true;
-  }
-
-
-  private static Boolean import23To23(Experiment experiment, User user, String directory) throws IOException{
-
-    String style = FileUtils.readFileToString(new File(directory, "style.css"));
-    experiment.setStyle(style);
-    experiment.setClientGraph(FileUtils.readFileToString(new File(directory, "client-graph.js")));
-    experiment.setClientHtml(FileUtils.readFileToString(new File(directory, "client-html.html")));
+  private static Boolean import24To24(Experiment experiment, User user, String directory) throws IOException{
 
     // Import Steps
     importSteps(experiment, new File(directory, "/Steps"));
@@ -462,6 +363,8 @@ public class ExperimentController extends Controller {
     importParameters(experiment, new File(directory, "parameters.csv"));
     // Import Images
     importImages(experiment, new File(directory, "/Images"));
+    // Import Views
+    importExperimentViews(experiment, new File(directory, "/Views"));
     // Save
     experiment.save();
 
@@ -471,7 +374,6 @@ public class ExperimentController extends Controller {
 
     return true;
   }
-
 
   private static void importContent(Experiment experiment, File contentDir) throws IOException {
     ArrayList<Content> content = getContentFromDirectory(contentDir);
@@ -655,11 +557,21 @@ public class ExperimentController extends Controller {
   }
 
   // Reusable code for importing steps
-  private static void importSteps(Experiment experiment, File stepsDirectory) throws IOException{
+  public static void importSteps(Experiment experiment, File stepsDirectory) throws IOException{
     ArrayList<Step> steps = getStepsFromDirectory(stepsDirectory);
     for (Step step : steps) {
       experiment.addStep(step);
     }
+    experiment.save();
+  }
+
+  // Reusable code for importing views
+  public static void importExperimentViews(Experiment experiment, File viewsDirectory) throws IOException{
+    ArrayList<ExperimentView> experimentViews = getExperimentViewsFromDirectory(viewsDirectory);
+    for (ExperimentView ev : experimentViews) {
+      experiment.addExperimentView(ev);
+    }
+    experiment.save();
   }
 
   public static ArrayList<Step> getStepsFromDirectory(File stepsDirectory) throws IOException {
@@ -683,18 +595,31 @@ public class ExperimentController extends Controller {
     return returnSteps;
   }
 
+  public static ArrayList<ExperimentView> getExperimentViewsFromDirectory(File experimentViewsDirectory) throws IOException, JsonSyntaxException {
+    ArrayList<ExperimentView> returnExperimentViews = new ArrayList<>();
+    File[] directories = experimentViewsDirectory.listFiles();
+    if (directories != null) {
+      for (File dir : directories) {
+        if (dir.isDirectory()) {
+          ExperimentView ev = ExperimentView.getExperimentViewFromDirectory(dir);
+          returnExperimentViews.add(ev);
+        }
+      }
+    }
+    Logger.debug("returnExperimentViews: " + returnExperimentViews);
+    return returnExperimentViews;
+  }
+
   private static Experiment newExperiment(User user, Boolean isNewExperiment){
     Experiment experiment = new Experiment();
     if (isNewExperiment) {
-      Step onJoin = Experiment.generateOnJoinStep();
-      Step onLeave = Experiment.generateOnLeaveStep();
-      Step init = Experiment.generateInitStep();
-      experiment.addStep(onJoin);
-      experiment.addStep(onLeave);
-      experiment.addStep(init);
+      try {
+        importExperimentViews(experiment, new File("conf/defaults/default-experiment/Views"));
+        importSteps(experiment, new File("conf/defaults/default-experiment/Steps"));
+      } catch (IOException ioe) {
+        Logger.error("Error reading default-experiment directory: ".concat(ioe.getLocalizedMessage()));
+      }
     }
-    experiment.setClientHtml(Experiment.defaultClientHTML());
-    experiment.setClientGraph(Experiment.defaultClientGraph());
     // Add the user's default language
     experiment.languages.add(user.defaultLanguage);
     return experiment;

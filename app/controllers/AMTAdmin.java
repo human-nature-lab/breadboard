@@ -15,8 +15,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import models.*;
 import org.apache.commons.csv.CSVFormat;
 import org.apache.commons.csv.CSVRecord;
@@ -30,7 +28,6 @@ import play.mvc.Result;
 import play.mvc.Security;
 
 import java.io.*;
-import java.lang.reflect.Type;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -1264,9 +1261,10 @@ public class AMTAdmin extends Controller {
   }
 
   private static String getDummyHitHTML() {
+    // TODO
     String returnString = null;
     InputStream paymentHitHtml = Play.application().resourceAsStream("defaults/payment-hit.html");
-    if (paymentHitHtml == null) paymentHitHtml = Play.application().resourceAsStream("defaults/default-payment-hit.html");
+    if (paymentHitHtml == null) paymentHitHtml = Play.application().resourceAsStream("defaults/default-amt-payment-hit-html.html");
     if (paymentHitHtml == null) return null;
     try {
       returnString = "<HTMLQuestion xmlns=\"http://mechanicalturk.amazonaws.com/AWSMechanicalTurkDataSchemas/2011-11-11/HTMLQuestion.xsd\">\n" +

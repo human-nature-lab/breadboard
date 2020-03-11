@@ -60,27 +60,39 @@ public class ClientLogin extends Controller {
     ExperimentInstance experimentInstance = ExperimentInstance.findById(experimentInstanceId);
     AMTHit amtHit = experimentInstance.getHit();
 
-    if (experiment == null || experimentInstance == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
-      return ok(amtError.render());
+    // The experiment or experiment instance does not exist or is stopped
+    if (experimentInstance == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
+      ExperimentView amtInactiveHitView = experiment.getExperimentView("amt-inactive-hit");
+      if (amtInactiveHitView == null) {
+        return internalServerError("amt-inactive-hit not found.");
+      }
+      return ok(defaultTemplate.render(amtInactiveHitView));
     }
 
+    // The HIT lifetime + Tutorial time timer has expired
     if (Boolean.TRUE.equals(experimentInstance.hasStarted) && (workerId == null || (!amtHit.hasWorker(workerId)))) {
-      return ok(amtGameStarted.render());
+      ExperimentView amtExperimentStartedView = experiment.getExperimentView("amt-experiment-started");
+      if (amtExperimentStartedView == null) {
+        return internalServerError("amt-experiment-started not found.");
+      }
+      return ok(defaultTemplate.render(amtExperimentStartedView));
     }
 
     if (experimentInstance.getHit() != null) {
       if (amtHit != null) {
-        if (amtHit.isExtended()) {
-          return ok(amtExtended.render(Experiment.findById(experimentId), ExperimentInstance.findById(experimentInstanceId), hitId, assignmentId, workerId, Form.form(AMTLogin.class)));
-        }
-
+        ExperimentView amtPreviousWorkerView = experiment.getExperimentView("amt-previous-worker");
+        // Disallow participation if the worker has participated in any experiment in this copy of breadboard
         if ("any".equals(amtHit.disallowPrevious)) {
           int rowCount = AMTAssignment.findRowCountByWorkerId(workerId);
           if (rowCount > 0) {
-            return ok(amtPreviousWorker.render());
+            if (amtPreviousWorkerView == null) {
+              return internalServerError("amt-experiment-started not found.");
+            }
+            return ok(defaultTemplate.render(amtPreviousWorkerView));
           }
         } // if ("any".equals(amtHit.disallowPrevious)) {
 
+        // Disallow participation if the worker has participated in an experiment of this type in this copy of breadboard
         if ("type".equals(amtHit.disallowPrevious)) {
           String sql
               = " select a.worker_id "
@@ -99,12 +111,19 @@ public class ClientLogin extends Controller {
           List<SqlRow> list = sqlQuery.findList();
 
           if (list.size() > 0) {
-            return ok(amtPreviousWorker.render());
+            if (amtPreviousWorkerView == null) {
+              return internalServerError("amt-experiment-started not found.");
+            }
+            return ok(defaultTemplate.render(amtPreviousWorkerView));
           }
         } // if ("type".equals(amtHit.disallowPrevious)) {
       } // if (amtHit != null) {
     } // if (experimentInstance.getHit() != null) {
-    return ok(amtClientLogin.render(Experiment.findById(experimentId), ExperimentInstance.findById(experimentInstanceId), hitId, assignmentId, workerId, Form.form(AMTLogin.class)));
+    ExperimentView clientView = experiment.getExperimentView("client");
+    if (clientView == null) {
+      return internalServerError("client not found.");
+    }
+    return ok(defaultTemplate.render(clientView));
   }
 
   public static Result dummyHit(String assignmentId, String sandboxString) {
@@ -123,7 +142,7 @@ public class ClientLogin extends Controller {
     ExperimentInstance experimentInstance = ExperimentInstance.findById(experimentInstanceId);
     Experiment experiment = Experiment.findById(experimentId);
     if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
-      return ok(amtError.render());
+      return notFound();
     }
 
     AMTHit amtHit = null;
@@ -132,17 +151,25 @@ public class ClientLogin extends Controller {
     }
 
     if (amtHit == null) {
-      return ok(amtError.render());
+      return notFound();
     }
 
     if (loginForm.hasErrors()) {
       Logger.debug("loginForm.hasErrors()");
-      return badRequest(amtClientLogin.render(Experiment.findById(experimentId), experimentInstance, hitId, assignmentId, workerId, Form.form(AMTLogin.class)));
+      ExperimentView amtLoginView = experiment.getExperimentView("amt-login");
+      if (amtLoginView == null) {
+        return internalServerError("amt-login not found.");
+      }
+      return ok(defaultTemplate.render(amtLoginView));
     } else {
       // If the game has already started, they can't join.
       if (Boolean.TRUE.equals(ExperimentInstance.findById(experimentInstanceId).hasStarted) && (workerId == null || (!amtHit.hasWorker(workerId)))) {
         Logger.debug("Got to amtAuthenticate -> amtGameStarted, workerId = " + workerId + ", AMTWorker.countByWorkerId(workerId) = " + AMTWorker.countByWorkerId(workerId));
-        return ok(amtGameStarted.render());
+        ExperimentView amtExperimentStarted = experiment.getExperimentView("amt-experiment-started");
+        if (amtExperimentStarted == null) {
+          return internalServerError("amt-experiment-started not found.");
+        }
+        return ok(defaultTemplate.render(amtExperimentStarted));
       }
 
       Logger.debug("! loginForm.hasErrors()");

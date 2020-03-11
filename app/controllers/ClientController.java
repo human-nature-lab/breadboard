@@ -1,14 +1,12 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import org.apache.commons.io.FileUtils;
 import play.*;
 import play.libs.Json;
 import play.mvc.*;
 import views.html.*;
 import com.fasterxml.jackson.databind.*;
 import models.*;
-import java.io.*;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -28,14 +26,13 @@ public class ClientController extends Controller
         } catch (NumberFormatException ignored) {}
 
         if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
-          return ok( amtError.render() );
+          return notFound();
         }
-        String assetsRoot = play.Play.application().configuration().getString("breadboard.assetsRoot", "/assets");
-        if (assetsRoot != null) {
-            return ok(client.render(assetsRoot));
-        } else {
-            return ok(client.render(""));
+        ExperimentView clientView = experiment.getExperimentView("clientView");
+        if (clientView == null) {
+            return internalServerError("client not found.");
         }
+        return ok(defaultTemplate.render(clientView));
     }
 
     public static Result getState(String experimentId, String experimentInstanceId, String clientId, String connectionSpeed){
@@ -61,50 +58,15 @@ public class ClientController extends Controller
         result.put("assetsRoot", play.Play.application().configuration().getString("breadboard.assetsRoot", "/assets"));
         result.put("ipAddress", request().remoteAddress());
         result.put("requestURI", request().uri());
-        result.put("clientId", clientId);
+        if (clientId != null) {
+            result.put("clientId", clientId);
+        }
         result.put("experimentId", experimentId);
         result.put("experimentInstanceId", experimentInstanceId);
-        result.put("clientGraph", getClientGraph(experimentId));
-        result.put("clientHtml", getClientHtml(experimentId));
-        result.put("connectSocket", routes.ClientController.connectClient(experimentId, experimentInstanceId, clientId).webSocketURL(request(), play.Play.application().configuration().getString("breadboard.wsUrl").contains("wss://")));
+        if (clientId != null) {
+            result.put("connectSocket", routes.ClientController.connectClient(experimentId, experimentInstanceId, clientId).webSocketURL(request(), play.Play.application().configuration().getString("breadboard.wsUrl").contains("wss://")));
+        }
         return ok(result);
-    }
-
-    /**
-     * Return the custom experiement graph if it exists
-     * @return
-     */
-    public static String getClientGraph(String experimentId){
-        Experiment experiment = null;
-        try {
-            experiment = Experiment.findById(Long.valueOf(experimentId));
-        } catch (NumberFormatException ignored) {}
-
-        if (experiment == null) {
-            File file = play.Play.application().getFile("conf/defaults/client-graph.js");
-            try {
-                return FileUtils.readFileToString(file, "UTF-8");
-            } catch(IOException ignored) {}
-        }
-        return experiment.getClientGraph();
-    }
-
-    /**
-     * Return the custom experiment client html if it exists
-     */
-    public static String getClientHtml(String experimentId){
-        Experiment experiment = null;
-        try {
-            experiment = Experiment.findById(Long.valueOf(experimentId));
-        } catch (NumberFormatException ignored) {}
-
-        if (experiment == null) {
-            File file = play.Play.application().getFile("conf/defaults/default-client-html.html");
-            try {
-                return FileUtils.readFileToString(file, "UTF-8");
-            } catch(IOException ignored) {}
-        }
-        return experiment.getClientHtml();
     }
 
     /**

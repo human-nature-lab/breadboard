@@ -1,0 +1,35 @@
+@(ev: ExperimentView)
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  @for(headDependency <- ev.getHeadDependencies) {
+    @Html(headDependency.content)
+  }
+    <title>@Html(ev.title)</title>
+    <link rel="shortcut icon" type="image/png" href="/assets/img/favicon.ico">
+    <style>
+      @Html(ev.style)
+    </style>
+  </head>
+  <body>
+    @Html(ev.content)
+    <script type="text/javascript">
+      const templates = {
+        @for(template <- ev.templates) {
+          '@template.name': '@template.content',
+        }
+      }
+    </script>
+  @for(bodyDependency <- ev.getBodyDependencies) {
+    @Html(bodyDependency.content)
+  }
+  @for(script <- ev.scripts) {
+    <script type="text/javascript">
+      @Html(script.script)
+    </script>
+  }
+  </body>
+</html>

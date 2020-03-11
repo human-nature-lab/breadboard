@@ -9,11 +9,16 @@ import play.data.Form;
 import play.libs.Json;
 import play.mvc.*;
 import views.html.*;
-import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 
 public class Application extends Controller {
+
+  public static Result assetsRoot(String file) {
+    String assetsRoot = play.Play.application().configuration().getString("breadboard.assetsRoot", "/public");
+    String url = assetsRoot.concat("/").concat(file);
+    return ok(routes.Assets.at(url).url());
+  }
 
   public static Result addFirstUser() {
 
