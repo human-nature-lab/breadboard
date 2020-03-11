@@ -1,0 +1,47 @@
+{
+  "view": "amt-login",
+  "fileName": "amt-login.html",
+  "title": "Breadboard: Client",
+  "templates": [
+    {
+      "name": "amt-login-vue",
+      "fileName": "amt-login-vue.vue"
+    }
+  ],
+  "scripts": [
+    {
+      "name": "amt-login-script",
+      "fileName": "amt-login-script.js"
+    }
+  ],
+  "dependencies": [
+    {
+      "content" : "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900\" crossorigin=\"anonymous\">",
+      "position": "head"
+    },
+    {
+      "content" : "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@mdi/font@4.5.95/css/materialdesignicons.min.css\" crossorigin=\"anonymous\">",
+      "position": "head"
+    },
+    {
+      "content" : "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/vuetify@2.2.1/dist/vuetify.min.css\" crossorigin=\"anonymous\">",
+      "position": "head"
+    },
+    {
+      "content" : "<link rel=\"stylesheet\" href=\"/assetsRoot/bundles/vue-components.css\" crossorigin=\"anonymous\">",
+      "position": "head"
+    },
+    {
+      "content" : "<link rel=\"stylesheet\" href=\"/assetsRoot/bundles/client.css\" crossorigin=\"anonymous\">",
+      "position": "head"
+    },
+    {
+      "content" : "<script type=\"text/javascript\" src=\"https://cdn.jsdelivr.net/npm/vuetify@2.2.1/dist/vuetify.js\" crossorigin=\"anonymous\"></script>",
+      "position": "body"
+    },
+    {
+      "content" : "<script type=\"text/javascript\" src=\"/assetsRoot/bundles/vue-components.js\" crossorigin=\"anonymous\"></script>",
+      "position": "body"
+    }
+  ]
+}
