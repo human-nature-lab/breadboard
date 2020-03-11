@@ -1,55 +1,78 @@
 {
   "view": "client",
-  "fileName": "client.html",
   "title": "Breadboard: Client",
-  "templates": [
+  "content": [
+    {
+      "name": "google-fonts",
+      "content" : "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900\" crossorigin=\"anonymous\">",
+      "type": "head-dependency",
+      "loadOrder": 0
+    },
+    {
+      "name": "material-design-fonts",
+      "content" : "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@mdi/font@4.5.95/css/materialdesignicons.min.css\" crossorigin=\"anonymous\">",
+      "type": "head-dependency",
+      "loadOrder": 1
+    },
+    {
+      "name": "vuetify-style",
+      "content" : "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/vuetify@2.2.1/dist/vuetify.min.css\" crossorigin=\"anonymous\">",
+      "type": "head-dependency",
+      "loadOrder": 2
+    },
+    {
+      "name": "breadboard-vue-components-style",
+      "content" : "<link rel=\"stylesheet\" href=\"/assetsRoot/bundles/vue-components.css\" crossorigin=\"anonymous\">",
+      "type": "head-dependency",
+      "loadOrder": 3
+    },
+    {
+      "name": "breadboard-client-style",
+      "content" : "<link rel=\"stylesheet\" href=\"/assetsRoot/bundles/client.css\" crossorigin=\"anonymous\">",
+      "type": "head-dependency",
+      "loadOrder": 4
+    },
+    {
+      "name": "client-html",
+      "fileName": "client.html",
+      "type": "content",
+      "loadOrder": 0
+    },
     {
       "name": "client-vue",
-      "fileName": "client-vue.vue"
-    }
-  ],
-  "scripts": [
+      "fileName": "client-vue.vue",
+      "type": "template",
+      "loadOrder": 0
+    },
+    {
+      "name": "vuetify-script",
+      "content" : "<script type=\"text/javascript\" src=\"https://cdn.jsdelivr.net/npm/vuetify@2.2.1/dist/vuetify.js\" crossorigin=\"anonymous\"></script>",
+      "type": "body-dependency",
+      "loadOrder": 0
+    },
+    {
+      "name": "breadboard-vue-components",
+      "content" : "<script type=\"text/javascript\" src=\"/assetsRoot/bundles/vue-components.js\" crossorigin=\"anonymous\"></script>",
+      "type": "body-dependency",
+      "loadOrder": 1
+    },
+    {
+      "name": "breadboard-script",
+      "content" : "<script type=\"text/javascript\" src=\"/assetsRoot/bundles/breadboard.js\" crossorigin=\"anonymous\"></script>",
+      "type": "body-dependency",
+      "loadOrder": 2
+    },
     {
       "name": "client-script",
-      "fileName": "client-script.js"
-    }
-  ],
-  "dependencies": [
-    {
-      "content" : "<link rel=\"stylesheet\" href=\"https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900\" crossorigin=\"anonymous\">",
-      "position": "head"
-    },
-    {
-      "content" : "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/@mdi/font@4.5.95/css/materialdesignicons.min.css\" crossorigin=\"anonymous\">",
-      "position": "head"
-    },
-    {
-      "content" : "<link rel=\"stylesheet\" href=\"https://cdn.jsdelivr.net/npm/vuetify@2.2.1/dist/vuetify.min.css\" crossorigin=\"anonymous\">",
-      "position": "head"
-    },
-    {
-      "content" : "<link rel=\"stylesheet\" href=\"/assetsRoot/bundles/vue-components.css\" crossorigin=\"anonymous\">",
-      "position": "head"
-    },
-    {
-      "content" : "<link rel=\"stylesheet\" href=\"/assetsRoot/bundles/client.css\" crossorigin=\"anonymous\">",
-      "position": "head"
-    },
-    {
-      "content" : "<script type=\"text/javascript\" src=\"https://cdn.jsdelivr.net/npm/vuetify@2.2.1/dist/vuetify.js\" crossorigin=\"anonymous\"></script>",
-      "position": "body"
-    },
-    {
-      "content" : "<script type=\"text/javascript\" src=\"/assetsRoot/bundles/vue-components.js\" crossorigin=\"anonymous\"></script>",
-      "position": "body"
-    },
-    {
-      "content" : "<script type=\"text/javascript\" src=\"/assetsRoot/bundles/breadboard.js\" crossorigin=\"anonymous\"></script>",
-      "position": "body"
-    },
-    {
       "content" : "<script type=\"text/javascript\" src=\"/assetsRoot/bundles/client.js\" crossorigin=\"anonymous\"></script>",
-      "position": "body"
+      "type": "body-dependency",
+      "loadOrder": 3
+    },
+    {
+      "name": "client-script",
+      "fileName": "client-script.js",
+      "type": "script",
+      "loadOrder": 0
     }
   ]
 }

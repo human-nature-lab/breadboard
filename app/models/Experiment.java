@@ -50,7 +50,7 @@ public class Experiment extends Model {
   public List<Parameter> parameters = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL)
-  public List<ExperimentView> experimentViews = new ArrayList<>();
+  public List<ExperimentView> views = new ArrayList<>();
 
   @JsonIgnore
   public ContentFetcher contentFetcher = new ContentFetcher(this);
@@ -124,7 +124,7 @@ public class Experiment extends Model {
     this.uid = UUID.randomUUID().toString();
 
     for (ExperimentView experimentView : experiment.getExperimentViews()) {
-      this.experimentViews.add(new ExperimentView(experimentView));
+      this.views.add(new ExperimentView(experimentView));
     }
     for (Step step : experiment.getSteps()) {
       this.steps.add(new Step(step));
@@ -227,7 +227,7 @@ public class Experiment extends Model {
       }
       return returnExperimentViews;
     } else {
-      return this.experimentViews;
+      return this.views;
     }
   }
 
@@ -246,7 +246,7 @@ public class Experiment extends Model {
   }
 
   public void addExperimentView(ExperimentView ev) {
-    this.experimentViews.add(ev);
+    this.views.add(ev);
   }
 
   public void removeSteps() {
@@ -288,42 +288,6 @@ public class Experiment extends Model {
     return stringBuilder.toString();
   }
 
-  public void export() throws IOException {
-    File experimentDirectory = new File(Play.application().path().toString() + "/experiments/" + this.name);
-
-    File viewsDirectory = new File(experimentDirectory, "Views");
-    for (ExperimentView experimentView : this.getExperimentViews()) {
-      FileUtils.writeStringToFile(new File(viewsDirectory, experimentView.fileName), experimentView.content);
-    }
-
-    File stepsDirectory = new File(experimentDirectory, "/Steps");
-    for (Step step : this.getSteps()) {
-      FileUtils.writeStringToFile(new File(stepsDirectory, step.name.concat(".groovy")), step.source);
-    }
-
-    File contentDirectory = new File(experimentDirectory, "/Content");
-    for (Content c : this.getContent()) {
-      // Write to a subdirectory based on the language of the Content or 'en' if language is undefined
-      for (Translation t : c.translations) {
-        String language = (t.language == null) ? "en" : t.language.code;
-        File languageDirectory = new File(contentDirectory, "/" + language);
-        FileUtils.writeStringToFile(new File(languageDirectory, c.name.concat(".html")), t.html);
-      }
-    }
-
-    String ls = System.getProperty("line.separator");
-    File parametersFile = new File(experimentDirectory, "parameters.csv");
-    FileUtils.writeStringToFile(parametersFile, "Name,Type,Min.,Max.,Default,Short Description" + ls);
-    for (Parameter param : this.getParameters()) {
-      FileUtils.writeStringToFile(parametersFile, param.name + "," + param.type + "," + param.minVal + "," + param.maxVal + "," + param.defaultVal + "," + param.description + ls, true);
-    }
-
-    File imagesDirectory = new File(experimentDirectory, "/Images");
-    for (Image image : this.getImages()) {
-      FileUtils.writeByteArrayToFile(new File(imagesDirectory, image.fileName), image.file);
-    }
-  }
-
   @Override
   public void delete() {
     Ebean.createSqlUpdate("delete from experiments_languages where experiments_id = :experimentId")
@@ -341,6 +305,9 @@ public class Experiment extends Model {
     }
     for (ExperimentInstance ei : instances) {
       ei.delete();
+    }
+    for (ExperimentView ev : views) {
+      ev.delete();
     }
     for (Image i : images) {
       i.delete();

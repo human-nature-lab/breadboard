@@ -22,15 +22,8 @@ public class ExperimentView extends Model {
   public Long id;
   public String view;
   public String title;
-  public String fileName;
-  public String content;
-  public String style;
   @OneToMany(cascade = CascadeType.ALL)
-  public List<ExperimentViewDependency> dependencies = new ArrayList<>();
-  @OneToMany(cascade = CascadeType.ALL)
-  public List<ExperimentViewScript> scripts = new ArrayList<>();
-  @OneToMany(cascade = CascadeType.ALL)
-  public List<ExperimentViewTemplate> templates = new ArrayList<> ();
+  public List<ExperimentViewContent> content = new ArrayList<>();
 
   @JsonIgnore
   @ManyToOne
@@ -52,15 +45,8 @@ public class ExperimentView extends Model {
   public ExperimentView(ExperimentView ev) {
     this.view = ev.view;
     this.title = ev.title;
-    this.fileName = ev.fileName;
-    for (ExperimentViewDependency d : ev.dependencies) {
-      this.dependencies.add(new ExperimentViewDependency(d));
-    }
-    for (ExperimentViewScript s : ev.scripts) {
-      this.scripts.add(new ExperimentViewScript(s));
-    }
-    for (ExperimentViewTemplate t : ev.templates) {
-      this.templates.add(new ExperimentViewTemplate(t));
+    for (ExperimentViewContent c : ev.content) {
+      this.content.add(new ExperimentViewContent(c));
     }
   }
 
@@ -75,34 +61,14 @@ public class ExperimentView extends Model {
     ExperimentView evFromJson = new Gson().fromJson(json, ExperimentView.class);
     ExperimentView ev = new ExperimentView(evFromJson);
 
-    if (ev.fileName != null && ev.content == null) {
-      File contentFile = new File(dir, ev.fileName);
-      if (!contentFile.exists()) {
-        throw new IOException("File name ".concat(ev.fileName).concat(" does not exist."));
-      }
-      ev.content = FileUtils.readFileToString(contentFile);
-    }
-
-    if (ev.scripts != null) {
-      for (ExperimentViewScript evs : ev.scripts) {
-        if (evs.fileName != null && evs.script == null) {
-          File scriptFile = new File(dir, evs.fileName);
+    if (ev.content != null) {
+      for (ExperimentViewContent evc : ev.content) {
+        if (evc.fileName != null && evc.content == null) {
+          File scriptFile = new File(dir, evc.fileName);
           if (!scriptFile.exists()) {
-            throw new IOException("File name ".concat(evs.fileName).concat(" does not exist."));
+            throw new IOException("File name ".concat(evc.fileName).concat(" does not exist."));
           }
-          evs.script = FileUtils.readFileToString(scriptFile);
-        }
-      }
-    }
-
-    if (ev.templates != null) {
-      for (ExperimentViewTemplate evt : ev.templates) {
-        if (evt.fileName != null && evt.content == null) {
-          File templateFile = new File(dir, evt.fileName);
-          if (!templateFile.exists()) {
-            throw new IOException("File name ".concat(evt.fileName).concat(" does not exist."));
-          }
-          evt.content = FileUtils.readFileToString(templateFile);
+          evc.content = FileUtils.readFileToString(scriptFile);
         }
       }
     }
@@ -110,17 +76,57 @@ public class ExperimentView extends Model {
     return ev;
   }
 
-  public List<ExperimentViewDependency> getHeadDependencies() {
-    return ExperimentViewDependency.find
+  public List<ExperimentViewContent> getHeadDependencies() {
+    return ExperimentViewContent.find
         .where()
-        .eq("position", "head")
+        .eq("experiment_view_id", this.id)
+        .eq("type", "head-dependency")
+        .orderBy("load_order")
         .findList();
   }
 
-  public List<ExperimentViewDependency> getBodyDependencies() {
-    return ExperimentViewDependency.find
+  public List<ExperimentViewContent> getBodyDependencies() {
+    return ExperimentViewContent.find
         .where()
-        .eq("position", "body")
+        .eq("experiment_view_id", this.id)
+        .eq("type", "body-dependency")
+        .orderBy("load_order")
+        .findList();
+  }
+
+  public List<ExperimentViewContent> getTemplates() {
+    return ExperimentViewContent.find
+        .where()
+        .eq("experiment_view_id", this.id)
+        .eq("type", "template")
+        .orderBy("load_order")
+        .findList();
+  }
+
+  public List<ExperimentViewContent> getScripts() {
+    return ExperimentViewContent.find
+        .where()
+        .eq("experiment_view_id", this.id)
+        .eq("type", "script")
+        .orderBy("load_order")
+        .findList();
+  }
+
+  public List<ExperimentViewContent> getContent() {
+    return ExperimentViewContent.find
+        .where()
+        .eq("experiment_view_id", this.id)
+        .eq("type", "content")
+        .orderBy("load_order")
+        .findList();
+  }
+
+  public List<ExperimentViewContent> getStyle() {
+    return ExperimentViewContent.find
+        .where()
+        .eq("experiment_view_id", this.id)
+        .eq("type", "style")
+        .orderBy("load_order")
         .findList();
   }
 
@@ -128,31 +134,34 @@ public class ExperimentView extends Model {
     ObjectNode experimentView = Json.newObject();
     experimentView.put("id", id);
     experimentView.put("view", view);
-    experimentView.put("fileName", fileName);
-    ArrayNode jsonDependencies = experimentView.putArray("dependencies");
-    for (ExperimentViewDependency dependency : dependencies) {
-      jsonDependencies.add(dependency.toJson());
+    ArrayNode jsonHeadDependencies = experimentView.putArray("head-dependencies");
+    for (ExperimentViewContent dependency : getHeadDependencies()) {
+      jsonHeadDependencies.add(dependency.toJson());
+    }
+    ArrayNode jsonBodyDependencies = experimentView.putArray("body-dependencies");
+    for (ExperimentViewContent dependency : getBodyDependencies()) {
+      jsonBodyDependencies.add(dependency.toJson());
     }
     ArrayNode jsonScripts = experimentView.putArray("scripts");
-    for (ExperimentViewScript script : scripts) {
+    for (ExperimentViewContent script : getScripts()) {
       jsonScripts.add(script.toJson());
     }
     ArrayNode jsonTemplates = experimentView.putArray("templates");
-    for (ExperimentViewTemplate template : templates) {
+    for (ExperimentViewContent template : getTemplates()) {
       jsonTemplates.add(template.toJson());
     }
-    experimentView.put("content", content);
-    experimentView.put("style", style);
+    ArrayNode jsonContent = experimentView.putArray("content");
+    for (ExperimentViewContent content : getContent()) {
+      jsonContent.add(content.toJson());
+    }
+    ArrayNode jsonStyle = experimentView.putArray("style");
+    for (ExperimentViewContent style : getStyle()) {
+      jsonStyle.add(style.toJson());
+    }
     return experimentView;
   }
 
   public String toString() {
-    return "ExperimentView(" + id + ") \n" +
-        "id: " + id + "\n" +
-        "view: " + view + "\n" +
-        "fileName: " + fileName + "\n" +
-        "dependencies: " + dependencies.toString() + "\n" +
-        "scripts: " + scripts.toString() + "\n" +
-        "templates: " + templates.toString();
+    return "ExperimentView(" + id + ")";
   }
 }

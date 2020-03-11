@@ -44,13 +44,11 @@ PUT         /amtadmin/addQualificationType/:experimentUid                       
 # AMT Workers Controller
 GET         /experiment/:experimentId/amtassignments                             controllers.AMTAssignmentController.getAMTAssignments(experimentId: Long, sandbox: Boolean ?= false)
 
-# Customize dialog
-GET         /customize/content/:experimentViewId                                 controllers.CustomizeController.getContent(experimentViewId: Long)
-GET         /customize/script/:experimentViewScriptId                            controllers.CustomizeController.getScript(experimentViewScriptId: Long)
-GET         /customize/style/:experimentViewId                                   controllers.CustomizeController.getStyle(experimentViewId: Long)
-POST        /customize/content/:experimentViewId                                 controllers.CustomizeController.updateContent(experimentViewId: Long)
-POST        /customize/script/:experimentViewScriptId                            controllers.CustomizeController.updateScript(experimentViewScriptId: Long)
-POST        /customize/style/:experimentViewId                                   controllers.CustomizeController.updateStyle(experimentViewId: Long)
+# Views dialog
+PUT         /views/:experimentViewId/content                                     controllers.ExperimentViewController.createContent(experimentViewId: Long)
+GET         /views/content/:experimentViewContentId                              controllers.ExperimentViewController.getContent(experimentViewContentId: Long)
+POST        /views/content/:experimentViewContentId                              controllers.ExperimentViewController.updateContent(experimentViewContentId: Long)
+DELETE      /views/:experimentViewId/content/:experimentViewContentId            controllers.ExperimentViewController.deleteContent(experimentViewId: Long, experimentViewContentId: Long)
 
 # Steps dialog
 GET         /steps/:experimentId                                                 controllers.StepsController.getSteps(experimentId: Long)

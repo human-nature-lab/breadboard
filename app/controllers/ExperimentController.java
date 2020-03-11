@@ -190,78 +190,32 @@ public class ExperimentController extends Controller {
 
   @Security.Authenticated(Secured.class)
   public static Result exportExperiment(Long experimentId){
-
     Experiment experiment = Experiment.findById(experimentId);
-    String uid = session().get("uid");
-    User user = User.findByUID(uid);
     if(experiment == null){
       return badRequest("No experiment found with that ID");
     }
 
-    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-    try(ZipOutputStream zos = new ZipOutputStream(outputStream)) {
-      ZipEntry e;
-
-      ObjectNode dotBreadboard = Json.newObject();
-      String version = play.Play.application().configuration().getString("application.version");
-      dotBreadboard.put("version", version);
-      dotBreadboard.put("experimentName", experiment.name);
-      dotBreadboard.put("experimentUid", experiment.uid);
-
-      e = new ZipEntry(".breadboard");
-      zos.putNextEntry(e);
-      zos.write(dotBreadboard.toString().getBytes());
-      zos.closeEntry();
-
-      for (ExperimentView ev : experiment.getExperimentViews()) {
-        e = new ZipEntry("Views/" + ev.fileName);
-        zos.putNextEntry(e);
-        zos.write(ev.content.getBytes());
-        zos.closeEntry();
+    File exportDirectory = new File("export/".concat(experiment.name).concat("/").concat(System.currentTimeMillis() + ""));
+    File exportFile = new File("export/".concat(experiment.name).concat("/").concat(System.currentTimeMillis() + ".zip"));
+    byte returnByteArray[];
+    try {
+      exportExperimentToDirectory(experimentId, exportDirectory);
+      ZipUtil.zipFolder(exportDirectory, exportFile);
+      returnByteArray = FileUtils.readFileToByteArray(exportFile);
+    } catch (IOException ioe) {
+      Logger.error("Unable to export experiment to directory ".concat(exportDirectory.getAbsolutePath()));
+      return internalServerError(ioe.getLocalizedMessage());
+    } finally {
+      if (!exportDirectory.delete()) {
+        Logger.error("Error deleting directory ".concat(exportDirectory.getAbsolutePath()));
       }
 
-      // Steps
-      for (Step step : experiment.getSteps()) {
-        e = new ZipEntry("Steps/" + step.name.concat(".groovy"));
-        zos.putNextEntry(e);
-        zos.write(step.source.getBytes());
-        zos.closeEntry();
+      if (!exportFile.delete()) {
+        Logger.error("Error deleting file ".concat(exportFile.getAbsolutePath()));
       }
-
-      // Content in language subfolders
-      for (Content c : experiment.getContent()){
-        for(Translation t : c.translations){
-          String language = (t.language == null || t.language.getCode() == null) ? user.defaultLanguage.getCode(): t.language.getCode();
-          e = new ZipEntry("Content/" + language + "/" + c.name.concat(".html"));
-          zos.putNextEntry(e);
-          zos.write(t.html.getBytes());
-          zos.closeEntry();
-        }
-      }
-
-      // Create the parameters.csv file
-      e = new ZipEntry("parameters.csv");
-      zos.putNextEntry(e);
-      zos.write(experiment.parametersToCsv().getBytes());
-      zos.closeEntry();
-
-      // Write image files to stream
-      for (Image image : experiment.getImages()) {
-        e = new ZipEntry("Images/" + image.fileName);
-        zos.putNextEntry(e);
-        zos.write(image.file);
-        zos.closeEntry();
-      }
-
-      // Finish by closing the stream
-      zos.close();
-
-    } catch(IOException ioe) {
-      ioe.printStackTrace();
     }
 
-    return ok(outputStream.toByteArray());
-
+    return ok(returnByteArray);
   }
 
   /**
@@ -606,7 +560,6 @@ public class ExperimentController extends Controller {
         }
       }
     }
-    Logger.debug("returnExperimentViews: " + returnExperimentViews);
     return returnExperimentViews;
   }
 

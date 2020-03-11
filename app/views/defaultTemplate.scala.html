@@ -11,14 +11,18 @@
     <title>@Html(ev.title)</title>
     <link rel="shortcut icon" type="image/png" href="/assets/img/favicon.ico">
     <style>
-      @Html(ev.style)
+    @for(style <- ev.getStyle) {
+      @Html(style.content)
+    }
     </style>
   </head>
   <body>
-    @Html(ev.content)
+  @for(content <- ev.getContent) {
+    @Html(content.content)
+  }
     <script type="text/javascript">
       const templates = {
-        @for(template <- ev.templates) {
+        @for(template <- ev.getTemplates) {
           '@template.name': '@template.content',
         }
       }
@@ -26,9 +30,9 @@
   @for(bodyDependency <- ev.getBodyDependencies) {
     @Html(bodyDependency.content)
   }
-  @for(script <- ev.scripts) {
+  @for(script <- ev.getScripts) {
     <script type="text/javascript">
-      @Html(script.script)
+      @Html(script.content)
     </script>
   }
   </body>

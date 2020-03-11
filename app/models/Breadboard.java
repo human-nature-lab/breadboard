@@ -68,20 +68,6 @@ public class Breadboard extends UntypedActor {
             } else if (action.equals("DeleteExperiment")) {
               String selectedExperimentName = jsonInput.get("selectedExperiment").toString();
               instances.get(user.email).tell(new DeleteExperiment(user, selectedExperimentName, out), null);
-            } else if (action.equals("ExportExperiment")) {
-              String selectedExperimentName = jsonInput.get("selectedExperiment").toString();
-              Experiment experiment = user.getExperimentByName(selectedExperimentName);
-              if (experiment != null) {
-                ObjectNode jsonOutput = Json.newObject();
-                try {
-                  experiment.export();
-                  jsonOutput.put("output", "Experiment exported.");
-                } catch (IOException ioe) {
-                  jsonOutput.put("output", "Export failed.");
-                  Logger.error(ioe.getMessage());
-                }
-                out.write(jsonOutput);
-              }
             } else if (action.equals("SubmitAMTTask")) {
               Logger.debug("action.equals(\"SubmitAMTTask\")");
               // The submission to AMT is handled by the AMTAdmin createHIT route
@@ -518,15 +504,6 @@ public class Breadboard extends UntypedActor {
     final String experimentName;
 
     public DeleteExperiment(User user, String experimentName, ThrottledWebSocketOut out) {
-      super(user, out);
-      this.experimentName = experimentName;
-    }
-  }
-
-  public static class ExportExperiment extends BreadboardMessage {
-    final String experimentName;
-
-    public ExportExperiment(User user, String experimentName, ThrottledWebSocketOut out) {
       super(user, out);
       this.experimentName = experimentName;
     }
