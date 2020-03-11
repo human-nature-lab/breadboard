@@ -1,190 +1,283 @@
 # --- !Ups
 
-create table content (
-  id                        bigint not null,
-  experiment_id             bigint not null,
-  name                      varchar(255),
-  html                      text,
-  constraint pk_content primary key (id))
-;
+CREATE TABLE CONTENT(
+    ID IDENTITY NOT NULL,
+    EXPERIMENT_ID BIGINT NOT NULL,
+    NAME VARCHAR(255),
+    HTML VARCHAR(2147483647)
+);         
+ALTER TABLE CONTENT ADD CONSTRAINT PK_CONTENT PRIMARY KEY(ID);
+CREATE INDEX IX_CONTENT_EXPERIMENTS_1 ON CONTENT(EXPERIMENT_ID);
 
-create table data (
-  id                        bigint not null,
-  name                      varchar(255),
-  value                     varchar(255),
-  experiment_instance_id    bigint,
-  constraint pk_data primary key (id))
-;
+CREATE TABLE DATA(
+    ID IDENTITY NOT NULL,
+    NAME VARCHAR(255),
+    VALUE VARCHAR(2147483647),
+    EXPERIMENT_INSTANCE_ID BIGINT
+);
+ALTER TABLE DATA ADD CONSTRAINT PK_DATA PRIMARY KEY(ID);
+CREATE INDEX IX_DATA_EXPERIMENTINSTANCE_2 ON DATA(EXPERIMENT_INSTANCE_ID);
 
-create table events (
-  id                        bigint not null,
-  datetime                  timestamp,
-  name                      varchar(255),
-  experiment_instance_id    bigint,
-  constraint pk_events primary key (id))
-;
+CREATE TABLE EVENTS(
+    ID IDENTITY NOT NULL SELECTIVITY 100,
+    DATETIME TIMESTAMP SELECTIVITY 95,
+    NAME VARCHAR(255) SELECTIVITY 1,
+    EXPERIMENT_INSTANCE_ID BIGINT SELECTIVITY 1
+);      
+ALTER TABLE EVENTS ADD CONSTRAINT PK_EVENTS PRIMARY KEY(ID);
+CREATE INDEX IX_EVENTS_EXPERIMENTINSTANCE_3 ON EVENTS(EXPERIMENT_INSTANCE_ID);
 
-create table event_data (
-  id                        bigint not null,
-  name                      varchar(255),
-  value                     varchar(255),
-  event_id                  bigint,
-  constraint pk_event_data primary key (id))
-;
+CREATE TABLE EVENT_DATA(
+    ID IDENTITY NOT NULL SELECTIVITY 100,
+    NAME VARCHAR(255) SELECTIVITY 2,
+    VALUE VARCHAR(255) SELECTIVITY 8,
+    EVENT_ID BIGINT SELECTIVITY 44
+);
+ALTER TABLE EVENT_DATA ADD CONSTRAINT PK_EVENT_DATA PRIMARY KEY(ID);
+CREATE INDEX IX_EVENT_DATA_EVENT_4 ON EVENT_DATA(EVENT_ID);
 
-create table experiments (
-  id                        bigint not null,
-  name                      varchar(255),
-  style                     text,
-  constraint pk_experiments primary key (id))
-;
+CREATE TABLE BREADBOARD_VERSION(
+    VERSION VARCHAR(255)
+);     
+INSERT INTO BREADBOARD_VERSION(VERSION) VALUES ('v2.4.0');
 
-create table experiment_instances (
-  id                        bigint not null,
-  creation_date             timestamp,
-  name                      varchar(255),
-  experiment_id             bigint,
-  status                    varchar(8),
-  constraint ck_experiment_instances_status check (status in ('RUNNING','TESTING','STOPPED','FINISHED','ARCHIVED')),
-  constraint pk_experiment_instances primary key (id))
-;
+CREATE TABLE EXPERIMENTS(
+    ID IDENTITY NOT NULL,
+    NAME VARCHAR(255),
+    QUALIFICATION_TYPE_ID VARCHAR(128),
+    QUALIFICATION_TYPE_ID_SANDBOX VARCHAR(128),
+    UID VARCHAR(255),
+    FILE_MODE BIT DEFAULT 0
+);
+ALTER TABLE EXPERIMENTS ADD CONSTRAINT PK_EXPERIMENTS PRIMARY KEY(ID);
 
-create table images (
-  id                        bigint not null,
-  experiment_id             bigint not null,
-  file                      blob,
-  file_name                 varchar(255),
-  content_type              varchar(255),
-  constraint pk_images primary key (id))
-;
+CREATE TABLE FILES(
+    ID IDENTITY NOT NULL,
+    NAME VARCHAR(255),
+    FILE_NAME VARCHAR(255),
+    CONTENT VARCHAR(2147483647),
+    MIME_TYPE VARCHAR(255),
+    TEMPLATE VARCHAR(255)
+);
+ALTER TABLE FILES ADD CONSTRAINT PK_FILES PRIMARY KEY(ID);
 
-create table parameters (
-  id                        bigint not null,
-  experiment_id             bigint not null,
-  name                      varchar(255),
-  type                      varchar(255),
-  min_val                   varchar(255),
-  max_val                   varchar(255),
-  default_val               varchar(255),
-  description               varchar(255),
-  constraint pk_parameters primary key (id))
-;
+CREATE TABLE EXPERIMENTS_FILES(
+    EXPERIMENTS_ID BIGINT NOT NULL,
+    FILES_ID BIGINT NOT NULL
+);
+ALTER TABLE EXPERIMENTS_FILES ADD CONSTRAINT PK_EXPERIMENTS_FILES PRIMARY KEY(EXPERIMENTS_ID, FILES_ID);
 
-create table steps (
-  id                        bigint not null,
-  experiment_id             bigint not null,
-  name                      varchar(255),
-  source                    text,
-  constraint pk_steps primary key (id))
-;
+CREATE TABLE IMAGES(
+    ID IDENTITY NOT NULL,
+    EXPERIMENT_ID BIGINT NOT NULL,
+    FILE BLOB,
+    FILE_NAME VARCHAR(255),
+    CONTENT_TYPE VARCHAR(255),
+    THUMB_FILE BLOB,
+    THUMB_FILE_NAME VARCHAR(255)
+);               
+ALTER TABLE IMAGES ADD CONSTRAINT PK_IMAGES PRIMARY KEY(ID);
+CREATE INDEX IX_IMAGES_EXPERIMENTS_6 ON IMAGES(EXPERIMENT_ID);
 
-create table users (
-  email                     varchar(255) not null,
-  name                      varchar(255),
-  password                  varchar(255),
-  uid                       varchar(255),
-  selected_experiment_id    bigint,
-  current_script            text,
-  experiment_instance_id    bigint,
-  constraint pk_users primary key (email))
-;
+CREATE TABLE PARAMETERS(
+    ID IDENTITY NOT NULL,
+    EXPERIMENT_ID BIGINT NOT NULL,
+    NAME VARCHAR(255),
+    TYPE VARCHAR(255),
+    MIN_VAL VARCHAR(255),
+    MAX_VAL VARCHAR(255),
+    DEFAULT_VAL VARCHAR(255),
+    DESCRIPTION VARCHAR(255)
+);              
+ALTER TABLE PARAMETERS ADD CONSTRAINT PK_PARAMETERS PRIMARY KEY(ID);
+CREATE INDEX IX_PARAMETERS_EXPERIMENTS_7 ON PARAMETERS(EXPERIMENT_ID);
 
+CREATE TABLE STEPS(
+    ID IDENTITY NOT NULL,
+    EXPERIMENT_ID BIGINT NOT NULL,
+    NAME VARCHAR(255),
+    SOURCE VALUE VARCHAR(2147483647)
+);
+ALTER TABLE STEPS ADD CONSTRAINT PK_STEPS PRIMARY KEY(ID);
+CREATE INDEX IX_STEPS_EXPERIMENTS_8 ON STEPS(EXPERIMENT_ID);
 
-create table users_experiments (
-  users_email                    varchar(255) not null,
-  experiments_id                 bigint not null,
-  constraint pk_users_experiments primary key (users_email, experiments_id))
-;
-create sequence content_seq;
+CREATE TABLE USERS_EXPERIMENTS(
+    USERS_EMAIL VARCHAR(255) NOT NULL,
+    EXPERIMENTS_ID BIGINT NOT NULL
+);     
+ALTER TABLE USERS_EXPERIMENTS ADD CONSTRAINT PK_USERS_EXPERIMENTS PRIMARY KEY(USERS_EMAIL, EXPERIMENTS_ID);
 
-create sequence data_seq;
+CREATE TABLE LANGUAGES(
+    ID IDENTITY NOT NULL,
+    CODE VARCHAR(8),
+    NAME VARCHAR(255)
+);    
+ALTER TABLE LANGUAGES ADD CONSTRAINT PK_LANGUAGE PRIMARY KEY(ID);
 
-create sequence events_seq;
+CREATE TABLE AMT_HITS(
+    ID IDENTITY NOT NULL,
+    CREATION_DATE TIMESTAMP,
+    REQUEST_ID VARCHAR(255),
+    IS_VALID VARCHAR(255),
+    HIT_ID VARCHAR(255),
+    TITLE VARCHAR(255),
+    DESCRIPTION VARCHAR(1024),
+    LIFETIME_IN_SECONDS VARCHAR(255),
+    MAX_ASSIGNMENTS VARCHAR(255),
+    EXTERNAL_URL VARCHAR(255),
+    REWARD VARCHAR(255),
+    EXPERIMENT_INSTANCE_ID BIGINT,
+    SANDBOX BIT,
+    EXTENDED BIT DEFAULT 0,
+    VERSION INT,
+    DISALLOW_PREVIOUS VARCHAR(128),
+    TUTORIAL_TIME VARCHAR(255)
+);       
+ALTER TABLE AMT_HITS ADD CONSTRAINT PK_AMT_HITS PRIMARY KEY(ID);
 
-create sequence event_data_seq;
+CREATE TABLE AMT_WORKERS(
+    ID IDENTITY NOT NULL,
+    CREATION_DATE TIMESTAMP,
+    WORKER_ID VARCHAR(255),
+    SCORE VARCHAR(255),
+    COMPLETION VARCHAR(255),
+    AMT_HIT_ID BIGINT NOT NULL
+);
+ALTER TABLE AMT_WORKERS ADD CONSTRAINT PK_AMT_WORKERS PRIMARY KEY(ID);
 
-create sequence experiments_seq;
+CREATE TABLE EXPERIMENT_INSTANCES(
+    ID IDENTITY NOT NULL,
+    CREATION_DATE TIMESTAMP,
+    NAME VARCHAR(255),
+    EXPERIMENT_ID BIGINT,
+    STATUS VARCHAR(8),
+    VERSION INT,
+    HAS_STARTED BIT DEFAULT 0
+);
+ALTER TABLE EXPERIMENT_INSTANCES ADD CONSTRAINT PK_EXPERIMENT_INSTANCES PRIMARY KEY(ID);
+CREATE INDEX IX_EXPERIMENT_INSTANCES_EXPERI_5 ON EXPERIMENT_INSTANCES(EXPERIMENT_ID);
 
-create sequence experiment_instances_seq;
+CREATE TABLE AMT_ASSIGNMENTS(
+    ID IDENTITY NOT NULL,
+    ASSIGNMENT_ID VARCHAR(255),
+    WORKER_ID VARCHAR(255),
+    ASSIGNMENT_STATUS VARCHAR(255),
+    AUTO_APPROVAL_TIME VARCHAR(255),
+    ACCEPT_TIME VARCHAR(255),
+    SUBMIT_TIME VARCHAR(255),
+    ANSWER VARCHAR(2147483647),
+    SCORE VARCHAR(255),
+    COMPLETION VARCHAR(255),
+    AMT_HIT_ID BIGINT NOT NULL,
+    BONUS_GRANTED BIT DEFAULT 0,
+    WORKER_BLOCKED BIT DEFAULT 0,
+    QUALIFICATION_ASSIGNED BIT DEFAULT 0,
+    REASON VARCHAR(255),
+    ASSIGNMENT_COMPLETED BIT DEFAULT 0,
+    BONUS_AMOUNT VARCHAR(255)
+);      
+ALTER TABLE AMT_ASSIGNMENTS ADD CONSTRAINT PK_AMT_ASSIGNMENTS PRIMARY KEY(ID);
 
-create sequence images_seq;
+CREATE TABLE EXPERIMENTS_LANGUAGES(
+    EXPERIMENTS_ID BIGINT NOT NULL,
+    LANGUAGES_ID BIGINT NOT NULL
+);
 
-create sequence parameters_seq;
+CREATE TABLE TRANSLATIONS(
+    ID IDENTITY NOT NULL,
+    HTML VARCHAR(2147483647),
+    CONTENT_ID BIGINT NOT NULL,
+    LANGUAGES_ID BIGINT NOT NULL
+);            
+ALTER TABLE TRANSLATIONS ADD CONSTRAINT PK_TRANSLATIONS PRIMARY KEY(ID);
 
-create sequence steps_seq;
+CREATE TABLE USERS(
+    EMAIL VARCHAR(255) NOT NULL,
+    NAME VARCHAR(255),
+    PASSWORD VARCHAR(255),
+    UID VARCHAR(255),
+    SELECTED_EXPERIMENT_ID BIGINT,
+    CURRENT_SCRIPT VARCHAR(2147483647),
+    EXPERIMENT_INSTANCE_ID BIGINT,
+    ROLE VARCHAR(128),
+    DEFAULT_LANGUAGE_ID BIGINT
+);             
+ALTER TABLE USERS ADD CONSTRAINT PK_USERS PRIMARY KEY(EMAIL);
+CREATE INDEX IX_USERS_DEFAULT_LANGUAGE ON USERS(DEFAULT_LANGUAGE_ID);
+CREATE INDEX IX_USERS_SELECTEDEXPERIMENT_9 ON USERS(SELECTED_EXPERIMENT_ID);
 
-create sequence users_seq;
-
-alter table content add constraint fk_content_experiments_1 foreign key (experiment_id) references experiments (id) on delete restrict on update restrict;
-create index ix_content_experiments_1 on content (experiment_id);
-alter table data add constraint fk_data_experimentInstance_2 foreign key (experiment_instance_id) references experiment_instances (id) on delete restrict on update restrict;
-create index ix_data_experimentInstance_2 on data (experiment_instance_id);
-alter table events add constraint fk_events_experimentInstance_3 foreign key (experiment_instance_id) references experiment_instances (id) on delete restrict on update restrict;
-create index ix_events_experimentInstance_3 on events (experiment_instance_id);
-alter table event_data add constraint fk_event_data_event_4 foreign key (event_id) references events (id) on delete restrict on update restrict;
-create index ix_event_data_event_4 on event_data (event_id);
-alter table experiment_instances add constraint fk_experiment_instances_experi_5 foreign key (experiment_id) references experiments (id) on delete restrict on update restrict;
-create index ix_experiment_instances_experi_5 on experiment_instances (experiment_id);
-alter table images add constraint fk_images_experiments_6 foreign key (experiment_id) references experiments (id) on delete restrict on update restrict;
-create index ix_images_experiments_6 on images (experiment_id);
-alter table parameters add constraint fk_parameters_experiments_7 foreign key (experiment_id) references experiments (id) on delete restrict on update restrict;
-create index ix_parameters_experiments_7 on parameters (experiment_id);
-alter table steps add constraint fk_steps_experiments_8 foreign key (experiment_id) references experiments (id) on delete restrict on update restrict;
-create index ix_steps_experiments_8 on steps (experiment_id);
-alter table users add constraint fk_users_selectedExperiment_9 foreign key (selected_experiment_id) references experiments (id) on delete restrict on update restrict;
-create index ix_users_selectedExperiment_9 on users (selected_experiment_id);
-
-
-
-alter table users_experiments add constraint fk_users_experiments_users_01 foreign key (users_email) references users (email) on delete restrict on update restrict;
-
-alter table users_experiments add constraint fk_users_experiments_experime_02 foreign key (experiments_id) references experiments (id) on delete restrict on update restrict;
+ALTER TABLE EXPERIMENT_INSTANCES ADD CONSTRAINT CK_EXPERIMENT_INSTANCES_STATUS CHECK(STATUS IN('RUNNING', 'TESTING', 'STOPPED', 'FINISHED', 'ARCHIVED'));
+ALTER TABLE EXPERIMENT_INSTANCES ADD CONSTRAINT FK_EXPERIMENT_INSTANCES_EXPERI_5 FOREIGN KEY(EXPERIMENT_ID) REFERENCES EXPERIMENTS(ID);
+ALTER TABLE TRANSLATIONS ADD CONSTRAINT CONSTRAINT_4 FOREIGN KEY(CONTENT_ID) REFERENCES CONTENT(ID);
+ALTER TABLE USERS_EXPERIMENTS ADD CONSTRAINT FK_USERS_EXPERIMENTS_EXPERIME_02 FOREIGN KEY(EXPERIMENTS_ID) REFERENCES EXPERIMENTS(ID);
+ALTER TABLE EVENT_DATA ADD CONSTRAINT FK_EVENT_DATA_EVENT_4 FOREIGN KEY(EVENT_ID) REFERENCES EVENTS(ID);
+ALTER TABLE EXPERIMENTS_LANGUAGES ADD CONSTRAINT CONSTRAINT_7 FOREIGN KEY(EXPERIMENTS_ID) REFERENCES EXPERIMENTS(ID);
+ALTER TABLE USERS ADD CONSTRAINT FK_DEFAULT_LANGUAGE_LANGUAGES FOREIGN KEY(DEFAULT_LANGUAGE_ID) REFERENCES LANGUAGES(ID);
+ALTER TABLE EVENTS ADD CONSTRAINT FK_EVENTS_EXPERIMENTINSTANCE_3 FOREIGN KEY(EXPERIMENT_INSTANCE_ID) REFERENCES EXPERIMENT_INSTANCES(ID);
+ALTER TABLE CONTENT ADD CONSTRAINT FK_CONTENT_EXPERIMENTS_1 FOREIGN KEY(EXPERIMENT_ID) REFERENCES EXPERIMENTS(ID);
+ALTER TABLE AMT_ASSIGNMENTS ADD CONSTRAINT FK_AMT_ASSIGNMENTS_AMT_HIT FOREIGN KEY(AMT_HIT_ID) REFERENCES AMT_HITS(ID);
+ALTER TABLE IMAGES ADD CONSTRAINT FK_IMAGES_EXPERIMENTS_6 FOREIGN KEY(EXPERIMENT_ID) REFERENCES EXPERIMENTS(ID);
+ALTER TABLE AMT_WORKERS ADD CONSTRAINT FK_AMT_WORKERS_AMT_HIT FOREIGN KEY(AMT_HIT_ID) REFERENCES AMT_HITS(ID);
+ALTER TABLE EXPERIMENTS_LANGUAGES ADD CONSTRAINT CONSTRAINT_76 FOREIGN KEY(LANGUAGES_ID) REFERENCES LANGUAGES(ID);
+ALTER TABLE USERS ADD CONSTRAINT FK_USERS_SELECTEDEXPERIMENT_9 FOREIGN KEY(SELECTED_EXPERIMENT_ID) REFERENCES EXPERIMENTS(ID);
+ALTER TABLE AMT_HITS ADD CONSTRAINT FK_AMT_HITS_EXPERIMENT_INSTANCE FOREIGN KEY(EXPERIMENT_INSTANCE_ID) REFERENCES EXPERIMENT_INSTANCES(ID);
+ALTER TABLE STEPS ADD CONSTRAINT FK_STEPS_EXPERIMENTS_8 FOREIGN KEY(EXPERIMENT_ID) REFERENCES EXPERIMENTS(ID);
+ALTER TABLE USERS_EXPERIMENTS ADD CONSTRAINT FK_USERS_EXPERIMENTS_USERS_01 FOREIGN KEY(USERS_EMAIL) REFERENCES USERS(EMAIL);
+ALTER TABLE PARAMETERS ADD CONSTRAINT FK_PARAMETERS_EXPERIMENTS_7 FOREIGN KEY(EXPERIMENT_ID) REFERENCES EXPERIMENTS(ID);
+ALTER TABLE TRANSLATIONS ADD CONSTRAINT CONSTRAINT_41 FOREIGN KEY(LANGUAGES_ID) REFERENCES LANGUAGES(ID);
+ALTER TABLE DATA ADD CONSTRAINT FK_DATA_EXPERIMENTINSTANCE_2 FOREIGN KEY(EXPERIMENT_INSTANCE_ID) REFERENCES EXPERIMENT_INSTANCES(ID);
+ALTER TABLE EXPERIMENTS_FILES ADD CONSTRAINT CONSTRAINT_77 FOREIGN KEY(EXPERIMENTS_ID) REFERENCES EXPERIMENTS(ID);
+ALTER TABLE EXPERIMENTS_FILES ADD CONSTRAINT CONSTRAINT_78 FOREIGN KEY(FILES_ID) REFERENCES FILES(ID);
 
 # --- !Downs
 
-SET REFERENTIAL_INTEGRITY FALSE;
+DROP INDEX IX_CONTENT_EXPERIMENTS_1;
+DROP TABLE CONTENT CASCADE;
 
-drop table if exists content;
+DROP INDEX IX_DATA_EXPERIMENTINSTANCE_2;
+DROP TABLE DATA CASCADE;
 
-drop table if exists data;
+DROP INDEX IX_EVENTS_EXPERIMENTINSTANCE_3;
+DROP TABLE EVENTS CASCADE;
 
-drop table if exists events;
+DROP INDEX IX_EVENT_DATA_EVENT_4;
+DROP TABLE EVENT_DATA CASCADE;
 
-drop table if exists event_data;
+DROP TABLE BREADBOARD_VERSION CASCADE;
 
-drop table if exists experiments;
+DROP TABLE EXPERIMENTS CASCADE;
 
-drop table if exists experiment_instances;
+DROP TABLE FILES CASCADE;
 
-drop table if exists images;
+DROP TABLE EXPERIMENTS_FILES CASCADE;
 
-drop table if exists parameters;
+DROP INDEX IX_IMAGES_EXPERIMENTS_6;
+DROP TABLE IMAGES CASCADE;
 
-drop table if exists steps;
+DROP INDEX IX_PARAMETERS_EXPERIMENTS_7;
+DROP TABLE PARAMETERS CASCADE;
 
-drop table if exists users;
+DROP INDEX IX_STEPS_EXPERIMENTS_8;
+DROP TABLE STEPS CASCADE;
 
-drop table if exists users_experiments;
+DROP TABLE USERS_EXPERIMENTS CASCADE;
 
-SET REFERENTIAL_INTEGRITY TRUE;
+DROP TABLE LANGUAGES CASCADE;
 
-drop sequence if exists content_seq;
+DROP TABLE AMT_HITS CASCADE;
 
-drop sequence if exists data_seq;
+DROP TABLE AMT_WORKERS CASCADE;
 
-drop sequence if exists events_seq;
+DROP INDEX IX_EXPERIMENT_INSTANCES_EXPERI_5;
+DROP TABLE EXPERIMENT_INSTANCES CASCADE;
 
-drop sequence if exists event_data_seq;
+DROP TABLE AMT_ASSIGNMENTS CASCADE;
 
-drop sequence if exists experiments_seq;
+DROP TABLE EXPERIMENTS_LANGUAGES CASCADE;
 
-drop sequence if exists experiment_instances_seq;
+DROP TABLE TRANSLATIONS CASCADE;
 
-drop sequence if exists images_seq;
-
-drop sequence if exists parameters_seq;
-
-drop sequence if exists steps_seq;
-
-drop sequence if exists users_seq;
+DROP INDEX IX_USERS_DEFAULT_LANGUAGE;
+DROP INDEX IX_USERS_SELECTEDEXPERIMENT_9;
+DROP TABLE USERS CASCADE;
 
