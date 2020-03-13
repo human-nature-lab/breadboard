@@ -62,24 +62,19 @@
       // @ts-ignore
       clearInterval(this.interval)
     },
-    watch: {
-      'timer.elapsed' (val) {
-        // We only update the elapsed time based on the server info when it exceeds our tolerance. Typically if we're off by more than a few seconds
-        if (Math.abs(this.elapsed - val) > this.timerElapsedTolerance) {
-          this.elapsed = val
-        }
-      }
-    },
     computed: {
       time (): number {
+        if (Math.abs(this.elapsed - this.timer.elapsed) > this.timerElapsedTolerance) {
+          this.elapsed = this.timer.elapsed
+        }
         return Math.round(this.timer.direction === 'down' ?
           this.remaining / 1000 :
-          this.timer.elapsed / 1000)
+          this.elapsed / 1000)
       },
       value (): number {
         return this.timer.direction === 'down' ?
           100 * this.remaining / this.timer.duration :
-          100 * this.timer.elapsed / this.timer.duration
+          100 * this.elapsed / this.timer.duration
       },
       remaining (): number {
         return this.timer.duration - this.elapsed
