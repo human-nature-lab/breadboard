@@ -48,12 +48,21 @@
         isBusy: false
       }
     },
+    watch: {
+      unlocked: {
+        handler (newVal: boolean) {
+          console.log('unlocked', newVal)
+          this.unlockResponse({ success: newVal })
+        },
+        deep: true
+      }
+    },
     beforeDestroy () {
-      window.Breadboard.off(RESPONSE_KEY, this.unlockResponse)
+      window.Breadboard.off(RESPONSE_KEY, this.unlockResponse, true)
     },
     methods: {
       unlockResponse (data: { success: boolean }) {
-        window.Breadboard.off(RESPONSE_KEY, this.unlockResponse)
+        window.Breadboard.off(RESPONSE_KEY, this.unlockResponse, true)
         setTimeout(() => {
           this.isBusy = false
           this.password = ''

@@ -9,7 +9,7 @@
           <v-flex class="flex-grow-0 clue-lock">
             <ClueLock v-if="player" :unlocked="player.unlockedDown" />
           </v-flex>
-          <ClueUnlock @unlock="$emit('unlock', $event)" type="down" :unlocked="player.unlockedDown" />
+          <ClueUnlock ref="downUnlock" @unlock="$emit('unlock', $event)" type="down" :unlocked="player.unlockedDown" />
         </v-layout>
         <div class="clues-container" v-if="downClues.length && player.unlockedDown">
           <div class="clue" 
@@ -34,7 +34,7 @@
           <v-flex class="flex-grow-0 clue-lock">
             <ClueLock v-if="player" :unlocked="player.unlockedAcross" />
           </v-flex>
-          <ClueUnlock @unlock="$emit('unlock', $event)" type="across" :unlocked="player.unlockedAcross" />
+          <ClueUnlock ref="acrossUnlock" @unlock="$emit('unlock', $event)" type="across" :unlocked="player.unlockedAcross" />
         </v-layout>
         <div class="clues-container" v-if="acrossClues.length && player.unlockedAcross" >
           <div class="clue" 
@@ -118,6 +118,17 @@
         if (this.value.row === -1 || this.value.col === -1) return false
         const label = this.labelMap.get(clue.label)
         return label.row === this.value.row || label.col === this.value.col
+      },
+      sendResponse (data: { success: boolean, type: string }) {
+        // @ts-ignore
+        if (data.type === 'down' && this.$refs.downUnlock && this.$refs.downUnlock.unlockResponse) {
+          // @ts-ignore
+          this.$refs.downUnlock.unlockResponse(data)
+          // @ts-ignore
+        } else if (this.$refs.acrossUnlock && this.$refs.acrossUnlock.unlockResponse) {
+          // @ts-ignore
+          this.$refs.acrossUnlock.unlockResponse(data)
+        }
       }
     }
   })

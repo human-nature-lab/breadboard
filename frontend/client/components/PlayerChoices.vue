@@ -6,8 +6,7 @@
           v-for="choice of defaultChoices"
           :choice="choice"
           :key="choice.uid"
-          @click="submit(choice)"
-        />
+          @click="submit(choice)" />
         <v-flex v-for="choice of slotChoices" :key="choice.uid">
           <slot name="choice" :choice="choice" />
         </v-flex>
