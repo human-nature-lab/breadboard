@@ -213,6 +213,23 @@ class SharedTimer extends BreadboardBase {
     this.players.clear()
   }
 
+  public pause () {
+    if (this.timer) {
+      this.timer.purge()
+      this.timer.cancel()
+      this.timer = null
+      this.playerTimer.paused = true
+    }
+  }
+
+  public resume () {
+    if (this.timer) return // Don't start the timer twice
+    this.endTime = System.currentTimeMillis() + this.playerTimer.duration - this.playerTimer.elapsed
+    // this.startTime = now - this.playerTimer.elapsed
+    this.registerTimerEvents()
+    this.playerTimer.paused = false
+  }
+
   /**
    * End the timer for all players. Should use cancel to end the timer early and continue as though it completed successfully
    */
@@ -251,17 +268,18 @@ class SharedTimer extends BreadboardBase {
     this.playerTimer.elapsed = 0
     this.startTime = System.currentTimeMillis()
     this.endTime = this.startTime + this.playerTimer.duration
-    this.timer = new BBTimer()
     this.registerTimerEvents()
   }
 
   private resetTimer () {
     this.timer.purge()
     this.timer.cancel()
-    this.timer = new BBTimer()
+    this.timer = null
   }
 
   private registerTimerEvents () {
+    if (this.timer) return
+    this.timer = new BBTimer()
     int delay = this.endTime - System.currentTimeMillis()
     this.timer.runAfter(delay) {
       this.end()
