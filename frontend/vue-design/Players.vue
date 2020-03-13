@@ -14,7 +14,9 @@
       <template v-if="selectedNode">
         <vue-json-pretty :data="filteredNode" :deep="1" />
         <div class="client-content" v-html="selectedNode.text" />
-        <PlayerChoices :player="selectedNode" />
+        <div class="flex" v-if="selectedNode">
+          <button @click="sendChoice(choice)" v-for="choice in selectedNode.choices" :key="choice.uid">{{choice.name}}</button>
+        </div>
       </template>
       <div v-else>
         Select a player to view their data...
@@ -28,11 +30,11 @@
   // @ts-ignore
   import VueJsonPretty from 'vue-json-pretty'
   import { AdminGraph, Node } from './AdminGraph'
-  import PlayerChoices from '../client/components/PlayerChoices.vue'
+  import { PlayerChoice } from '../core/breadboard.types'
 
   export default Vue.extend({
     name: 'App',
-    components: { VueJsonPretty, PlayerChoices },
+    components: { VueJsonPretty },
     props: {
       propBlacklist: <PropOptions<string[]>>{
         type: Array,
@@ -61,6 +63,13 @@
         if (emit) {
           window.Breadboard.emit('player-select', this.selectedNode ? nodeId : null)
         }
+      },
+      async sendChoice (choice: PlayerChoice) {
+        const config = await window.Breadboard.loadConfig()
+        window.Breadboard.sendType('MakeChoice', {
+          choiceUID: choice.uid,
+          uid: config.uid
+        })
       }
     },
     computed: {
