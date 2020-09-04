@@ -15,7 +15,9 @@
         :stateKey="stateKey"
         :showRecipients="showRecipients"
         :senderName="senderName"
-        :placeholder="placeholder" />
+        :placeholder="placeholder" >
+        <slot v-for="(_, name) in $slots" :name="name" :slot="name" />
+      </Chat>
     </v-slide-y-transition>
   </div>
 </template>

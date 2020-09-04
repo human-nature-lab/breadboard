@@ -1,6 +1,7 @@
 <template>
   <v-card class="chat-box h-full" v-if="chatState">
     <div class="messages overflow-auto" ref="messages">
+      <slot name="pre-content"></slot>
       <div v-if="!messages.length">
         <slot name="empty">
           No messages have been sent so far...
