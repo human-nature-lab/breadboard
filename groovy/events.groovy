@@ -31,23 +31,27 @@ Vertex.metaClass.on = { String eventName, Closure cb ->
 }
 Vertex.metaClass.once = { String eventName, Closure cb ->
   log("vertex.once", delegate.id, eventName)
-  delegate.on(eventName, { Vertex v, Object ...data ->
+  def internalClosure
+  internalClosure = { Vertex v, Object ...data ->
     log("vertex.once callback", v.id)
-    v.off(eventName, cb)
+    v.off(eventName, internalClosure)
     cb(v, *data)
-  })
+  }
+  delegate.on(eventName, internalClosure)
 }
 
 // Method overloads
 Vertex.metaClass.off = { String eventName, Closure cb ->
-  log("vertex.off", delegate.id, eventName)
   delegate.playerEvents.remove(eventName)
-  events.off(makePlayerEventHash(delegate.id, eventName), cb)  
+  wasRemoved = events.off(makePlayerEventHash(delegate.id, eventName), cb)
+  log("vertex.off", delegate.id, eventName, wasRemoved)
+  return wasRemoved
 }
 Vertex.metaClass.off << { String eventName ->
-  log("vertex.off", delegate.id, eventName)
   delegate.playerEvents.remove(eventName)
-  events.off(makePlayerEventHash(delegate.id, eventName))
+  wasRemoved = events.off(makePlayerEventHash(delegate.id, eventName))
+  log("vertex.off", delegate.id, eventName, wasRemoved)
+  return wasRemoved
 }
 Vertex.metaClass.send = { String eventName, Object ...data ->
   log("vertex.send", delegate.id, eventName)
@@ -57,7 +61,7 @@ Vertex.metaClass.clearListeners = {
   log("vertex.clearListeners", delegate.id)
   playerId = delegate.id
   delegate.playerEvents.each{ String event ->
-    events.off(makePlayerEventHash(playerId, event))
+    delegate.off(event)
   }
 }
 

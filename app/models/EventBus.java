@@ -15,8 +15,8 @@ class EventHandler<A> {
     this.closures.add(closure);
   }
 
-  public void removeClosure (Closure<A> closure) {
-    this.closures.remove(closure);
+  public boolean removeClosure (Closure<A> closure) {
+    return this.closures.remove(closure);
   }
 
   public void emit (A... data) {
@@ -55,17 +55,21 @@ public class EventBus <T> {
     this.logThread("on", eventName); 
   }
 
-  public void off (String eventName) {
-    this.events.remove(eventName);
+   public boolean off (String eventName) {
+    EventHandler<T> removed = this.events.remove(eventName);
+    boolean wasRemoved = removed != null;
     this.logThread("off 1", eventName);
+    return wasRemoved;
   }
   
-  public void off (String eventName, Closure closure) {
+  public boolean off (String eventName, Closure closure) {
     EventHandler<T> event = this.events.get(eventName);
+    boolean wasRemoved = false;
     if (event != null) {
-      event.removeClosure(closure);
+      wasRemoved = event.removeClosure(closure);
     }
     this.logThread("off 2", eventName);
+    return wasRemoved;
   }
 
   public void emit (String eventName, T... payload) {
