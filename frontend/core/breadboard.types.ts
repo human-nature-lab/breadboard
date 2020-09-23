@@ -55,11 +55,11 @@ export interface Edge {
   data: SimpleMap<any>
 }
 
-export interface Node {
+export interface Node<T = any> {
   id: string
   x: number
   y: number
-  data: SimpleMap<any>
+  data: T
 }
 
 export interface NodeData extends SimpleMap<any> {

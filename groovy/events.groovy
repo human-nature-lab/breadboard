@@ -42,15 +42,19 @@ Vertex.metaClass.once = { String eventName, Closure cb ->
 
 // Method overloads
 Vertex.metaClass.off = { String eventName, Closure cb ->
-  delegate.playerEvents.remove(eventName)
   wasRemoved = events.off(makePlayerEventHash(delegate.id, eventName), cb)
-  log("vertex.off", delegate.id, eventName, wasRemoved)
+  if (wasRemoved) {
+    delegate.playerEvents.remove(eventName)
+  }
+  log("vertex.off 1", delegate.id, eventName, wasRemoved)
   return wasRemoved
 }
 Vertex.metaClass.off << { String eventName ->
-  delegate.playerEvents.remove(eventName)
   wasRemoved = events.off(makePlayerEventHash(delegate.id, eventName))
-  log("vertex.off", delegate.id, eventName, wasRemoved)
+  if (wasRemoved) {
+    delegate.playerEvents.remove(eventName)
+  }
+  log("vertex.off 2", delegate.id, eventName, wasRemoved)
   return wasRemoved
 }
 Vertex.metaClass.send = { String eventName, Object ...data ->

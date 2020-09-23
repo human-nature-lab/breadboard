@@ -1,0 +1,192 @@
+<template>
+  <Fullscreen>
+    <div class="relative w-full h-full" id="game">
+      <div v-if="isLoading || player.step === 'Loading'" class="absolute text-center text-3xl w-64 h-64 top-0 left-0 bottom-0 right-0 m-auto">
+        Please wait for the game to begin...
+      </div>
+      <div v-else-if="player.step !== 'Complete'" class="relative w-full h-full">
+        <Transform class="w-64 h-64 top-0" :transform="transforms.box" :visible="flags.showBox">
+          <Box
+            ref="box"
+            :items="itemsInBox" />
+        </Transform>
+        <Transform class="w-64 h-64 left-0 top-0" :transform="transforms.contributing" :visible="flags.showContributing">
+          <Envelope
+            v-model="decision.contributing"
+            :closed="player.hasContributed"  />
+        </Transform>
+        <Transform class="w-64 h-64 right-0" :transform="transforms.keeping">
+          <Wallet
+            v-model="decision.keeping"
+            :closed="player.hasContributed"  />
+        </Transform>
+        <transition name="fade" v-for="(loc, i) in partnerLocations" :key="loc.id">
+          <Player
+            v-if="flags.showGroup"
+            ref="partners"
+            class="absolute"
+            :envelope="flags.isEnvelope"
+            :showItem="flags.showPlayerItems"
+            :itemInBox="graph.nodes[loc.i].data.hasContributed"
+            :boxOffset="boxOffset(i + 1)"
+            :boxLoc="transforms.box"
+            :transform="loc" />
+        </transition>
+        <Player
+          :boxLoc="transforms.box"
+          :envelope="flags.isEnvelope"
+          :itemInBox="false"
+          :showItem="false"
+          :hasItem="false"
+          :boxOffset="boxOffset(0)"
+          :transform="playerLoc"
+          ref="me" />
+        <Transform class="w-64 h-64 bottom-0" :transform="transforms.pending" :visible="flags.showPending">
+          <MoneyStack
+            class="border"
+            :locked="player.hasContributed"
+            v-model="decision.pending">
+            <input
+              v-if="!decision.pending"
+              type="checkbox"
+              v-model="player.hasContributed"
+              @click="sendDecision"
+              class="z-20 w-32 h-32 absolute bottom-0 left-0 right-0 top-0 m-auto">
+          </MoneyStack>
+        </Transform>
+      </div>
+      <div v-else>
+        The game has finished!
+      </div>
+    </div>
+  </Fullscreen>
+</template>
+
+<script lang="ts">
+  import Vue, { PropOptions } from 'vue'
+  import Fullscreen from '../components/Fullscreen.vue'
+  import gsap from 'gsap'
+  import { boxLayout } from '../boxLayout'
+  import { cloneDeep } from 'lodash'
+  import { Step, steps } from '../steps'
+  import { delay } from '../../../core/delay'
+  import { Node } from '../../../core/breadboard.types'
+  import { Graph } from '../../../client/lib/graph'
+
+  type Player = {
+    step: Step
+    keeping: number
+    contributing: number
+    allotted: number
+  }
+
+  export default Vue.extend({
+    name: 'Game',
+    components: { Fullscreen },
+    props: {
+      player: Object,
+      graph: Object as PropOptions<Graph>
+    },
+    data () {
+      return {
+        isLoading: true,
+        decision: {
+          contributing: 0,
+          keeping: 0,
+          pending: 5
+        },
+        flags: steps.Decision.flags,
+        playerLoc: {
+          x: 45,
+          y: 80
+        },
+        transforms: cloneDeep(steps.Decision.transforms)
+      }
+    },
+    watch: {
+      player (player: any, oldPlayer: any) {
+        if (this.isLoading) {
+          this.initDecisionStep(player)
+          this.isLoading = false
+          return
+        } else if (player.step !== oldPlayer.step) {
+          this.transitionStep(oldPlayer.step, player.step)
+        }
+      }
+    },
+    methods: {
+      initDecisionStep (player: Player) {
+        console.log('init decision step', player.step)
+        this.flags = cloneDeep(steps[player.step].flags)
+        this.transforms = cloneDeep(steps[player.step].transforms)
+        if (player.step === Step.Decision) {
+          const keeping = player.keeping || 0
+          const contributing = player.contributing || 0
+          const pending = player.allotted
+          this.decision.keeping = keeping
+          this.decision.contributing = contributing
+          this.decision.pending = pending - (keeping + contributing)
+        }
+      },
+      sendDecision (data: { keeping: number, contributing: number }) {
+        if (this.player.hasContributed) return 
+        window.Breadboard.send('player-decision', {
+          contributing: this.decision.contributing,
+          keeping: this.decision.keeping
+        })
+      },
+      async transitionStep (oldStep: Step, newStep: Step) {
+        if (newStep === Step.PostDecision) {
+          this.flags.showPending = false
+          this.transforms = cloneDeep(steps[newStep].transforms)
+          await delay(1500)
+        } else if (newStep === Step.Distributing) {
+          // Animate doubling the money
+          this.flags.showPlayerItems = false
+          // @ts-ignore
+          await this.$refs.box.double()
+          // Distribute money to players
+          this.flags.showPlayerItems = true
+        } else if (newStep === Step.Decision) {
+          await delay(1500)
+        }
+        this.flags = cloneDeep(steps[this.player.step].flags)
+        this.transforms = cloneDeep(steps[newStep].transforms)
+      },
+      boxOffset (index: number) {
+        return boxLayout(index)
+      }
+    },
+    computed: {
+      itemsInBox (): number {
+        return this.graph.nodes.filter((n: Node<{ hasContributed: boolean }>) => n.data.hasContributed).length
+      },
+      partners (): any[] {
+        return this.graph.nodes.filter((n: any) => n.id !== this.player.id)
+      },
+      partnerLocations (): { x: number, y: number }[] {
+        const dA = Math.PI / (this.partners.length - 1)
+        const startAngle = Math.PI
+        return this.graph.nodes.map((n: any, i: number) => {
+          const angle = startAngle - dA * i
+          // const x = 80 * Math.cos(angle) + 50
+          // const y = 80 * Math.sin(angle) - 50
+          const x = i * 20
+          const y = 0
+          return { x, y, i, id: n.id }
+        }).filter(n => n.id !== this.player.id)
+      },
+      playerLocations (): { x: number, y: number }[] {
+        return [this.playerLoc].concat(this.partnerLocations)
+      }
+    }
+  })
+</script>
+
+<style lang="sass">
+  html, body
+    width: 100%
+    height: 100%
+    margin: 0
+    overflow: hidden
+</style>

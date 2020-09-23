@@ -23,3 +23,11 @@ This uses a slightly different configuration to allow hot module replacement via
 
 From a terminal run . This will start a dev server which will
 automatically rebuild the frontend files whenever a file changes.
+
+
+## Production
+
+### Compile jars
+- `cd frontend && npm run build` to build frontend assets if this code has changed
+- `sh create_prod_dist.sh` to compile distributable files
+- In many cases, only copying the compiled **breadboard.jar** file is enough to update existing Breadboard applications.
