@@ -8,16 +8,18 @@
         <Transform class="w-64 h-64 top-0" :transform="transforms.box" :visible="flags.showBox">
           <Box
             ref="box"
+            :value="player.totalPool"
             :items="itemsInBox" />
         </Transform>
         <Transform class="w-64 h-64 left-0 top-0" :transform="transforms.contributing" :visible="flags.showContributing">
           <Envelope
             v-model="decision.contributing"
-            :closed="player.hasContributed"  />
+            :closed="player.hasContributed" />
         </Transform>
         <Transform class="w-64 h-64 right-0" :transform="transforms.keeping">
           <Wallet
             v-model="decision.keeping"
+            :earned="player.score"
             :closed="player.hasContributed"  />
         </Transform>
         <transition name="fade" v-for="(loc, i) in partnerLocations" :key="loc.id">
@@ -28,18 +30,21 @@
             :envelope="flags.isEnvelope"
             :showItem="flags.showPlayerItems"
             :itemInBox="graph.nodes[loc.i].data.hasContributed"
+            :value="player.groupPayout"
             :boxOffset="boxOffset(i + 1)"
             :boxLoc="transforms.box"
             :transform="loc" />
         </transition>
         <Player
-          :boxLoc="transforms.box"
+          :hasItem="true"
           :envelope="flags.isEnvelope"
-          :itemInBox="false"
-          :showItem="false"
-          :hasItem="false"
+          :showItem="flags.showPlayerItems"
+          :itemInBox="player.hasContributed"
+          :value="player.groupPayout"
           :boxOffset="boxOffset(0)"
+          :boxLoc="transforms.box"
           :transform="playerLoc"
+          :locked="false"
           ref="me" />
         <Transform class="w-64 h-64 bottom-0" :transform="transforms.pending" :visible="flags.showPending">
           <MoneyStack
@@ -55,7 +60,7 @@
           </MoneyStack>
         </Transform>
       </div>
-      <div v-else>
+      <div v-else class="absolute text-center text-3xl w-64 h-64 top-0 left-0 bottom-0 right-0 m-auto">
         The game has finished!
       </div>
     </div>
@@ -149,6 +154,7 @@
           this.flags.showPlayerItems = true
         } else if (newStep === Step.Decision) {
           await delay(1500)
+          return this.initDecisionStep(this.player)
         }
         this.flags = cloneDeep(steps[this.player.step].flags)
         this.transforms = cloneDeep(steps[newStep].transforms)
@@ -166,15 +172,15 @@
       },
       partnerLocations (): { x: number, y: number }[] {
         const dA = Math.PI / (this.partners.length - 1)
-        const startAngle = Math.PI
-        return this.graph.nodes.map((n: any, i: number) => {
-          const angle = startAngle - dA * i
-          // const x = 80 * Math.cos(angle) + 50
-          // const y = 80 * Math.sin(angle) - 50
+        const startAngle = -Math.PI
+        return this.graph.nodes.filter(n => n.id !== this.player.id).map((n: any, i: number) => {
+          const angle = startAngle + dA * i
+          // const x = 20 * Math.cos(angle) + 50
+          // const y = 20 * Math.sin(angle) - 50
           const x = i * 20
           const y = 0
           return { x, y, i, id: n.id }
-        }).filter(n => n.id !== this.player.id)
+        })
       },
       playerLocations (): { x: number, y: number }[] {
         return [this.playerLoc].concat(this.partnerLocations)

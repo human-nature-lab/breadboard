@@ -1,5 +1,6 @@
 <template>
   <img
+    rel="preload"
     :src="stack ? stackSrc : singleSrc"
     draggable="false"
     alt="" />

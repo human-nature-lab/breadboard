@@ -4,7 +4,7 @@
     @dragover="onDragOver"
     @dragleave="onDragLeave"
     @drop="onDrop">
-    <div class="absolute w-full h-full z-10">
+    <div class="absolute w-full h-full z-10" v-show="visible">
       <div
       class="absolute drag-item"
       :style="{ transform: `translate(${xOffset * i}px, ${yOffset * i}px)` }"
@@ -28,6 +28,10 @@
     props: {
       value: Number,
       dragKey: String,
+      visible: {
+        type: Boolean,
+        default: true
+      },
       xOffset: {
         type: Number,
         default: 5,
@@ -50,16 +54,16 @@
       onDragStart (ev: DragEventInit) {
         console.log('ondragstart', ev)
         const data = {
-          from: this.dragKey,
+          dragKey: this.dragKey,
           value: 1
         }
-        // ev.dataTransfer!.dropEffect = 'move'
         ev.dataTransfer!.effectAllowed = 'move'
         ev.dataTransfer!.setData('currency', JSON.stringify(data))
         // this.$emit('input', this.value - data.value)
       },
       onDragOver (ev: DragEvent) {
-        // console.log('dragover', ev)
+        console.log('dragover', ev)
+        // Call ev.preventDefault() if this item can be dropped here
         if (ev.dataTransfer && ev.dataTransfer.types.includes('currency')) {
           ev.preventDefault()
         }
@@ -70,6 +74,7 @@
       onDragEnd (ev: DragEvent) {
         console.log('dragend', ev, ev.dataTransfer!.dropEffect, ev.dataTransfer!.effectAllowed, ev.dataTransfer!.types.includes('currency'))
         if (ev.dataTransfer && ev.dataTransfer.dropEffect !== 'none') {
+          console.log(JSON.stringify(ev.dataTransfer))
           this.$emit('input', this.value - 1)
         }
       },

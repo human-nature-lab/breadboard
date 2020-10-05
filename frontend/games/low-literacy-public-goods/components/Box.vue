@@ -1,26 +1,15 @@
 <template>
-  <div class="box relative" :class="{ grow }">
-    <transition name="back">]
-      <img class="absolute z-0" v-show="open" :src="src.back" alt="">
+  <div class="box absolute h-full w-full" :class="{ grow }">
+    <transition name="back">
+      <img rel="preload" class="absolute z-0" v-show="open" :src="src.back" alt="">
     </transition>
-    <!-- <transition name="fade">
-      <div class="relative z-10" v-show="open">
-        <transition name="envelope" :key="i" v-for="i in items">
-          <div class="absolute w-64 h-64" v-if="envelope && showContents">
-            <Envelope
-              :closed="true"
-              :style="envStyle(i)" />
-          </div>
-          <div ref="stacks" class="absolute w-64 h-64" :style="envStyle(i)" v-else-if="showContents">
-            <MoneyStack :value="4" :locked="true" />
-          </div>
-        </transition>
-      </div>
-    </transition> -->
-    <img class="absolute z-20" :src="src.front" alt="">
+    <img rel="preload" class="absolute z-20" :src="src.front" alt="">
     <transition name="drop">
-      <img class="absolute z-30" v-show="!open" :src="src.lid" alt="">
+      <img v-show="!open" rel="preload" ref="lid" class="absolute z-30" :src="src.lid" alt="">
     </transition>
+    <div v-if="showValue" class="absolute value z-40">
+      {{animatedValue}}
+    </div>
   </div>
 </template>
 
@@ -44,6 +33,9 @@
       items: {
         type: Number,
         default: 0
+      },
+      value: {
+        type: Number
       }
     },
     data () {
@@ -51,7 +43,9 @@
         src: images.box,
         open: true,
         envelope: true,
-        grow: false
+        showValue: false,
+        grow: false,
+        tweenedValue: 0
       }
     },
     watch: {
@@ -60,27 +54,46 @@
           this.envelope = true
           this.grow = false
         }
+      },
+      value (newValue: number) {
+        this.setValue(newValue)
       }
     },
     methods: {
       async double () {
         this.open = false
+        this.showValue = true
         await delay(1500)
         this.envelope = false
         this.grow = true
+        this.setValue(this.value * 2)
         await delay(1500)
         this.open = true
-        await delay(2500)
+        this.showValue = false
+        await delay(500)
+      },
+      setValue (newValue: number) {
+        gsap.to(this.$data, { duration: 1.5, tweenedValue: newValue })
+      }
+    },
+    computed: {
+      animatedValue (): string {
+        return this.tweenedValue.toFixed(0)
       }
     }
   })
 </script>
 
 <style lang="sass" scoped>
+  .value
+    top: 10%
+    left: 50%
+
   $dur: 1s
   .grow
     transition: all $dur
-    transform: scale(2) translateY(-50%)
+    transform: scale(2)
+    // transform-origin: 50% 100%
   .drop-enter-active, .drop-leave-active
     transition: all $dur
   .drop-enter, .drop-leave-to

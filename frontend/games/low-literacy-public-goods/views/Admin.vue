@@ -32,7 +32,7 @@
         Assign group
       </v-btn>
       <v-btn
-        :disabled="['Loading', 'Complete'].includes(player.step)"
+        :disabled="!canContinue"
         @click="sendContinue">Continue</v-btn>
       <v-btn
         :disabled="player.step !== 'Results'"
@@ -100,6 +100,14 @@
     computed: {
       allPlayersInGroup (): boolean {
         return this.player.players.findIndex((p: any) => !p.groupId) === -1
+      },
+      canContinue (): boolean {
+        const allPlayersComplete = this.player && this.player.players && this.player.players.filter((p: any) => p.step === 'PostDecision').length === this.player.players.length
+        if (this.player.step === 'Decision' && allPlayersComplete) {
+          return true
+        } else {
+          return ['Loading', 'Complete', 'Distributing'].includes(this.player.step)
+        }
       }
     }
   })

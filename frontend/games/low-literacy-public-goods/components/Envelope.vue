@@ -3,7 +3,7 @@
     :value="value"
     :locked="closed"
     @input="$emit('input', $event)"
-    :dragKey="dragKey">
+    dragKey="envelope">
     <template v-slot:item>
       <Currency style="width: 80%; transform: translate(10%, 100%)"/>
     </template>
@@ -28,7 +28,6 @@
     },
     props: {
       value: Number,
-      dragKey: String,
       closed: Boolean
     },
     data () {

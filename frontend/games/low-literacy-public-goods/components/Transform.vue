@@ -16,7 +16,8 @@
       visible: {
         type: Boolean,
         default: true
-      }
+      },
+      origin: String
     },
     computed: {
       style () {
@@ -35,6 +36,9 @@
         if (t.scale) {
           style.transform += ` scale(${t.scale})`
           delete t.scale
+        }
+        if (this.origin) {
+          style.transformOrigin = this.origin
         }
         return {
           ...style,

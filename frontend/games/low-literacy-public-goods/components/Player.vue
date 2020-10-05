@@ -1,13 +1,24 @@
 <template>
-  <Transform  :transform="transform">
+  <Transform :transform="transform">
     <div ref="container">
-      <img :src="src" alt="" class="player opacity-50 w-32 h-32">
-      <Transform ref="item" class="absolute top-0 left-0" :transform="envelopeTransform" :visible="showItem" v-if="hasItem">
+      <img rel="preload" :src="src" alt="" class="player opacity-50 w-32 h-32">
+      <PlayerEnvelope
+        ref="item"
+        :value="value"
+        :envelope="envelope"
+        :transform="transform"
+        :boxLoc="boxLoc"
+        :boxOffset="boxOffset"
+        :itemInBox="itemInBox"
+        :visible="showItem"
+        :locked="locked"
+        />
+<!--       <Transform ref="item" class="absolute top-0 left-0" :transform="envelopeTransform" :visible="showItem" v-if="hasItem">
         <div class="absolute w-32 h-32" :style="{transform: `translate(${boxOffset.x}px, ${boxOffset.y}px)`, zIndex: boxOffset.zIndex}">
           <Envelope closed v-if="envelope" />
-          <MoneyStack v-else :value="4" :locked="true" />
+          <MoneyStack v-else :value="value" :locked="true" />
         </div>
-      </Transform>
+      </Transform> -->
     </div>
   </Transform>
 </template>
@@ -49,7 +60,9 @@
       boxOffset: {
         type: Object,
         required: true
-      } as PropOptions<Transform>
+      } as PropOptions<Transform>,
+      value: Number,
+      locked: Boolean
     },
     data () {
       return {
@@ -70,11 +83,6 @@
       attachItem () {
         // @ts-ignore
         if (this.hasItem && this.$refs.item.$el) this.$refs.container.appendChild(this.$refs.item.$el)
-      }
-    },
-    computed: {
-      envelopeTransform (): Transform {
-        return this.itemInBox ? { ...this.boxLoc, scale: .5 } : { x: this.transform.x, y: this.transform.y, scale: .5 }
       }
     }
   })

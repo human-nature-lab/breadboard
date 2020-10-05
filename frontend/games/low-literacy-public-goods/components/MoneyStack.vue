@@ -1,6 +1,6 @@
 <template>
   <CurrencyDropZone
-    :value="value"
+    :value="bills"
     :locked="locked"
     @input="$emit('input', $event)"
     dragKey="pending">
@@ -23,6 +23,11 @@
     props: {
       value: Number,
       locked: Boolean
+    },
+    computed: {
+      bills (): number {
+        return Math.floor(this.value)
+      }
     }
   })
 </script>
