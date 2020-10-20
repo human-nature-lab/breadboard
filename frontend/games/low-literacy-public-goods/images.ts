@@ -14,5 +14,9 @@ export const images = {
     single: '/images/233/lempira-front.png',
     stack: '/images/233/lempira-front.png'
   },
+  lock: {
+    open: '/images/233/lock-open.png',
+    closed: '/images/233/lock-closed.png'
+  },
   person: '/images/233/silhouette.png'
 }

@@ -9,7 +9,9 @@
           <Box
             ref="box"
             :value="player.totalPool"
-            :items="itemsInBox" />
+            :double="flags.doubleBox"
+            :open="flags.boxOpen"
+            :showValue="!flags.boxOpen" />
         </Transform>
         <Transform class="w-64 h-64 left-0 top-0" :transform="transforms.contributing" :visible="flags.showContributing">
           <Envelope
@@ -29,7 +31,7 @@
             class="absolute"
             :envelope="flags.isEnvelope"
             :showItem="flags.showPlayerItems"
-            :itemInBox="graph.nodes[loc.i].data.hasContributed"
+            :itemInBox="partners[i].data.hasContributed"
             :value="player.groupPayout"
             :boxOffset="boxOffset(i + 1)"
             :boxLoc="transforms.box"
@@ -46,17 +48,24 @@
           :transform="playerLoc"
           :locked="false"
           ref="me" />
-        <Transform class="w-64 h-64 bottom-0" :transform="transforms.pending" :visible="flags.showPending">
+        <Transform 
+          class="w-64 h-64 bottom-0" 
+          :transform="transforms.pending" 
+          :visible="flags.showPending">
           <MoneyStack
             class="border"
             :locked="player.hasContributed"
+            :xOffset="100"
+            :yOffset="0"
+            :rotate="90"
+            :showValue="false"
             v-model="decision.pending">
-            <input
+            <Lock 
+              @click="sendDecision"
               v-if="!decision.pending"
               type="checkbox"
               v-model="player.hasContributed"
-              @click="sendDecision"
-              class="z-20 w-32 h-32 absolute bottom-0 left-0 right-0 top-0 m-auto">
+              class="z-20 w-32 h-32 absolute bottom-0 left-0 right-0 top-0 m-auto"/>
           </MoneyStack>
         </Transform>
       </div>
@@ -145,16 +154,12 @@
           this.flags.showPending = false
           this.transforms = cloneDeep(steps[newStep].transforms)
           await delay(1500)
-        } else if (newStep === Step.Distributing) {
-          // Animate doubling the money
-          this.flags.showPlayerItems = false
-          // @ts-ignore
-          await this.$refs.box.double()
-          // Distribute money to players
-          this.flags.showPlayerItems = true
         } else if (newStep === Step.Decision) {
           await delay(1500)
           return this.initDecisionStep(this.player)
+        } else if (newStep === Step.Distributed) {
+          this.flags.doubleBox = true
+          await delay(1500)
         }
         this.flags = cloneDeep(steps[this.player.step].flags)
         this.transforms = cloneDeep(steps[newStep].transforms)
@@ -173,7 +178,7 @@
       partnerLocations (): { x: number, y: number }[] {
         const dA = Math.PI / (this.partners.length - 1)
         const startAngle = -Math.PI
-        return this.graph.nodes.filter(n => n.id !== this.player.id).map((n: any, i: number) => {
+        return this.partners.map((n: any, i: number) => {
           const angle = startAngle + dA * i
           // const x = 20 * Math.cos(angle) + 50
           // const y = 20 * Math.sin(angle) - 50

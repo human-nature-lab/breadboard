@@ -30,7 +30,7 @@
     methods: {
       async toggleFullscreen () {
         if (!this.isFullscreen && this.$refs.container instanceof HTMLElement) {
-          await this.$refs.container.requestFullscreen()
+          await document.body.requestFullscreen()
         } else {
           await document.exitFullscreen()
         }

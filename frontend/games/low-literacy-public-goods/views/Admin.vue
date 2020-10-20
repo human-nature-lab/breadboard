@@ -1,12 +1,23 @@
 <template>
   <v-container style="background: #ebebeb" class="h-screen">
     <v-row class="px-4 justify-space-between">
-      <b class="">
+      <b class="px-3">
         Step: {{player.step}}
       </b>
-      <div class="">
+      <div class="px-3">
         Current round: {{player.curRound}}
       </div>
+      <v-spacer />
+      <v-btn
+        :disabled="player.step !== 'Loading'"
+        @click="initGame">
+        Start game
+      </v-btn>
+      <v-btn
+        :disabled="player.step !== 'Loading' || !selectedPlayers.length"
+        @click="makeGroup">
+        Assign group
+      </v-btn>
     </v-row>
     <v-col>
       <v-data-table
@@ -21,16 +32,6 @@
         :headers="playerHeaders"></v-data-table>
     </v-col>
     <v-row>
-      <v-btn
-        :disabled="player.step !== 'Loading'"
-        @click="initGame">
-        Start game
-      </v-btn>
-      <v-btn
-        :disabled="player.step !== 'Loading' || !selectedPlayers.length"
-        @click="makeGroup">
-        Assign group
-      </v-btn>
       <v-btn
         :disabled="!canContinue"
         @click="sendContinue">Continue</v-btn>
@@ -95,6 +96,9 @@
           return alert('All players must be assigned to a group before you can start!')
         }
         window.Breadboard.send('init', {})
+      },
+      reload () {
+        window.Breadboard.sendType('ReloadEngine', { uid: '' })
       }
     },
     computed: {
@@ -106,8 +110,13 @@
         if (this.player.step === 'Decision' && allPlayersComplete) {
           return true
         } else {
-          return ['Loading', 'Complete', 'Distributing'].includes(this.player.step)
+          return ['Distributing', 'Distributed'].includes(this.player.step)
         }
+      },
+      nextStep (): string {
+        const steps = ['Decision', 'Results', 'Distributing', 'Distributed']
+        const index = steps.indexOf(this.player.step)
+        return steps[(index + 1) % steps.length]
       }
     }
   })

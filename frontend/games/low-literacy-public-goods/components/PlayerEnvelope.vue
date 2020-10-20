@@ -27,10 +27,17 @@
       },
       visible: Boolean
     },
+    beforeDestroy () {
+      // @ts-ignore
+      if (this.timeoutId) clearTimeout(this.timeoutId)
+    },
     watch: {
       itemInBox (newVal: boolean, oldVal: boolean) {
         if (newVal !== oldVal) {
-          setTimeout(() => {
+          // @ts-ignore
+          if (this.timeoutId) clearTimeout(this.timeoutId)
+          // @ts-ignore
+          this.timeoutId = setTimeout(() => {
             if (this) {
               this.inBox = newVal
             }

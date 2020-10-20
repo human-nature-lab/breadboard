@@ -1,5 +1,5 @@
 <template>
-  <div class="box absolute h-full w-full" :class="{ grow }">
+  <div class="box absolute h-full w-full" :class="{ grow: double }">
     <transition name="back">
       <img rel="preload" class="absolute z-0" v-show="open" :src="src.back" alt="">
     </transition>
@@ -36,15 +36,15 @@
       },
       value: {
         type: Number
-      }
+      },
+      double: Boolean,
+      showValue: Boolean,
+      open: Boolean
     },
     data () {
       return {
         src: images.box,
-        open: true,
         envelope: true,
-        showValue: false,
-        grow: false,
         tweenedValue: 0
       }
     },
@@ -52,7 +52,6 @@
       visible (visible: boolean, oldVisible: boolean) {
         if (visible && visible !== oldVisible) {
           this.envelope = true
-          this.grow = false
         }
       },
       value (newValue: number) {
@@ -60,20 +59,8 @@
       }
     },
     methods: {
-      async double () {
-        this.open = false
-        this.showValue = true
-        await delay(1500)
-        this.envelope = false
-        this.grow = true
-        this.setValue(this.value * 2)
-        await delay(1500)
-        this.open = true
-        this.showValue = false
-        await delay(500)
-      },
       setValue (newValue: number) {
-        gsap.to(this.$data, { duration: 1.5, tweenedValue: newValue })
+        gsap.to(this.$data, { duration: 1, tweenedValue: newValue })
       }
     },
     computed: {

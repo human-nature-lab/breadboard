@@ -1,7 +1,7 @@
 <template>
   <v-card class="chat-box h-full" v-if="chatState">
+    <slot name="pre-content"></slot>
     <div class="messages overflow-auto" ref="messages">
-      <slot name="pre-content"></slot>
       <div v-if="!messages.length">
         <slot name="empty">
           No messages have been sent so far...
@@ -53,7 +53,7 @@
   </v-card>
 </template>
 
-<script lang="ts">
+<script lang="ts"> 
   import Vue from 'vue'
   import { Message, ChatState } from './chat.types'
   import { PlayerData } from '../../../core/breadboard.types'

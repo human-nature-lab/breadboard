@@ -17,6 +17,7 @@
         type: Boolean,
         default: true
       },
+      rotate: Number,
       origin: String
     },
     computed: {
@@ -36,6 +37,9 @@
         if (t.scale) {
           style.transform += ` scale(${t.scale})`
           delete t.scale
+        }
+        if (this.rotate) {
+          style.transform += ` rotate(${this.rotate}deg)`
         }
         if (this.origin) {
           style.transformOrigin = this.origin

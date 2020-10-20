@@ -4,7 +4,8 @@ export enum Step {
   PostDecision = 'PostDecision',
   Distributing = 'Distributing',
   Results = 'Results',
-  Complete = 'Complete'
+  Complete = 'Complete',
+  Distributed = 'Distributed'
 }
 
 export type Transform = {
@@ -20,6 +21,8 @@ type StepState = {
     isEnvelope: boolean
     showContributing: boolean
     showPending: boolean
+    doubleBox: boolean
+    boxOpen: boolean
   },
   transforms: {
     box: Transform
@@ -36,12 +39,14 @@ const Decision: StepState = {
     showPlayerItems: true,
     isEnvelope: true,
     showContributing: true,
-    showPending: true
+    showPending: true,
+    doubleBox: false,
+    boxOpen: true
   },
   transforms: {
     box: { x: 40, y: 40, scale: 1 },
-    contributing: { x: 10, y: 0, scale: 1 },
-    keeping: { x: -10, y: 0, scale: 1 },
+    contributing: { x: 10, y: 0, scale: .75 },
+    keeping: { x: -10, y: 0, scale: .75 },
     pending: { x: 40, y: -20 }
   }
 }
@@ -53,7 +58,9 @@ const PostDecision: StepState = {
     isEnvelope: true,
     showPlayerItems: true,
     showContributing: false,
-    showPending: false
+    showPending: false,
+    doubleBox: false,
+    boxOpen: true
   },
   transforms: {
     ...Decision.transforms,
@@ -67,9 +74,43 @@ const Distributing: StepState = {
     showGroup: true,
     showBox: true,
     isEnvelope: false,
+    showPlayerItems: false,
+    showContributing: false,
+    showPending: false,
+    doubleBox: true,
+    boxOpen: false
+  },
+  transforms: {
+    ...PostDecision.transforms
+  }
+}
+
+const Results: StepState = {
+  flags: {
+    showGroup: true,
+    showBox: true,
+    isEnvelope: false,
+    showPlayerItems: false,
+    showContributing: false,
+    showPending: false,
+    doubleBox: false,
+    boxOpen: false
+  },
+  transforms: {
+    ...PostDecision.transforms
+  }
+}
+
+const Distributed: StepState = {
+  flags: {
+    showGroup: true,
+    showBox: true,
+    isEnvelope: false,
     showPlayerItems: true,
     showContributing: false,
-    showPending: false
+    showPending: false,
+    doubleBox: true,
+    boxOpen: true
   },
   transforms: {
     ...PostDecision.transforms
@@ -81,6 +122,7 @@ export const steps: { [key: string]: StepState } = {
   Complete: Decision,
   Decision,
   PostDecision,
-  Results: PostDecision,
-  Distributing
+  Results,
+  Distributing,
+  Distributed
 }

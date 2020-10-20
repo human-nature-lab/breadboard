@@ -2,12 +2,15 @@
   <CurrencyDropZone
     :value="bills"
     :locked="locked"
+    :rotate="rotate"
+    :xOffset="xOffset"
+    :yOffset="yOffset"
     @input="$emit('input', $event)"
     dragKey="pending">
     <template v-slot:item>
       <Currency style="width: 80%; transform: translate(10%, 100%)"/>
     </template>
-    <div class="absolute w-full text-3xl text-center z-30 mt-4">{{value}}</div>
+    <div v-if="showValue" class="absolute w-full text-3xl text-center z-30 mt-4">{{+value.toFixed(2)}}</div>
     <slot />
   </CurrencyDropZone>
 </template>
@@ -22,7 +25,14 @@
     components: { CurrencyDropZone, Currency },
     props: {
       value: Number,
-      locked: Boolean
+      locked: Boolean,
+      rotate: Number,
+      xOffset: Number,
+      yOffset: Number,
+      showValue: {
+        type: Boolean,
+        default: true
+      }
     },
     computed: {
       bills (): number {
