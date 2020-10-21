@@ -23,6 +23,7 @@ type StepState = {
     showPending: boolean
     doubleBox: boolean
     boxOpen: boolean
+    showBoxValue: boolean
   },
   transforms: {
     box: Transform
@@ -41,7 +42,8 @@ const Decision: StepState = {
     showContributing: true,
     showPending: true,
     doubleBox: false,
-    boxOpen: true
+    boxOpen: true,
+    showBoxValue: false
   },
   transforms: {
     box: { x: 40, y: 40, scale: 1 },
@@ -60,7 +62,8 @@ const PostDecision: StepState = {
     showContributing: false,
     showPending: false,
     doubleBox: false,
-    boxOpen: true
+    boxOpen: true,
+    showBoxValue: false
   },
   transforms: {
     ...Decision.transforms,
@@ -78,7 +81,8 @@ const Distributing: StepState = {
     showContributing: false,
     showPending: false,
     doubleBox: true,
-    boxOpen: false
+    boxOpen: false,
+    showBoxValue: true
   },
   transforms: {
     ...PostDecision.transforms
@@ -94,8 +98,9 @@ const Results: StepState = {
     showContributing: false,
     showPending: false,
     doubleBox: false,
-    boxOpen: false
-  },
+    boxOpen: false,
+    showBoxValue: true
+ },
   transforms: {
     ...PostDecision.transforms
   }
@@ -110,7 +115,8 @@ const Distributed: StepState = {
     showContributing: false,
     showPending: false,
     doubleBox: true,
-    boxOpen: true
+    boxOpen: true,
+    showBoxValue: true
   },
   transforms: {
     ...PostDecision.transforms

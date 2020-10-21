@@ -11,7 +11,7 @@
             :value="player.totalPool"
             :double="flags.doubleBox"
             :open="flags.boxOpen"
-            :showValue="!flags.boxOpen" />
+            :showValue="flags.showBoxValue" />
         </Transform>
         <Transform class="w-64 h-64 left-0 top-0" :transform="transforms.contributing" :visible="flags.showContributing">
           <Envelope
@@ -176,14 +176,16 @@
         return this.graph.nodes.filter((n: any) => n.id !== this.player.id)
       },
       partnerLocations (): { x: number, y: number }[] {
-        const dA = Math.PI / (this.partners.length - 1)
-        const startAngle = -Math.PI
+        const l = this.partners.length
+        const dA = l ? 2 * Math.PI / (l + 1) : 0
+        let startAngle = Math.PI / 2 + dA
         return this.partners.map((n: any, i: number) => {
           const angle = startAngle + dA * i
-          // const x = 20 * Math.cos(angle) + 50
-          // const y = 20 * Math.sin(angle) - 50
-          const x = i * 20
-          const y = 0
+          console.log('angle', angle)
+          const x = 40 * Math.cos(angle) + 45
+          const y = 40 * Math.sin(angle) + 50
+          // const x = i * 20
+          // const y = 0
           return { x, y, i, id: n.id }
         })
       },
@@ -195,8 +197,8 @@
 </script>
 
 <style lang="sass">
-  html, body
-    width: 100%
+  html, body 
+    width: 100% 
     height: 100%
     margin: 0
     overflow: hidden
