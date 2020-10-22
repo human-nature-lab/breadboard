@@ -2,7 +2,13 @@
   <Transform class="absolute top-0 left-0" :transform="envelopeTransform" :visible="visible">
     <div class="absolute w-32 h-32" :style="{transform: `translate(${boxOffset.x}px, ${boxOffset.y}px)`, zIndex: boxOffset.zIndex}">
       <Envelope closed v-if="envelope" />
-      <MoneyStack v-else :value="value || 0" :locked="locked" />
+      <MoneyStack 
+        v-else
+        :value="value || 0"
+        :locked="locked"
+        :bold="true"
+        :xOffset="2"
+        :yOffset="2" />
     </div>
   </Transform>
 </template>

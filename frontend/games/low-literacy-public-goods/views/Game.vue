@@ -8,7 +8,7 @@
         <Transform class="w-64 h-64 top-0" :transform="transforms.box" :visible="flags.showBox">
           <Box
             ref="box"
-            :value="player.totalPool"
+            :value="flags.doubleBox ? player.totalPoolDoubled : player.totalPool"
             :double="flags.doubleBox"
             :open="flags.boxOpen"
             :showValue="flags.showBoxValue" />
@@ -159,7 +159,7 @@
           return this.initDecisionStep(this.player)
         } else if (newStep === Step.Distributed) {
           this.flags.doubleBox = true
-          await delay(1500)
+          await delay(3000)
         }
         this.flags = cloneDeep(steps[this.player.step].flags)
         this.transforms = cloneDeep(steps[newStep].transforms)
@@ -181,11 +181,8 @@
         let startAngle = Math.PI / 2 + dA
         return this.partners.map((n: any, i: number) => {
           const angle = startAngle + dA * i
-          console.log('angle', angle)
           const x = 40 * Math.cos(angle) + 45
           const y = 40 * Math.sin(angle) + 50
-          // const x = i * 20
-          // const y = 0
           return { x, y, i, id: n.id }
         })
       },

@@ -8,9 +8,16 @@
     @input="$emit('input', $event)"
     dragKey="pending">
     <template v-slot:item>
-      <Currency style="width: 80%; transform: translate(10%, 100%)"/>
+      <Currency
+        style="width: 80%; transform: translate(50%, 0)"
+        :class="locked ? '' : 'hover:opacity-75 grab'"
+        />
     </template>
-    <div v-if="showValue" class="absolute w-full text-3xl text-center z-30 mt-4">{{+value.toFixed(2)}}</div>
+    <div v-if="showValue" class="absolute w-full text-3xl text-center z-30 mt-4">
+      <span class="p-2 rounded-full inline-block" :class="{'bg-white': bold}">
+        {{+value.toFixed(2)}}
+      </span>
+    </div>
     <slot />
   </CurrencyDropZone>
 </template>
@@ -32,6 +39,10 @@
       showValue: {
         type: Boolean,
         default: true
+      },
+      bold: {
+        type: Boolean,
+        default: false
       }
     },
     computed: {
@@ -43,5 +54,6 @@
 </script>
 
 <style lang="sass">
-  
+  .grab
+    cursor: grab
 </style>

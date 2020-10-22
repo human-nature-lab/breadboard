@@ -109,8 +109,10 @@ export default Vue.extend({
       }
     },
     currencyStyle(i: number) {
-      const center = Math.ceil((this.value) / 2);
-      let transform = `translate(${this.xOffset * (i - center)}px, ${this.yOffset * (center - i)}px)`;
+      const center = Math.ceil(this.value / 2);
+      let transform = `translate(${this.xOffset * (i - center)}px, ${
+        this.yOffset * (center - i)
+      }px)`;
       if (this.rotate) {
         transform += ` rotate(${this.rotate}deg)`;
       }

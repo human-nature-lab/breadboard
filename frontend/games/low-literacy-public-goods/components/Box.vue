@@ -7,7 +7,7 @@
     <transition name="drop">
       <img v-show="!open" rel="preload" ref="lid" class="absolute z-30" :src="src.lid" alt="">
     </transition>
-    <div v-if="showValue" class="absolute value z-40">
+    <div v-if="showValue" class="absolute value z-40 text-bold text-2xl text-center">
       {{animatedValue}}
     </div>
   </div>
@@ -45,7 +45,7 @@
       return {
         src: images.box,
         envelope: true,
-        tweenedValue: 0
+        tweenedValue: this.value
       }
     },
     watch: {
@@ -54,8 +54,10 @@
           this.envelope = true
         }
       },
-      value (newValue: number) {
-        this.setValue(newValue)
+      value (newValue: number, oldVal: number) {
+        if (newValue !== oldVal) {
+          this.setValue(newValue)
+        }
       }
     },
     methods: {
@@ -74,7 +76,8 @@
 <style lang="sass" scoped>
   .value
     top: 10%
-    left: 50%
+    width: 100%
+    // left: 50%
 
   $dur: 1s
   .grow

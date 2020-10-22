@@ -5,7 +5,10 @@
     @input="$emit('input', $event)"
     dragKey="envelope">
     <template v-slot:item>
-      <Currency style="width: 80%; transform: translate(10%, 100%)"/>
+      <Currency
+        style="width: 75%; transform: translate(15%, 130%)"
+        :class="closed ? '' : 'hover:opacity-75 grab'"
+        />
     </template>
     <div class="absolute w-full text-3xl text-center z-30 mt-4 select-none pointer-events-none">{{value}}</div>
     <img v-show="!closed" :src="backSrc" alt="" class="absolute z-0" draggable="false" />
