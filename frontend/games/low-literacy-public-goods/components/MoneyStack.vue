@@ -14,7 +14,7 @@
         />
     </template>
     <div v-if="showValue" class="absolute w-full text-3xl text-center z-30 mt-4">
-      <span class="p-2 rounded-full inline-block" :class="{'bg-white': bold}">
+      <span class="py-2 px-6 rounded-full inline-block" :class="{'bg-white': bold}">
         {{+value.toFixed(2)}}
       </span>
     </div>

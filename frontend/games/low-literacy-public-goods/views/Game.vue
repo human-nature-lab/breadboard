@@ -2,7 +2,7 @@
   <Fullscreen>
     <div class="relative w-full h-full" id="game">
       <div v-if="isLoading || player.step === 'Loading'" class="absolute text-center text-3xl w-64 h-64 top-0 left-0 bottom-0 right-0 m-auto">
-        Please wait for the game to begin...
+        Please wait for the game to begin
       </div>
       <div v-else-if="player.step !== 'Complete'" class="relative w-full h-full">
         <Transform class="w-64 h-64 top-0" :transform="transforms.box" :visible="flags.showBox">
@@ -21,7 +21,8 @@
         <Transform class="w-64 h-64 right-0" :transform="transforms.keeping">
           <Wallet
             v-model="decision.keeping"
-            :earned="player.score"
+            :earned="player.score" 
+            :showMoney="player.step === 'Decision'"
             :closed="player.hasContributed"  />
         </Transform>
         <transition name="fade" v-for="(loc, i) in partnerLocations" :key="loc.id">
@@ -73,6 +74,11 @@
         The game has finished!
       </div>
     </div>
+    <div v-if="!['Loading', 'Complete'].includes(player.step) && showDialog" class="absolute top-0 left-0 w-screen h-screen">
+      <div class="absolute text-center text-3xl w-64 h-32 top-0 left-0 bottom-0 right-0 m-auto bg-white opacity-75 shadow-xl pt-12">
+        {{player.step === 'Decision' ? 'Begin round' : 'End round'}}
+      </div>
+    </div>
   </Fullscreen>
 </template>
 
@@ -109,6 +115,7 @@
           keeping: 0,
           pending: 5
         },
+        showDialog: false,
         flags: steps.Decision.flags,
         playerLoc: {
           x: 45,
@@ -134,13 +141,22 @@
         this.flags = cloneDeep(steps[player.step].flags)
         this.transforms = cloneDeep(steps[player.step].transforms)
         if (player.step === Step.Decision) {
-          const keeping = player.keeping || 0
-          const contributing = player.contributing || 0
-          const pending = player.allotted
-          this.decision.keeping = keeping
-          this.decision.contributing = contributing
-          this.decision.pending = pending - (keeping + contributing)
+          this.showDialog = true
+          this.resetDecision(player)
+          setTimeout(() => {
+            this.showDialog = false
+          }, 3000)
+        } else if (player.step === Step.Distributed) {
+          this.showDialog = true
         }
+      },
+      resetDecision (player: Player) {
+        const keeping = player.keeping || 0
+        const contributing = player.contributing || 0
+        const pending = player.allotted
+        this.decision.keeping = keeping
+        this.decision.contributing = contributing
+        this.decision.pending = pending - (keeping + contributing)
       },
       sendDecision (data: { keeping: number, contributing: number }) {
         if (this.player.hasContributed) return 
@@ -158,8 +174,12 @@
           await delay(1500)
           return this.initDecisionStep(this.player)
         } else if (newStep === Step.Distributed) {
+          this.resetDecision(this.player)
           this.flags.doubleBox = true
           await delay(3000)
+          this.flags = cloneDeep(steps[this.player.step].flags)
+          await delay(3000)
+          this.showDialog = true
         }
         this.flags = cloneDeep(steps[this.player.step].flags)
         this.transforms = cloneDeep(steps[newStep].transforms)

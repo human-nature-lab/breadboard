@@ -8,14 +8,13 @@
       <img v-show="!open" rel="preload" ref="lid" class="absolute z-30" :src="src.lid" alt="">
     </transition>
     <div v-if="showValue" class="absolute value z-40 text-bold text-2xl text-center">
-      {{animatedValue}}
+      <AnimatedInt :value="value" />
     </div>
   </div>
 </template>
 
 <script lang="ts">
   import Vue, { PropOptions } from 'vue'
-  import gsap from 'gsap'
   import { images } from '../images'
   import { delay } from '../../../core/delay'
 
@@ -45,7 +44,6 @@
       return {
         src: images.box,
         envelope: true,
-        tweenedValue: this.value
       }
     },
     watch: {
@@ -54,22 +52,7 @@
           this.envelope = true
         }
       },
-      value (newValue: number, oldVal: number) {
-        if (newValue !== oldVal) {
-          this.setValue(newValue)
-        }
-      }
     },
-    methods: {
-      setValue (newValue: number) {
-        gsap.to(this.$data, { duration: 1, tweenedValue: newValue })
-      }
-    },
-    computed: {
-      animatedValue (): string {
-        return this.tweenedValue.toFixed(0)
-      }
-    }
   })
 </script>
 

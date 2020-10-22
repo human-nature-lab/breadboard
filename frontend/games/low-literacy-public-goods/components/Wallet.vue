@@ -1,10 +1,10 @@
 <template>
   <CurrencyDropZone
-    :value="val"
+    :value="value"
     :yOffset="0"
     :xOffset="7"
     @input="$emit('input', $event)"
-    :visible="!closed"
+    :visible="showMoney"
     dragKey="wallet"
     :locked="closed">
     <template v-slot:item>
@@ -13,7 +13,9 @@
         :class="closed ? '' : 'hover:opacity-75 grab'"
         />
     </template>
-    <div class="absolute w-full text-3xl text-center z-20 mt-24 text-white select-none pointer-events-none">{{val}}</div>
+    <div class="absolute w-full text-3xl text-center z-20 mt-24 text-white select-none pointer-events-none">
+      <AnimatedInt :value="val" />
+    </div>
     <img rel="preload" :src="walletSrc" alt="" class="absolute z-10 pointer-events-none" draggable="false" />
   </CurrencyDropZone>
 </template>
@@ -26,7 +28,8 @@
     props: {
       value: Number,
       earned: Number,
-      closed: Boolean
+      closed: Boolean,
+      showMoney: Boolean
     },
     data () {
       return {
@@ -35,7 +38,7 @@
     },
     computed: {
       val (): number {
-        return this.closed ? this.value + this.earned : this.value
+        return this.value + this.earned
       }
     }
   })
