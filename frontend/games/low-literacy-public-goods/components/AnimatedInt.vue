@@ -15,6 +15,10 @@
       animated: {
         type: Boolean,
         default: true
+      },
+      delay: {
+        type: Number,
+        default: 0
       }
     },
     data () {
@@ -25,17 +29,23 @@
     watch: {
       value (newVal: number, oldVal: number) { 
         if (newVal !== oldVal) {
-          if (this.animated) {
-            this.setValue(newVal)
+          if (this.delay) {
+            setTimeout(() => {
+              this.setValue(newVal)
+            }, this.delay)
           } else {
-            this.tweenedValue = newVal
+            this.setValue(newVal)
           }
         }
       }
     },
     methods: {
       setValue (newValue: number) {
-        gsap.to(this.$data, { duration: 1, tweenedValue: newValue })
+        if (this.animated) {
+          gsap.to(this.$data, { duration: 1, tweenedValue: newValue })
+        } else {
+          this.tweenedValue = newValue
+        }
       }
     },
     computed: {

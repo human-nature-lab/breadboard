@@ -116,7 +116,7 @@ const Distributed: StepState = {
     showPending: false,
     doubleBox: true,
     boxOpen: true,
-    showBoxValue: true
+    showBoxValue: false
   },
   transforms: {
     ...PostDecision.transforms

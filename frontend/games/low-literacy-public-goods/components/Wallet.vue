@@ -14,7 +14,7 @@
         />
     </template>
     <div class="absolute w-full text-3xl text-center z-20 mt-24 text-white select-none pointer-events-none">
-      <AnimatedInt :value="showMoney ? value : val" />
+      <AnimatedInt :value="showMoney ? value : val" :delay="showMoney ? 0 : 6000" />
     </div>
     <img rel="preload" :src="walletSrc" alt="" class="absolute z-10 pointer-events-none" draggable="false" />
   </CurrencyDropZone>

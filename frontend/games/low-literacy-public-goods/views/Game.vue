@@ -23,7 +23,7 @@
             v-model="decision.keeping"
             :earned="player.score" 
             :showMoney="player.step === 'Decision'"
-            :closed="player.hasContributed"  />
+            :closed="player.hasContributed" />
         </Transform>
         <transition name="fade" v-for="(loc, i) in partnerLocations" :key="loc.id">
           <Player
@@ -179,6 +179,7 @@
           await delay(3000)
           this.flags = cloneDeep(steps[this.player.step].flags)
           await delay(3000)
+          this.flags.showBoxValue = false
           this.showDialog = true
         }
         this.flags = cloneDeep(steps[this.player.step].flags)
