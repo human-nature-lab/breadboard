@@ -2,8 +2,8 @@
   <CurrencyDropZone
     :value="value"
     :locked="closed"
-    @input="$emit('input', $event)"
-    dragKey="envelope">
+    group="envelope"
+    @input="$emit('input', $event)">
     <template v-slot:item>
       <Currency
         style="width: 75%; transform: translate(15%, 130%)"

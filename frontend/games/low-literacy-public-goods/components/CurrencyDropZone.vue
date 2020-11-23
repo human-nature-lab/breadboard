@@ -1,35 +1,38 @@
 <template>
   <div
-    class="relative w-full h-full"
-    @dragover="onDragOver"
-    @dragleave="onDragLeave"
-    @drop="onDrop"
-  >
-    <div class="absolute w-full h-full z-10" v-show="visible">
+    class="relative w-full h-full">
+    <draggable
+      v-model="items"
+      :disabled="locked"
+      group="money"
+      :sort="false"
+      @start="start"
+      @end="end"
+      @change="onChange"
+      draggable=".drag-item"
+      class="absolute w-full h-full z-10"
+      v-show="visible">
       <div
         class="absolute drag-item"
-        :style="currencyStyle(i)"
-        v-for="i in value"
-        :key="i"
-        :draggable="!locked"
-        @dragstart="onDragStart"
-        @dragend="onDragEnd"
-      >
+        v-for="(item, i) in items"
+        :style="currencyStyle(i + 1)"
+        :key="item">
         <slot name="item" />
       </div>
-    </div>
+    </draggable>
     <slot />
   </div>
 </template>
 
 <script lang="ts">
 import Vue from "vue";
+import draggable from 'vuedraggable'
 
 export default Vue.extend({
-  name: "CurrencyDropZone",
+  name: 'CurrencyDropZone',
+  components: { draggable },
   props: {
     value: Number,
-    dragKey: String,
     visible: {
       type: Boolean,
       default: true,
@@ -42,7 +45,14 @@ export default Vue.extend({
       type: Number,
       default: 5,
     },
-    rotate: Number,
+    rotate: {
+      type: Number,
+      required: false
+    },
+    group: {
+      type: String,
+      required: true
+    },
     locked: {
       type: Boolean,
       default: false,
@@ -51,13 +61,38 @@ export default Vue.extend({
   data() {
     return {
       willAccept: false,
-    };
+      items: [] as string[]
+    }
+  },
+  created () {
+    this.updateItems()
+  },
+  watch: {
+    value (newVal: number) {
+      if (this.items.length !== newVal) {
+        this.updateItems()
+      }
+    }
   },
   methods: {
+    onChange () {
+      console.log('onChange', arguments)
+      this.$emit('input', this.items.length)
+    },
+    start () {
+      console.log('drag start', arguments)
+    },
+    end () {
+      console.log('drag end', arguments)
+      this.updateItems()
+    },
+    updateItems () {
+      this.items = new Array(this.value).fill(0).map((_, i) => this.group + i)
+    },
     onDragStart(ev: DragEventInit) {
       console.log("ondragstart", ev);
       const data = {
-        dragKey: this.dragKey,
+        group: 'money',
         value: 1,
       };
       ev.dataTransfer!.effectAllowed = "move";

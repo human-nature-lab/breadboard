@@ -2,14 +2,13 @@
   <CurrencyDropZone
     :value="bills"
     :locked="locked"
-    :rotate="rotate"
     :xOffset="xOffset"
+    group="money"
     :yOffset="yOffset"
-    @input="$emit('input', $event)"
-    dragKey="pending">
+    @input="$emit('input', $event)">
     <template v-slot:item>
       <Currency
-        style="width: 80%; transform: translate(50%, 0)"
+        :style="`width: 80%; transform: rotate(${rotate}deg)`"
         :class="locked ? '' : 'hover:opacity-75 grab'"
         />
     </template>

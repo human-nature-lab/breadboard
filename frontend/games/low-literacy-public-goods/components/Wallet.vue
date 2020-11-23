@@ -3,9 +3,9 @@
     :value="value"
     :yOffset="0"
     :xOffset="7"
+    group="wallet"
     @input="$emit('input', $event)"
     :visible="showMoney"
-    dragKey="wallet"
     :locked="closed">
     <template v-slot:item>
       <Currency 

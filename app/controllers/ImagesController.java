@@ -13,6 +13,7 @@ import play.mvc.Security;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.Map;
 
 public class ImagesController extends Controller {
@@ -94,8 +95,11 @@ public class ImagesController extends Controller {
     if (experiment.fileMode) {
       File imageDirectory = new File(Play.application().path().toString() + "/dev/" + experiment.getDirectoryName() + "/Images");
       try {
-        byte[] file = FileUtils.readFileToByteArray(FileUtils.getFile(imageDirectory, fileName));
-        return ok(file);
+        File file = FileUtils.getFile(imageDirectory, fileName);
+        String contentType = Files.probeContentType(file.toPath());
+        byte[] contents = FileUtils.readFileToByteArray(file);
+        response().setContentType(contentType);
+        return ok(contents);
       } catch (IOException ioe) {
         return notFound();
       }
