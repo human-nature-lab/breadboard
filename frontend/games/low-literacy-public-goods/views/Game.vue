@@ -41,7 +41,7 @@
         <Player
           :hasItem="true"
           :envelope="flags.isEnvelope"
-          :showItem="flags.showPlayerItems"
+          :showItem="!['Decision', 'Results'].includes(player.step)"
           :itemInBox="player.hasContributed"
           :value="player.groupPayout"
           :boxOffset="boxOffset(0)"
@@ -74,9 +74,9 @@
         The game has finished!
       </div>
     </div>
-    <div v-if="!['Loading', 'Complete'].includes(player.step) && showDialog" class="absolute top-0 left-0 w-screen h-screen">
-      <div class="absolute text-center text-3xl w-64 h-32 top-0 left-0 bottom-0 right-0 m-auto bg-white opacity-75 shadow-xl pt-12">
-        {{player.step === 'Decision' ? 'Begin round' : 'End round'}}
+    <div v-if="!['Loading', 'Complete'].includes(player.step) && showDialog" class="absolute top-0 left-0 w-screen h-screen bg-white ">
+      <div class="absolute text-center text-3xl w-64 h-32 top-0 left-0 bottom-0 right-0 m-auto pt-12">
+        Proxima Ronda
       </div>
     </div>
   </Fullscreen>
@@ -146,8 +146,6 @@
           setTimeout(() => {
             this.showDialog = false
           }, 3000)
-        } else if (player.step === Step.Distributed) {
-          this.showDialog = true
         }
       },
       resetDecision (player: Player) {
