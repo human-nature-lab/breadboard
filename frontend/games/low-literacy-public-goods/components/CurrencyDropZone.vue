@@ -32,7 +32,10 @@ export default Vue.extend({
   name: 'CurrencyDropZone',
   components: { draggable },
   props: {
-    value: Number,
+    value: {
+      type: Number,
+      required: true
+    },
     visible: {
       type: Boolean,
       default: true,
@@ -60,6 +63,7 @@ export default Vue.extend({
   },
   data() {
     return {
+      originalValue: this.value,  // used to maintain the original layout even when the value changes
       willAccept: false,
       items: [] as string[]
     }
@@ -71,6 +75,7 @@ export default Vue.extend({
     value (newVal: number) {
       if (this.items.length !== newVal) {
         this.updateItems()
+        this.originalValue = this.value
       }
     }
   },
@@ -84,9 +89,10 @@ export default Vue.extend({
     },
     end () {
       console.log('drag end', arguments)
-      this.updateItems()
+      // this.updateItems()
     },
     updateItems () {
+      console.log('updating items')
       this.items = new Array(this.value).fill(0).map((_, i) => this.group + i)
     },
     onDragStart(ev: DragEventInit) {
@@ -144,7 +150,7 @@ export default Vue.extend({
       }
     },
     currencyStyle(i: number) {
-      const center = Math.ceil(this.value / 2);
+      const center = Math.ceil(this.originalValue / 2);
       let transform = `translate(${this.xOffset * (i - center)}px, ${
         this.yOffset * (center - i)
       }px)`;

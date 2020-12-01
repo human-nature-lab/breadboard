@@ -15,12 +15,10 @@ export class ImageLoader {
   load (src: string): Promise<HTMLImageElement> {
     const p = new Promise<HTMLImageElement>(async (resolve, reject) => {
       if (this.srcMap.has(src)) {
-        console.log('loaded', src)
         return resolve(this.srcMap.get(src))
       }
       if (this.pendingMap.has(src)) {
         const existing = this.pendingMap.get(src)
-        console.log('pending', src, existing)
         await existing
         if (this.srcMap.has(src)) {
           return resolve(this.srcMap.get(src))
@@ -33,11 +31,9 @@ export class ImageLoader {
       image.addEventListener('load', () => {
         this.pendingMap.delete(src)
         this.srcMap.set(src, image)
-        console.log('done', src)
         resolve(image)
       })
       image.addEventListener('error', err => {
-        console.log('error', src)
         this.pendingMap.delete(src)
         reject(err)
       })

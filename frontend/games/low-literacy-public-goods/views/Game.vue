@@ -1,6 +1,6 @@
 <template>
   <Fullscreen>
-    <div class="relative w-full h-full" id="game">
+    <div class="relative w-full h-full">
       <div v-if="isLoading || player.step === 'Loading'" class="absolute text-center text-3xl w-64 h-64 top-0 left-0 bottom-0 right-0 m-auto">
         Please wait for the game to begin
       </div>
@@ -54,7 +54,7 @@
           group="player envelope"
           :transform="{ y: transforms.keeping.y, x: transforms.keeping.x + 7 }"
           :itemInBox="player.hasContributed"
-          :visible="!['Decision', 'Results'].includes(player.step) && flags.showPlayerItems"
+          :visible="!['Decision', 'Results'].includes(player.step) && flags.showPlayerItems && showMyEnvelope"
           :envelope="flags.isEnvelope"
           />
         <Transform 
@@ -86,11 +86,13 @@
         Proxima Ronda
       </div>
     </div>
+    <PortalTarget name="game" multiple />
   </Fullscreen>
 </template>
 
 <script lang="ts">
   import Vue, { PropOptions } from 'vue'
+  import { PortalTarget } from 'portal-vue'
   import Fullscreen from '../components/Fullscreen.vue'
   import gsap from 'gsap'
   import { boxLayout } from '../boxLayout'
@@ -109,7 +111,7 @@
 
   export default Vue.extend({
     name: 'Game',
-    components: { Fullscreen },
+    components: { Fullscreen, PortalTarget },
     props: {
       player: Object,
       graph: Object as PropOptions<Graph>
@@ -117,6 +119,7 @@
     data () {
       return {
         isLoading: true,
+        showMyEnvelope: false,
         decision: {
           contributing: 0,
           keeping: 0,
@@ -149,6 +152,8 @@
         this.transforms = cloneDeep(steps[player.step].transforms)
         if (player.step === Step.Decision) {
           this.resetDecision(player)
+        } else if (player.step === Step.Distributing) {
+          this.showMyEnvelope = true
         }
       },
       resetDecision (player: Player) {
@@ -169,6 +174,7 @@
       async transitionStep (oldStep: Step, newStep: Step) {
         if (newStep === Step.PostDecision) {
           this.flags.showPending = false
+          this.showMyEnvelope = true
           this.transforms = cloneDeep(steps[newStep].transforms)
           await delay(1500)
         } else if (newStep === Step.Decision) {
@@ -185,6 +191,9 @@
           this.flags = cloneDeep(steps[this.player.step].flags)
           await delay(2500)
           this.flags.showBoxValue = false
+          setTimeout(() => {
+            this.showMyEnvelope = false
+          }, 2500)
         }
         this.flags = cloneDeep(steps[this.player.step].flags)
         this.transforms = cloneDeep(steps[newStep].transforms)

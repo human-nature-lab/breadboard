@@ -51,7 +51,6 @@
     },
     methods: {
       async updateImage ()  {
-        console.log('updating image', this.src)
         try {
           this.loaded = false
           this.image = await loader.load(this.src)
@@ -63,7 +62,6 @@
       },
       drawImage () {
         if (this.$refs.canvas && this.image) {
-          console.log('drawImage', this.src, this.image.width, this.image.height)
           const canv = this.$refs.canvas as HTMLCanvasElement
           const ctx = canv!.getContext('2d')
           canv!.width = this.image!.width

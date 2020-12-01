@@ -8,11 +8,11 @@
         Current round: {{player.curRound}}
       </div>
       <v-spacer />
-      <v-btn
+      <TimeoutButton
         :disabled="player.step !== 'Loading'"
         @click="initGame">
         Start game
-      </v-btn>
+      </TimeoutButton>
       <v-btn
         :disabled="player.step !== 'Loading' || !selectedPlayers.length"
         @click="makeGroup">
@@ -42,12 +42,17 @@
         :headers="playerHeaders"></v-data-table>
     </v-col>
     <v-row>
-      <v-btn
+      <TimeoutButton
         :disabled="!canContinue"
-        @click="sendContinue">Continue</v-btn>
-      <v-btn
+        @click="sendContinue">
+        Continue
+      </TimeoutButton>
+      <TimeoutButton
         :disabled="player.step !== 'Results'"
-        @click="sendDistribute">Distribute</v-btn>
+        :duration="11000"
+        @click="sendDistribute">
+        Distribute
+      </TimeoutButton>
     </v-row>
   </v-container>
 </template>

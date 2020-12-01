@@ -1,26 +1,30 @@
 <template>
-  <Transform ref="self" class="absolute top-0 left-0" :transform="envelopeTransform" :visible="visible">
-    <div v-show="visible" class="absolute w-32 h-32" :style="{transform: `translate(${boxOffset.x}px, ${boxOffset.y}px)`, zIndex: boxOffset.zIndex}">
-      <Envelope closed v-if="envelope" />
-      <MoneyStack 
-        v-else
-        :value="value || 0"
-        :group="group"
-        :locked="locked"
-        :bold="true"
-        :xOffset="2"
-        :yOffset="2" />
-    </div>
-  </Transform>
+  <Portal to="game">
+    <Transform class="absolute top-0 left-0" :transform="envelopeTransform" :visible="visible">
+      <div v-show="visible" class="absolute w-32 h-32" :style="{transform: `translate(${boxOffset.x}px, ${boxOffset.y}px)`, zIndex: boxOffset.zIndex}">
+        <Envelope closed v-if="envelope" :value="0" />
+        <MoneyStack 
+          v-else
+          :value="value || 0"
+          :group="group"
+          :locked="locked"
+          :bold="true"
+          :xOffset="2"
+          :yOffset="2" />
+      </div>
+    </Transform>
+  </Portal>
 </template>
 
 <script lang="ts">
   import Vue, { PropOptions } from 'vue'
+  import { Portal } from 'portal-vue'
   import { PlayerData } from '../../../core/breadboard.types'
   import { Transform } from '../steps'
 
   export default Vue.extend({
     name: 'PlayerEnvelope',
+    components: { Portal },
     props: {
       value: Number,
       envelope: Boolean,
@@ -35,12 +39,12 @@
       },
       visible: Boolean
     },
-    mounted () {
-      console.log('PlayerEnvelope.created')
-      this.detachItem()
-    },
+    // mounted () {
+    //   console.log('PlayerEnvelope.created')
+    //   this.detachItem()
+    // },
     beforeDestroy () {
-      this.attachItem()
+      // this.attachItem()
       // @ts-ignore
       if (this.timeoutId) clearTimeout(this.timeoutId)
     },
