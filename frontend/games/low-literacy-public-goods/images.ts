@@ -1,22 +1,24 @@
+const experimentId = 233
 export const images = {
   envelope: {
-    closed: '/images/233/envelope-closed.png',
-    openBack: '/images/233/envelope-open-back.png',
-    openFront: '/images/233/envelope-open-front.png'
+    closed: `/images/${experimentId}/envelope-closed.png`,
+    openBack: `/images/${experimentId}/envelope-open-back.png`,
+    openFront: `/images/${experimentId}/envelope-open-front.png`
   },
   box: {
-    back: '/images/233/box-back.png',
-    front: '/images/233/box-front.png',
-    closed: '/images/233/box-closed.png',
-    lid: '/images/233/box-lid.png'
+    back: `/images/${experimentId}/box-back.png`,
+    front: `/images/${experimentId}/box-front.png`,
+    closed: `/images/${experimentId}/box-closed.png`,
+    lid: `/images/${experimentId}/box-lid.png`
   },
   currency: {
-    single: '/images/233/lempira-front.png',
-    stack: '/images/233/lempira-front.png'
+    single: `/images/${experimentId}/lempira-front.png`,
+    stack: `/images/${experimentId}/lempira-front.png`
   },
   lock: {
-    open: '/images/233/lock-open.png',
-    closed: '/images/233/lock-closed.png'
+    open: `/images/${experimentId}/lock-open.png`,
+    closed: `/images/${experimentId}/lock-closed.png`
   },
-  person: '/images/233/silhouette.png'
+  wallet: `/images/${experimentId}/wallet.png`,
+  person: `/images/${experimentId}/silhouette.png`
 }

@@ -3,7 +3,7 @@
     :value="bills"
     :locked="locked"
     :xOffset="xOffset"
-    group="money"
+    :group="group"
     :yOffset="yOffset"
     @input="$emit('input', $event)">
     <template v-slot:item>
@@ -12,7 +12,7 @@
         :class="locked ? '' : 'hover:opacity-75 grab'"
         />
     </template>
-    <div v-if="showValue" class="absolute w-full text-3xl text-center z-30 mt-4">
+    <div v-if="showValue" class="absolute w-full text-3xl text-center z-30 label">
       <span class="py-2 px-6 rounded-full inline-block" :class="{'bg-white': bold}">
         {{+value.toFixed(2)}}
       </span>
@@ -42,6 +42,10 @@
       bold: {
         type: Boolean,
         default: false
+      },
+      group: {
+        type: String,
+        default: 'money'
       }
     },
     computed: {
@@ -52,7 +56,10 @@
   })
 </script>
 
-<style lang="sass">
+<style lang="sass" scoped>
+  .label
+    top: -50%
+    margin-left: -8px
   .grab
     cursor: grab
 </style>

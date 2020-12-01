@@ -1,11 +1,11 @@
 <template>
   <div class="box absolute h-full w-full" :class="{ grow: double }">
     <transition name="back">
-      <img rel="preload" class="absolute z-0" v-show="open" :src="src.back" alt="">
+      <CanvasImage class="absolute z-0 max-w-full max-h-full" :src="src.back" />
     </transition>
-    <img rel="preload" class="absolute z-20" :src="src.front" alt="">
+    <CanvasImage class="absolute z-20 max-w-full max-h-full" :src="src.front" />
     <transition name="drop">
-      <img v-show="!open" rel="preload" ref="lid" class="absolute z-30" :src="src.lid" alt="">
+      <CanvasImage v-if="!open" ref="lid" class="absolute z-30 max-w-full max-h-full" :src="src.lid" />
     </transition>
     <div v-if="showValue" class="absolute value z-40 text-bold text-2xl text-center">
       <AnimatedInt :value="value" />

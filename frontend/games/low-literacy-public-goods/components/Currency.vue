@@ -1,9 +1,7 @@
 <template>
-  <img
-    rel="preload"
+  <CanvasImage
     :src="stack ? stackSrc : singleSrc"
-    draggable="false"
-    alt="" />
+    draggable="false" />
 </template>
 
 <script lang="ts">

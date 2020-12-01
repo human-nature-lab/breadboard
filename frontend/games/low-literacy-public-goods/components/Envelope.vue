@@ -11,9 +11,9 @@
         />
     </template>
     <div class="absolute w-full text-3xl text-center z-30 mt-4 select-none pointer-events-none">{{value}}</div>
-    <img v-show="!closed" :src="backSrc" alt="" class="absolute z-0" draggable="false" />
-    <img v-show="!closed" :src="frontSrc" class="absolute z-20 w-full h-full bg-contain pointer-events-none" />
-    <img v-show="closed" :src="closedSrc" class="absolute z-20 w-full h-full bg-contain pointer-events-none" />
+    <CanvasImage v-if="!closed" :src="backSrc" alt="" class="absolute z-0 max-w-full max-h-full" draggable="false" />
+    <CanvasImage v-if="!closed" :src="frontSrc" class="absolute z-20 max-w-full max-h-full pointer-events-none" />
+    <CanvasImage v-else :src="closedSrc" class="absolute z-20 max-w-full max-h-full pointer-events-none" />
   </CurrencyDropZone>
 </template>
 

@@ -48,7 +48,7 @@ const Decision: StepState = {
   transforms: {
     box: { x: 40, y: 40, scale: 1 },
     contributing: { x: 10, y: 0, scale: .75 },
-    keeping: { x: -10, y: 0, scale: .75 },
+    keeping: { x: 60, y: 0, scale: .75 },
     pending: { x: 40, y: -20 }
   }
 }
@@ -68,7 +68,7 @@ const PostDecision: StepState = {
   transforms: {
     ...Decision.transforms,
     contributing: { ...Decision.transforms.box, scale: .3 },
-    keeping: { x: -20, y: 75, scale: .5 }
+    keeping: { x: 70, y: 75, scale: .5 }
   }
 }
 

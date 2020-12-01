@@ -14,14 +14,15 @@
         />
     </template>
     <div class="absolute w-full text-3xl text-center z-20 mt-24 text-white select-none pointer-events-none">
-      <AnimatedInt :value="showMoney ? value : val" :delay="showMoney ? 0 : 6000" />
+      <AnimatedInt :value="showMoney ? value : val" :delay="showMoney ? 0 : 11000" />
     </div>
-    <img rel="preload" :src="walletSrc" alt="" class="absolute z-10 pointer-events-none" draggable="false" />
+    <CanvasImage :src="walletSrc" class="absolute z-10 pointer-events-none max-w-full max-h-full" draggable="false" />
   </CurrencyDropZone>
 </template>
 
 <script lang="ts">
   import Vue from 'vue'
+  import { images } from '../images'
 
   export default Vue.extend({
     name: 'Wallet',
@@ -33,7 +34,7 @@
     },
     data () {
       return {
-        walletSrc: '/images/233/wallet.png'
+        walletSrc: images.wallet
       }
     },
     computed: {

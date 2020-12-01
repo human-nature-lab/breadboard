@@ -1,11 +1,11 @@
 <template>
   <Transform :transform="transform">
     <div ref="container">
-      <img rel="preload" :src="src" alt="" class="player opacity-50 w-32 h-32">
+      <CanvasImage :src="src" class="player opacity-50 w-32 h-32" />
       <PlayerEnvelope
-        ref="item"
         :value="value"
         :envelope="envelope"
+        group="other player envelope"
         :transform="transform"
         :boxLoc="boxLoc"
         :boxOffset="boxOffset"
@@ -67,22 +67,6 @@
     data () {
       return {
         src: images.person
-      }
-    },
-    mounted () {
-      this.detachItem()
-    },
-    beforeDestroy () {
-      this.attachItem()
-    },
-    methods: {
-      detachItem () {
-        // @ts-ignore
-        if (this.hasItem && this.$refs.item.$el) document.getElementById('game').appendChild(this.$refs.item.$el)
-      },
-      attachItem () {
-        // @ts-ignore
-        if (this.hasItem && this.$refs.item.$el) this.$refs.container.appendChild(this.$refs.item.$el)
       }
     }
   })

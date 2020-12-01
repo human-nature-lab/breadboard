@@ -18,10 +18,10 @@
             v-model="decision.contributing"
             :closed="player.hasContributed" />
         </Transform>
-        <Transform class="w-64 h-64 right-0" :transform="transforms.keeping">
+        <Transform class="w-64 h-64" :transform="transforms.keeping">
           <Wallet
             v-model="decision.keeping"
-            :earned="player.score" 
+            :earned="player.groupPayout + decision.keeping" 
             :showMoney="player.step === 'Decision'"
             :closed="player.hasContributed" />
         </Transform>
@@ -39,16 +39,24 @@
             :transform="loc" />
         </transition>
         <Player
-          :hasItem="true"
-          :envelope="flags.isEnvelope"
-          :showItem="!['Decision', 'Results'].includes(player.step)"
+          :hasItem="false"
           :itemInBox="player.hasContributed"
           :value="player.groupPayout"
+          :showItem="false"
           :boxOffset="boxOffset(0)"
           :boxLoc="transforms.box"
           :transform="playerLoc"
-          :locked="false"
-          ref="me" />
+          :locked="false" />
+        <PlayerEnvelope
+          :value="player.groupPayout"
+          :boxOffset="boxOffset(0)"
+          :boxLoc="transforms.box"
+          group="player envelope"
+          :transform="{ y: transforms.keeping.y, x: transforms.keeping.x + 7 }"
+          :itemInBox="player.hasContributed"
+          :visible="!['Decision', 'Results'].includes(player.step) && flags.showPlayerItems"
+          :envelope="flags.isEnvelope"
+          />
         <Transform 
           class="w-64 h-64 bottom-0" 
           :transform="transforms.pending" 
@@ -73,7 +81,7 @@
         The game has finished!
       </div>
     </div>
-    <div v-if="showDialog" class="absolute top-0 left-0 w-screen h-screen bg-white ">
+    <div v-if="showDialog" class="absolute top-0 left-0 w-screen h-screen bg-white">
       <div class="absolute text-center text-3xl w-64 h-32 top-0 left-0 bottom-0 right-0 m-auto pt-12">
         Proxima Ronda
       </div>
@@ -140,11 +148,7 @@
         this.flags = cloneDeep(steps[player.step].flags)
         this.transforms = cloneDeep(steps[player.step].transforms)
         if (player.step === Step.Decision) {
-          this.showDialog = true
           this.resetDecision(player)
-          setTimeout(() => {
-            this.showDialog = false
-          }, 3000)
         }
       },
       resetDecision (player: Player) {
@@ -168,16 +172,19 @@
           this.transforms = cloneDeep(steps[newStep].transforms)
           await delay(1500)
         } else if (newStep === Step.Decision) {
+          this.showDialog = true
+          setTimeout(() => {
+            this.showDialog = false
+          }, 3000)
           await delay(1500)
           return this.initDecisionStep(this.player)
         } else if (newStep === Step.Distributed) {
           this.resetDecision(this.player)
           this.flags.doubleBox = true
-          await delay(3000)
+          await delay(2500)
           this.flags = cloneDeep(steps[this.player.step].flags)
-          await delay(3000)
+          await delay(2500)
           this.flags.showBoxValue = false
-          this.showDialog = true
         }
         this.flags = cloneDeep(steps[this.player.step].flags)
         this.transforms = cloneDeep(steps[newStep].transforms)

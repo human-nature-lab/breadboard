@@ -1,7 +1,7 @@
 <template>
   <div @click="onClick" :class="!val && 'hover:opacity-75'">
-    <img v-if="val" :src="lock.closed" alt="">
-    <img v-else :src="lock.open" alt="">
+    <CanvasImage v-if="val" :src="lock.closed" />
+    <CanvasImage v-else :src="lock.open" />
   </div>
 </template>
 

@@ -18,6 +18,16 @@
         @click="makeGroup">
         Assign group
       </v-btn>
+      <v-btn
+        :disabled="!canDeactivate"
+        @click="deactivateUsers">
+        Deactivate users
+      </v-btn>
+      <v-btn
+        :disabled="!selectedInactive.length"
+        @click="activateUsers">
+        Activate users
+      </v-btn>
     </v-row>
     <v-col>
       <v-data-table
@@ -45,6 +55,8 @@
 <script lang="ts">
   import Vue from 'vue'
 
+  type Player = { id: string, active: boolean }
+
   export default Vue.extend({
     name: 'Admin',
     props: {
@@ -52,10 +64,13 @@
     },
     data () {
       return {
-        selectedPlayers: [] as { id: string }[],
+        selectedPlayers: [] as Player[],
         playerHeaders: [{
           value: 'id',
           text: 'Player'
+        }, {
+          value: 'active',
+          text: 'Active'
         }, {
           value: 'step',
           text: 'Step'
@@ -87,6 +102,14 @@
       sendDistribute () {
         window.Breadboard.send('distribute')
       },
+      deactivateUsers () {
+        window.Breadboard.send('deactivate', this.selectedPlayers.map(p => p.id))
+        this.selectedPlayers = []
+      },
+      activateUsers () {
+        window.Breadboard.send('activate', this.selectedPlayers.map(p => p.id))
+        this.selectedPlayers = []
+      },
       makeGroup () {
         window.Breadboard.send('group', this.selectedPlayers.map(p => p.id))
         this.selectedPlayers = []
@@ -102,8 +125,14 @@
       }
     },
     computed: {
+      canDeactivate (): boolean {
+        return !!this.selectedActive.length && ['Distributed', 'Loading'].includes(this.player.step)
+      },
+      canActivate (): boolean {
+        return !!this.selectedInactive && ['Distributed', 'Loading'].includes(this.player.step)
+      },
       allPlayersInGroup (): boolean {
-        return this.player.players.findIndex((p: any) => !p.groupId) === -1
+        return this.player.players.findIndex((p: any) => !p.groupId && p.active) === -1
       },
       canContinue (): boolean {
         const allPlayersComplete = this.player && this.player.players && this.player.players.filter((p: any) => p.step === 'PostDecision').length === this.player.players.length
@@ -117,6 +146,12 @@
         const steps = ['Decision', 'Results', 'Distributing', 'Distributed']
         const index = steps.indexOf(this.player.step)
         return steps[(index + 1) % steps.length]
+      },
+      selectedActive (): Player[] {
+        return this.selectedPlayers.filter(p => p.active)
+      },
+      selectedInactive (): Player[] {
+        return this.selectedPlayers.filter(p => !p.active)
       }
     }
   })

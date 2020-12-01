@@ -1,10 +1,11 @@
 <template>
-  <Transform class="absolute top-0 left-0" :transform="envelopeTransform" :visible="visible">
-    <div class="absolute w-32 h-32" :style="{transform: `translate(${boxOffset.x}px, ${boxOffset.y}px)`, zIndex: boxOffset.zIndex}">
+  <Transform ref="self" class="absolute top-0 left-0" :transform="envelopeTransform" :visible="visible">
+    <div v-show="visible" class="absolute w-32 h-32" :style="{transform: `translate(${boxOffset.x}px, ${boxOffset.y}px)`, zIndex: boxOffset.zIndex}">
       <Envelope closed v-if="envelope" />
       <MoneyStack 
         v-else
         :value="value || 0"
+        :group="group"
         :locked="locked"
         :bold="true"
         :xOffset="2"
@@ -27,13 +28,19 @@
       boxOffset: Object as PropOptions<Transform>,
       transform: Object as PropOptions<Transform>,
       itemInBox: Boolean,
+      group: String,
       locked: {
         type: Boolean,
         default: true
       },
       visible: Boolean
     },
+    mounted () {
+      console.log('PlayerEnvelope.created')
+      this.detachItem()
+    },
     beforeDestroy () {
+      this.attachItem()
       // @ts-ignore
       if (this.timeoutId) clearTimeout(this.timeoutId)
     },
@@ -53,12 +60,34 @@
     },
     data () {
       return {
-        inBox: this.itemInBox
+        inBox: this.itemInBox,
+        _parent: null as Element | null
       }
     },
     computed: {
       envelopeTransform (): Transform {
         return this.inBox ? { ...this.boxLoc, scale: .5 } : { x: this.transform.x, y: this.transform.y, scale: .5 }
+      }
+    },
+    methods: {
+      detachItem () {
+        // @ts-ignore
+        if (this.$refs.self.$el) {
+          // @ts-ignore
+          this._parent = this.$refs.self.$el.parentNode
+          // @ts-ignore
+          document.getElementById('game').appendChild(this.$refs.self.$el)
+        }
+      },
+      attachItem () {
+        // @ts-ignore
+        if (this.$refs.self.$el && this._parent) {
+          // @ts-ignore
+          this._parent.appendChild(this.$refs.self.$el)
+        } else {
+          // @ts-ignore
+          this.$refs.self.$el.remove()
+        }
       }
     }
   })
