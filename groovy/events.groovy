@@ -6,7 +6,7 @@ final PLAYER_DATA_PROP = "data"
 final PLAYER_ID_PROP = "playerId"
 final SEND_EVENT = "__send-event"
 
-logPlayerEvents = false
+logPlayerEvents = true
 
 def makePlayerEventHash (String id, String eventName) {
   return "__player-" + id + "-" + eventName
@@ -64,7 +64,7 @@ Vertex.metaClass.send = { String eventName, Object ...data ->
 Vertex.metaClass.clearListeners = {
   log("vertex.clearListeners", delegate.id)
   playerId = delegate.id
-  delegate.playerEvents.each{ String event ->
+  delegate.playerEvents.toList().each{ String event ->
     delegate.off(event)
   }
 }
