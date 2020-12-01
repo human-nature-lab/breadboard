@@ -9,6 +9,7 @@
       @start="start"
       @end="end"
       @change="onChange"
+      :clone="onClone"
       draggable=".drag-item"
       class="absolute w-full h-full z-10"
       v-show="visible">
@@ -80,6 +81,10 @@ export default Vue.extend({
     }
   },
   methods: {
+    onClone (original: any) {
+      console.log('clone', original)
+      return original
+    },
     onChange () {
       console.log('onChange', arguments)
       this.$emit('input', this.items.length)

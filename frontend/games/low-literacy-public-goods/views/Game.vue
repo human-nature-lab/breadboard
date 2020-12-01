@@ -21,7 +21,7 @@
         <Transform class="w-64 h-64" :transform="transforms.keeping">
           <Wallet
             v-model="decision.keeping"
-            :earned="player.groupPayout + decision.keeping" 
+            :earned="player.roundValue + decision.keeping" 
             :showMoney="player.step === 'Decision'"
             :closed="player.hasContributed" />
         </Transform>
@@ -104,6 +104,7 @@
 
   type Player = {
     step: Step
+    roundValue: number
     keeping: number
     contributing: number
     allotted: number
@@ -177,6 +178,8 @@
           this.showMyEnvelope = true
           this.transforms = cloneDeep(steps[newStep].transforms)
           await delay(1500)
+          this.decision.keeping = 0
+          this.decision.contributing = 0
         } else if (newStep === Step.Decision) {
           this.showDialog = true
           setTimeout(() => {
@@ -185,7 +188,6 @@
           await delay(1500)
           return this.initDecisionStep(this.player)
         } else if (newStep === Step.Distributed) {
-          this.resetDecision(this.player)
           this.flags.doubleBox = true
           await delay(2500)
           this.flags = cloneDeep(steps[this.player.step].flags)
