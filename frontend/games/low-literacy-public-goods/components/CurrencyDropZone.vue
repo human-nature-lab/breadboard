@@ -15,9 +15,9 @@
       v-show="visible">
       <div
         class="absolute drag-item"
-        v-for="(item, i) in items"
-        :style="currencyStyle(i + 1)"
-        :key="item">
+        v-for="item in items"
+        :style="currencyStyle(item.index)"
+        :key="item.key">
         <slot name="item" />
       </div>
     </draggable>
@@ -66,7 +66,7 @@ export default Vue.extend({
     return {
       originalValue: this.value,  // used to maintain the original layout even when the value changes
       willAccept: false,
-      items: [] as string[]
+      items: [] as { key: string, index: number }[]
     }
   },
   created () {
@@ -98,7 +98,10 @@ export default Vue.extend({
     },
     updateItems () {
       console.log('updating items')
-      this.items = new Array(this.value).fill(0).map((_, i) => this.group + i)
+      this.items = new Array(this.value).fill(0).map((_, i) => ({
+        key: this.group + i,
+        index: i + 1
+      }))
     },
     onDragStart(ev: DragEventInit) {
       console.log("ondragstart", ev);
