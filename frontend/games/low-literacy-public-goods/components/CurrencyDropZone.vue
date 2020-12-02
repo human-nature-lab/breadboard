@@ -9,16 +9,16 @@
       @start="start"
       @end="end"
       @change="onChange"
-      :clone="onClone"
       draggable=".drag-item"
       class="absolute w-full h-full z-10"
       v-show="visible">
       <div
-        class="absolute drag-item"
+        class="drag-item"
         v-for="item in items"
-        :style="currencyStyle(item.index)"
         :key="item.key">
-        <slot name="item" />
+        <div class="absolute top-0" :style="currencyStyle(item.index)">
+          <slot name="item" :item="item" />
+        </div>
       </div>
     </draggable>
     <slot />
@@ -81,16 +81,17 @@ export default Vue.extend({
     }
   },
   methods: {
-    onClone (original: any) {
-      console.log('clone', original)
-      return original
-    },
+    // onClone (original: any) {
+    //   console.log('clone', original)
+    //   return original
+    // },
     onChange () {
       console.log('onChange', arguments)
       this.$emit('input', this.items.length)
     },
     start () {
       console.log('drag start', arguments)
+      this.$forceUpdate()
     },
     end () {
       console.log('drag end', arguments)

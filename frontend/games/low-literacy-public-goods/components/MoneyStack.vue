@@ -8,7 +8,7 @@
     @input="$emit('input', $event)">
     <template v-slot:item>
       <Currency
-        :style="`width: 80%; transform: rotate(${rotate}deg)`"
+        :style="currencyStyle"
         :class="locked ? '' : 'hover:opacity-75 grab'"
         />
     </template>
@@ -51,6 +51,16 @@
     computed: {
       bills (): number {
         return Math.floor(this.value)
+      },
+      currencyStyle () {
+        let transform = ''
+        if (this.rotate) {
+          transform += ` rotate(${this.rotate}deg)`
+        }
+        return {
+          width: '80%',
+          transform
+        }
       }
     }
   })
