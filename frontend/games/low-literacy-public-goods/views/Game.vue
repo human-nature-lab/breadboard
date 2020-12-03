@@ -58,12 +58,12 @@
           :envelope="flags.isEnvelope"
           />
         <Transform 
-          class="w-64 h-64 bottom-0" 
+          class="w-64 h-64 top-0" 
           :transform="transforms.pending" 
           :visible="flags.showPending">
           <MoneyStack
             :locked="player.hasContributed"
-            :xOffset="100"
+            :xOffset="75"
             :yOffset="0"
             :rotate="90"
             :showValue="false"
@@ -191,7 +191,8 @@
           this.flags.doubleBox = true
           await delay(2500)
           this.flags = cloneDeep(steps[this.player.step].flags)
-          await delay(2500)
+          this.showMyEnvelope = true
+          await delay(3500)
           this.flags.showBoxValue = false
           setTimeout(() => {
             this.showMyEnvelope = false

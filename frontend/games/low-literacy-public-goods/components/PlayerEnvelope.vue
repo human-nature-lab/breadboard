@@ -8,6 +8,7 @@
           :value="value || 0"
           :group="group"
           :locked="locked"
+          width="80%"
           :bold="true"
           :xOffset="2"
           :yOffset="2" />

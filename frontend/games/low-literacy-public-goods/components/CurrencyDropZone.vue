@@ -8,15 +8,16 @@
       :sort="false"
       @start="start"
       @end="end"
+      :move="onMove"
       @change="onChange"
       draggable=".drag-item"
       class="absolute w-full h-full z-10"
       v-show="visible">
       <div
         class="drag-item"
-        v-for="item in items"
+        v-for="(item, i) in items"
         :key="item.key">
-        <div class="absolute top-0" :style="currencyStyle(item.index)">
+        <div class="absolute top-0 mt-20" :style="currencyStyle(i + 1)">
           <slot name="item" :item="item" />
         </div>
       </div>
@@ -81,10 +82,17 @@ export default Vue.extend({
     }
   },
   methods: {
-    // onClone (original: any) {
-    //   console.log('clone', original)
-    //   return original
-    // },
+    onMove ({ dragged, draggedContext, relatedContext }: any) {
+      const el = dragged.querySelector('div')
+      if (el) {
+        console.log('el', el)
+        el.style = `transform: rotate(0deg) translate(0px, 50%);`
+      }
+      return true
+    },
+    onClone (original: any) {
+      return original
+    },
     onChange () {
       console.log('onChange', arguments)
       this.$emit('input', this.items.length)
@@ -159,19 +167,19 @@ export default Vue.extend({
       }
     },
     currencyStyle(i: number) {
-      const center = Math.ceil(this.originalValue / 2);
+      const center = Math.ceil(this.value / 2);
       let transform = `translate(${this.xOffset * (i - center)}px, ${
         this.yOffset * (center - i)
-      }px)`;
+      }px)`
       if (this.rotate) {
-        transform += ` rotate(${this.rotate}deg)`;
+        transform += ` rotate(${this.rotate}deg)`
       }
       return {
-        transform,
-      };
-    },
-  },
-});
+        transform
+      }
+    }
+  }
+})
 </script>
 
 <style lang="sass">

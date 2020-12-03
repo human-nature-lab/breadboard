@@ -35,6 +35,10 @@
       rotate: Number,
       xOffset: Number,
       yOffset: Number,
+      width: {
+        type: String,
+        default: '60%'
+      },
       showValue: {
         type: Boolean,
         default: true
@@ -52,13 +56,13 @@
       bills (): number {
         return Math.floor(this.value)
       },
-      currencyStyle () {
+      currencyStyle (): object {
         let transform = ''
         if (this.rotate) {
           transform += ` rotate(${this.rotate}deg)`
         }
         return {
-          width: '80%',
+          width: this.width,
           transform
         }
       }
@@ -68,7 +72,7 @@
 
 <style lang="sass" scoped>
   .label
-    top: -50%
+    // top: -50%
     margin-left: -8px
   .grab
     cursor: grab

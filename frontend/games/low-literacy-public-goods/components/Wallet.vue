@@ -9,7 +9,7 @@
     :locked="closed">
     <template v-slot:item>
       <Currency 
-        style="width: 70%; transform: translate(0, 50%) rotate(75deg)" 
+        style="width: 70%; transform: translate(0, -40%) rotate(75deg)" 
         :class="closed ? '' : 'hover:opacity-75 grab'"
         />
     </template>

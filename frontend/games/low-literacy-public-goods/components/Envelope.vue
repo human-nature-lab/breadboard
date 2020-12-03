@@ -6,7 +6,7 @@
     @input="$emit('input', $event)">
     <template v-slot:item>
       <Currency
-        style="width: 75%; transform: translate(15%, 130%)"
+        style="width: 75%; transform: translate(15%, 30%)"
         :class="closed ? '' : 'hover:opacity-75 grab'"
         />
     </template>
