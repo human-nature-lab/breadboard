@@ -81,12 +81,12 @@
         The game has finished!
       </div>
     </div>
-    <div v-if="showDialog" class="absolute top-0 left-0 w-screen h-screen bg-white">
+    <div v-if="showDialog" class="absolute top-0 left-0 w-screen h-screen bg-white z-20">
       <div class="absolute text-center text-3xl w-64 h-32 top-0 left-0 bottom-0 right-0 m-auto pt-12">
         Proxima Ronda
       </div>
     </div>
-    <PortalTarget name="game" multiple />
+    <PortalTarget class="z-10" name="game" multiple />
   </Fullscreen>
 </template>
 
