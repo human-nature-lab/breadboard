@@ -140,7 +140,7 @@
         return this.player.players.findIndex((p: any) => !p.groupId && p.active) === -1
       },
       canContinue (): boolean {
-        const allPlayersComplete = this.player && this.player.players && this.player.players.filter((p: any) => p.step === 'PostDecision').length === this.player.players.length
+        const allPlayersComplete = this.player && this.player.players && this.player.players.filter((p: any) => p.step === 'PostDecision' || !p.active).length === this.player.players.length
         if (this.player.step === 'Decision' && allPlayersComplete) {
           return true
         } else {
