@@ -29,6 +29,10 @@
     props: {
       value: Number,
       envelope: Boolean,
+      closed: {
+        type: Boolean,
+        default: true
+      },
       boxLoc: Object as PropOptions<Transform>,
       boxOffset: Object as PropOptions<Transform>,
       transform: Object as PropOptions<Transform>,

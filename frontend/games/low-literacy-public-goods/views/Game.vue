@@ -197,7 +197,7 @@
           setTimeout(() => {
             this.showMyEnvelope = false
             this.flags.isEnvelope = true
-          }, 2000)
+          }, 1500)
         }
         this.flags = cloneDeep(steps[newStep].flags)
         this.transforms = cloneDeep(steps[newStep].transforms)
