@@ -153,7 +153,7 @@
         this.transforms = cloneDeep(steps[player.step].transforms)
         if (player.step === Step.Decision) {
           this.resetDecision(player)
-        } else if (player.step === Step.Distributing) {
+        } else if (player.step === Step.Distributing || player.step === Step.PostDecision) {
           this.showMyEnvelope = true
         }
       },
@@ -190,15 +190,16 @@
         } else if (newStep === Step.Distributed) {
           this.flags.doubleBox = true
           await delay(2500)
-          this.flags = cloneDeep(steps[this.player.step].flags)
+          this.flags = cloneDeep(steps[newStep].flags)
           this.showMyEnvelope = true
           await delay(3500)
           this.flags.showBoxValue = false
           setTimeout(() => {
             this.showMyEnvelope = false
-          }, 2500)
+            this.flags.isEnvelope = true
+          }, 2000)
         }
-        this.flags = cloneDeep(steps[this.player.step].flags)
+        this.flags = cloneDeep(steps[newStep].flags)
         this.transforms = cloneDeep(steps[newStep].transforms)
       },
       boxOffset (index: number) {

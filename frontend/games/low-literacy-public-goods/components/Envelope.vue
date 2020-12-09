@@ -2,6 +2,7 @@
   <CurrencyDropZone
     :value="value"
     :locked="closed"
+    :visible="!closed"
     group="envelope"
     @input="$emit('input', $event)">
     <template v-slot:item>

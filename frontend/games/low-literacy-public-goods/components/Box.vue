@@ -65,7 +65,7 @@
   $dur: 1s
   .grow
     transition: all $dur
-    transform: scale(2)
+    transform: scale(1.5)
     // transform-origin: 50% 100%
   .drop-enter-active, .drop-leave-active
     transition: all $dur

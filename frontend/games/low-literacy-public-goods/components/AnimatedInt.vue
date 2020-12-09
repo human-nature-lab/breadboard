@@ -23,15 +23,21 @@
     },
     data () {
       return {
-        tweenedValue: this.value
+        tweenedValue: this.value,
+        timeout: null as number | null
       }
     },
     watch: {
       value (newVal: number, oldVal: number) { 
         if (newVal !== oldVal) {
           if (this.delay) {
-            setTimeout(() => {
+            if (this.timeout) {
+              clearTimeout(this.timeout)
+              this.timeout = null
+            }
+            this.timeout = setTimeout(() => {
               this.setValue(newVal)
+              this.timeout = null
             }, this.delay)
           } else {
             this.setValue(newVal)
