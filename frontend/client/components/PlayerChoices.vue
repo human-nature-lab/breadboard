@@ -44,38 +44,8 @@ export default Vue.extend({
   },
   methods: {
     submit (choice: PlayerChoice) {
-      const params = this.getCustomParams()
-      window.Breadboard.sendChoice(choice.uid, params)
+      window.Breadboard.sendChoice(choice.uid)
       this.choicesAreEnabled = false
-    },
-    getCustomParams () {
-      const map: { [key: string]: any } = {}
-      const customInputs = Array.from(document.querySelectorAll('.param'))
-      for (const inp of customInputs) {
-        const name = inp.getAttribute('name')
-        if (name) {
-          const type = inp.getAttribute('type')
-          if (inp instanceof HTMLInputElement) {
-            if (type === 'checkbox') {
-              if (!map.hasOwnProperty(name)) {
-                map[name] = []
-              }
-              if (inp.checked!) {
-                map[name].push(inp.value)
-              }
-            } else {
-              map[name] = inp.value
-            }
-          } else if (inp instanceof HTMLTextAreaElement) {
-            map[name] = inp.value
-          } else {
-            console.log(`.param class isn't on an input field`, inp)
-          }
-        } else {
-          console.log('skipped field without a name', inp)
-        }
-      }
-      return map
     },
     /**
      * This filter allows to easily replace only certain choices and keep the other choices by default

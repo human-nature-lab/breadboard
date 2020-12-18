@@ -90,14 +90,46 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * @param uuid 
    * @param params 
    */
-  sendChoice (uuid: string, params?: SimpleMap<any>) {
+  sendChoice (uuid: string, params: SimpleMap<any> = {}) {
     const data: any = {
       choiceUID: uuid
     }
+    const customParams = this.getCustomParams()
+    params = Object.assign(params, customParams)
     if (params && typeof params !== 'string') {
       data.params = JSON.stringify(params)
     }
     return this.sendType(MAKE_CHOICE, data)
+  }
+
+  getCustomParams () {
+    const map: { [key: string]: any } = {}
+    const customInputs = Array.from(document.querySelectorAll('.param'))
+    for (const inp of customInputs) {
+      const name = inp.getAttribute('name')
+      if (name) {
+        const type = inp.getAttribute('type')
+        if (inp instanceof HTMLInputElement) {
+          if (type === 'checkbox') {
+            if (!map.hasOwnProperty(name)) {
+              map[name] = []
+            }
+            if (inp.checked!) {
+              map[name].push(inp.value)
+            }
+          } else {
+            map[name] = inp.value
+          }
+        } else if (inp instanceof HTMLTextAreaElement) {
+          map[name] = inp.value
+        } else {
+          console.log(`.param class isn't on an input field`, inp)
+        }
+      } else {
+        console.log('skipped field without a name', inp)
+      }
+    }
+    return map
   }
 
   /**
