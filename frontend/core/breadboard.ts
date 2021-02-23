@@ -251,7 +251,8 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
       vuetifyVersion: '2.3.7',
       mdiVersion: '5.4.55',
       useDev: false,
-      withVuetify: true
+      withVuetify: true,
+      withCore: true
     }, opts)
     console.log('config', config)
     this.addStyleFromURL('https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900')
@@ -262,22 +263,16 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
     }
     this.addStyleFromURL(`${config.assetsRoot}/bundles/vue-components.css`)
     await this.addScriptFromURL(`https://cdnjs.cloudflare.com/ajax/libs/vue/${opts.vueVersion}/vue.${opts.useDev ? 'common.dev.' : 'min.'}js`)
-    const deps = [this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)]
     if (opts.withVuetify) {
-      deps.push(this.addScriptFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.js`))
-    }
-    await Promise.all(deps)
-
-    const Vue = window.Vue
-    const Vuetify = window.Vuetify
-
-    // Register Vuetify components
-    Vue.use(Vuetify)
-
-    // Register all Breadboard components globally
-    for (const c of window.BreadboardVueComponents) {
-      console.log('Registering component', c.name, c)
-      Vue.component(c.name, c.component)
+      await this.addScriptFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.js`)
+      const Vue = window.Vue
+      const Vuetify = window.Vuetify
+  
+      // Register Vuetify components
+      Vue.use(Vuetify)
+      if (opts.withCore) {
+        await this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)
+      }
     }
   }
 

@@ -1,24 +1,43 @@
 const experimentId = 233
+const rootUrl = `/images/${experimentId}`
 export const images = {
   envelope: {
-    closed: `/images/${experimentId}/envelope-closed.png`,
-    openBack: `/images/${experimentId}/envelope-open-back.png`,
-    openFront: `/images/${experimentId}/envelope-open-front.png`
+    closed: `/envelope-closed.png`,
+    openBack: `/envelope-open-back.png`,
+    openFront: `/envelope-open-front.png`
   },
   box: {
-    back: `/images/${experimentId}/box-back.png`,
-    front: `/images/${experimentId}/box-front.png`,
-    closed: `/images/${experimentId}/box-closed.png`,
-    lid: `/images/${experimentId}/box-lid.png`
+    back: `/box-back.png`,
+    front: `/box-front.png`,
+    closed: `/box-closed.png`,
+    lid: `/box-lid.png`
   },
   currency: {
-    single: `/images/${experimentId}/lempira-front.png`,
-    stack: `/images/${experimentId}/lempira-front.png`
+    single: `/lempira-front.png`,
+    stack: `/lempira-front.png`
   },
   lock: {
-    open: `/images/${experimentId}/lock-open.png`,
-    closed: `/images/${experimentId}/lock-closed.png`
+    open: `/lock-open.png`,
+    closed: `/lock-closed.png`
   },
-  wallet: `/images/${experimentId}/wallet.png`,
-  person: `/images/${experimentId}/silhouette.png`
+  basket: {
+    back: `/basket-back.png`,
+    front: `/basket-front.png`
+  },
+  banana: `/banana.png`,
+  wallet: `/wallet.png`,
+  person: `/silhouette.png`
 }
+
+function expandImageUrls(obj: any) {
+  for (const key in obj) {
+    if (typeof obj[key] === 'object') {
+      expandImageUrls(obj[key])
+    } else {
+      obj[key] = rootUrl + obj[key]
+    }
+  }
+}
+
+expandImageUrls(images)
+console.log('images', images)

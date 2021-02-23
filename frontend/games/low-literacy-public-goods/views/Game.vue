@@ -140,7 +140,6 @@
         if (this.isLoading) {
           this.initDecisionStep(player)
           this.isLoading = false
-          return
         } else if (player.step !== oldPlayer.step) {
           this.transitionStep(oldPlayer.step, player.step)
         }

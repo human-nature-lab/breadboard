@@ -32,7 +32,8 @@ module.exports = merge(Object.create(config), {
     breadboard: './core/breadboard.ts',
     design: './design/design.js',
     'client-angular': './design/client.js',
-    graph: './client/lib/graph.ts'
+    graph: './client/lib/graph.ts',
+    'games/llpg': './games/low-literacy-public-goods/index.ts'
   },
   output: {
     path: config.output.path,
