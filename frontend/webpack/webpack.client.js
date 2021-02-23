@@ -33,7 +33,9 @@ module.exports = merge(Object.create(config), {
     design: './design/design.js',
     'client-angular': './design/client.js',
     graph: './client/lib/graph.ts',
-    'games/llpg': './games/low-literacy-public-goods/index.ts'
+    'games/llpg': './games/low-literacy-public-goods/index.ts',
+    'games/crossword': './games/crossword/index.ts',
+    'games/chat': './games/chat/index.ts'
   },
   output: {
     path: config.output.path,

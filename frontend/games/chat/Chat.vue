@@ -56,7 +56,7 @@
 <script lang="ts"> 
   import Vue from 'vue'
   import { Message, ChatState } from './chat.types'
-  import { PlayerData } from '../../../core/breadboard.types'
+  import { PlayerData } from '../../core/breadboard.types'
 
   export default Vue.extend({
     props: {

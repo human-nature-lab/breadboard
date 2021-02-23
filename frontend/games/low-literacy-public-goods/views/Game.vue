@@ -4,6 +4,9 @@
       <div v-if="isLoading || player.step === 'Loading'" class="absolute text-center text-3xl w-64 h-64 top-0 left-0 bottom-0 right-0 m-auto">
         Please wait for the game to begin
       </div>
+      <div v-else-if="player.step === 'Practice'" class="relative h-full w-full">
+        <Practice />
+      </div>
       <div v-else-if="player.step !== 'Complete'" class="relative w-full h-full">
         <Transform class="w-64 h-64 top-0" :transform="transforms.box" :visible="flags.showBox">
           <Box
@@ -94,13 +97,13 @@
   import Vue, { PropOptions } from 'vue'
   import { PortalTarget } from 'portal-vue'
   import Fullscreen from '../components/Fullscreen.vue'
-  import gsap from 'gsap'
   import { boxLayout } from '../boxLayout'
   import { cloneDeep } from 'lodash'
   import { Step, steps } from '../steps'
   import { delay } from '../../../core/delay'
   import { Node } from '../../../core/breadboard.types'
   import { Graph } from '../../../client/lib/graph'
+  import Practice from './Practice.vue'
 
   type Player = {
     step: Step
@@ -112,7 +115,7 @@
 
   export default Vue.extend({
     name: 'Game',
-    components: { Fullscreen, PortalTarget },
+    components: { Fullscreen, PortalTarget, Practice },
     props: {
       player: Object,
       graph: Object as PropOptions<Graph>

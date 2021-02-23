@@ -54,7 +54,7 @@
 </template>
 
 <script lang="ts">
-  import Vue, { VueConstructor } from 'vue'
+  import Vue from 'vue'
   import { Clue, DIRECTION, Label, Position } from './crossword.types'
 
   export default Vue.extend({
