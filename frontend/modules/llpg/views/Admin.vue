@@ -127,6 +127,16 @@
       },
       reload () {
         window.Breadboard.sendType('ReloadEngine', { uid: '' })
+      },
+      allPlayersInStep (step: string): boolean {
+        for (const player of this.player.players) {
+          if (player.active) {
+            if (player.step !== step) {
+              return false
+            }
+          }
+        }
+        return true
       }
     },
     computed: {
@@ -140,8 +150,7 @@
         return this.player.players.findIndex((p: any) => !p.groupId && p.active) === -1
       },
       canContinue (): boolean {
-        const allPlayersComplete = this.player && this.player.players && this.player.players.filter((p: any) => p.step === 'PostDecision' || !p.active).length === this.player.players.length
-        if (this.player.step === 'Decision' && allPlayersComplete) {
+        if (this.player.step === 'Decision' && this.allPlayersInStep('PostDecision') || this.allPlayersInStep('PracticeComplete')) {
           return true
         } else {
           return ['Distributing', 'Distributed'].includes(this.player.step)

@@ -12,8 +12,11 @@
     ...Object.values(images.box),
     ...Object.values(images.currency),
     ...Object.values(images.lock),
+    ...Object.values(images.basket),
     images.person,
-    images.wallet
+    images.wallet,
+    images.banana,
+    images.corn
   ])
 
   export default Vue.extend({

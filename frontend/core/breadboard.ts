@@ -275,6 +275,23 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
       }
     }
   }
+  
+  /**
+   * Load one or more modules using their names
+   *
+   * @param {...string[]} names
+   * @returns {Promise<void>}
+   * @memberof BreadboardClass
+   */
+  async loadModules (...names: string[]): Promise<void> {
+    const config = await this.loadConfig()
+    if (!this.config) throw Error('Must load Breadboard ')
+    const mods = []
+    for (const name of names) {
+      mods.push(this.addScriptFromURL(`${config.assetsRoot}/bundles/modules/${name}.js`))
+    }
+    await Promise.all(mods)
+  }
 
   /**
    * Create default Vue instance

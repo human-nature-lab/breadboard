@@ -88,7 +88,7 @@ events.on(CUSTOM_EVENT, { Map params, Map clientData ->
     if (PLAYER_ID_PROP in params && PLAYER_ACTION_PROP in params) {
       def playerId = params[PLAYER_ID_PROP]
       if (clientData.clientId != playerId) {
-        println "Hacking attempt thwarted! Player " + clientData.clientId + " trying to impersonate " + playerId
+        println "Hacking attempt thwarted! Player " + clientData.clientId + " tried to impersonate " + playerId
         return
       }
       def player = g.getVertex(playerId)

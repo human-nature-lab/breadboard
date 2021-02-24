@@ -1,11 +1,11 @@
 <template>
   <Fullscreen>
     <div class="relative w-full h-full">
-      <div v-if="isLoading || player.step === 'Loading'" class="absolute text-center text-3xl w-64 h-64 top-0 left-0 bottom-0 right-0 m-auto">
-        Please wait for the game to begin
-      </div>
-      <div v-else-if="player.step === 'Practice'" class="relative h-full w-full">
+      <div v-if="player.step === 'Practice'" class="relative h-full w-full">
         <Practice />
+      </div>
+      <div v-else-if="isLoading || ['Loading', 'PracticeComplete'].includes(player.step)" class="absolute text-center text-3xl w-64 h-64 top-0 left-0 bottom-0 right-0 m-auto">
+        Please wait for the game to begin
       </div>
       <div v-else-if="player.step !== 'Complete'" class="relative w-full h-full">
         <Transform class="w-64 h-64 top-0" :transform="transforms.box" :visible="flags.showBox">
@@ -140,6 +140,7 @@
     },
     watch: {
       player (player: any, oldPlayer: any) {
+        if (player.step === "Practice") return
         if (this.isLoading) {
           this.initDecisionStep(player)
           this.isLoading = false
