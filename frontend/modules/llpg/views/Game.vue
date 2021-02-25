@@ -223,8 +223,8 @@
         let startAngle = Math.PI / 2 + dA
         return this.partners.map((n: any, i: number) => {
           const angle = startAngle + dA * i
-          const x = 50 * Math.cos(angle) + 50
-          const y = 50 * Math.sin(angle) + 65
+          const x = 45 * Math.cos(angle) + 50
+          const y = 45 * Math.sin(angle) + 50
           return { x, y, i, id: n.id }
         })
       },
