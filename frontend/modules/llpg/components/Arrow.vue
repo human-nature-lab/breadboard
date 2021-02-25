@@ -11,8 +11,8 @@
     <image
       v-if="image"
       :href="image"
-      :x="center.x + imageOffset"
-      :y="center.y"
+      :x="center.x + imageOffsetX"
+      :y="center.y + imageOffsetY"
       width="75"
       height="75" />
   </g>
@@ -38,7 +38,11 @@
       },
       length: Number,
       image: String,
-      imageOffset: {
+      imageOffsetX: {
+        type: Number,
+        default: 0
+      },
+      imageOffsetY: {
         type: Number,
         default: 0
       }

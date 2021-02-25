@@ -26,7 +26,10 @@ export const images = {
   },
   corn: '/corn.png',
   banana: '/banana.png',
-  wallet: '/wallet.png',
+  wallet: {
+    open: '/wallet-open.png',
+    closed: '/wallet-closed.png'
+  },
   person: '/silhouette.png'
 }
 

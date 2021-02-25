@@ -199,6 +199,7 @@
           this.flags.showBoxValue = false
           setTimeout(() => {
             this.showMyEnvelope = false
+            this.flags.showPlayerItems = false
             this.flags.isEnvelope = true
           }, 1500)
         }

@@ -3,8 +3,8 @@
     <!-- <canvas ref="canvas" class="absolute w-full h-full z-10 select-none pointer-events-none" /> -->
     <svg class="absolute w-full h-full top-0 left-0 z-10 select-none pointer-events-none" xmlns="http://www.w3.org/2000/svg" :viewBox="`0 0 ${width} ${height}`">
       <defs>
-        <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="0" refY="3.5" orient="auto">
-          <polygon points="0 0, 10 3.5, 0 7" />
+        <marker id="arrowhead" markerWidth="8" markerHeight="5" refX="6" refY="2.5" orient="auto">
+          <polygon points="0 0, 8 2.5, 0 5" />
         </marker>
       </defs>
       <g v-if="step === 'sort'">
@@ -12,13 +12,13 @@
           :from="refToPoint('basketOne')" 
           :to="refToPoint('basketTwo')"
           :image="images.banana"
-          :imageOffset="-100"
+          :imageOffsetX="-100"
           :length=".4" />
         <Arrow 
           :from="refToPoint('basketOne')" 
           :to="refToPoint('basketThree')"
           :image="images.corn"
-          :imageOffset="50"
+          :imageOffsetX="50"
           :length=".4" />
       </g>
       <g v-else-if="step === 'return corn'">
@@ -26,7 +26,7 @@
           :from="refToPoint('basketThree')" 
           :to="refToPoint('basketOne')"
           :image="images.corn"
-          :imageOffset="50"
+          :imageOffsetX="50"
           :length=".4" />
       </g>
       <g v-else>
@@ -34,6 +34,8 @@
           :from="refToPoint('basketTwo')" 
           :to="refToPoint('basketThree')"
           :image="images.banana"
+          :imageOffsetY="-100"
+          :imageOffsetX="-50"
           :length=".2" />
       </g>
     </svg>
@@ -75,13 +77,14 @@
     data () {
       return {
         images,
+        isMounted: false,
         step: 'sort',
-        basketSize: .5,
-        basketOne: rangeArr(0, count * 2).map(i => ({ id: i, type: i % 2 === 0 ? 'banana' : 'corn' })),
+        basketSize: .4,
+        basketOne: rangeArr(0, count * 2).map(i => ({ id: i, type: i < 3 ? 'banana' : 'corn' })),
         basketTwo: [],
         basketThree: [],
         transforms: {
-          basketOne: { x: 20, y: 70 },
+          basketOne: { x: 25, y: 70 },
           basketTwo: { x: 0, y: 10 },
           basketThree: { x: 50, y: 10}
         },
@@ -94,6 +97,7 @@
       // this.ctx = this.$refs.canvas.getContext('2d')
       window.addEventListener('resize', this.onResize)
       setTimeout(this.onResize, 1000)
+      this.isMounted = true
       // this.$nextTick(this.onResize)
     },
     beforeDestroy () {
@@ -118,9 +122,13 @@
         }
       },
       refToPoint (ref: string): Point {
-        if (this.$refs[ref]) {
+        if (!this.isMounted) return { x: 0, y: 0 }
+        const r = this.$refs[ref]
+        if (r instanceof Vue) {
           // @ts-ignore
-          return elementCenterPoint(this.$refs[ref].$el)
+          return elementCenterPoint(r.$el)
+        } else if (r instanceof Element) {
+          return elementCenterPoint(r as HTMLElement)
         }
         return { x: 0, y: 0 }
       },

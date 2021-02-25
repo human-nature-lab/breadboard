@@ -12,10 +12,10 @@
         draggable=".basket-item"
         @input="onInput">
         <CanvasImage
-          v-for="(item, i) in value"
+          v-for="item in value"
           :key="item.id"
           class="basket-item"
-          :style="{ marginTop: i % 2 ? '15%' : 0 }"
+          :style="{ marginTop: item.id % 2 ? '5%' : 0 }"
           :src="item.type === 'corn' ? images.corn : images.banana" />
       </draggable>
     </div>
@@ -64,12 +64,13 @@
     display: flex
     width: 100%
     height: 100%
-    padding-left: 30%
-    padding-right: 30%
+    padding-left: 28%
+    padding-right: 28%
     flex-flow: row nowrap
     align-items: flex-start
+    margin-top: -40px
     .basket-item
       display: flex
-      width: 50%
-      margin-left: -30%
+      width: 33%
+      margin-left: -15%
 </style>

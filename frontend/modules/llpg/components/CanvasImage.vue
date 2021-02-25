@@ -13,8 +13,8 @@
     ...Object.values(images.currency),
     ...Object.values(images.lock),
     ...Object.values(images.basket),
+    ...Object.values(images.wallet),
     images.person,
-    images.wallet,
     images.banana,
     images.corn
   ])
