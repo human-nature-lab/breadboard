@@ -12,6 +12,7 @@ export type Transform = {
   x: number
   y: number
   scale?: number
+  zIndex?: number
 }
 type StepState = {
   flags: {
@@ -46,10 +47,10 @@ const Decision: StepState = {
     showBoxValue: false
   },
   transforms: {
-    box: { x: 40, y: 40, scale: 1 },
-    contributing: { x: 10, y: 0, scale: .75 },
-    keeping: { x: 60, y: 0, scale: .75 },
-    pending: { x: 40, y: 40 }
+    box: { x: 50, y: 50, scale: 1 },
+    contributing: { x: 25, y: 20, scale: .75 },
+    keeping: { x: 75, y: 25, scale: .75 },
+    pending: { x: 50, y: 60 }
   }
 }
 
@@ -68,7 +69,7 @@ const PostDecision: StepState = {
   transforms: {
     ...Decision.transforms,
     contributing: { ...Decision.transforms.box, scale: .3 },
-    keeping: { x: 60, y: 75, scale: .5 }
+    keeping: { x: 67, y: 93, scale: .5 }
   }
 }
 

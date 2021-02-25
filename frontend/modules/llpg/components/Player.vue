@@ -8,26 +8,18 @@
         group="other player envelope"
         :transform="transform"
         :boxLoc="boxLoc"
-        :boxOffset="boxOffset"
+        :boxOffset="itemInBox ? boxOffset : { x: 50, y: 50 }"
         :itemInBox="itemInBox"
         :visible="showItem"
         :locked="locked"
         />
-<!--       <Transform ref="item" class="absolute top-0 left-0" :transform="envelopeTransform" :visible="showItem" v-if="hasItem">
-        <div class="absolute w-32 h-32" :style="{transform: `translate(${boxOffset.x}px, ${boxOffset.y}px)`, zIndex: boxOffset.zIndex}">
-          <Envelope closed v-if="envelope" />
-          <MoneyStack v-else :value="value" :locked="true" />
-        </div>
-      </Transform> -->
     </div>
   </Transform>
 </template>
 
 <script lang="ts">
   import Vue, { PropOptions } from 'vue'
-  import gsap from 'gsap'
   import { images } from '../images'
-  import { delay } from '../../../core/delay'
   import { Transform } from '../steps'
 
   export default Vue.extend({
@@ -57,10 +49,7 @@
         type: Object,
         required: true
       } as PropOptions<{ x: number, y: number }>,
-      boxOffset: {
-        type: Object,
-        required: true
-      } as PropOptions<Transform>,
+      boxOffset: Object as PropOptions<Transform>,
       value: Number,
       locked: Boolean
     },

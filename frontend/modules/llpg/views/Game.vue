@@ -37,7 +37,7 @@
             :showItem="flags.showPlayerItems"
             :itemInBox="partners[i].data.hasContributed"
             :value="player.groupPayout"
-            :boxOffset="boxOffset(i + 1)"
+            :boxOffset="boxOffsets[i + 1]"
             :boxLoc="transforms.box"
             :transform="loc" />
         </transition>
@@ -46,13 +46,12 @@
           :itemInBox="player.hasContributed"
           :value="player.groupPayout"
           :showItem="false"
-          :boxOffset="boxOffset(0)"
           :boxLoc="transforms.box"
           :transform="playerLoc"
           :locked="false" />
         <PlayerEnvelope
           :value="player.groupPayout"
-          :boxOffset="boxOffset(0)"
+          :boxOffset="boxOffsets[0]"
           :boxLoc="transforms.box"
           group="player envelope"
           :transform="{ y: transforms.keeping.y, x: transforms.keeping.x + 7 }"
@@ -104,6 +103,7 @@
   import { Node } from '../../../core/breadboard.types'
   import { Graph } from '../../../client/lib/graph'
   import Practice from './Practice.vue'
+  import { random, randomInt } from 'goodish'
 
   type Player = {
     step: Step
@@ -132,8 +132,8 @@
         showDialog: false,
         flags: steps.Decision.flags,
         playerLoc: {
-          x: 45,
-          y: 80
+          x: 50,
+          y: 90
         },
         transforms: cloneDeep(steps.Decision.transforms)
       }
@@ -223,9 +223,20 @@
         let startAngle = Math.PI / 2 + dA
         return this.partners.map((n: any, i: number) => {
           const angle = startAngle + dA * i
-          const x = 40 * Math.cos(angle) + 45
-          const y = 40 * Math.sin(angle) + 50
+          const x = 50 * Math.cos(angle) + 50
+          const y = 50 * Math.sin(angle) + 65
           return { x, y, i, id: n.id }
+        })
+      },
+      boxOffsets (): { x: number, y: number }[] {
+        const base = { x: -100, y: -50 }
+        const gapSize = 30 
+        const jitter = 15
+        return this.graph.nodes.map((_, i: number) => {
+          return {
+            x: base.x + i * gapSize + randomInt(-jitter, jitter),
+            y: base.y + randomInt(-jitter, jitter)
+          }
         })
       },
       playerLocations (): { x: number, y: number }[] {

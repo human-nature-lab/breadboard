@@ -67,10 +67,10 @@
         if (this.$refs.canvas && this.image) {
           const canv = this.$refs.canvas as HTMLCanvasElement
           const ctx = canv!.getContext('2d')
-          canv!.width = this.image!.width
-          canv!.height = this.image!.height
+          canv!.width = this.image!.width + 2
+          canv!.height = this.image!.height + 2
           ctx!.clearRect(0, 0, canv.width, canv.height)
-          ctx!.drawImage(this.image!, 0, 0)
+          ctx!.drawImage(this.image!, 1, 1)
         }
       },
       drawError (err: Error) {

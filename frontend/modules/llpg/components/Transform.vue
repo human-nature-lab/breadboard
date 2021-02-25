@@ -17,21 +17,37 @@
         type: Boolean,
         default: true
       },
+      right: {
+        type: Boolean,
+        default: false
+      },
+      bottom: {
+        type: Boolean,
+        default: false
+      },
       rotate: Number,
       origin: String
     },
     computed: {
-      style () {
+      style (): object {
         const t = Object.assign({}, this.transform)
         const style: any = {
-          transform: '',
+          transform: 'translate(-50%, -50%)'
         }
         if (t.x !== undefined) {
-          style.transform += ` translateX(${t.x}vw)`
+          if (this.right) {
+            style.right = `${t.x}vw`
+          } else {
+            style.left = `${t.x}vw`
+          }
           delete t.x
         }
         if (t.y !== undefined) {
-          style.transform += ` translateY(${t.y}vh)`
+          if (this.bottom) {
+            style.bottom = `${t.y}vh`
+          } else {
+            style.top = `${t.y}vh`
+          }
           delete t.y
         }
         if (t.scale) {
@@ -60,5 +76,4 @@
     opacity: 0
   .trans
     transition: all 1s
-    transform-origin: center
 </style>

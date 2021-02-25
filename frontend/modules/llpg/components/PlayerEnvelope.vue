@@ -1,7 +1,7 @@
 <template>
   <Portal to="game">
     <Transform class="absolute top-0 left-0" :transform="envelopeTransform" :visible="visible">
-      <div v-show="visible" class="absolute w-32 h-32" :style="{transform: `translate(${boxOffset.x}px, ${boxOffset.y}px)`, zIndex: boxOffset.zIndex}">
+      <div v-show="visible" class="w-32 h-32" :style="style">
         <Envelope closed v-if="envelope" :value="0" />
         <MoneyStack 
           v-else
@@ -76,6 +76,13 @@
     computed: {
       envelopeTransform (): Transform {
         return this.inBox ? { ...this.boxLoc, scale: .5 } : { x: this.transform.x, y: this.transform.y, scale: .5 }
+      },
+      style (): object {
+        if (!this.boxOffset) return {}
+        return {
+          transform: `translate(${this.boxOffset.x}px, ${this.boxOffset.y}px)`,
+          zIndex: this.boxOffset.zIndex
+        }
       }
     },
     methods: {

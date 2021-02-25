@@ -84,9 +84,9 @@
         basketTwo: [],
         basketThree: [],
         transforms: {
-          basketOne: { x: 25, y: 70 },
-          basketTwo: { x: 0, y: 10 },
-          basketThree: { x: 50, y: 10}
+          basketOne: { x: 50, y: 80 },
+          basketTwo: { x: 25, y: 25 },
+          basketThree: { x: 75, y: 25}
         },
         width: window.innerWidth,
         height: window.innerHeight
