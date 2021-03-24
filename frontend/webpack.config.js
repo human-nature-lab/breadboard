@@ -36,7 +36,7 @@ module.exports = {
   output: {
     path: buildPath,
     publicPath: publicPath,
-    chunkFilename: '[name].[contenthash].js',
+    chunkFilename: '[name].js',
     clean: true
   },
   mode: isProd ? 'production' : 'development',
