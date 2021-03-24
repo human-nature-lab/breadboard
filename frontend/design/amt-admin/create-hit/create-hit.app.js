@@ -1,6 +1,6 @@
 import './create-hit.service';
 import './create-hit.directive';
-import './create-hit.style.css';
+import './create-hit.style.scss';
 import 'jquery';
 import 'bootstrap';
 import './select-qualifications/select-qualifications.directive'

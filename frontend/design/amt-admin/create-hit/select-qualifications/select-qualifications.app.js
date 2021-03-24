@@ -1,6 +1,6 @@
 import './select-qualifications.service';
 import './select-qualifications.directive';
-import './select-qualifications.style.css';
+import './select-qualifications.style.scss';
 import 'jquery';
 import 'bootstrap';
 import '../../manage-qualifications/manage-qualifications.service'

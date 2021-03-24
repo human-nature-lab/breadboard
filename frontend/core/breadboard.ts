@@ -254,26 +254,21 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
       withVuetify: true,
       withCore: true
     }, opts)
-    console.log('config', config)
-    this.addStyleFromURL('https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900')
+    // this.addStyleFromURL('https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900')
     this.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`)
     if (opts.withVuetify) {
-      this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/@mdi/font@${opts.mdiVersion}/css/materialdesignicons.min.css`)
-      this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.min.css`)
+      // this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/@mdi/font@${opts.mdiVersion}/css/materialdesignicons.min.css`)
+      // this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.min.css`)
     }
+    await import(/* webpackChunkName: "vue-components" */'../client/vue-components')
+    // await this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)
     this.addStyleFromURL(`${config.assetsRoot}/bundles/vue-components.css`)
-    await this.addScriptFromURL(`https://cdnjs.cloudflare.com/ajax/libs/vue/${opts.vueVersion}/vue.${opts.useDev ? 'common.dev.' : 'min.'}js`)
-    if (opts.withVuetify) {
-      await this.addScriptFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.js`)
-      const Vue = window.Vue
-      const Vuetify = window.Vuetify
-  
-      // Register Vuetify components
-      Vue.use(Vuetify)
-      if (opts.withCore) {
-        await this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)
-      }
-    }
+    // await this.addScriptFromURL(`https://cdnjs.cloudflare.com/ajax/libs/vue/${opts.vueVersion}/vue.${opts.useDev ? 'common.dev.' : 'min.'}js`)
+    const Vue = window.Vue
+    const Vuetify = window.Vuetify
+
+    // Register Vuetify components
+    Vue.use(Vuetify)
   }
   
   /**
@@ -286,9 +281,21 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
   async loadModules (...names: string[]): Promise<void> {
     const config = await this.loadConfig()
     if (!this.config) throw Error('Must load Breadboard ')
-    const mods = []
+    const mods: PromiseLike<any>[] = []
     for (const name of names) {
-      mods.push(this.addScriptFromURL(`${config.assetsRoot}/bundles/modules/${name}.js`))
+      switch (name) {
+        case 'llpg':
+          mods.push(import(/* webpackChunkName: "llpg" */'../modules/llpg'))
+          break
+        case 'chat':
+          mods.push(import(/* webpackChunkName: "chat" */'../modules/chat'))
+          break
+        case 'crossword':
+          mods.push(import(/* webpackChunkName: "crossword" */'../modules/crossword'))
+          break
+      }
+      // mods.push(this.addScriptFromURL(`${config.assetsRoot}/bundles/modules/${name}.js`))
+      // mods.push(this.addStyleFromURL(`${config.assetsRoot}/bundles/modules/${name}.css`).catch(err => console.log(err)))
     }
     await Promise.all(mods)
   }
@@ -392,4 +399,6 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
   }
 }
 
-window.Breadboard = new BreadboardClass()
+
+export const Breadboard = new BreadboardClass()
+window.Breadboard = Breadboard

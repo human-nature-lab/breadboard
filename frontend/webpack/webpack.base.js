@@ -55,10 +55,7 @@ module.exports = {
           appendTsSuffixTo: [/\.vue$/]
         },
       }],
-      exclude: {
-        include: /node_modules/,
-        exclude: /(goodish|gremlins-ts)/
-      }
+      exclude: /(goodish|gremlins-ts)/
     },  {
       test: /\.js$/,
       use: {
@@ -89,7 +86,10 @@ module.exports = {
     }]
   },
   resolve: {
-    extensions: ['.js','.json','.css','.html', '.jsx', '.ts', '.tsx', '.vue']
+    extensions: ['.js','.json','.css','.html', '.jsx', '.ts', '.tsx', '.vue'],
+    // alias: {
+    //   'vue$': 'vue/dist/vue.esm.js' // 'vue/dist/vue.common.js' for webpack 1
+    // }
   },
   plugins: plugins
 }

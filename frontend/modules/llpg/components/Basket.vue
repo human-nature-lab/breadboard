@@ -11,11 +11,11 @@
         :sort="false"
         draggable=".basket-item"
         @input="onInput">
-        <CanvasImage
-          v-for="item in value"
-          :key="item.id"
+        <img 
           class="basket-item"
+          v-for="item in value"
           :style="{ marginTop: item.id % 2 ? '5%' : 0 }"
+          :key="item.id"
           :src="item.type === 'corn' ? images.corn : images.banana" />
       </draggable>
     </div>
@@ -71,6 +71,6 @@
     margin-top: -40px
     .basket-item
       display: flex
-      width: 33%
+      width: 35%
       margin-left: -15%
 </style>

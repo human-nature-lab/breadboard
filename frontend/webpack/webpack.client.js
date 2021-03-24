@@ -1,53 +1,155 @@
-const merge = require('webpack-merge');
-const config = require('./webpack.base.js');
+'use strict'
+const webpack = require('webpack')
+const path = require('path')
+const VueLoaderPlugin = require('vue-loader/lib/plugin')
+const MiniCssExtractPlugin = require('mini-css-extract-plugin')
+const buildPath = path.resolve(__dirname, '../../public/bundles/')
 
-function recursiveIssuer(m) {
-  if (m.issuer) {
-    return recursiveIssuer(m.issuer);
-  } else if (m.name) {
-    return m.name;
-  } else {
-    return false;
-  }
+const isProd = process.env.NODE_ENV === 'production'
+const publicPath = isProd ? '/bundles/' : `http://localhost:${PORT}/bundles/`
+const plugins =  [
+  new webpack.ContextReplacementPlugin(
+    /angular(\\|\/)core(\\|\/)@angular/,
+    path.resolve(__dirname, './design')
+  ),
+  new VueLoaderPlugin()
+]
+if (isProd) {
+  plugins.push(new MiniCssExtractPlugin({
+    filename: '[name].css',
+  }))
 }
-
-const cacheGroups = ['client', 'vue-components', 'breadboard', 'design'].reduce(
-  (map, entry) => {
-    map[entry + 'Styles'] = {
-      name: entry,
-      test: (m, c) =>
-        m.constructor.name === 'CssModule' && recursiveIssuer(m) === entry,
-      chunks: 'all',
-      enforce: false
-    };
-    return map;
-  },
-  {}
-);
-
-module.exports = merge(Object.create(config), {
+const PORT = 8765
+module.exports = {
   entry: {
     client: './client/client.ts',
-    'vue-components': './client/vue-components.ts',
-    breadboard: './core/breadboard.ts',
+    // breadboard: './core/breadboard.ts',
     design: './design/design.js',
-    'client-angular': './design/client.js',
-    graph: './client/lib/graph.ts',
-    'modules/llpg': './modules/llpg/index.ts',
-    'modules/crossword': './modules/crossword/index.ts',
-    'modules/chat': './modules/chat/index.ts'
+    // 'client-angular': './design/client.js',
+    // vue: ['vue', 'vuetify'],
+    // 'vue-components': {
+    //   import: './client/vue-components.ts',
+    //   dependOn: 'vue'
+    // },
+    // graph: './client/lib/graph.ts'
   },
   output: {
-    path: config.output.path,
-    publicPath: config.output.publicPath,
-    filename: '[name].js'
+    path: buildPath,
+    publicPath: publicPath,
+    chunkFilename: '[name].js'
   },
-  externals: {
-    vue: 'Vue'
-  }
-  // optimization: {
-  //   splitChunks: {
-  //     cacheGroups: cacheGroups
-  //   }
+  mode: isProd ? 'production' : 'development',
+  devServer: {
+    port: PORT,
+    hot: true,
+    publicPath: `/bundles`,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'X-Requested-With, content-type, Authorization'
+    }
+  },
+  module: {
+    rules: [{
+      test: /\.vue$/,
+      loader: 'vue-loader'
+    }, {
+      test: /\.scss$/,
+      use: [
+        isProd ? MiniCssExtractPlugin.loader : 'vue-style-loader',
+        'css-loader',
+        {
+          loader: 'sass-loader',
+          options: {
+            implementation: require('sass')
+          }
+        }
+      ],
+      // exclude: /node_modules/,
+    }, {
+      test: /\.sass$/,
+      use: [
+        isProd ? MiniCssExtractPlugin.loader : 'vue-style-loader',
+        'css-loader',
+        {
+          loader: 'sass-loader',
+          options: {
+            implementation: require('sass'),
+            sassOptions: {
+              indentedSyntax: true
+            }
+          }
+        }
+      ],
+    }, {
+      test: /\.css$/,
+      use: ['style-loader', 'css-loader'],
+      // exclude: /node_modules/,
+    }, {
+      test: /\.tsx?$/,
+      use: [{
+        loader: 'ts-loader',
+        options: {
+          appendTsSuffixTo: [/\.vue$/]
+        },
+      }],
+      // exclude: /(goodish|gremlins-ts)/
+    },  {
+      test: /\.js$/,
+      use: {
+        loader: 'babel-loader',
+        options: {
+          presets: ['@babel/preset-env']
+        }
+      },
+      // exclude: {
+      //   include: /node_modules/,
+      //   exclude: /goodish/
+      // }
+    }, {
+      test: /\.html$/,
+      use: ['ngtemplate-loader?relativeTo=frontend&prefix=files', 'html-loader'],
+      exclude: /node_modules/,
+    }, {
+      test: /\.(jpg|png|gif|webp|tiff)$/,
+      use: 'url-loader',
+      exclude: /node_modules/,
+    }, {
+      test: /\.svg$/,
+      use: 'url-loader?limit=10000&mimetype=image/svg+xml',
+      exclude: /node_modules/,
+    }, {
+      test: /\.(eot|svg|ttf|woff|woff2)$/,
+      use: {
+        loader: 'file-loader',
+        options: {
+          publicPath: '/assets/bundles',
+          name: '[hash].[ext]'
+        }
+      }
+    }]
+  },
+  resolve: {
+    extensions: ['.js','.json','.css','.html', '.jsx', '.ts', '.tsx', '.vue'],
+    alias: {
+      'vue$': 'vue/dist/vue.esm.js' // 'vue/dist/vue.common.js' for webpack 1
+    }
+  },
+  // externals: {
+  //   vue: 'Vue'
   // }
-});
+  optimization: {
+    splitChunks: {
+      chunks: 'async',
+      cacheGroups: {
+        
+        vendor: {
+          test: /[\\/]node_modules[\\/]/,
+          name: 'vendors',
+          chunks: 'async',
+        },
+      }
+    }
+  },
+  plugins
+}

@@ -1,6 +1,6 @@
 import './manage-qualifications.service';
 import './manage-qualifications.directive';
-import './manage-qualifications.style.css';
+import './manage-qualifications.style.scss';
 import 'jquery';
 import 'bootstrap';
 

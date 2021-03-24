@@ -23,3 +23,6 @@ import 'codemirror/keymap/vim';
 import 'codemirror/keymap/sublime';
 import 'codemirror/keymap/emacs';
 import './design/app';
+import '../core/breadboard';
+import '../lib/ui-bootstrap/ui-bootstrap-tpls-0.11.0'
+import 'bootstrap/dist/css/bootstrap.css'

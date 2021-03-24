@@ -1,7 +1,6 @@
 import { BreadboardConfig } from '../core/breadboard.types'
 import './client.sass'
-
-const Breadboard = window.Breadboard
+import { Breadboard } from '../core/breadboard'
 
 async function client () {
   let config: BreadboardConfig

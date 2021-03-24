@@ -7,36 +7,24 @@
           <polygon points="0 0, 8 2.5, 0 5" />
         </marker>
       </defs>
-      <g v-if="step === 'sort'">
+      <g v-if="step === 'one'">
         <Arrow 
           :from="refToPoint('basketOne')" 
           :to="refToPoint('basketTwo')"
-          :image="images.banana"
-          :imageOffsetX="-100"
           :length=".4" />
-        <Arrow 
-          :from="refToPoint('basketOne')" 
-          :to="refToPoint('basketThree')"
-          :image="images.corn"
-          :imageOffsetX="50"
-          :length=".4" />
+
       </g>
-      <g v-else-if="step === 'return corn'">
-        <Arrow 
-          :from="refToPoint('basketThree')" 
-          :to="refToPoint('basketOne')"
-          :image="images.corn"
-          :imageOffsetX="50"
-          :length=".4" />
-      </g>
-      <g v-else>
+      <g v-else-if="step === 'two'">
         <Arrow 
           :from="refToPoint('basketTwo')" 
           :to="refToPoint('basketThree')"
-          :image="images.banana"
-          :imageOffsetY="-100"
-          :imageOffsetX="-50"
           :length=".2" />
+      </g>
+      <g v-else>
+        <Arrow 
+          :from="refToPoint('basketThree')" 
+          :to="refToPoint('basketOne')"
+          :length=".4" />
       </g>
     </svg>
     <Transform :transform="transforms.basketTwo">
@@ -70,7 +58,7 @@
   import { Point } from '../components/Arrow.vue'
   import { images } from '../images'
 
-  const count = 3
+  const count = 4
 
   export default Vue.extend({
     name: 'Practice',
@@ -78,9 +66,9 @@
       return {
         images,
         isMounted: false,
-        step: 'sort',
+        step: 'one',
         basketSize: .4,
-        basketOne: rangeArr(0, count * 2).map(i => ({ id: i, type: i < 3 ? 'banana' : 'corn' })),
+        basketOne: rangeArr(0, count).map(i => ({ id: i, type: 'banana' })),
         basketTwo: [],
         basketThree: [],
         transforms: {
@@ -113,11 +101,11 @@
       },
       onChange () {
         // TODO: Check if the current step is complete and move onto the next step
-        if (this.step === 'sort' && this.countType(this.basketThree, 'corn') === 3 && this.countType(this.basketTwo, 'banana') === 3) {
-          this.step = 'return corn'
-        } else if (this.step === 'return corn' && this.countType(this.basketOne, 'corn') === 3 && this.basketOne.length === 3) {
-          this.step = 'move bananas'
-        } else if (this.step === 'move bananas' && this.countType(this.basketThree, 'banana') === 3 && this.basketThree.length === 3) {
+        if (this.step === 'one' && this.countType(this.basketTwo, 'banana') === count) {
+          this.step = 'two'
+        } else if (this.step === 'two' && this.countType(this.basketThree, 'banana') === count) {
+          this.step = 'three'
+        } else if (this.step === 'three' && this.countType(this.basketOne, 'banana') === count) {
           window.Breadboard.send('complete')
         }
       },

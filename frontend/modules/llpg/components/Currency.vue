@@ -1,5 +1,5 @@
 <template>
-  <CanvasImage
+  <img
     :src="stack ? stackSrc : singleSrc"
     draggable="false" />
 </template>

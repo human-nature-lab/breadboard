@@ -8,28 +8,10 @@ console.log('[Webpack] Server running at location: ' + __dirname)
 
 const PORT = 8765
 
-// First we fire up Webpack an pass in the configuration file
-const compiler = webpack(webpackConfig)
-
-// We give notice in the terminal when it starts bundling and
-// set the time it started
-compiler.compilers.forEach(comp => {
-    let bundleStart
-    comp.plugin('compile', function() {
-        console.log('[Webpack] Bundling...')
-        bundleStart = Date.now()
-    })
-    comp.plugin('done', function() {
-        console.log('[Webpack] Bundled in ' + (Date.now() - bundleStart) + 'ms!')
-    })
-})
-
 // We also give notice when it is done compiling, including the
 // time it took. Nice to have
 
-
-const server = new webpackDevServer(compiler, {
-
+const server = new webpackDevServer(webpack(webpackConfig), {
     // We need to tell Webpack to serve our bundled application
     // from the build path.
     publicPath: '/bundles/',

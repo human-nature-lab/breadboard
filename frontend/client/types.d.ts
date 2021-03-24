@@ -1,13 +1,13 @@
 import { BreadboardClass } from '../core/breadboard'
 import { Vuetify } from 'vuetify'
-import { VueConstructor } from 'vue/types/vue'
+import Vue from 'vue'
 
 declare global {
   interface Window {
     Breadboard: BreadboardClass
     Vuetify: Vuetify
-    Vue: VueConstructor
-    BreadboardVueComponents: { name: string, component: VueConstructor }[]
+    Vue: typeof Vue
+    BreadboardVueComponents: { name: string, component: typeof Vue }[]
   }
 }
 
