@@ -6,7 +6,7 @@ const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const buildPath = path.resolve(__dirname, '../../public/bundles/')
 
 const isProd = process.env.NODE_ENV === 'production'
-const publicPath = isProd ? '/bundles/' : `http://localhost:${PORT}/bundles/`
+const publicPath = isProd ? '/assets/bundles/' : `http://localhost:${PORT}/bundles/`
 const plugins =  [
   new webpack.ContextReplacementPlugin(
     /angular(\\|\/)core(\\|\/)@angular/,
@@ -36,7 +36,8 @@ module.exports = {
   output: {
     path: buildPath,
     publicPath: publicPath,
-    chunkFilename: '[name].js'
+    chunkFilename: '[name].[contenthash].js',
+    clean: true
   },
   mode: isProd ? 'production' : 'development',
   devServer: {
@@ -123,8 +124,7 @@ module.exports = {
       use: {
         loader: 'file-loader',
         options: {
-          publicPath: '/assets/bundles',
-          name: '[hash].[ext]'
+          name: '[contenthash].[ext]'
         }
       }
     }]
