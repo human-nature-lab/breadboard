@@ -1,5 +1,5 @@
 <template>
-  <Fullscreen>
+  <Fullscreen class="llpg">
     <div class="relative w-full h-full">
       <div v-if="player.step === 'Practice'" class="relative h-full w-full">
         <Practice />
@@ -247,8 +247,8 @@
 </script>
 
 <style lang="sass">
-  html, body 
-    width: 100% 
+  .llpg
+    width: 100%
     height: 100%
     margin: 0
     overflow: hidden

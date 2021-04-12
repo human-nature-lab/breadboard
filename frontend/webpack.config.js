@@ -5,6 +5,8 @@ const VueLoaderPlugin = require('vue-loader/lib/plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
 const buildPath = path.resolve(__dirname, '../../public/bundles/')
 
+
+const PORT = 8765
 const isProd = process.env.NODE_ENV === 'production'
 const publicPath = isProd ? '/assets/bundles/' : `http://localhost:${PORT}/bundles/`
 const plugins =  [
@@ -19,7 +21,6 @@ if (isProd) {
     filename: '[name].css',
   }))
 }
-const PORT = 8765
 module.exports = {
   entry: {
     client: './client/client.ts',
