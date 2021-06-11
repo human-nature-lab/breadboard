@@ -26,7 +26,7 @@ module.exports = {
     client: './client/client.ts',
     // breadboard: './core/breadboard.ts',
     design: './design/design.js',
-    // 'client-angular': './design/client.js',
+    'client-angular': './design/client.js',
     // vue: ['vue', 'vuetify'],
     // 'vue-components': {
     //   import: './client/vue-components.ts',
