@@ -1,6 +1,7 @@
 <template>
   <v-alert :value="!isOpen" :color="color" :transition="transition">
-    <slot>
+    <!-- The message to be shown when the client is disconnected -->
+    <slot :time="time">
       Unable to communicate with the server right now. You will automatically reconnect after {{(time / 1000).toFixed(0)}}s. Please wait....
     </slot>
   </v-alert>
@@ -8,8 +9,13 @@
 
 <script lang="ts">
   import Vue from 'vue'
-  import { Socket, SocketState } from '../../core/socket'
+  import { SocketState } from '../../core/socket'
 
+  /**
+   * This component will show players a message if they are disconnected from
+   * the game due to a network interruption. Breadboard will automatically
+   * reconnect if possible.
+   */
   export default Vue.extend({
     name: 'ConnectionStatus',
     props: {

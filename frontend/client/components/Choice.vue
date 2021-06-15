@@ -2,13 +2,13 @@
   <v-flex>
     <div v-if="choice.custom" v-html="choice.custom" class="custom-choice"/>
     <v-btn :disabled="disabled" @click="sendClick">
-      <!-- @slot Add something before the label -->
+      <!-- Add something before the label -->
       <slot name="prepend" :choice="choice" :disabled="disabled"/>
-      <!-- @slot Replace the default label with your own label -->
+      <!-- Replace the default label with your own label -->
       <slot :choice="choice" :disabled="disabled">
         {{choice.name}}
       </slot>
-      <!-- @slot Add something after the label -->
+      <!-- Add something after the label -->
       <slot name="append" :choice="choice" :disabled="disabled"/>
     </v-btn>
   </v-flex>

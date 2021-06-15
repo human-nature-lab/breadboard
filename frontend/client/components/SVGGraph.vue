@@ -2,12 +2,9 @@
   <div class="svg-container flex flex-grow-0 flex-shrink-0" ref="container">
     <svg ref="svg" viewBox="0 0 600 600" width="100%" height="100%">
       <g>
-        <!-- @slot Replace the edge with your own edge. This could be used to replace lines with Bezier curves or arrows.
+        <!-- Replace the edge with your own edge. This could be used to replace lines with Bezier curves or arrows.
                    Positioning has to be done manually. -->
-        <slot
-            name="edge"
-            v-for="edge in graph.edges"
-            v-bind:edge="edge">
+        <slot name="edge" v-for="edge in graph.edges" :edge="edge">
           <line
               class="edge"
               :key="edge.id + '-line'"
@@ -23,15 +20,15 @@
           <g :transform="`translate(${(edge.source.x + edge.target.x) / 2}, ${(edge.source.y + edge.target.y) / 2})`"
              :key="edge.id + '-label'"
              @click="edgeLabelClick(edge, $event)">
-            <!-- @slot Add an element at the center of the edge-->
-            <slot name="edge-label" v-bind:edge="edge"/>
+            <!-- Add an element at the center of the edge-->
+            <slot name="edge-label" :edge="edge"/>
           </g>
         </slot>
         <g :transform="`translate(${node.x}, ${node.y})`" @click="nodeClick(node, $event)" v-for="node in graph.nodes" :key="node.id">
-          <!-- @slot Replace the entire node with your own node. Positioning is done automagically. This might be used to change the circle to an image or a square -->
+          <!-- Replace the entire node with your own node. Positioning is done automagically. This might be used to change the circle to an image or a square -->
           <slot
               name="node"
-              v-bind:node="node">
+              :node="node">
             <circle
                 v-bind="filteredObject(node.data, ignoredProps)"
                 class="node"
@@ -42,9 +39,9 @@
                 :fill="evaluateProp('nodeFill', node)">
             </circle>
           </slot>
-          <!-- @slot Add something inside the node. This object will be positioned relative to the origin of the node (upper left)
+          <!-- Add something inside the node. This object will be positioned relative to the origin of the node (upper left)
                      and must be centered manually -->
-          <slot name="node-content" v-bind:node="node" />
+          <slot name="node-content" :node="node" />
         </g>
       </g>
     </svg>
@@ -94,13 +91,13 @@
        * The force-directed layout options
        * @type LayoutOptions
        */
-      layout: <PropOptions<LayoutOptions>>{
-        type: Object,
+      layout: {
+        type: Object as () => LayoutOptions,
         default: () => ({
           linkDistance: 100,
           chargeStrength: -500,
           centerRepel: 500
-        })
+        } as LayoutOptions)
       },
       /**
        * A boolean indicating whether or not the ego should be centered on the screen
@@ -111,50 +108,57 @@
       },
       /**
        * Change the color of each node border by supplying a new color or a mapping function
+       * @type string | ObjMapFunc<Node, string>
        */
-      nodeStroke: <PropOptions<string | ObjMapFunc<Node, string>>>{
+      nodeStroke: {
         type: [String, Function],
         default: 'black'
       },
       /**
        * Change the size of each node border by supplying a new size or a mapping function
+       * @type number | ObjMapFunc<Node, number>
        */
-      nodeStrokeWidth: <PropOptions<number | ObjMapFunc<Node, number>>>{
+      nodeStrokeWidth: {
         type: [Number, Function],
         default: 2
       },
       /**
        * Change the fill color of each node using a color string or a mapping function
+       * @type string | ObjMapFunc<Node, string>
        */
-      nodeFill: <PropOptions<string | ObjMapFunc<Node, string>>>{
+      nodeFill: {
         type: [String, Function],
         default: 'grey'
       },
       /**
        * Change the size of each node using a number or a mapping function
+       * @type number | ObjMapFunc<Node, number>
        */
-      nodeRadius: <PropOptions<number | ObjMapFunc<Node, number>>>{
+      nodeRadius: {
         type: [Number, Function],
         default: 30
       },
       /**
        * Change the size of each edge using a number or a mapping function
+       * @type number | ObjMapFunc<Edge, number>
        */
-      edgeStrokeWidth: <PropOptions<number | ObjMapFunc<Edge, number>>>{
+      edgeStrokeWidth: {
         type: [Number, Function],
         default: 2
       },
       /**
        * Change the opacity of each edge using a number or a mapping function. This could be used to show decay of edges.
+       * @type number | ObjMapFunc<Edge, number>
        */
-      edgeOpacity: <PropOptions<number | ObjMapFunc<Edge, number>>>{
+      edgeOpacity: {
         type: [Number, Function],
         default: 1
       },
       /**
        * Change the color of each edge using a number or a mapping function.
+       * @type string | ObjMapFunc<Edge, string>
        */
-      edgeStroke: <PropOptions<string | ObjMapFunc<Edge, string>>>{
+      edgeStroke: {
         type: [String, Function],
         default: '#999'
       },

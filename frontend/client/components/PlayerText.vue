@@ -1,10 +1,12 @@
 <template>
   <v-flex v-if="player.text">
     <v-container>
+      <!-- Add something before the player content -->
       <slot name="prepend" />
       <slot :text="player.text">
         <p v-html="player.text" />
       </slot>
+      <!-- Add something after the player content -->
       <slot name="append" />
     </v-container>
   </v-flex>
