@@ -33,30 +33,36 @@
     updates: CellUpdate[]
   }
 
-  // Logical flow with buffered updates
-  // SENDING
-  // 1. Queue up updates
-  // 2. Attach batch id
-  // 3. Store sent updates w/ batch id until batch is confirmed as received
-  // RECEIVING
-  // 1. Unconfirmed updates and queued updates on top of server updates
-  // 2. Confirm batch updates and remove from memory
-
+  /**
+   * A synchronized crossword puzzle that can be worked on by multiple players.
+   */
   export default Vue.extend({
     name: 'BreadboardCrossword',
     props: {
+      /**
+       * A reference to the player node
+       */
       player: {
         type: Object as () => Player,
         required: true
       },
+      /**
+       * The name of the event used to pass data for this crossword puzzle
+       */
       eventKey: {
         type: String,
         default: 'crossword'
       },
+      /**
+       * The name of the property where crossword data is stored on the player.
+       */
       propName: {
         type: String,
         default: 'crossword'
       },
+      /**
+       * How frequently to send data to the server
+       */
       throttleRate: {
         type: Number,
         default: 2000
@@ -65,14 +71,23 @@
         type: Number,
         default: 5000
       },
+      /**
+       * Whether or not to use client-side interpolation
+       */
       clientSideInterpolation: {
         type: Boolean,
         default: true
       },
+      /**
+       * Which cell is active
+       */
       active: {
         type: Object as () => Position,
         required: true
       },
+      /**
+       * Which direction they keyboard is typing in
+       */
       direction: {
         type: String as () => DIRECTION,
         required: true

@@ -4,9 +4,9 @@
     :value="value"
     :color="color"
     reactive>
-    <!-- @slot Add something before the label-->
+    <!-- Add something before the timer label. For example a dollar sign. -->
     <slot name="prepend" />
-    <!-- @slot Replace the default timer message -->
+    <!-- Replace the default timer message with your own-->
     <slot
         name="label"
         :timer="timer"
@@ -18,7 +18,7 @@
         {{message}}
       </strong>
     </slot>
-    <!-- @slot Add something after the label -->
+    <!-- Add something after the label. For example a percentage (%) -->
     <slot name="append" />
   </v-progress-linear>
 </template>
@@ -34,14 +34,23 @@
   export default Vue.extend({
     name: 'Timer',
     props: {
+      /**
+       * The timer object sent from the server
+       */
       timer: {
         type: Object as () => PlayerTimer,
         required: true
       },
+      /**
+       * How far off the timer can be from the server time
+       */
       timerElapsedTolerance: {
         type: Number,
         default: 2000
       },
+      /**
+       * How frequently to update the timer on the client
+       */
       updateRate: {
         type: Number,
         default: 1000

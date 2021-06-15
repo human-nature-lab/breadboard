@@ -9,6 +9,7 @@
     "allowSyntheticDefaultImports": true,
     "experimentalDecorators": true,
     "allowJs": true,
+    "outDir": "../public/bundles",
     "sourceMap": true,
     "strict": true,
     "baseUrl": ".",
