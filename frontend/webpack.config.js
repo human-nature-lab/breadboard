@@ -3,7 +3,7 @@ const webpack = require('webpack')
 const path = require('path')
 const VueLoaderPlugin = require('vue-loader/lib/plugin')
 const MiniCssExtractPlugin = require('mini-css-extract-plugin')
-const buildPath = path.resolve(__dirname, '../../public/bundles/')
+const buildPath = path.resolve(__dirname, '../public/bundles/')
 
 
 const PORT = 8765

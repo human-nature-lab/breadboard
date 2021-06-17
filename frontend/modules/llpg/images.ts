@@ -1,5 +1,5 @@
-const experimentId = 233
-const rootUrl = `/images/${experimentId}`
+// @ts-ignore
+const rootUrl = `/images/${window.experimentId || 233}`
 export const images = {
   envelope: {
     closed: '/envelope-closed.png',
