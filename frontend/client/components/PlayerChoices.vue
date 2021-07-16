@@ -1,5 +1,5 @@
 <template>
-  <v-flex v-if="hasChoices">
+  <v-flex v-if="hasChoices" class="player-choices">
     <v-container>
       <v-layout row>
         <Choice

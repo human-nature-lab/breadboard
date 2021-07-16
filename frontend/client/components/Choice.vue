@@ -1,7 +1,7 @@
 <template>
-  <v-flex>
+  <v-flex class="choice" v-bind="choiceAttrs">
     <div v-if="choice.custom" v-html="choice.custom" class="custom-choice"/>
-    <v-btn :disabled="disabled" @click="sendClick">
+    <v-btn :disabled="disabled" @click="sendClick" class="default-choice">
       <!-- Add something before the label -->
       <slot name="prepend" :choice="choice" :disabled="disabled"/>
       <!-- Replace the default label with your own label -->
@@ -51,6 +51,15 @@
         if (e.isTrusted) {
           this.$emit('click', e)
         }
+      }
+    },
+    computed: {
+      choiceAttrs (): any {
+        const res: any = {}
+        if (this.choice.class) {
+          res.class = this.choice.class
+        }
+        return res
       }
     }
   })

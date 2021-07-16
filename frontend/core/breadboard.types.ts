@@ -20,6 +20,7 @@ export interface VueLoadOpts {
 export interface PlayerChoice {
   name: string
   uid: string
+  class?: string
 }
 
 export interface PlayerTimer {
