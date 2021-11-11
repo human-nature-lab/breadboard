@@ -7,6 +7,10 @@
       <div class="px-3">
         Current round: {{player.curRound}}
       </div>
+      <v-btn text small @click="roundsVisible = true">
+        Results
+        <v-icon class="ml-2">mdi-clipboard-list</v-icon>
+      </v-btn>
       <v-spacer />
       <TimeoutButton
         :disabled="player.step !== 'Loading'"
@@ -15,7 +19,7 @@
       </TimeoutButton>
       <v-btn
         :disabled="player.step !== 'Loading' || !selectedPlayers.length"
-        @click="makeGroup">
+        @click="groupVisible = true">
         Assign group
       </v-btn>
       <v-btn
@@ -54,22 +58,43 @@
         Distribute
       </TimeoutButton>
     </v-row>
+    <RoundSummary v-model="roundsVisible" :players="player.players" />
+    <v-dialog v-model="groupVisible">
+      <v-card>
+        <v-container class="fluid">
+          <v-select 
+            v-model="group"
+            label="Location"
+            :items="['A', 'B', 'C', 'D']" />
+          <v-btn 
+            :disabled="player.step !== 'Loading' || !selectedPlayers.length" 
+            @click="makeGroup">
+            Assign Group
+          </v-btn>
+        </v-container>
+      </v-card>
+    </v-dialog>
   </v-container>
 </template>
 
 <script lang="ts">
   import Vue from 'vue'
+  import RoundSummary from '../components/RoundSummary.vue'
 
   type Player = { id: string, active: boolean }
 
   export default Vue.extend({
     name: 'Admin',
+    components: { RoundSummary },
     props: {
       player: Object
     },
     data () {
       return {
         selectedPlayers: [] as Player[],
+        roundsVisible: false,
+        groupVisible: false,
+        group: null,
         playerHeaders: [{
           value: 'id',
           text: 'Player'
@@ -82,6 +107,9 @@
         }, {
           value: 'groupId',
           text: 'Group'
+        }, {
+          value: 'groupName',
+          text: 'Location'
         }, {
           value: 'score',
           text: 'Total earned'
@@ -116,8 +144,12 @@
         this.selectedPlayers = []
       },
       makeGroup () {
-        window.Breadboard.send('group', this.selectedPlayers.map(p => p.id))
+        window.Breadboard.send('group', {
+          players: this.selectedPlayers.map(p => p.id),
+          group: this.group
+        })
         this.selectedPlayers = []
+        this.groupVisible = false
       },
       initGame () {
         if (!this.allPlayersInGroup) {
