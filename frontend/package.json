@@ -8,7 +8,7 @@
   },
   "scripts": {
     "test": "test",
-    "build": "cross-env NODE_ENV=production webpack",
+    "build": "cross-env NODE_ENV=production webpack --config webpack.config.js",
     "start": "webpack serve"
   },
   "dependencies": {
@@ -71,7 +71,7 @@
     "sass": "^1.22.12",
     "sass-loader": "^11.0.1",
     "style-loader": "^2.0.0",
-    "ts-loader": "^6.2.0",
+    "ts-loader": "^8.3.0",
     "tslib": "^2.2.0",
     "typescript": "^3.6.4",
     "url-loader": "^4.1.0",
