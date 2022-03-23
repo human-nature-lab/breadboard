@@ -17,7 +17,7 @@
 
 <script lang="ts">
 import Vue from 'vue'
-import { PlayerChoice } from '@human-nature-lab/breadboard-core
+import { PlayerChoice } from '@human-nature-lab/breadboard-core'
 
 /**
  * A container for all of the player choices

@@ -1,3 +1,5 @@
+import 'regenerator-runtime'
+import 'core-js'
 export * from './breadboard'
 export * from './breadboard.types'
 export * from './socket'

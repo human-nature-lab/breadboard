@@ -1,10 +1,7 @@
 import { http } from './http'
 import { Mutex } from 'async-mutex'
-import VueType from 'vue'
 import { Emitter } from 'goodish'
-// @ts-ignore
-import DefaultView from '../client/mixins/DefaultView'
-import { BreadboardConfig, BreadboardMessages, Loadable, SimpleMap, VueLoadOpts } from './breadboard.types'
+import { BreadboardConfig, BreadboardMessages, Loadable, SimpleMap } from './breadboard.types'
 import { Socket } from './socket'
 
 const MAKE_CHOICE = 'MakeChoice'
@@ -178,6 +175,9 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    */
   addScriptFromURL (url: string): Promise<void> {
     if (url.substr(0, 4) !== 'http') {
+      if (url[0] !== '/') {
+        url = '/' + url
+      }
       url = this.getCoreRoot() + url
     }
     return new Promise((resolve, reject) => {

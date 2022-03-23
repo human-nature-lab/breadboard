@@ -23,10 +23,11 @@ if (isProd) {
 }
 module.exports = {
   entry: {
-    client: './client/client.ts',
-    // breadboard: './core/breadboard.ts',
+    client: './client/src/client.ts',
+    breadboard: './core/src/breadboard.ts',
     design: './design/design.js',
     'client-angular': './design/client.js',
+    'vue-components': './client/src/vue-components.ts',
     // vue: ['vue', 'vuetify'],
     // 'vue-components': {
     //   import: './client/vue-components.ts',

@@ -1,4 +1,4 @@
-import { Graph } from '@human-nature-lab/breadboard-core'
+import { Breadboard, Graph } from '@human-nature-lab/breadboard-core'
 import { Mutex } from 'async-mutex'
 
 const gremlinsMutex = new Mutex()
@@ -14,12 +14,11 @@ export default {
     }
   },
   async created () {
-    const [_, __, config] = await Promise.all([window.Breadboard.connect(), window.Breadboard.login(), window.Breadboard.loadConfig()])
+    const [_, config] = await Promise.all([Breadboard.login(), Breadboard.loadConfig()])
     this.config = config
     this.player.id = config.clientId
 
-    // window.Breadboard.on('data', console.log)
-    window.Breadboard.on('style', contents => {
+    Breadboard.on('style', contents => {
       try {
         if (contents.length) {
           window.Breadboard.addStyleFromString(contents)
@@ -29,13 +28,13 @@ export default {
       }
     })
 
-    window.Breadboard.on('player', async player => {
+    Breadboard.on('player', async player => {
       this.player = player
       this.player.id = this.config.clientId
       this.checkGremlins()
     })
 
-    this.graph.attachToBreadboard(window.Breadboard)
+    this.graph.attachToBreadboard(Breadboard)
 
   },
   beforeDestroy () {
