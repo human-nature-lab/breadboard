@@ -29,7 +29,6 @@
     data () {
       return {
         isLoading: false,
-        libsLoaded: false,
         cols: ['keeping', 'contributing'],
         rounds: {} as Record<string, Record<string, Record<string, number>>>,
       }
@@ -50,17 +49,11 @@
     },
     methods: {
       async download () {
-        if (!this.libsLoaded) {
-          await Promise.all([
-            window.Breadboard.addScriptFromURL('https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.0/FileSaver.min.js'),
-            window.Breadboard.addScriptFromURL('https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.1/papaparse.js')
-          ])
-        }
-        this.libsLoaded = true
-        // @ts-ignore
-        const csv = Papa.unparse(this.roundRows)
-        // @ts-ignore
-        saveAs(new Blob([csv], { type: 'text/csv;charset=utf-8' }), 'round-data.csv')
+        const [Papa, { default: saver }] = await Promise.all([
+          import('papaparse'),
+          import('file-saver'),
+        ])
+        saver.saveAs(new Blob([Papa.unparse(this.roundRows)], { type: 'text/csv;charset=utf-8' }), 'round-data.csv')
       }
     },
     computed: {
