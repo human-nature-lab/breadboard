@@ -99,11 +99,9 @@
   import { boxLayout } from '../boxLayout'
   import { cloneDeep } from 'lodash'
   import { Step, steps } from '../steps'
-  import { delay } from '../../../core/delay'
-  import { Node } from '../../../core/breadboard.types'
-  import { Graph } from '../../../client/lib/graph'
+  import { delay, Node, Graph } from '@human-nature-lab/breadboard-core'
   import Practice from './Practice.vue'
-  import { random, randomInt } from 'goodish'
+  import { randomInt } from 'goodish'
 
   type Player = {
     step: Step

@@ -1,4 +1,4 @@
-import { loadAllVueComponents } from '../../util'
+import { loadAllVueComponents } from '../../client/src/util'
 import 'drag-drop-touch'
 import 'tailwindcss/dist/tailwind.css'
 

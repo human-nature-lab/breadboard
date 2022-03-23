@@ -1,4 +1,20 @@
-import { SimpleMap } from '../client/types'
+import { BreadboardClass } from './breadboard'
+
+declare global {
+  interface Window {
+    Breadboard: BreadboardClass
+  }
+}
+
+export interface Exports<T> extends SimpleMap<T> {
+  default: T
+}
+
+export type SimpleMap<T> = {
+  [key: string]: T
+}
+
+export type Loadable = (core: BreadboardClass, config: BreadboardConfig) => Promise<any>
 
 export interface BreadboardConfig extends SimpleMap<string | number> {
   connectSocket: string

@@ -51,8 +51,7 @@
 <script lang="ts">
   import Vue, { PropOptions } from 'vue'
   import { forceSimulation, forceLink, forceManyBody, forceCenter, Simulation, forceRadial } from 'd3-force'
-  import { Edge, Node, PlayerData } from '../../core/breadboard.types'
-  import { Graph } from '../lib/graph'
+  import { Edge, Node, PlayerData, Graph } from '@human-nature-lab/breadboard-core'
 
   type ObjMapFunc<A, T> = (obj: A, player: PlayerData) => T
   type LayoutOptions = {

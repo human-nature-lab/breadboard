@@ -1,6 +1,6 @@
 import { Emitter } from 'goodish'
-import { BreadboardClass } from '../../core/breadboard'
-import { BreadboardGraphData, Edge, GraphEvents, LinkData, Node, NodeData } from '../../core/breadboard.types'
+import { BreadboardClass } from './breadboard'
+import { BreadboardGraphData, Edge, GraphEvents, LinkData, Node, NodeData } from './breadboard.types'
 import { isEqual } from './isEqual'
 
 export class Graph extends Emitter implements GraphEvents {
@@ -11,23 +11,23 @@ export class Graph extends Emitter implements GraphEvents {
   private nodeIdMap: Map<string, Node> = new Map()
   private breadboard!: BreadboardClass
 
-  constructor () {
+  constructor() {
     super()
     this.handleGraphChanges = this.handleGraphChanges.bind(this)
   }
 
-  attachToBreadboard (breadboard: BreadboardClass) {
+  attachToBreadboard(breadboard: BreadboardClass) {
     this.breadboard = breadboard
     breadboard.on('graph', this.handleGraphChanges)
   }
 
-  releaseFromBreadboard () {
+  releaseFromBreadboard() {
     if (this.breadboard) {
       this.breadboard.off('graph', this.handleGraphChanges)
     }
   }
 
-  addNodes (data: NodeData[]) {
+  addNodes(data: NodeData[]) {
     const addedNodes = []
     for (const datum of data) {
       const node = {
@@ -43,7 +43,7 @@ export class Graph extends Emitter implements GraphEvents {
     this.emit('addNodes', addedNodes)
   }
 
-  addEdges (data: LinkData[]) {
+  addEdges(data: LinkData[]) {
     let addedEdges = []
     for (const datum of data) {
       const source = this.nodeIdMap.get(datum.sourceId)
@@ -60,21 +60,21 @@ export class Graph extends Emitter implements GraphEvents {
     this.emit('addEdges', addedEdges)
   }
 
-  clearEdges () {
+  clearEdges() {
     this.edges = []
     this.edgeIdMap.clear()
     this.emit('clearEdges')
   }
 
-  clearNodes () {
+  clearNodes() {
     this.nodes = []
     this.nodeIdMap.clear()
     this.emit('clearNodes')
   }
 
-  removeEdges (edges: Edge[]): void
-  removeEdges (edgeIds: number[]): void
-  removeEdges (edgesOrIds: (Edge | number)[]): void {
+  removeEdges(edges: Edge[]): void
+  removeEdges(edgeIds: number[]): void
+  removeEdges(edgesOrIds: (Edge | number)[]): void {
     const removedEdges = []
     for (const edgeOrId of edgesOrIds) {
       const edgeId = typeof edgeOrId === 'object' ? edgeOrId.id : edgeOrId
@@ -88,9 +88,9 @@ export class Graph extends Emitter implements GraphEvents {
     this.emit('removeEdges', removedEdges)
   }
 
-  removeNodes (nodes: Node[]): void
-  removeNodes (nodeIds: string[]): void
-  removeNodes (nodesOrIds: (Node | string)[]): void {
+  removeNodes(nodes: Node[]): void
+  removeNodes(nodeIds: string[]): void
+  removeNodes(nodesOrIds: (Node | string)[]): void {
     const removedNodes = []
     for (const nodeOrId of nodesOrIds) {
       const nodeId = typeof nodeOrId === 'object' ? nodeOrId.id : nodeOrId
@@ -115,7 +115,7 @@ export class Graph extends Emitter implements GraphEvents {
    *  - Check for new nodes
    *  - Check for new edges
    */
-  handleGraphChanges (data: BreadboardGraphData) {
+  handleGraphChanges(data: BreadboardGraphData) {
     if (!data.nodes || !data.nodes.length) {
       this.clearNodes()
       this.clearEdges()
@@ -180,5 +180,4 @@ export class Graph extends Emitter implements GraphEvents {
     if (addedEdges.length) this.addEdges(addedEdges)
 
   }
-
 }

@@ -11,7 +11,7 @@
 
 <script lang="ts">
   import Vue from 'vue'
-  import { PlayerTimer } from '../../core/breadboard.types'
+  import { PlayerTimer } from '@human-nature-lab/breadboard-core'
 
   /**
    * The container for all of the player's timers. Multiple timers can be running

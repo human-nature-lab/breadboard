@@ -1,5 +1,4 @@
-import { Graph } from '../lib/graph'
-import { isEqual, isEqualWith } from 'lodash'
+import { Graph } from '@human-nature-lab/breadboard-core'
 import { Mutex } from 'async-mutex'
 
 const gremlinsMutex = new Mutex()

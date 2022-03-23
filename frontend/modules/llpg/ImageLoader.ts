@@ -15,13 +15,13 @@ export class ImageLoader {
   load (src: string): Promise<HTMLImageElement> {
     const p = new Promise<HTMLImageElement>(async (resolve, reject) => {
       if (this.srcMap.has(src)) {
-        return resolve(this.srcMap.get(src))
+        return resolve(this.srcMap.get(src)!)
       }
       if (this.pendingMap.has(src)) {
         const existing = this.pendingMap.get(src)
         await existing
         if (this.srcMap.has(src)) {
-          return resolve(this.srcMap.get(src))
+          return resolve(this.srcMap.get(src)!)
         } else {
           return reject('An error occurred when loading this previously ' + src)
         }

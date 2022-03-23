@@ -20,7 +20,7 @@
 <script lang="ts">
   import Vue, { PropOptions } from 'vue'
   import { Portal } from 'portal-vue'
-  import { PlayerData } from '../../../core/breadboard.types'
+  import { PlayerData } from '@human-nature-lab/breadboard-core'
   import { Transform } from '../steps'
 
   export default Vue.extend({

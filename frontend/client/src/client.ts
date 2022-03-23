@@ -1,6 +1,5 @@
-import { BreadboardConfig } from '../core/breadboard.types'
+import { Breadboard, BreadboardConfig } from '@human-nature-lab/breadboard-core'
 import './client.sass'
-import { Breadboard } from '../core/breadboard'
 
 async function client () {
   let config: BreadboardConfig

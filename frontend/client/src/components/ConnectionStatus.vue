@@ -9,7 +9,7 @@
 
 <script lang="ts">
   import Vue from 'vue'
-  import { SocketState } from '../../core/socket'
+  import { SocketState } from '@human-nature-lab/breadboard-core'
 
   /**
    * This component will show players a message if they are disconnected from

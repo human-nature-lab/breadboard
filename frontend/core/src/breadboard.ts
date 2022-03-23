@@ -1,13 +1,10 @@
-import 'core-js'
-import 'regenerator-runtime'
 import { http } from './http'
 import { Mutex } from 'async-mutex'
 import VueType from 'vue'
 import { Emitter } from 'goodish'
 // @ts-ignore
 import DefaultView from '../client/mixins/DefaultView'
-import { BreadboardConfig, BreadboardMessages, VueLoadOpts } from './breadboard.types'
-import { SimpleMap } from '../client/types'
+import { BreadboardConfig, BreadboardMessages, Loadable, SimpleMap, VueLoadOpts } from './breadboard.types'
 import { Socket } from './socket'
 
 const MAKE_CHOICE = 'MakeChoice'
@@ -33,10 +30,10 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
     try {
       const res = await http.get<BreadboardConfig>('state')
       this.config = await res.json()
+      return this.config!
     } finally {
       release()
     }
-    return this.config
   }
 
   /**
@@ -240,127 +237,17 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
     })
   }
 
-  /**
-   * Load Vue, Vuetify and Breadboard component dependencies
-   * @param opts
-   */
-  async loadVueDependencies (opts: VueLoadOpts = {}) {
+  // Load a module
+  async load (loader: Loadable) {
     const config = await this.loadConfig()
-    opts = Object.assign({
-      vueVersion: '2.6.11',
-      vuetifyVersion: '2.3.7',
-      mdiVersion: '5.4.55',
-      useDev: false,
-      withVuetify: true,
-      withCore: true
-    }, opts)
-    // this.addStyleFromURL('https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900')
-    this.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`)
-    if (opts.withVuetify) {
-      // this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/@mdi/font@${opts.mdiVersion}/css/materialdesignicons.min.css`)
-      // this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.min.css`)
-    }
-    await import(/* webpackChunkName: "vue-components" */'../client/vue-components')
-    // await this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)
-    this.addStyleFromURL(`${config.assetsRoot}/bundles/vue-components.css`)
-    // await this.addScriptFromURL(`https://cdnjs.cloudflare.com/ajax/libs/vue/${opts.vueVersion}/vue.${opts.useDev ? 'common.dev.' : 'min.'}js`)
-    const Vue = window.Vue
-    const Vuetify = window.Vuetify
-
-    // Register Vuetify components
-    Vue.use(Vuetify)
+    return loader(this, config)
   }
-  
-  /**
-   * Load one or more modules using their names
-   *
-   * @param {...string[]} names
-   * @returns {Promise<void>}
-   * @memberof BreadboardClass
-   */
-  async loadModules (...names: string[]): Promise<void> {
-    const config = await this.loadConfig()
-    if (!this.config) throw Error('Must load Breadboard ')
-    const mods: PromiseLike<any>[] = []
-    for (const name of names) {
-      switch (name) {
-        case 'llpg':
-          mods.push(import(/* webpackChunkName: "llpg" */'../modules/llpg'))
-          break
-        case 'chat':
-          mods.push(import(/* webpackChunkName: "chat" */'../modules/chat'))
-          break
-        case 'crossword':
-          mods.push(import(/* webpackChunkName: "crossword" */'../modules/crossword'))
-          break
-      }
-      // mods.push(this.addScriptFromURL(`${config.assetsRoot}/bundles/modules/${name}.js`))
-      // mods.push(this.addStyleFromURL(`${config.assetsRoot}/bundles/modules/${name}.css`).catch(err => console.log(err)))
-    }
-    await Promise.all(mods)
-  }
-
-  /**
-   * Create default Vue instance
-   * @param template
-   */
-  async createDefaultVue (template: string, mixin?: object): Promise<VueType> {
-    const Vue = window.Vue
-    const Vuetify = window.Vuetify
-    const mixins = [DefaultView]
-    if (mixin) {
-      // @ts-ignore
-      mixins.push(mixin)
-    }
-    return new Vue({
-      vuetify: new Vuetify({
-        icons: {
-          iconfont: 'mdi'
-        }
-      }),
-      mixins: mixins,
-      template: template
-    }).$mount('#app')
-  }
-
-  /**
-   * Loads the legacy, angular.js client code. Replaces the SPA anchor with the old angular ng-app code
-   */
-  async loadAngularClient () {
-    const config = await this.loadConfig()
-    this.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`)
-    this.addStyleFromURL(`${config.assetsRoot}/bundles/client-angular.css`)
-    this.addStyleFromURL('https://fonts.googleapis.com/css?family=Open+Sans:700,400')
-    this.addStyleFromURL(`${config.assetsRoot}/css/bootstrap.min.css`)
-    this.addStyleFromURL(`${config.assetsRoot}/css/font-awesome-4.7.0/css/font-awesome.min.css`)
-    await Promise.all([
-      this.addScriptFromURL('https://cdnjs.cloudflare.com/ajax/libs/jquery/1.7.2/jquery.min.js'),
-      this.addScriptFromURL(`${config.assetsRoot}/bundles/client-angular.js`)
-    ])
-    await Promise.all([
-      this.addScriptFromURL('https://cdnjs.cloudflare.com/ajax/libs/d3/2.10.0/d3.v2.js'),
-      this.addScriptFromURL('https://cdnjs.cloudflare.com/ajax/libs/angular-ui-bootstrap/0.12.1/ui-bootstrap-tpls.js')
-    ])
-    // @ts-ignore
-    const ang = angular; const init = window.bbClientInit
-    ang.element(document).ready(function() {
-      const t = document.createElement('div')
-      const app = document.createElement('app')
-      app.innerText = 'Loading...'
-      document.body.setAttribute('ng-app', 'breadboard.client')
-      const c = document.getElementById('app')
-      if (!c) throw new Error('Unable to initialize app')
-      document.body.replaceChild(app, c)
-      init()
-      ang.bootstrap(document, ['breadboard.client'])
-    })
-  }
-
+   
   /**
    * Get an instance of the client graph
    */
   public async getGraph () {
-    const v = (await import('../client/lib/graph'))
+    const v = (await import('./graph'))
     const Graph = v.Graph
     const graph = new Graph()
     graph.attachToBreadboard(this)

@@ -16,7 +16,7 @@
 <script lang="ts">
   import Vue, { PropOptions } from 'vue'
   import { images } from '../images'
-  import { delay } from '../../../core/delay'
+  import { delay } from '@human-nature-lab/core'
 
   export default Vue.extend({
     name: 'Box',

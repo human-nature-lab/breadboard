@@ -25,7 +25,7 @@
 <script lang="ts">
   import Vue from 'vue'
   import Chat from './Chat.vue'
-  import { PlayerData } from '../../core/breadboard.types'
+  import { PlayerData } from '@human-nature-lab/breadboard-core'
 
   export default Vue.extend({
     name: 'ChatModal',

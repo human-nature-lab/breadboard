@@ -1,6 +1,6 @@
 import RequireContext = __WebpackModuleApi.RequireContext
-import { Exports, SimpleMap } from './client/types'
-import { VueConstructor } from 'vue'
+import type { Exports, SimpleMap } from './types'
+import type { VueConstructor } from 'vue'
 
 export function requireAll<T> (r: RequireContext) {
   const o: {[key: string]: Exports<T>} = {}

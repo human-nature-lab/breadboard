@@ -1,3 +1,3 @@
-import { loadAllVueComponents } from '../../util'
+import { loadAllVueComponents } from '../../client/src/util'
 
 loadAllVueComponents(require.context('./', true, /\.vue$/))

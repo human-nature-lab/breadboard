@@ -28,7 +28,7 @@
    * The default timer component. This component can be easily extended using slots.
    */
   import Vue from 'vue'
-  import { PlayerTimer } from '../../core/breadboard.types'
+  import { PlayerTimer } from '@human-nature-lab/breadboard-core'
   import { toHHMMSS } from '../lib/DateTime'
 
   export default Vue.extend({
