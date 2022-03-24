@@ -52,6 +52,7 @@ export interface PlayerTimer {
 }
 
 export interface PlayerData extends SimpleMap<any> {
+  id: string
   text: string
   choices: PlayerChoice[]
   timers?: PlayerTimer[]

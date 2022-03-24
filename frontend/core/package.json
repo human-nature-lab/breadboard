@@ -1,8 +1,13 @@
 {
   "name": "@human-nature-lab/breadboard-core",
   "version": "1.0.0",
+  "private": false,
   "description": "The primary components used in the Breadboard client",
   "main": "dist/index.js",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "scripts": {
     "build": "tsc"
   },

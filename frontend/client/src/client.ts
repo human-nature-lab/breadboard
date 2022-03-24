@@ -1,5 +1,6 @@
 import { Breadboard, BreadboardConfig, BreadboardClass, VueLoadOpts } from '@human-nature-lab/breadboard-core'
 import DefaultView from "./mixins/DefaultView";
+import './client.sass'
 
 async function client() {
   let config: BreadboardConfig
@@ -37,12 +38,13 @@ export function loadVue(opts: VueLoadOpts) {
 
   return async function (core: BreadboardClass, config: BreadboardConfig) {
     // this.addStyleFromURL('https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900')
-    await import('./client.sass')
+    // await import('./client.sass')
     // core.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`)
     if (opts.withVuetify) {
       // this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/@mdi/font@${opts.mdiVersion}/css/materialdesignicons.min.css`)
       // this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.min.css`)
     }
+    //@ts-ignore
     window.Vue = (await import('vue')).default
     window.Vuetify = (await import('vuetify')).default
     await import(/* webpackChunkName: "vue-components" */'./vue-components')
@@ -57,23 +59,23 @@ export function loadVue(opts: VueLoadOpts) {
 
 export function loadModules(...names: string[]) {
   return async function (core: BreadboardClass, config: BreadboardConfig) {
-    const mods: PromiseLike<any>[] = []
-    for (const name of names) {
-      switch (name) {
-        case 'llpg':
-          mods.push(import(/* webpackChunkName: "llpg" */'../../modules/llpg'))
-          break
-        case 'chat':
-          mods.push(import(/* webpackChunkName: "chat" */'../../modules/chat'))
-          break
-        case 'crossword':
-          mods.push(import(/* webpackChunkName: "crossword" */'../../modules/crossword'))
-          break
-      }
-      // mods.push(this.addScriptFromURL(`${config.assetsRoot}/bundles/modules/${name}.js`))
-      // mods.push(this.addStyleFromURL(`${config.assetsRoot}/bundles/modules/${name}.css`).catch(err => console.log(err)))
-    }
-    await Promise.all(mods)
+    // const mods: PromiseLike<any>[] = []
+    // for (const name of names) {
+    //   switch (name) {
+    //     case 'llpg':
+    //       mods.push(import(/* webpackChunkName: "llpg" */'../../modules/llpg'))
+    //       break
+    //     case 'chat':
+    //       mods.push(import(/* webpackChunkName: "chat" */'../../modules/chat'))
+    //       break
+    //     case 'crossword':
+    //       mods.push(import(/* webpackChunkName: "crossword" */'../../modules/crossword'))
+    //       break
+    //   }
+    //   // mods.push(this.addScriptFromURL(`${config.assetsRoot}/bundles/modules/${name}.js`))
+    //   // mods.push(this.addStyleFromURL(`${config.assetsRoot}/bundles/modules/${name}.css`).catch(err => console.log(err)))
+    // }
+    // await Promise.all(mods)
   }
 }
 

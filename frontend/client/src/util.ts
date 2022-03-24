@@ -1,6 +1,6 @@
 import RequireContext = __WebpackModuleApi.RequireContext
 import { Exports, SimpleMap } from './types'
-import { VueConstructor } from 'vue'
+import VueType from 'vue'
 
 export function requireAll<T> (r: RequireContext) {
   const o: {[key: string]: Exports<T>} = {}
@@ -15,8 +15,8 @@ export function requireAllModules<T> (r: RequireContext): T[] {
   return Object.values(modules).map(m => m.default)
 }
 
-export function loadAllVueComponents (Vue: VueConstructor, r: RequireContext) {
-  const components: SimpleMap<Exports<VueConstructor>> = requireAll(r)
+export function loadAllVueComponents (Vue: typeof VueType, r: RequireContext) {
+  const components: SimpleMap<Exports<typeof VueType>> = requireAll(r)
   for (const filename in components) {
     const parts = filename.split('/')
     const name = parts[parts.length - 1].replace('.vue', '')

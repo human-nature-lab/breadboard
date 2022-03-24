@@ -31,7 +31,7 @@
 <script lang="ts">
   import Vue from 'vue'
   import { TutorialState } from './tutorial.types'
-  import { PlayerData } from '../../../core/breadboard.types'
+  import { PlayerData } from '@human-nature-lab/breadboard-core'
 
   export default Vue.extend({
     name: 'Tutorial',
