@@ -11,7 +11,11 @@
     "access": "public",
     "registry": "https://registry.npmjs.org/"
   },
-  "main": "dist/index.js",
+  "main": "dist/client.common.js",
+  "exports": {
+    "import": "./dist/client.umd.js",
+    "require": "./dist/client.common.js"
+  },
   "dependencies": {
     "@human-nature-lab/breadboard-core": "^1.0.0",
     "async-mutex": "^0.3.2",
