@@ -1,6 +1,6 @@
 {
   "name": "@human-nature-lab/breadboard-client",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "The Vue client view for Breadboard",
   "author": "wyattis",
   "scripts": {
