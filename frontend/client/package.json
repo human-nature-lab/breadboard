@@ -7,6 +7,10 @@
     "build": "vue-cli-service build --target lib --name client src/index.ts",
     "tsc": "tsc"
   },
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "main": "dist/index.js",
   "dependencies": {
     "@human-nature-lab/breadboard-core": "^1.0.0",
