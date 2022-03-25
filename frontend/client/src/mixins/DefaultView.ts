@@ -10,7 +10,7 @@ export default Vue.extend({
       player: {
         text: 'Loading...',
         choices: []
-      } as PlayerData,
+      } as Partial<PlayerData>,
       config: null as BreadboardConfig | null
     }
   },

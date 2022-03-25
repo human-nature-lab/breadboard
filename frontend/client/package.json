@@ -10,7 +10,7 @@
   "main": "dist/client.common.js",
   "module": "./dist/client.umd.js",
   "dependencies": {
-    "@human-nature-lab/breadboard-core": "^1.0.0",
+    "@human-nature-lab/breadboard-core": "^1.0.3",
     "async-mutex": "^0.3.2",
     "core-js": "^2.6.5",
     "drag-drop-touch": "^1.3.1",
