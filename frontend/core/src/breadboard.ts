@@ -288,4 +288,4 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
 
 
 export const Breadboard = new BreadboardClass()
-window.Breadboard = Breadboard
+// window.Breadboard = Breadboard
