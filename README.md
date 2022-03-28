@@ -1,7 +1,7 @@
 README - breadboard v2 
 =====================================
 
-*If you are interested in contributing to this project, please get in touch with the team via the Gitter channel at [https://gitter.im/breadboard-help/Lobby](https://gitter.im/breadboard-help/Lobby]).*
+*If you have any questions about breadboard, or want to discuss how you're using breadboard for your project, head over to GitHub Discussions by clicking the "Discussions" tab above or going to: [https://github.com/human-nature-lab/breadboard/discussions](https://github.com/human-nature-lab/breadboard/discussions]).*
 
 breadboard is a software platform for developing and conducting human interaction experiments on networks. 
 
