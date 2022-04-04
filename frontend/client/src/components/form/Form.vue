@@ -63,6 +63,7 @@
   const bb = window.Breadboard
   export default Vue.extend({
     name: 'Form',
+    components: { ScaleQuestion, HtmlBlock, ChoiceQuestion, TextQuestion, },
     props: {
       player: {
         type: Object as () => PlayerWithForms,

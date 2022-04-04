@@ -12,6 +12,7 @@
 <script lang="ts">
   import Vue from 'vue'
   import { PlayerTimer } from '@human-nature-lab/breadboard-core'
+  import Timer from './Timer.vue'
 
   /**
    * The container for all of the player's timers. Multiple timers can be running
@@ -37,6 +38,7 @@
    */
   export default Vue.extend({
     name: 'PlayerTimers',
+    components: { Timer },
     props: {
       /**
        * The player object 
