@@ -6,6 +6,7 @@ import PlayerText from './components/PlayerText.vue'
 import SVGGraph from './components/SVGGraph.vue'
 import Timer from './components/Timer.vue'
 import DefaultView from './mixins/DefaultView'
+import Form from './components/form/Form.vue'
 
 export {
   Choice,
@@ -15,5 +16,6 @@ export {
   PlayerText,
   SVGGraph,
   Timer,
+  Form,
   DefaultView,
 }
