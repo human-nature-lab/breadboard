@@ -43,10 +43,6 @@
   "directories": {
     "src": "src"
   },
-  "exports": {
-    "import": "./dist/client.umd.js",
-    "require": "./dist/client.common.js"
-  },
   "license": "ISC",
   "publishConfig": {
     "access": "public",
