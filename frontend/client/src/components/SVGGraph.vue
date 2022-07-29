@@ -1,48 +1,46 @@
 <template>
   <div class="svg-container flex flex-grow-0 flex-shrink-0" ref="container">
     <svg ref="svg" viewBox="0 0 600 600" width="100%" height="100%">
-      <g>
-        <!-- Replace the edge with your own edge. This could be used to replace lines with Bezier curves or arrows.
-                   Positioning has to be done manually. -->
-        <slot name="edge" v-for="edge in graph.edges" :edge="edge">
-          <line
-              class="edge"
-              :key="edge.id + '-line'"
-              @click="edgeClick(edge, $event)"
-              :stroke="evaluateProp('edgeStroke', edge)"
-              :stroke-width="evaluateProp('edgeStrokeWidth', edge)"
-              :stroke-opacity="evaluateProp('edgeStrokeOpacity', edge)"
-              :x1="edge.source.x"
-              :y1="edge.source.y"
-              :x2="edge.target.x"
-              :y2="edge.target.y">
-          </line>
-          <g :transform="`translate(${(edge.source.x + edge.target.x) / 2}, ${(edge.source.y + edge.target.y) / 2})`"
-             :key="edge.id + '-label'"
-             @click="edgeLabelClick(edge, $event)">
-            <!-- Add an element at the center of the edge-->
-            <slot name="edge-label" :edge="edge"/>
-          </g>
-        </slot>
-        <g :transform="`translate(${node.x}, ${node.y})`" @click="nodeClick(node, $event)" v-for="node in graph.nodes" :key="node.id">
-          <!-- Replace the entire node with your own node. Positioning is done automagically. This might be used to change the circle to an image or a square -->
-          <slot
-              name="node"
-              :node="node">
-            <circle
-                v-bind="filteredObject(node.data, ignoredProps)"
-                class="node"
-                :class="{ ego : node.id === player.id }"
-                :r="evaluateProp('nodeRadius', node)"
-                :stroke="evaluateProp('nodeStroke', node)"
-                :stroke-width="evaluateProp('nodeStrokeWidth', node)"
-                :fill="evaluateProp('nodeFill', node)">
-            </circle>
-          </slot>
-          <!-- Add something inside the node. This object will be positioned relative to the origin of the node (upper left)
-                     and must be centered manually -->
-          <slot name="node-content" :node="node" />
+      <!-- Replace the edge with your own edge. This could be used to replace lines with Bezier curves or arrows.
+                  Positioning has to be done manually. -->
+      <slot name="edge" v-for="edge in graph.edges" :edge="edge">
+        <line
+            class="edge"
+            :key="edge.id + '-line'"
+            @click="edgeClick(edge, $event)"
+            :stroke="evaluateProp('edgeStroke', edge)"
+            :stroke-width="evaluateProp('edgeStrokeWidth', edge)"
+            :stroke-opacity="evaluateProp('edgeStrokeOpacity', edge)"
+            :x1="edge.source.x"
+            :y1="edge.source.y"
+            :x2="edge.target.x"
+            :y2="edge.target.y">
+        </line>
+        <g :transform="`translate(${(edge.source.x + edge.target.x) / 2}, ${(edge.source.y + edge.target.y) / 2})`"
+            :key="edge.id + '-label'"
+            @click="edgeLabelClick(edge, $event)">
+          <!-- Add an element at the center of the edge-->
+          <slot name="edge-label" :edge="edge"/>
         </g>
+      </slot>
+      <g :transform="`translate(${node.x}, ${node.y})`" @click="nodeClick(node, $event)" v-for="node in graph.nodes" :key="node.id">
+        <!-- Replace the entire node with your own node. Positioning is done automagically. This might be used to change the circle to an image or a square -->
+        <slot
+            name="node"
+            :node="node">
+          <circle
+              v-bind="filteredObject(node.data, ignoredProps)"
+              class="node"
+              :class="{ ego : node.id === player.id }"
+              :r="evaluateProp('nodeRadius', node)"
+              :stroke="evaluateProp('nodeStroke', node)"
+              :stroke-width="evaluateProp('nodeStrokeWidth', node)"
+              :fill="evaluateProp('nodeFill', node)">
+          </circle>
+        </slot>
+        <!-- Add something inside the node. This object will be positioned relative to the origin of the node (upper left)
+                    and must be centered manually -->
+        <slot name="node-content" :node="node" />
       </g>
     </svg>
   </div>
@@ -186,8 +184,29 @@
     },
     created () {
       this.setupSimulation()
+      this.setupEgo()
     },
     methods: {
+      setupEgo () {
+        const ensureEgoCentered = () => {
+          if (this.player && this.graph) {
+            for (const node of this.graph.nodes) {
+              // @ts-ignore
+              node.isEgo = node.id === this.player.id
+              if (this.centerEgo && node.id === this.player.id) {
+                // @ts-ignore
+                node.fx = this.center.x; node.fy = this.center.y
+              }
+            }
+            setTimeout(() => {
+              unwatch1()
+              unwatch2()
+            })
+          }
+        }
+        const unwatch1 = this.$watch('player', ensureEgoCentered, { immediate: true })
+        const unwatch2 = this.$watch('graph', ensureEgoCentered, { immediate: true })
+      },
       filteredObject (obj: { [key: string]: any }, keys: string[]) {
         let o = Object.assign(obj)
         for (const key of keys) {
