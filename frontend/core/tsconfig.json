@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ESNext",
+    "target": "es6",
     "outDir": "./dist",
     "lib": ["ES2015", "ES2016", "DOM"],
     "allowJs": false,
