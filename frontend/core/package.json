@@ -9,7 +9,8 @@
     "registry": "https://registry.npmjs.org/"
   },
   "scripts": {
-    "build": "tsc"
+    "build": "rm -r dist && tsc",
+    "prepublishOnly": "npm run build"
   },
   "repository": {
     "type": "git",
