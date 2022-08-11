@@ -11,7 +11,7 @@
   "main": "dist/client.common.js",
   "module": "./dist/client.umd.js",
   "dependencies": {
-    "@human-nature-lab/breadboard-core": "^1.0.3",
+    "@human-nature-lab/breadboard-core": "^1.0.4",
     "async-mutex": "^0.3.2",
     "core-js": "^2.6.5",
     "d3-force": "^3.0.0",
@@ -42,6 +42,10 @@
   },
   "directories": {
     "src": "src"
+  },
+  "exports": {
+    "import": "./dist/client.umd.js",
+    "require": "./dist/client.common.js"
   },
   "license": "ISC",
   "publishConfig": {
