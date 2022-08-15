@@ -3,7 +3,9 @@
     height="25"
     :value="value"
     :color="color"
-    reactive>
+    reactive
+    v-bind="$attrs"
+    v-on="$listeners">
     <!-- Add something before the timer label. For example a dollar sign. -->
     <slot name="prepend" />
     <!-- Replace the default timer message with your own-->

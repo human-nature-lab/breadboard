@@ -1,5 +1,5 @@
 <template>
-  <v-flex>
+  <v-flex v-bind="$attrs" v-on="$listeners">
     <!-- Replace all the the timers with a custom timer -->
     <slot name="timer" :timer="timer" v-for="timer in player.timers">
       <Timer

@@ -1,5 +1,5 @@
 <template>
-  <v-flex v-if="player.text">
+  <v-flex v-if="player.text" v-bind="$attrs" v-on="$listeners">
     <v-container>
       <!-- Add something before the player content -->
       <slot name="prepend" />

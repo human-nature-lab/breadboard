@@ -1,7 +1,7 @@
 <template>
-  <v-flex class="choice" v-bind="choiceAttrs">
+  <v-flex class="choice">
     <div v-if="choice.custom" v-html="choice.custom" class="custom-choice"/>
-    <v-btn :disabled="disabled" @click="sendClick" class="default-choice">
+    <v-btn :disabled="disabled" class="default-choice" v-bind="$attrs" v-on="$listeners" @click="sendClick">
       <!-- Add something before the label -->
       <slot name="prepend" :choice="choice" :disabled="disabled"/>
       <!-- Replace the default label with your own label -->
