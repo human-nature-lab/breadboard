@@ -9,6 +9,7 @@
     "prepublishOnly": "npm run build"
   },
   "main": "dist/client.common.js",
+  "types": "dist/src/index.d.ts",
   "module": "./dist/client.umd.js",
   "dependencies": {
     "@human-nature-lab/breadboard-core": "^1.0.5",
