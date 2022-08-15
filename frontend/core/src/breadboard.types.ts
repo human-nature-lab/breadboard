@@ -36,6 +36,7 @@ export interface VueLoadOpts {
 export interface PlayerChoice {
   name: string
   uid: string
+  params?: Record<string, any>
   class?: string
 }
 
