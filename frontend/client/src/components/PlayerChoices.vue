@@ -1,18 +1,16 @@
 <template>
-  <v-flex v-if="hasChoices" class="player-choices" v-bind="$attrs" v-on="$listeners">
-    <v-container>
-      <v-layout row>
-        <Choice
-          v-for="choice of defaultChoices"
-          :choice="choice"
-          :key="choice.uid"
-          @click="submit(choice)" />
-        <v-flex v-for="choice of slotChoices" :key="choice.uid">
-          <slot name="choice" :choice="choice" />
-        </v-flex>
-      </v-layout>
-    </v-container>
-  </v-flex>
+  <v-col v-if="hasChoices" class="player-choices" v-bind="$attrs" v-on="$listeners">
+    <v-row>
+      <Choice
+        v-for="choice of defaultChoices"
+        :choice="choice"
+        :key="choice.uid"
+        @click="submit(choice)" />
+      <v-col v-for="choice of slotChoices" :key="choice.uid">
+        <slot name="choice" :choice="choice" />
+      </v-col>
+    </v-row>
+  </v-col>
 </template>
 
 <script lang="ts">

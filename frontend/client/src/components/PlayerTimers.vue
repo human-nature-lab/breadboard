@@ -1,12 +1,12 @@
 <template>
-  <v-flex v-bind="$attrs" v-on="$listeners">
+  <v-col class="pa-0" v-bind="$attrs" v-on="$listeners">
     <!-- Replace all the the timers with a custom timer -->
     <slot name="timer" :timer="timer" v-for="timer in player.timers">
       <Timer
         :key="timer.id"
         :timer="timer" />
     </slot>
-  </v-flex>
+  </v-col>
 </template>
 
 <script lang="ts">
