@@ -1,5 +1,5 @@
 <template>
-  <v-col class="pa-0" v-bind="$attrs" v-on="$listeners">
+  <v-col class="pa-0">
     <!-- Replace all the the timers with a custom timer -->
     <slot name="timer" :timer="timer" v-for="timer in player.timers">
       <Timer
@@ -10,8 +10,8 @@
 </template>
 
 <script lang="ts">
-  import Vue from 'vue'
-  import { PlayerTimer } from '@human-nature-lab/breadboard-core'
+  import Vue, { PropType } from 'vue'
+  import { PlayerTimer, PlayerData } from '@human-nature-lab/breadboard-core'
   import Timer from './Timer.vue'
 
   /**
@@ -44,13 +44,18 @@
        * The player object 
        */
       player: {
-        type: Object,
+        type: Object as PropType<PlayerData>,
         required: true
       }
     },
     computed: {
-      timers () {
-        const timers: PlayerTimer[] = Object.values(this.player.timers)
+      timers (): PlayerTimer[] {
+        const timers: PlayerTimer[] = []
+        if (this.player.timers) {
+          for (const key in this.player.timers) {
+            timers.push(this.player.timers[key])
+          }
+        }
         timers.sort((a, b) => a.order - b.order)
         return timers
       }

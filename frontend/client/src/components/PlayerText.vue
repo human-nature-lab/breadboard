@@ -1,5 +1,5 @@
 <template>
-  <v-col v-if="player.text" v-bind="$attrs" v-on="$listeners">
+  <v-col v-if="player.text">
     <!-- Add something before the player content -->
     <slot name="prepend" />
     <slot :text="player.text">

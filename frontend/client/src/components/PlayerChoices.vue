@@ -1,14 +1,11 @@
 <template>
-  <v-col v-if="hasChoices" class="player-choices" v-bind="$attrs" v-on="$listeners">
-    <v-row>
-      <Choice
-        v-for="choice of defaultChoices"
-        :choice="choice"
-        :key="choice.uid"
-        @click="submit(choice)" />
-      <v-col v-for="choice of slotChoices" :key="choice.uid">
-        <slot name="choice" :choice="choice" />
-      </v-col>
+  <v-col v-if="hasChoices" class="player-choices">
+    <v-row class="choices-container justify-space-between">
+      <template v-for="choice of player.choices">
+        <slot name="choice" :choice="choice" :submit="submit">
+          <Choice :choice="choice" :key="choice.uid" @click="submit(choice)" />
+        </slot>
+      </template>
     </v-row>
   </v-col>
 </template>
@@ -44,7 +41,11 @@ export default Vue.extend({
   },
   methods: {
     submit (choice: PlayerChoice) {
-      window.Breadboard.sendChoice(choice.uid)
+      if (choice.params) {
+        window.Breadboard.sendChoice(choice.uid, choice.params)
+      } else {
+        window.Breadboard.sendChoice(choice.uid)
+      }
       this.choicesAreEnabled = false
     },
     /**
@@ -61,20 +62,6 @@ export default Vue.extend({
     }
   },
   computed: {
-    defaultChoices (): any[] {
-      if (this.player && this.player.choices) {
-        return this.player.choices.filter((choice: any) => this.useDefaultChoice(choice))
-      } else {
-        return []
-      }
-    },
-    slotChoices (): any[] {
-      if (this.player && this.player.choices) {
-        return this.player.choices.filter((choice: any) => !this.useDefaultChoice(choice))
-      } else {
-        return []
-      }
-    },
     hasChoices (): boolean {
       return !!this.defaultChoices.length || !!this.slotChoices.length
     }

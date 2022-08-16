@@ -1,5 +1,5 @@
 <template>
-  <v-alert :value="!isOpen" :color="color" :transition="transition" v-bind="$attrs" v-on="$listeners">
+  <v-alert :value="!isOpen" :color="color" :transition="transition">
     <!-- The message to be shown when the client is disconnected -->
     <slot :time="time">
       Unable to communicate with the server right now. You will automatically reconnect after {{(time / 1000).toFixed(0)}}s. Please wait....

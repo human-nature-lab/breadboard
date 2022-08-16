@@ -14,7 +14,7 @@
     <slot name="loading" v-if="useEfficientLoading && fetchTimeoutId">
       Loading form...
     </slot>
-    <v-form v-model="valid" v-if="form" @submit.prevent="()=>{}" v-bind="$attrs" v-on="$listeners">
+    <v-form v-model="valid" v-if="form" @submit.prevent="()=>{}">
       <v-container>
         <v-layout 
           v-for="(section, sectionIndex) in form.page.sections" 

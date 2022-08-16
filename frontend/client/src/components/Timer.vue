@@ -3,9 +3,7 @@
     height="25"
     :value="value"
     :color="color"
-    reactive
-    v-bind="$attrs"
-    v-on="$listeners">
+    reactive>
     <!-- Add something before the timer label. For example a dollar sign. -->
     <slot name="prepend" />
     <!-- Replace the default timer message with your own-->
@@ -29,7 +27,7 @@
   /**
    * The default timer component. This component can be easily extended using slots.
    */
-  import Vue from 'vue'
+  import Vue, { PropType } from 'vue'
   import { PlayerTimer } from '@human-nature-lab/breadboard-core'
   import { toHHMMSS } from '../lib/DateTime'
 
@@ -40,7 +38,7 @@
        * The timer object sent from the server
        */
       timer: {
-        type: Object as () => PlayerTimer,
+        type: Object as PropType<PlayerTimer>,
         required: true
       },
       /**
