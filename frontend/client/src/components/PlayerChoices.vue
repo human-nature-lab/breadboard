@@ -63,7 +63,7 @@ export default Vue.extend({
   },
   computed: {
     hasChoices (): boolean {
-      return !!this.defaultChoices.length || !!this.slotChoices.length
+      return !!this.player && !!this.player.choices && !!this.player.choices.length
     }
   }
 })
