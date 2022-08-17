@@ -1,6 +1,6 @@
 <template>
   <v-col v-if="hasChoices" class="player-choices">
-    <v-row class="choices-container justify-space-between">
+    <v-row no-gutters class="choices-container justify-space-between">
       <template v-for="(choice, index) of player.choices">
         <slot name="choice" :choice="choice" :submit="submit" :index="index">
           <Choice :choice="choice" :key="choice.uid" @click="submit(choice)" />
