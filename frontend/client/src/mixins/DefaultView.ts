@@ -1,5 +1,6 @@
 import Vue from 'vue'
-import { Breadboard, BreadboardConfig, Graph, PlayerData } from '@human-nature-lab/breadboard-core'
+import { BreadboardConfig, Graph, PlayerData } from '@human-nature-lab/breadboard-core'
+
 import { Mutex } from 'async-mutex'
 
 const gremlinsMutex = new Mutex()
