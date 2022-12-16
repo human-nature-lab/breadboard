@@ -20,7 +20,6 @@ export class Socket extends Emitter {
   constructor (private url: string, private protocols?: string | string[]) {
     super()
     this.connect = this.connect.bind(this)
-    this.connect()
   }
 
   /**
