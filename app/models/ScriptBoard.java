@@ -1,6 +1,6 @@
 package models;
 
-import akka.actor.UntypedActor;
+import akka.actor.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -9,6 +9,7 @@ import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.gremlin.groovy.GremlinGroovyPipeline;
 import groovy.util.ObservableMap;
+import groovy.lang.Closure;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
@@ -36,18 +37,20 @@ public class ScriptBoard extends UntypedActor {
   private static PlayerActionsInterface playerActions;
   private static BreadboardGraphInterface graphInterface;
   private static BreadboardGraphChangedListener graphChangedListener;
+  private static FileWatcher fileWatcher;
   private static EventTracker eventTracker = new EventTracker();
+  private static EventBus<Map> eventBus = new EventBus();
 
   private static Random rand = new Random();
-
   private static HashMap<String, Client> clients = new HashMap<>();
 
   // A list of admins currently watching the game.
   private static ArrayList<Admin> admins = new ArrayList<>();
-
   private static UserDataInterface instanceData;
-
   private GameListener gameListener = new GameListener();
+
+  private Long experimentId;
+  private Long instanceId;
 
   public static boolean checkPassword(String _password) {
     // If no password is set, always return true
@@ -68,6 +71,15 @@ public class ScriptBoard extends UntypedActor {
     clients = new HashMap<>();
     eventTracker = new EventTracker();
     manager = new ScriptEngineManager();
+    eventBus.clear();
+  }
+
+  private void disconnectClients () {
+    // Disconnect all connected clients
+    for (Client client : clients.values()) {
+      client.disconnect();
+    }
+    clients.clear();
   }
 
   private void resetEngine(Experiment experiment) throws IOException, ScriptException {
@@ -79,13 +91,37 @@ public class ScriptBoard extends UntypedActor {
       jsonOutput.put("notify", notify);
       admin.getOut().write(jsonOutput);
     }
-    Logger.debug("resetEngine");
+    Logger.debug("ScriptEngine reload start");
     if (engine != null) {
-      //just in case
+      // just in case
       playerActions.turnAIOff();
-      //clean up the graph
+      // clean up the graph
       processScript("g.empty()", null, null);
+      // Reset the timers
+      processScript("timers.cancel()", null, null);
     }
+
+    // Global events used to communicate via the groovy scripting
+    eventBus.clear();
+    eventBus.on("__send-event", new Closure(null) {
+      public void doCall (String clientId, String eventName, Object ...data) {
+        Logger.debug("client send " + clientId);
+        Client client = clients.get(clientId);
+        if (client == null) {
+          Logger.error("Client with id, " + clientId + " has not connected yet");
+          return;
+        }
+        client.send(eventName, data);
+      }
+    });
+    eventBus.on("__broadcast-event", new Closure(null) {
+      public void doCall (String clientId, String eventName, Object ...data) {
+        Logger.debug("client broadcast " + clientId);
+        for (Client client : clients.values()) {
+          client.send(eventName, data);
+        }
+      }
+    });
 
     engine = manager.getEngineByName("gremlin-groovy");
     engine.getBindings(ScriptContext.ENGINE_SCOPE).put("r", rand);
@@ -93,35 +129,34 @@ public class ScriptBoard extends UntypedActor {
 
     engine.getBindings(ScriptContext.ENGINE_SCOPE).put("eventTracker", eventTracker);
     engine.getBindings(ScriptContext.ENGINE_SCOPE).put("gameListener", gameListener);
+    engine.getBindings(ScriptContext.ENGINE_SCOPE).put("events", eventBus);
 
     if (experiment != null) {
       engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", experiment.contentFetcher);
     }
 
+    String[] scriptFiles = {
+      "/util.groovy", 
+      "/timer.groovy",
+      "/graph.groovy", 
+      "/actions.groovy", 
+      "/step.groovy", 
+      "/test.groovy",
+      "/events.groovy",
+      "/chat.groovy",
+      "/form.groovy",
+      "/ready.groovy"
+    };
+
     // Load Groovy scripts
-    File utilFile = new File(Play.application().path().toString() + "/groovy/util.groovy");
-    String utilString = FileUtils.readFileToString(utilFile, "UTF-8");
-    engine.eval(utilString);
-
-    File graphFile = new File(Play.application().path().toString() + "/groovy/graph.groovy");
-    String graphString = FileUtils.readFileToString(graphFile, "UTF-8");
-    engine.eval(graphString);
-
-    File actionsFile = new File(Play.application().path().toString() + "/groovy/actions.groovy");
-    String actionsString = FileUtils.readFileToString(actionsFile, "UTF-8");
-    engine.eval(actionsString);
-
-    File stepFile = new File(Play.application().path().toString() + "/groovy/step.groovy");
-    String stepString = FileUtils.readFileToString(stepFile, "UTF-8");
-    engine.eval(stepString);
-
-    File timerFile = new File(Play.application().path().toString() + "/groovy/timer.groovy");
-    String timerString = FileUtils.readFileToString(timerFile, "UTF-8");
-    engine.eval(timerString);
-
-    File testFile = new File(Play.application().path().toString() + "/groovy/test.groovy");
-    String testString = FileUtils.readFileToString(testFile, "UTF-8");
-    engine.eval(testString);
+    for (String file : scriptFiles) {
+      File utilFile = new File(Play.application().path().toString() + "/groovy" + file);
+      // Add a null terminator for each file so the script engine can always reload even after errors
+      String utilString = FileUtils.readFileToString(utilFile, "UTF-8") + ";null;";
+      Logger.debug("loading " + file);
+      engine.eval(utilString);
+      Logger.debug(file + " load done");
+    }
 
     // get script object on which we want to implement the interface with
     Object a = engine.get("a");
@@ -152,6 +187,10 @@ public class ScriptBoard extends UntypedActor {
 
     graphInterface.addListener(graphChangedListener);
 
+    if (fileWatcher == null) {
+      fileWatcher = new FileWatcher(admins);
+    }
+
     gameListener.engine = engine;
 
     // When done, send a message to each Admin
@@ -162,13 +201,19 @@ public class ScriptBoard extends UntypedActor {
       jsonOutput.put("notify", notify);
       admin.getOut().write(jsonOutput);
     }
+    this.disconnectClients();
+    Logger.debug("ScriptEngine reload complete");
   }
 
   private void loadSteps(Experiment experiment, ThrottledWebSocketOut out) {
-    for (Step step : experiment.steps) {
+    for (Step step : experiment.getSteps()) {
       //should call RunStep?
-      processScript(step.source, out, step.name);
+      processScript(step.source + ";null;", out, step.name);
     }
+  }
+
+  private String makeUniqueClientId (String clientId) {
+    return this.experimentId + "-" + this.instanceId + "-" + clientId;
   }
 
   private void rebuildScriptBoard(Experiment experiment) throws IOException, ScriptException {
@@ -203,7 +248,7 @@ public class ScriptBoard extends UntypedActor {
         return;
       }
 
-      Client client = clients.get(experimentIdString + "-" + experimentInstanceIdString + "-" + clientId);
+      Client client = clients.get(clientId);
 
       if (client == null && experimentInstance.hasStarted) {
         Logger.debug("New client trying to join after game has already started.");
@@ -213,7 +258,7 @@ public class ScriptBoard extends UntypedActor {
       if (client == null) {
         // New client, let's create a new Client object
         client = new Client(clientId, experimentInstance, in, out);
-        clients.put(experimentIdString + "-" + experimentInstanceIdString + "-" + clientId, client);
+        clients.put(clientId, client);
       } else {
         // Reconnecting: let's change the in / out so they continue to receive messages
         client.setIn(in);
@@ -256,9 +301,17 @@ public class ScriptBoard extends UntypedActor {
               String choiceUID = jsonInput.get("choiceUID").toString();
               String params = (jsonInput.containsKey("params")) ? jsonInput.get("params").toString() : null;
               makeChoice(choiceUID, params, out);
+            } else if (action.equals("CustomEvent")) {
+              // TODO: Is is possible for this to be emitted before the event has been registered? 
+              //       I think it is and I think it will cause exceptions to be thrown...
+              eventBus.emit("CustomEvent", jsonInput, new HashMap<String, String>() {{
+                put("clientId", clientId);
+            }});
             }
           } catch (java.io.IOException ignored) {
             Logger.debug("java.io.IOException");
+          } catch (Exception e) {
+            Logger.error(e.getMessage());
           }
         }
       });
@@ -282,7 +335,7 @@ public class ScriptBoard extends UntypedActor {
 
       // Update the client's state
       ObjectNode jsonOutput = Json.newObject();
-      jsonOutput.put("style", experimentInstance.experiment.style);
+      jsonOutput.put("style", experimentInstance.experiment.getStyle());
       Logger.debug("addClient, " + clientId);
       out.write(jsonOutput);
     } catch (NumberFormatException nfe) {
@@ -449,7 +502,7 @@ public class ScriptBoard extends UntypedActor {
             gameListener.start();
 
             // Re-run the Steps
-            for (Step step : instance.experiment.steps)
+            for (Step step : instance.experiment.getSteps())
               Breadboard.instances.get(breadboardMessage.user.email).tell(new Breadboard.RunStep(breadboardMessage.user, step.source, breadboardMessage.out), null);
 
           } // END if (breadboardMessage.user.selectedExperiment != null)
@@ -459,7 +512,6 @@ public class ScriptBoard extends UntypedActor {
         } // END else if(message instanceof Breadboard.LaunchGame)
         else if (message instanceof Breadboard.SelectInstance) {
           Breadboard.SelectInstance selectInstance = (Breadboard.SelectInstance) message;
-
           rebuildScriptBoard(breadboardMessage.user.selectedExperiment);
           loadSteps(breadboardMessage.user.selectedExperiment, selectInstance.out);
           breadboardMessage.user.setExperimentInstanceId(selectInstance.id);
@@ -668,7 +720,7 @@ public class ScriptBoard extends UntypedActor {
     out.write(jsonOutput);
   }
 
-  private static void processScript(String script, ThrottledWebSocketOut out, String scriptName) {
+  public static void processScript(String script, ThrottledWebSocketOut out, String scriptName) {
     if (scriptName == null) scriptName = "Unnamed Script";
 
     ObjectNode jsonOutput = Json.newObject();
@@ -763,7 +815,7 @@ public class ScriptBoard extends UntypedActor {
         initParam(newData, null);
 
       } else if (evt instanceof ObservableMap.PropertyClearedEvent) {
-        List<Parameter> parameters = experimentInstance.experiment.parameters;
+        List<Parameter> parameters = experimentInstance.experiment.getParameters();
         List<String> parameterNames = new ArrayList<String>();
         for (Parameter parameter : parameters) {
           parameterNames.add(parameter.name);

@@ -1,6 +1,7 @@
 package models;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.tinkerpop.blueprints.Direction;
 import com.tinkerpop.blueprints.Edge;
@@ -22,6 +23,7 @@ public class Client extends Model {
   public WebSocket.In<JsonNode> in;
   public ThrottledWebSocketOut out;
   public ExperimentInstance experimentInstance;
+  private int styleHash;
 
   public Client(String id, ExperimentInstance experimentInstance, WebSocket.In<JsonNode> in, ThrottledWebSocketOut out) {
     this.id = id;
@@ -150,6 +152,12 @@ public class Client extends Model {
 
     jsonOutput.put("player", client);
 
+    int hash = experimentInstance.experiment.getStyle().hashCode();
+    if (styleHash != hash) {
+      styleHash = hash;
+      jsonOutput.put("style", experimentInstance.experiment.getStyle());
+    }
+
     out.write(jsonOutput);
   }
 
@@ -270,9 +278,18 @@ public class Client extends Model {
     out.write(jsonOutput);
   }
 
+  public void send (String eventName, Object ...data) {
+    ObjectMapper mapper = new ObjectMapper();
+    ObjectNode json = Json.newObject();
+    json.put("eventName", eventName);
+    json.put("data", Json.toJson(data));
+    // JsonNode json = mapper.convertValue(data, JsonNode.class);
+    out.write(json);
+  }
+
   public ObjectNode toJson() {
     ObjectNode client = Json.newObject();
-    client.put("style", experimentInstance.experiment.style);
+    client.put("style", experimentInstance.experiment.getStyle());
     return client;
   }
 
@@ -286,6 +303,10 @@ public class Client extends Model {
 
   public String toString() {
     return "Client(" + id + ")";
+  }
+
+  public void disconnect () {
+    this.out.close();
   }
 
 }

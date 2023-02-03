@@ -53,4 +53,8 @@ public class ThrottledWebSocketOut {
     */
     out.write(message);
   }
+
+  public void close () {
+    this.out.close();
+  }
 }

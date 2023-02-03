@@ -1,0 +1,29 @@
+{
+  "name": "@human-nature-lab/breadboard-core",
+  "version": "1.0.7",
+  "private": false,
+  "description": "The primary components used in the Breadboard client",
+  "main": "dist/index.js",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
+  "scripts": {
+    "build": "rm -r dist && tsc",
+    "prepublishOnly": "npm run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/human-nature-lab/breadboard/tree/master/frontend/core"
+  },
+  "author": "wyattis",
+  "devDependencies": {
+    "core-js": "^3.21.1",
+    "regenerator-runtime": "^0.13.9",
+    "typescript": "^4.6.2"
+  },
+  "dependencies": {
+    "async-mutex": "^0.3.2",
+    "goodish": "^0.2.2"
+  }
+}

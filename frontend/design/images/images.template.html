@@ -1,0 +1,62 @@
+<div ng-show="experiment">
+    <table class="table">
+        <thead>
+        <tr>
+            <th colspan="3">Add Image</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr>
+            <td>
+                <button ngf-select
+                        class="btn btn-default"
+                        ngf-pattern="'image/*'"
+                        ng-disabled="readOnly"
+                        ng-model="vm.uploadImage.file">
+                    Select an image
+                </button>
+            </td>
+            <td>
+                {{vm.uploadImage.file.name}}
+            </td>
+            <td>
+                <button title='Add image'
+                        class="btn btn-default"
+                        ng-disabled="readOnly"
+                        ng-click="vm.createImage()">
+                    <span class="step-icon ui-icon-plusthick">Upload image</span>
+                </button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Preview</th>
+            <th>Filename</th>
+            <th ng-hide="experiment.fileMode">ID URL</th>
+            <th>Filename URL</th>
+            <th>Delete</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr ng-repeat="image in experiment.images"
+            ng-class="{'bg-success': (image.id == vm.createdId), 'bg-warning': (image.id == vm.overDelete), 'bg-danger': (image.id == vm.removedId)}">
+            <td><img class="thumbs" ng-src="/images/{{experiment.id}}/{{image.fileName}}"></td>
+            <td>{{image.fileName}}</td>
+            <td ng-hide="experiment.fileMode">/images/{{image.id}}</td>
+            <td>/images/{{experiment.id}}/{{image.fileName}}</td>
+            <td>
+                <button title='Delete image'
+                        class="btn btn-default"
+                        ng-mouseover="vm.overDelete = image.id"
+                        ng-mouseleave="vm.overDelete = false"
+                        ng-disabled="readOnly"
+                        ng-click='vm.deleteImage(image.id)'><span
+                        class="step-icon ui-icon-closethick">Delete image</span></button>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+</div>

@@ -7,8 +7,12 @@ import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonValue;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import controllers.ExperimentController;
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVPrinter;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.commons.lang3.StringUtils;
 import play.Logger;
 import play.Play;
 import play.data.format.Formats;
@@ -21,6 +25,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,7 +43,8 @@ public class Experiment extends Model {
   public String uid;
 
   @OneToMany(cascade = CascadeType.ALL)
-  public List<Step> steps = new ArrayList<>();
+  @OrderBy("name asc")
+  private List<Step> steps = new ArrayList<>();
 
   @OneToMany(cascade = CascadeType.ALL)
   public List<Content> content = new ArrayList<>();
@@ -70,6 +76,8 @@ public class Experiment extends Model {
 
   public static final String ON_JOIN_STEP_NAME = "OnJoinStep";
   public static final String ON_LEAVE_STEP_NAME = "OnLeaveStep";
+
+  public Boolean fileMode;
 
   /*
    * The CSS Style for the experiment
@@ -132,20 +140,20 @@ public class Experiment extends Model {
    */
   public Experiment(Experiment experiment) {
     this.uid = UUID.randomUUID().toString();
-    this.style = experiment.style;
-    this.clientHtml = experiment.clientHtml;
-    this.clientGraph = experiment.clientGraph;
+    this.style = experiment.getStyle();
+    this.clientHtml = experiment.getClientHtml();
+    this.clientGraph = experiment.getClientGraph();
 
-    for (Step step : experiment.steps) {
+    for (Step step : experiment.getSteps()) {
       this.steps.add(new Step(step));
     }
-    for (Content c : experiment.content) {
+    for (Content c : experiment.getContent()) {
       this.content.add(new Content(c));
     }
-    for (Parameter param : experiment.parameters) {
+    for (Parameter param : experiment.getParameters()) {
       this.parameters.add(new Parameter(param));
     }
-    for (Image image : experiment.images) {
+    for (Image image : experiment.getImages()) {
       this.images.add(new Image(image));
     }
     for(Language language : experiment.languages) {
@@ -153,19 +161,193 @@ public class Experiment extends Model {
     }
   }
 
+  public String getDirectoryName() {
+    String returnString = StringUtils.replace(this.name, " ", "-").concat("_").concat(this.id.toString());
+    return returnString;
+  }
+
+  public void setFileMode(Boolean fileMode) {
+    this.fileMode = fileMode;
+  }
+
+  public List<Image> getImages() {
+    if (this.fileMode) {
+      ArrayList<Image> returnImages = new ArrayList<>();
+      File imagesDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/Images");
+      if (imagesDirectory.isDirectory()) {
+        try {
+          returnImages = ExperimentController.getImagesFromDirectory(imagesDirectory);
+        } catch (IOException ioe) {
+          Logger.error("Error reading images from " + imagesDirectory + ", check your permissions.");
+          Logger.debug(ioe.getMessage());;
+        }
+      }
+      return returnImages;
+    }
+    return this.images;
+  }
+
+  public List<Content> getContent() {
+    if (this.fileMode) {
+      ArrayList<Content> returnContent = new ArrayList<>();
+      File contentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/Content");
+      if (contentDirectory.isDirectory()) {
+        try {
+          returnContent = ExperimentController.getContentFromDirectory(contentDirectory);
+        } catch (IOException ioe) {
+          Logger.error("Error reading Content from " + contentDirectory + ", check your permissions.");
+          Logger.debug(ioe.getMessage());;
+        }
+      }
+      return returnContent;
+
+    }
+    return this.content;
+  }
+
+  public void removeContent() {
+    Iterator<Content> iter = this.content.iterator();
+    while (iter.hasNext()) {
+      Content c = iter.next();
+      iter.remove();
+      c.delete();
+    }
+    this.update();
+  }
+
+  public void removeImages() {
+    Iterator<Image> iter = this.images.iterator();
+    while (iter.hasNext()) {
+      Image i = iter.next();
+      iter.remove();
+      i.delete();
+    }
+    this.update();
+  }
+
+  public String getStyle() {
+    if (this.fileMode) {
+      String returnStyle = "";
+      try {
+        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
+        returnStyle = FileUtils.readFileToString(new File(devDirectory, "style.css"));
+      } catch (IOException ioe) {
+        Logger.error("Error reading style.css file from the dev directory, check your permissions.");
+        Logger.debug(ioe.getMessage());;
+      }
+      return returnStyle;
+    } else {
+      return this.style;
+    }
+  }
+
+  public String getClientHtml() {
+    if (this.fileMode) {
+      String returnClientHtml = "";
+      try {
+        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
+        returnClientHtml = FileUtils.readFileToString(new File(devDirectory, "client-html.html"));
+      } catch (IOException ioe) {
+        Logger.error("Error reading client-html.html file from the dev directory, check your permissions.");
+        Logger.debug(ioe.getMessage());;
+      }
+      return returnClientHtml;
+    } else {
+      return this.clientHtml;
+    }
+  }
+
+  public String getClientGraph() {
+    if (this.fileMode) {
+      String returnClientGraph = "";
+      try {
+        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
+        returnClientGraph = FileUtils.readFileToString(new File(devDirectory, "client-graph.js"));
+      } catch (IOException ioe) {
+        Logger.error("Error reading client-graph.js file from the dev directory, check your permissions.");
+        Logger.debug(ioe.getMessage());;
+      }
+      return returnClientGraph;
+    } else {
+      return this.clientGraph;
+    }
+  }
+
+  public List<Step> getSteps() {
+    if (this.fileMode) {
+      ArrayList<Step> returnSteps = new ArrayList<>();
+      File stepsDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/steps");
+      try {
+        returnSteps = ExperimentController.getStepsFromDirectory(stepsDirectory);
+      } catch (IOException ioe) {
+        Logger.error("Error reading Steps from " + stepsDirectory + ", check your permissions.");
+        Logger.debug(ioe.getMessage());;
+      }
+      return returnSteps;
+    } else {
+      return this.steps;
+    }
+  }
+
+  public void addStep(Step step) {
+    this.steps.add(step);
+  }
+
+  public void removeSteps() {
+    Iterator<Step> iter = this.steps.iterator();
+    while (iter.hasNext()) {
+      Step s = iter.next();
+      iter.remove();
+      s.delete();
+    }
+    this.update();
+  }
+
+  public void toggleFileMode(User user) {
+    File experimentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
+    try {
+      if (this.fileMode) {
+        // Turning fileMode off, let's import the files into the current experiment
+        ExperimentController.importExperimentFromDirectory(this.id, user, experimentDirectory);
+      } else {
+        // Turning fileMode on, let's export the experiment into the appropriate directory
+        ExperimentController.exportExperimentToDirectory(this.id, experimentDirectory);
+      }
+      this.setFileMode(!this.fileMode);
+      this.save();
+    } catch (IOException ioe) {
+      Logger.error("Unable to access " + experimentDirectory + ", check your file permissions.", ioe);
+      // if (Logger.canLog(Logger.DEBUG)) {
+      //   ioe.printStackTrace(Logger);
+      // }
+    }
+  }
+
+  public String parametersToCsv() {
+    CSVFormat format = CSVFormat.DEFAULT.withHeader("Name", "Type", "Min.", "Max.", "Default", "Short Description");
+    StringBuilder stringBuilder = new StringBuilder();
+    try {
+      CSVPrinter csvPrinter = new CSVPrinter(stringBuilder, format);
+      for (Parameter param : getParameters()) {
+        csvPrinter.printRecord(param.name, param.type, param.minVal, param.maxVal, param.defaultVal, param.description);
+      }
+    } catch (IOException ioe) {}
+    return stringBuilder.toString();
+  }
+
   public void export() throws IOException {
     File experimentDirectory = new File(Play.application().path().toString() + "/experiments/" + this.name);
-    FileUtils.writeStringToFile(new File(experimentDirectory, "style.css"), this.style);
-    FileUtils.writeStringToFile(new File(experimentDirectory, "client.html"), this.clientHtml);
-    FileUtils.writeStringToFile(new File(experimentDirectory, "client-graph.js"), this.clientGraph);
+    FileUtils.writeStringToFile(new File(experimentDirectory, "style.css"), this.getStyle());
+    FileUtils.writeStringToFile(new File(experimentDirectory, "client.html"), this.getClientHtml());
+    FileUtils.writeStringToFile(new File(experimentDirectory, "client-graph.js"), this.getClientGraph());
 
     File stepsDirectory = new File(experimentDirectory, "/Steps");
-    for (Step step : this.steps) {
+    for (Step step : this.getSteps()) {
       FileUtils.writeStringToFile(new File(stepsDirectory, step.name.concat(".groovy")), step.source);
     }
 
     File contentDirectory = new File(experimentDirectory, "/Content");
-    for (Content c : this.content) {
+    for (Content c : this.getContent()) {
       // Write to a subdirectory based on the language of the Content or 'en' if language is undefined
       for (Translation t : c.translations) {
         String language = (t.language == null) ? "en" : t.language.code;
@@ -177,12 +359,12 @@ public class Experiment extends Model {
     String ls = System.getProperty("line.separator");
     File parametersFile = new File(experimentDirectory, "parameters.csv");
     FileUtils.writeStringToFile(parametersFile, "Name,Type,Min.,Max.,Default,Short Description" + ls);
-    for (Parameter param : this.parameters) {
+    for (Parameter param : this.getParameters()) {
       FileUtils.writeStringToFile(parametersFile, param.name + "," + param.type + "," + param.minVal + "," + param.maxVal + "," + param.defaultVal + "," + param.description + ls, true);
     }
 
     File imagesDirectory = new File(experimentDirectory, "/Images");
-    for (Image image : this.images) {
+    for (Image image : this.getImages()) {
       FileUtils.writeByteArrayToFile(new File(imagesDirectory, image.fileName), image.file);
     }
   }
@@ -198,7 +380,9 @@ public class Experiment extends Model {
       } else {
         contents = IOUtils.toString(defaultClientHtml);
       }
-    } catch(IOException e){}
+    } catch(IOException e){
+      Logger.error("Error reading the conf/defaults/client-html.html file.");
+    }
     return contents;
   }
 
@@ -213,7 +397,9 @@ public class Experiment extends Model {
       } else {
         contents = IOUtils.toString(defaultClientGraph);
       }
-    } catch(IOException e){}
+    } catch(IOException e){
+      Logger.error("Error reading the conf/defaults/default-client-graph.js file.");
+    }
     return contents;
   }
 
@@ -316,14 +502,6 @@ public class Experiment extends Model {
     return null;
   }
 
-  public Step getStep(Long id) {
-    for (Step s : steps) {
-      if (s.id.equals(id))
-        return s;
-    }
-    return null;
-  }
-
   public Parameter getParameterByName(String name) {
     for (Parameter p : parameters) {
       if (p.name.equals(name))
@@ -333,7 +511,29 @@ public class Experiment extends Model {
   }
 
   public List<Parameter> getParameters() {
-    return parameters;
+    if (this.fileMode) {
+      ArrayList<Parameter> returnParameters = new ArrayList<>();
+      File parameterFile = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/parameters.csv");
+      try {
+        returnParameters = ExperimentController.getParametersFromFile(parameterFile);
+      } catch (IOException ioe) {
+        Logger.error("Error reading " + parameterFile + " from the dev directory, check your permissions.");
+        Logger.debug(ioe.getMessage());;
+      }
+      return returnParameters;
+
+    }
+    return this.parameters;
+  }
+
+  public void removeParameters() {
+    Iterator<Parameter> iter = this.parameters.iterator();
+    while (iter.hasNext()) {
+      Parameter p = iter.next();
+      iter.remove();
+      p.delete();
+    }
+    this.update();
   }
 
   public boolean hasOnJoinStep() {
@@ -345,7 +545,7 @@ public class Experiment extends Model {
   }
 
   public Step getOnJoinStep() {
-    for (Step step : steps) {
+    for (Step step : this.getSteps()) {
       if (ON_JOIN_STEP_NAME.equalsIgnoreCase(step.name)) {
         return step;
       }
@@ -354,14 +554,13 @@ public class Experiment extends Model {
   }
 
   public Step getOnLeaveStep() {
-    for (Step step : steps) {
+    for (Step step : this.getSteps()) {
       if (ON_LEAVE_STEP_NAME.equalsIgnoreCase(step.name)) {
         return step;
       }
     }
     return null;
   }
-
 
   @JsonValue
   public ObjectNode toJson() {
@@ -370,9 +569,10 @@ public class Experiment extends Model {
     experiment.put("id", id);
     experiment.put("name", name);
     experiment.put("uid", uid);
+    experiment.put("fileMode", fileMode);
 
     ArrayNode jsonSteps = experiment.putArray("steps");
-    for (Step s : steps) {
+    for (Step s : getSteps()) {
       jsonSteps.add(s.toJson());
     }
 
@@ -382,12 +582,12 @@ public class Experiment extends Model {
     }
 
     ArrayNode jsonContent = experiment.putArray("content");
-    for (Content c : content) {
+    for (Content c : getContent()) {
       jsonContent.add(c.toJson());
     }
 
     ArrayNode jsonParameters = experiment.putArray("parameters");
-    for (Parameter p : parameters) {
+    for (Parameter p : getParameters()) {
       jsonParameters.add(p.toJson());
     }
 
@@ -399,15 +599,13 @@ public class Experiment extends Model {
     }
 
     ArrayNode jsonImages = experiment.putArray("images");
-    for (Image i : images) {
+    for (Image i : getImages()) {
       jsonImages.add(i.toJson());
     }
 
-    experiment.put("style", style);
-    /*
-    experiment.put("clientHtml", clientHtml);
-    experiment.put("clientGraph", clientGraph);
-    */
+    experiment.put("style", getStyle());
+    experiment.put("clientGraphHash", getClientGraph().hashCode());
+    experiment.put("clientHtmlHash", getClientHtml().hashCode());
 
     return experiment;
   }
@@ -416,3 +614,4 @@ public class Experiment extends Model {
     return "Experiment(" + id + ")";
   }
 }
+

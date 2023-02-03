@@ -1,35 +1,68 @@
 package controllers;
 
 import play.libs.WS;
+import play.Logger;
 import play.mvc.Result;
 import static play.libs.F.*;
 import static play.libs.F.Promise;
 import static play.mvc.Controller.response;
 import static play.mvc.Results.ok;
+import static play.mvc.Results.badRequest;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class BundlesController {
 
-    public static Promise<Result> asset(String filePath){
-        String mode = play.Play.application().configuration().getString("application.mode");
-        if(mode.toUpperCase().equals("DEV")) {
-            return WS.url("http://localhost:8765/bundles/" + filePath).get().map(new Function<WS.Response, Result>() {
-                public Result apply(WS.Response res) {
-                    String contentType = res.getHeader("Content-Type") == null ? res.getHeader("Content-Type") : "application/octet-stream";
-                    response().setContentType(contentType);
-                    return ok(res.getBodyAsStream());
-                }
-            });
-        } else {
-            // Seems dumb that we need two promises here to pass a value to Promise<Result> -> https://www.playframework.com/documentation/2.2.x/JavaAsync#How-to-create-a-Promise<Result>
-            // Would likely be better with lambda functions in 1.8
-            Promise<String> sp = Promise.pure(filePath);
-            return sp.map(new Function<String, Result>() {
-                public Result apply(String filePath) {
-                    return ok(play.Play.application().resourceAsStream("/public/bundles/" + filePath));
-                }
-            });
-        }
+  private static Boolean isChildOf(String child, String parent) {
+    Path parentPath = Paths.get(parent);
+    Path childPath = Paths.get(child);
+    return isChildOf(childPath, parentPath);
+  }
 
+  private static Boolean isChildOf(Path child, Path parent) {
+    while (child != null) {
+      if (child.equals(parent)) {
+        return true;
+      }
+      child = child.getParent();
     }
+    return false;
+  }
+
+  private static Boolean isCacheable (Path filePath) {
+    String[] exts = {"js", "css", "png", "jpg", "jpeg", "woff", "webp", "woff2", "js.map", "ico", "ttf", "otf"};
+    for (String ext : exts) {
+      if (filePath.endsWith("." + ext)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public static Result asset(String filePath) {
+
+    String dir = play.Play.application().configuration().getString("application.staticPath", "generated");
+    Path dirPath = Paths.get(dir).normalize();
+    if (!dirPath.isAbsolute()) {
+      dirPath = dirPath.toAbsolutePath();
+    }
+
+    Path assetPath = dirPath.resolve(filePath).normalize();
+    
+    // Prevent path traversal attacks by checking that this file is contained in the configured dir
+    if (!isChildOf(assetPath, dirPath)) {
+      return badRequest("Invalid path.");
+    }
+    
+    Logger.trace("serving " + filePath + " from " + assetPath.toAbsolutePath().toString());
+    if (isCacheable(assetPath)) {
+      response().setHeader("Cache-Control", "max-age=86400 public");
+    }
+    File file = new File(assetPath.toString());
+    return ok(file, true);
+  }
 
 }

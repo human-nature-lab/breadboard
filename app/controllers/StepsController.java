@@ -22,7 +22,7 @@ public class StepsController extends Controller {
     ObjectNode returnJson = Json.newObject();
 
     ArrayNode jsonSteps = returnJson.putArray("steps");
-    for (Step s : experiment.steps) {
+    for (Step s : experiment.getSteps()) {
       jsonSteps.add(s.toJson());
     }
 
@@ -86,7 +86,7 @@ public class StepsController extends Controller {
     step.setSource(source);
     step.setName(name);
     if (isNewStep) {
-      experiment.steps.add(step);
+      experiment.addStep(step);
       experiment.save();
     } else {
       step.update();

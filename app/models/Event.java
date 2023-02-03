@@ -10,9 +10,7 @@ import play.libs.Json;
 
 import javax.persistence.*;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 
 @Entity
 @Table(name = "events")
@@ -33,6 +31,7 @@ public class Event extends Model {
   public ExperimentInstance experimentInstance;
 
   @OneToMany(cascade = CascadeType.ALL, mappedBy = "event")
+  @OrderBy("name")
   public List<EventData> eventData;
 
   @JsonIgnore

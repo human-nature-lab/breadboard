@@ -9,6 +9,7 @@ docs
 logo
 logs
 db
+dev
 project/project
 project/target
 conf/generated.keystore
@@ -30,6 +31,8 @@ experiments
 dev.bat
 dev.sh
 node_modules
-client-graph.js
 client-html.html
 csv
+
+.vscode
+generated

@@ -9,8 +9,10 @@ import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
 import controllers.D3Utils;
 import play.libs.Json;
+import play.Logger;
 
 import java.util.Map;
+import groovy.util.ObservableMap;
 
 public class Admin implements ClientListener {
   /*
@@ -25,6 +27,10 @@ public class Admin implements ClientListener {
     this.user = user;
     this.scriptBoardController = scriptBoardController;
     this.out = out;
+  }
+
+  public void update() {
+    this.out.write(this.user.toJson());
   }
 
   public void graphChanged(Graph wholeGraph) {
@@ -158,14 +164,25 @@ public class Admin implements ClientListener {
   }
 
   public void edgePropertyChanged(Edge edge, String key, Object setValue) {
-    ObjectNode jsonOutput = Json.newObject();
-
-    jsonOutput.put("action", "linkPropertyChanged");
-    jsonOutput.put("id", edge.getId().toString());
-    jsonOutput.put("key", key);
-    jsonOutput.put("value", setValue.toString());
-
-    out.write(jsonOutput);
+    if ((key == "inProps" || key == "outProps") && edge.getProperty(key) instanceof Map) {
+      Map props = (Map) edge.getProperty(key);
+      for (Object propKey : props.keySet()) {
+        ObjectNode jsonOutput = Json.newObject();
+        jsonOutput.put("action", "linkPropertyChanged");
+        jsonOutput.put("id", edge.getId().toString());
+        jsonOutput.put("key", propKey.toString());
+        jsonOutput.put("value", props.get(propKey).toString());
+        out.write(jsonOutput);
+      }
+    } else {
+      ObjectNode jsonOutput = Json.newObject();
+      jsonOutput.put("action", "linkPropertyChanged");
+      jsonOutput.put("id", edge.getId().toString());
+      jsonOutput.put("key", key);
+      jsonOutput.put("value", setValue.toString());
+      out.write(jsonOutput);
+    }
+    
   }
 
   public void edgePropertyRemoved(Edge edge, String key) {
@@ -184,5 +201,9 @@ public class Admin implements ClientListener {
 
   public ThrottledWebSocketOut getOut() {
     return this.out;
+  }
+
+  public User getUser() {
+    return this.user;
   }
 }

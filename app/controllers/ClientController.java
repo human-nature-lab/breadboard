@@ -30,7 +30,12 @@ public class ClientController extends Controller
         if (experimentInstance == null || experiment == null || experimentInstance.status != ExperimentInstance.Status.RUNNING) {
           return ok( amtError.render() );
         }
-        return ok(client.render());
+        String assetsRoot = play.Play.application().configuration().getString("breadboard.assetsRoot", "/assets");
+        if (assetsRoot != null) {
+            return ok(client.render(assetsRoot));
+        } else {
+            return ok(client.render(""));
+        }
     }
 
     public static Result getState(String experimentId, String experimentInstanceId, String clientId, String connectionSpeed){
@@ -53,6 +58,7 @@ public class ClientController extends Controller
             result.put((String) pair.getValue(), header);
             it.remove();
         }
+        result.put("assetsRoot", play.Play.application().configuration().getString("breadboard.assetsRoot", "/assets"));
         result.put("ipAddress", request().remoteAddress());
         result.put("requestURI", request().uri());
         result.put("clientId", clientId);
@@ -80,7 +86,7 @@ public class ClientController extends Controller
                 return FileUtils.readFileToString(file, "UTF-8");
             } catch(IOException ignored) {}
         }
-        return experiment.clientGraph;
+        return experiment.getClientGraph();
     }
 
     /**
@@ -98,7 +104,7 @@ public class ClientController extends Controller
                 return FileUtils.readFileToString(file, "UTF-8");
             } catch(IOException ignored) {}
         }
-        return experiment.clientHtml;
+        return experiment.getClientHtml();
     }
 
     /**

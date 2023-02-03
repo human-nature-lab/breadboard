@@ -27,3 +27,6 @@ breadboard is built using:
 * [CodeMirror](https://codemirror.net/)
 
 Also [Apache Commons](https://commons.apache.org/), [imgscalr](https://github.com/thebuzzmedia/imgscalr), [JUNG](http://jung.sourceforge.net/), [jQuery](https://jquery.com/), [Modernizr](https://modernizr.com/), [Underscore](http://underscorejs.org/), and [Bootstrap](http://getbootstrap.com/).
+
+### Contributing
+See the [contributing guide](CONTRIBUTING.md)

@@ -1,0 +1,48 @@
+html
+  overflow-y: unset !important
+.hidden
+  display: none !important
+.fixed
+  position: fixed
+.m-auto
+  margin: auto
+
+.overflow-hidden
+  overflow: hidden
+.overflow-auto
+  overflow: auto
+.font-bold
+  font-weight: bold
+
+$fractions: ("1\\\/3": 1/3, "2\\\/3": 2/3, "1\\\/2": 1/2, "1\\\/4": 1/4, "3\\\/4": 3/4, "full": 1)
+$sizes: (1: .8em, 2: 1em, 4: 1.3em, 6: 1.5em, 8: 1.7em)
+$dirs: ("t": "top", "b": "bottom", "r": "right", "l": "left")
+$types: ("p": "padding", "m": "margin")
+
+@each $d, $dir in ("h": "height", "w": "width")
+  @each $mod in ("-min", "-max", "")
+    .#{$d}#{$mod}-full
+      #{$dir}#{$mod}: 100%
+    .#{$d}#{$mod}-screen
+      #{$dir}#{$mod}: 100v#{$d}
+  @each $fStr, $fraction in $fractions
+    .#{$d}-#{$fStr}
+      #{$dir}: percentage($fraction)
+
+@each $d, $dir in $dirs
+  .#{$dir}-0
+    #{$dir}: 0 
+
+@each $n, $size in $sizes
+  @each $t, $type in $types
+    .#{$t}-#{$n}
+      #{$type}: $size
+    .#{$t}y-#{$n}
+      #{$type}-top: $size
+      #{$type}-bottom: $size
+    .#{$t}x-#{$n}
+      #{$type}-left: $size
+      #{$type}-right: $size
+    @each $d, $dir in $dirs
+      .#{$t}#{$d}-#{$n}
+        #{$type}-#{$dir}: $size

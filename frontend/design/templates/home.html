@@ -1,0 +1,560 @@
+<div id="mainDiv" ng-cloak>
+    <div class="container-fluid">
+        <div class="form-inline row">
+            <div class="form-group experiment-group">
+                <label for="select-experiment"
+                       class="form-control-static">
+                    Experiment
+                </label>
+                <select class="form-control input-sm"
+                        id="select-experiment"
+                        ng-hide="breadboard.user.experiments.length == 0"
+                        ng-options="experiment as experiment.name for experiment in breadboard.user.experiments track by experiment.id"
+                        ng-change="experimentChanged()"
+                        ng-model="breadboard.experiment"
+                        ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">
+                </select>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-default"
+                            ng-disabled="instance.status === 'RUNNING' || instance.status === 'FINISHED'"
+                            id="newExperimentButton"
+                            ng-click="newExperiment()"
+                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">
+                    <span class="glyphicon glyphicon-plus"
+                          tooltip="Create a new experiment"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            id="deleteExperimentButton"
+                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
+                            ng-click="deleteExperiment()">
+                    <span class="glyphicon glyphicon-remove"
+                          tooltip="Delete the selected experiment"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            id="exportButton"
+                            ng-disabled="breadboard.experiment === undefined || breadboard.experiment === ''"
+                            ng-click="exportExperiment()">
+                    <span class="glyphicon glyphicon-export"
+                          tooltip="Export the selected experiment"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            id="importButton"
+                            ng-click="openImportDialog()">
+                    <span class="glyphicon glyphicon-import"
+                          tooltip="Import an experiment"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            id="devButton"
+                            ng-class="{ 'active': (breadboard.experiment.fileMode) }"
+                            ng-click="toggleDevMode()">
+                    <span class="glyphicon glyphicon-hdd"
+                          tooltip="Read experiment from file"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                </div>
+            </div>
+            <div class="form-group experiment-group">
+                <label for="select-experiment-instance"
+                       class="control-label">
+                    Instance
+                </label>
+                <select class="form-control input-sm"
+                        id="select-experiment-instance"
+                        ng-hide="breadboard.user.experiments.length === 0 || breadboard.experiment.instances.length === 0"
+                        ng-options="instance as instance.name for instance in breadboard.experiment.instances | orderBy: '-creationTime' track by instance.id"
+                        ng-model="breadboard.experimentInstance"
+                        ng-disabled="breadboard.experimentInstance.status === 'RUNNING'">
+                </select>
+                <div class="btn-group btn-group-sm">
+                    <button class="btn btn-default"
+                            id="newInstanceButton"
+                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
+                            ng-click="openNewInstanceModal()">
+                        <span class="glyphicon glyphicon-plus"
+                              tooltip="Create an experiment instance"
+                              tooltip-placement="bottom"
+                              tooltip-append-to-body="true"
+                              aria-hidden="true"></span>
+                    </button>
+                    <button class="btn btn-default"
+                            id="removeInstanceButton"
+                            ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || !breadboard.experimentInstance"
+                            ng-click="deleteInstance(breadboard.experimentInstance.name, breadboard.experimentInstance.id)">
+                        <span class="glyphicon glyphicon-remove"
+                              tooltip="Delete the selected experiment instance"
+                              tooltip-placement="bottom"
+                              tooltip-append-to-body="true"
+                              aria-hidden="true"></span>
+                    </button>
+                    <button class="btn btn-default"
+                            id="runButton"
+                            ng-disabled="breadboard.experimentInstance == '' || breadboard.experimentInstance.status === 'RUNNING' || breadboard.experimentInstance.status === 'FINISHED'"
+                            ng-click="selectInstance(breadboard.experimentInstance.id)">
+                    <span class="glyphicon glyphicon-play"
+                          tooltip="Start the selected experiment instance"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            id="stopButton"
+                            ng-click="stopGame(breadboard.experimentInstance.id)"
+                            ng-disabled="breadboard.experimentInstance.status !== 'RUNNING'">
+                    <span class="glyphicon glyphicon-stop"
+                          tooltip="Stop the selected experiment instance"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
+                            id="reloadButton"
+                            ng-click="reload()">
+                        <span class="fa fa-refresh"
+                              ng-show="scriptEngineState === ENGINE_STATE.READY"
+                              tooltip="Reload the script engine"
+                              tooltip-placement="bottom"
+                              tooltip-append-to-body="true"
+                              aria-hidden="true">
+                        </span>
+                        <span class="fa fa-refresh fa-spin"
+                              ng-show="scriptEngineState === ENGINE_STATE.LOADING"
+                              tooltip="The script engine is reloading"
+                              tooltip-placement="bottom"
+                              tooltip-append-to-body="true"
+                              aria-hidden="true">
+                        </span>
+                        <span class="fa fa-info-circle text-danger"
+                              ng-show="scriptEngineState === ENGINE_STATE.STALE"
+                              tooltip="The script engine may be in an inconsistent state. Reload the script engine"
+                              tooltip-placement="bottom"
+                              tooltip-append-to-body="true"
+                              aria-hidden="true">
+                        </span>
+                        <span class="fa fa-check-circle text-success"
+                              ng-show="scriptEngineState === ENGINE_STATE.LOADED"
+                              tooltip="The script engine has reloaded"
+                              tooltip-placement="bottom"
+                              tooltip-append-to-body="true"
+                              aria-hidden="true">
+                        </span>
+                    </button>
+                    <button class="btn btn-default"
+                            tooltip="Execute initStep.start()"
+                            tooltip-placement="bottom"
+                            tooltip-append-to-body="true"
+                            id="startInitStep"
+                            ng-click="run()">
+                        Start InitStep
+                    </button>
+                </div>
+            </div>
+            <div class="form-group pull-right">
+                <p class="form-control-static text-right" id="logoutDiv">
+                    <a ng-click="showUserSettings()">{{breadboard.user.email}}</a> | <a
+                        ng-click="logout()">Log out</a>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <div id="bottomDiv" class="footer task-bar">
+        <div id="dockDiv"></div>
+    </div>
+
+
+    <!-- Dialogs -->
+
+    <!-- New Experiment Instance -->
+    <div id="newExperimentInstanceDialog" style="display:none;">
+        <form name="createExperimentInstanceForm" class="form-horizontal">
+            <h4>Instance</h4>
+            <div class="form-group">
+                <label class="col-md-3 control-label"
+                       for="experiment-instance-name">
+                    Name
+                </label>
+                <div class="col-md-9">
+                    <input class="form-control" type="text" id="experiment-instance-name" ng-model="experimentInstanceName" required>
+                </div>
+            </div>
+            <div class="form-group" ng-repeat="elem in breadboard.experiment.parameters">
+                    <span ng-if="elem.type === 'Text'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_text">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_text" ng-model="launchParameters[elem.name]"
+                                   type="text" required>
+                        </div>
+                    </span>
+
+                <span ng-if="elem.type === 'Boolean'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_checkbox">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input id="{{elem.name}}_checkbox" ng-model="launchParameters[elem.name]"
+                                   type="checkbox">
+                        </div>
+                    </span>
+
+                <span ng-if="elem.type === 'Integer'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_integer">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_integer" ng-model="launchParameters[elem.name]"
+                                   type="number" step="1" min="{{elem.minVal}}" max="{{elem.maxVal}}">
+                        </div>
+                    </span>
+
+                <span ng-if="elem.type === 'Decimal'">
+                        <label class="col-md-3 control-label" for="{{elem.name}}_decimal">{{elem.name}}</label>
+
+                        <div class="col-md-4">
+                            <input class="form-control" id="{{elem.name}}_decimal" ng-model="launchParameters[elem.name]"
+                                   type="number" step=".01" min="{{elem.minVal}}" max="{{elem.maxVal}}">
+                        </div>
+                    </span>
+
+                <div class="col-md-5">
+                    <span class="note">{{elem.description}}</span>
+                </div>
+            </div>
+            <div class="form-group col-md-12 text-right">
+                <button class="btn btn-default" ng-disabled="createExperimentInstanceForm.$invalid" ng-click="launchGame(breadboard.experiment.id, experimentInstanceName)">Create</button>
+            </div>
+        </form>
+    </div>
+
+    <!-- New Experiment -->
+    <div id="newExperimentDialog" style="display: none;">
+        <div class="new-dialog">
+            <create-new-experiment
+                    user-id="breadboard.user.id"
+                    user-experiments="breadboard.user.experiments">
+            </create-new-experiment>
+        </div>
+    </div>
+
+    <!-- Import Experiment -->
+    <experiment-import select-experiment="selectExperiment"></experiment-import>
+
+    <!-- AMT Admin -->
+    <div>
+        <div ui-jq="dialog" ui-options="amtAdminDialogOptions" id="amtAdminDiv">
+            <amt-admin experiment="breadboard.experiment" experiment-instance="breadboard.experimentInstance"
+                       on-create-hit="submitAMTTask"></amt-admin>
+        </div>
+    </div>
+
+    <!-- Content w/ Translation support -->
+    <div>
+        <div ui-jq="dialog" ui-options="contentDialogOptions" id="contentDiv">
+            <content experiment-id="breadboard.experiment.id"
+                     experiment="breadboard.experiment"
+                     experiment-languages="breadboard.experiment.languages"
+                     read-only="breadboard.experiment.fileMode"
+                     ng-if="breadboard.experiment"
+                     actions="contentActions"></content>
+        </div>
+    </div>
+
+    <!-- CustomizeController -->
+    <div>
+        <div ui-jq="dialog" ui-options="customizeDialogOptions" id="customizeDiv">
+            <customize
+                    ng-if="breadboard.experiment"
+                    actions="customizeActions"
+                    experiment="breadboard.experiment"
+                    experiment-id="breadboard.experiment.id"
+                    read-only="breadboard.experiment.fileMode">
+            </customize>
+        </div>
+    </div>
+
+    <!-- Experiment Instances -->
+    <div>
+        <div ui-jq="dialog" ui-options="launchDialogOptions" id="launchDiv">
+            <div>
+                <table class="table table-hover table-condensed" id="instance-table">
+                    <thead>
+                    <tr>
+                        <td colspan="6">
+                            <button class="btn btn-default btn-sm pull-right"
+                                    ng-click="downloadExperimentCsv(breadboard.experiment)">
+                                Download List
+                            </button>
+                            <button class="btn btn-default btn-sm pull-right"
+                                    ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
+                                    ng-click="openNewInstanceModal()">
+                                Create instance
+                            </button>
+                        </td>
+                    </tr>
+                    <tr>
+                        <th>ID</th>
+                        <th>Instance</th>
+                        <th>Status</th>
+                        <th>Creation Date</th>
+                        <th>Actions</th>
+                        <th>Client URL</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr ng-show="breadboard.experiment.instances.length == 0"><td colspan="6">No instances</td></tr>
+                    <tr ng-repeat-start="instance in breadboard.experiment.instances | orderBy:'-creationTime'"
+                        ng-class="{'info':(instance.id === breadboard.experimentInstance.id)}"
+                        ng-click="breadboard.experimentInstance = instance">
+                        <td>{{instance.id}}</td>
+                        <td>{{instance.name}}</td>
+                        <td>{{instance.status}}</td>
+                        <td>{{instance.creationTime}}</td>
+                        <td>
+                            <div class="btn-group btn-group-sm">
+                                <button class="btn btn-default"
+                                        title="Start the selected experiment instance"
+                                        tooltip="Start the selected experiment instance"
+                                        tooltip-placement="bottom"
+                                        ng-disabled="instance.status === 'RUNNING' || instance.status === 'FINISHED'"
+                                        ng-click="selectInstance(instance.id)">
+                                    <span class="glyphicon glyphicon-play"
+                                          aria-hidden="true">
+                                    </span>
+                                </button>
+                                <button class="btn btn-default"
+                                        title="Stop the selected experiment instance"
+                                        tooltip="Stop the selected experiment instance"
+                                        tooltip-placement="bottom"
+                                        ng-click="stopGame(instance.id)"
+                                        ng-disabled="instance.status !== 'RUNNING'">
+                                    <span class="glyphicon glyphicon-stop"
+                                          aria-hidden="true">
+                                    </span>
+                                </button>
+                                <button class="btn btn-default"
+                                        title="Delete the selected experiment instance"
+                                        tooltip="Delete the selected experiment instance"
+                                        tooltip-placement="bottom"
+                                        ng-disabled="instance.status === 'RUNNING'"
+                                        ng-click="deleteInstance(instance.name, instance.id)">
+                                    <span class="glyphicon glyphicon-remove"
+                                          aria-hidden="true">
+                                    </span>
+                                </button>
+                                <button class="btn btn-default"
+                                        title="Download experiment data"
+                                        tooltip="Download experiment data"
+                                        tooltip-placement="bottom"
+                                        ng-click="downloadEventCsv(instance)">
+                                    <span class="glyphicon glyphicon-save"
+                                          aria-hidden="true">
+                                    </span>
+                                </button>
+                            </div>
+                        </td>
+                        <td>
+                          <span ng-show="instance.status === 'RUNNING'">
+                            <a href="{{ getClientURL(breadboard.experiment.id,instance.id) }}" target="_blank">
+                              {{ getClientURL(breadboard.experiment.id,instance.id) }}
+                            </a>
+                          </span>
+                            <span ng-show="instance.status !== 'RUNNING'">
+                              {{ getClientURL(breadboard.experiment.id,instance.id) }}
+                          </span>
+                        </td>
+                    </tr>
+                    <tr ng-repeat-end ng-show="instance.id === breadboard.experimentInstance.id">
+                        <td colspan="6">
+                            <instance-parameters instance="breadboard.experimentInstance"></instance-parameters>
+                        </td>
+                    </tr>
+                    </tbody>
+                    <tfoot>
+                    <tr>
+                        <th>ID</th>
+                        <th>Instance</th>
+                        <th>Status</th>
+                        <th>Creation Date</th>
+                        <th>Actions</th>
+                        <th>Client URL</th>
+                    </tr>
+                    <tr>
+                        <td colspan="6">
+                            <button class="btn btn-default btn-sm pull-right"
+                                    ng-click="downloadExperimentCsv(breadboard.experiment)">
+                                Download List
+                            </button>
+                            <button class="btn btn-default btn-sm pull-right"
+                                    ng-disabled="breadboard.experimentInstance.status === 'RUNNING' || breadboard.experiment === undefined || breadboard.experiment === ''"
+                                    ng-click="openNewInstanceModal()">
+                                Create instance
+                            </button>
+                        </td>
+                    </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Graph -->
+    <div>
+        <div ui-jq="dialog" ui-options="graphDialogOptions" id="graphDiv">
+        </div>
+    </div>
+
+    <!-- Images -->
+    <div>
+        <div ui-jq="dialog" ui-options="imagesDialogOptions" id="imagesDiv">
+            <images experiment="breadboard.experiment" read-only="breadboard.experiment.fileMode"></images>
+        </div>
+    </div>
+
+    <!-- Output -->
+    <div>
+        <div class="testClass" ui-jq="dialog" ui-options="outputDialogOptions" id="outputDiv">
+            {{breadboard.output}}
+            <span class="error">{{breadboard.error}}</span>
+        </div>
+    </div>
+
+    <!-- Parameters -->
+    <div>
+        <div ui-jq="dialog" ui-options="parametersDialogOptions" id="parametersDiv">
+            <parameters experiment="breadboard.experiment" read-only="breadboard.experiment.fileMode"></parameters>
+        </div>
+    </div>
+
+    <!-- Players -->
+    <div>
+        <div ui-jq="dialog" ui-options="playerDialogOptions" id="playerDiv">
+            <div id="vue-player-div"></div>
+        </div>
+    </div>
+
+    <!-- Script -->
+    <div>
+        <div ui-jq="dialog" ui-options="scriptDialogOptions" id="scriptDiv">
+        <textarea id="scriptTextArea" class="codemirror" ui-codemirror ui-codemirror-opts="scriptCodemirrorOptions"
+                  ng-model="breadboard.user.currentScript"></textarea>
+        </div>
+    </div>
+
+    <!-- Steps -->
+    <div>
+        <div ui-jq="dialog" ui-options="stepsDialogOptions" id="stepsDiv">
+            <steps
+                    ng-if="breadboard.experiment"
+                    read-only="breadboard.experiment.fileMode"
+                    actions="stepsActions"
+                    experiment="breadboard.experiment"
+                    experiment-id="breadboard.experiment.id">
+            </steps>
+        </div>
+    </div>
+
+    <!-- Testing -->
+    <div>
+        <div ui-jq="dialog" ui-options="testingDialogOptions" id="testingDiv">
+            <testing ng-if="breadboard.experiment && breadboard.experimentInstance"
+                     nodes="nodes"
+                     experiment-id="breadboard.experiment.id"
+                     experiment-instance-id="breadboard.experimentInstance.id">
+            </testing>
+        </div>
+    </div>
+
+    <div class="delete-dialog" id="deleteStepDialog" style="display: none;">
+        <p id="deleteStepDesc"></p>
+    </div>
+
+    <div class="new-dialog" id="addLanguageDialog" style="display: none;">
+        <form ng-submit="addLanguage()">
+            <p>
+                <input name="code" ng-model="newLanguageCode" placeholder="ISO 639-1 Code" required>
+                <input name="name" ng-model="newLanguageName" placeholder="Display Name" required>
+            </p>
+        </form>
+    </div>
+
+    <div class="new-dialog" id="newStepDialog" style="display: none;">
+        <form ng-submit="createStep()">
+            <p>
+                <input name="name" ng-model="newStepName" placeholder="Name" required>
+            </p>
+
+            <p>
+                <button style="float: right;" type="submit">Create</button>
+            </p>
+        </form>
+    </div>
+
+    <!-- Experiment -->
+    <div class="delete-dialog" id="deleteExperimentDialog" style="display: none;">
+        <p>
+            Are you sure that you want to permanently delete the experiment '<span class="deleteExperimentName"></span>'
+            and
+            all of its associated data and instances?
+        </p>
+    </div>
+
+    <!-- User Settings -->
+    <div class="user-settings-dialog" id="userSettingsDialog" title="User Settings" style="display: none;">
+        <div class="user-setting-section">
+            <fieldset>
+                <legend>Change Password</legend>
+                <ul id="changePasswordError" class="error" style="display: none;"></ul>
+                <p>
+                    <label class="fixed-width" for="currentPassword">Current Password</label>*
+                    <input type="password" name="currentPassword" id="currentPassword"/>
+                </p>
+
+                <p>
+                    <label class="fixed-width" for="newPassword">New Password</label>*
+                    <input type="password" name="newPassword" id="newPassword"/>
+                </p>
+
+                <p>
+                    <label class="fixed-width" for="confirmNewPassword">Confirm Password</label>*
+                    <input type="password" name="confirmNewPassword" id="confirmNewPassword"/>
+                </p>
+            </fieldset>
+        </div>
+
+    </div>
+
+    <!-- Delete instance -->
+    <div class="delete-dialog" id="deleteInstanceDialog" title="Delete Instance" style="display: none;">
+        <p>
+            Are you sure that you want to permanently delete the instance "<span id="deleteInstanceDialogDesc"
+                                                                                 class="bold"></span>
+            "
+            and all of its associated data?</p>
+    </div>
+
+    <div id="amtErrorDialog" style="display: none;">
+        <p>Please select an experiment and launch an instance before posting a HIT.</p>
+    </div>
+
+    <style id="styleTag"></style>
+</div>
+<!-- END mainDiv -->
