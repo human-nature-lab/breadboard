@@ -54,7 +54,7 @@
     "@types/lodash": "^4.14.142",
     "@types/webpack-env": "^1.14.0",
     "@vue/component-compiler-utils": "^3.0.0",
-    "ajv": "^6.10.0",
+    "ajv": "^6.12.3",
     "babel-loader": "^8.0.6",
     "core-js": "^3.2.1",
     "cross-env": "^7.0.3",
