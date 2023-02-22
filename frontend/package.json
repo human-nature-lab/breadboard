@@ -24,7 +24,7 @@
     "angular-ui-router": "^0.4.3",
     "angular-ui-utils": "^0.1.1",
     "async-mutex": "^0.1.4",
-    "bootstrap": "^3.3.7",
+    "bootstrap": "^3.4.1",
     "codemirror": "^5.32.0",
     "core-js": "^3.2.1",
     "d3": "^5.9.2",
