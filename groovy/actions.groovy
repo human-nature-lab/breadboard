@@ -54,7 +54,7 @@ class PlayerActions {
         def timerName = "dropTimer"
 
         def dropTimer = [
-            name          : "dropTimer",
+            name          : timerName,
             type          : "time",
             elapsed       : 0,
             duration      : time2 * 1000,
@@ -79,12 +79,14 @@ class PlayerActions {
           if (dropPlayerClosure) {
             dropPlayerClosure(playerAction.player)
           }
-          playerAction.player.timers.remove("dropTimer")
+          playerAction.player.timers.remove(timerName)
         }
 
         def timerUpdateRate = 1000
         idleTimer2.timer.scheduleAtFixedRate({
-          playerAction.player.timers["dropTimer"].elapsed += timerUpdateRate
+          if (timerName in playerAction.player.timers) {
+            playerAction.player.timers[timerName].elapsed += timerUpdateRate
+          }
         } as GroovyTimerTask, timerUpdateRate, timerUpdateRate)
 
       }

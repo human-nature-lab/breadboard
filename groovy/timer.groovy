@@ -151,8 +151,7 @@ class SharedTimer extends BreadboardBase {
     this.playerTimer.name = "name" in opts ? opts.name : UUID.randomUUID().toString()
     if ("player" in opts) {
       this.addPlayer(opts.player)
-    }
-    if ("players" in opts) {
+    } else if ("players" in opts) {
       this.addPlayers(opts.players)
     }
     this.register()
@@ -264,7 +263,7 @@ class SharedTimer extends BreadboardBase {
    * Start the timer only if it hasn't been started yet
    */
   private startTimer () {
-    if (this.timer) return
+    if (this.timer || this.hasEnded) return
     this.playerTimer.elapsed = 0
     this.startTime = System.currentTimeMillis()
     this.endTime = this.startTime + this.playerTimer.duration
@@ -275,6 +274,7 @@ class SharedTimer extends BreadboardBase {
     this.timer.purge()
     this.timer.cancel()
     this.timer = null
+    this.hasEnded = false
   }
 
   private registerTimerEvents () {
@@ -331,6 +331,10 @@ class SharedTimer extends BreadboardBase {
    */
   public tick (int delta) {
     this.playerTimer.elapsed += delta
+  }
+  
+  public isRunning () {
+    return this.timer != null
   }
 }
 
