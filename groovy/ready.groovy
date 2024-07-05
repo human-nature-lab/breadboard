@@ -3,6 +3,7 @@ import java.util.concurrent.locks.ReentrantLock
 public class ReadyUpSequence extends FormBase {
   SharedTimer readyUpTimer
   def isStarted = false
+  def hasFinished = false
   def key = "ready-up"
   def time = 30
   def mut = new ReentrantLock()
@@ -39,8 +40,10 @@ public class ReadyUpSequence extends FormBase {
    * Add a list of players at the same time
    */
   public addPlayers (players) {
-    players.each{
-      this.addPlayer(it)
+    this.withLock(){
+      players.each{
+        this._addPlayer(it)
+      }
     }
   }
 
@@ -49,8 +52,19 @@ public class ReadyUpSequence extends FormBase {
    */
   public addPlayer (Vertex player) {
     this.withLock(){
-      if (this.players.contains(player)) return
-      this.players << player
+      this._addPlayer(player)
+    }
+  }
+
+  private _addPlayer (Vertex player) {
+    if (!this.mut.isLocked()) {
+      throw new Exception("Must be called within a lock")
+    }
+    if (this.players.contains(player)) return
+    this.players << player
+    if (this.isStarted && !this.hasFinished) {
+      this._startPlayer(player)
+    } else {
       player.text = this.fetchContent(this.pendingContent)
     }
   }
@@ -59,36 +73,48 @@ public class ReadyUpSequence extends FormBase {
    * Remove a player from the ready up sequence
    */
   public removePlayer (Vertex player) {
-    this.clearPlayer(player)
-    this.players.removeElement(player)
+    this.withLock(){
+      this.clearPlayer(player)
+      this.players.removeElement(player)
+    }
   }
 
   /**
    * Begin the ready up sequence by showing all players a timer and a "ready" button
    */
   public start () {
-    if (this.isStarted) return
-    this.isStarted = true
-    this.readyUpTimer = new SharedTimer([
-      content: this.timerContent,
-      name: this.key,
-      time: this.time
-    ])
-    this.readyUpTimer.onDone{
-      this.end()
-    }
-    this.readyUpTimer.addPlayers(this.players)
-    def readyText = this.fetchContent(this.readyContent)
-    def buttonText = this.fetchContent(this.readyButtonContent)
-    this.players.each{ player -> 
-      player.text = readyText
-      this.addAction(player, [
-        name: buttonText,
-        result: {
-          this.onPlayerReady(player)
-        }
+    this.withLock(){
+      if (this.isStarted) return
+      this.isStarted = true
+      this.hasFinished = false
+      this.readyUpTimer = new SharedTimer([
+        content: this.timerContent,
+        name: this.key,
+        time: this.time
       ])
+      this.readyUpTimer.onDone{
+        this.end()
+      }
+      this.readyUpTimer.addPlayers(this.players)
+      this.players.each{ player -> this._startPlayer(player)}
     }
+  }
+
+  
+  private _startPlayer(Vertex player) {
+    def buttonText = this.fetchContent(this.readyButtonContent)
+    def readyText = this.fetchContent(this.readyContent)
+    // LOCK MUST BE HELD WHILE CALLING
+    if (!this.mut.isLocked()) {
+      throw new Exception("Must be called within a lock")
+    }
+    player.text = readyText
+    this.addAction(player, [
+      name: buttonText,
+      result: {
+        this.onPlayerReady(player)
+      }
+    ])
   }
 
   /**
@@ -104,7 +130,7 @@ public class ReadyUpSequence extends FormBase {
         for (def p: this.players) {
           if (!p._system.isReady) return
         }
-        this.end() // only get here if all players are ready
+        this._end() // only get here if all players are ready
       } catch (err) {
         println err.toString()
       }
@@ -125,26 +151,34 @@ public class ReadyUpSequence extends FormBase {
    */
   public end () {
     this.withLock() {
-      if (!this.isStarted) return
-      this.isStarted = false
-      if (this.readyUpTimer) {
-        this.readyUpTimer.cancel()
-      }
-      def readyPlayers = []
-      def notReadyPlayers = []
-      this.players.each{
-        this.clearActions(it)
+      this._end()
+    }
+  }
 
-        if (it._system.isReady) {
-          readyPlayers << it
-        } else {
-          notReadyPlayers << it
-        }
-      }
+  private _end () {
+    if (!this.mut.isLocked()) {
+      throw new Exception("Must be called within a lock")
+    }
+    if (!this.isStarted) return
+    this.isStarted = false
+    this.hasFinished = true
+    if (this.readyUpTimer) {
+      this.readyUpTimer.cancel()
+    }
+    def readyPlayers = []
+    def notReadyPlayers = []
+    this.players.each{
+      this.clearActions(it)
 
-      for (def cb: this.doneCbs) {
-        cb(readyPlayers, notReadyPlayers)
+      if (it._system.isReady) {
+        readyPlayers << it
+      } else {
+        notReadyPlayers << it
       }
+    }
+
+    for (def cb: this.doneCbs) {
+      cb(readyPlayers, notReadyPlayers)
     }
   }
 
