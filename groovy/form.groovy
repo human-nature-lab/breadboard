@@ -836,6 +836,8 @@ public class Form extends FormBase {
    * Send the current form state to the player
    */
   private onFetchState (Vertex player, Map data) {
+    println "onFetchState: " + this.name
+    println data
     if (data.name != this.name) return
     if (!player) return
     if (!this.players.contains(player)) {

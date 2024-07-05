@@ -1,13 +1,16 @@
+import java.util.concurrent.locks.ReentrantLock
+
 public class ReadyUpSequence extends FormBase {
   SharedTimer readyUpTimer
   def isStarted = false
   def key = "ready-up"
   def time = 30
+  def mut = new ReentrantLock()
   def pendingContent = [
     content: "The game will begin shortly. When a “Ready” button appears, press it to begin the task."
   ]
   def readyContent = [
-    content: "Press the \"Ready\" button."
+    content: "Press the \"Ready\" button before the timer expires to begin this task."
   ]
   def readyButtonContent = [
     content: "Ready"
@@ -45,9 +48,11 @@ public class ReadyUpSequence extends FormBase {
    * Add a single player to the ready up sequence.
    */
   public addPlayer (Vertex player) {
-    if (this.players.contains(player)) return
-    this.players << player
-    player.text = this.fetchContent(this.pendingContent)
+    this.withLock(){
+      if (this.players.contains(player)) return
+      this.players << player
+      player.text = this.fetchContent(this.pendingContent)
+    }
   }
 
   /**
@@ -90,44 +95,56 @@ public class ReadyUpSequence extends FormBase {
    * The result closure called when the player presses the ready button
    */
   private onPlayerReady (Vertex player) {
-    try {
-      player.text = this.fetchContent(this.waitingContent)
-      player._system.isReady = true
+    this.withLock(){
+      try {
+        player.text = this.fetchContent(this.waitingContent)
+        player._system.isReady = true
 
-      // Check if all players are already ready
-      for (def p: this.players) {
-        if (!p._system.isReady) return
+        // Check if all players are already ready
+        for (def p: this.players) {
+          if (!p._system.isReady) return
+        }
+        this.end() // only get here if all players are ready
+      } catch (err) {
+        println err.toString()
       }
-      this.end() // only get here if all players are ready
-    } catch (err) {
-      println err.toString()
     }
-    
+  }
+
+  private withLock(Closure cb) {
+    this.mut.lock()
+    try {
+      return cb()
+    } finally {
+      this.mut.unlock()
+    }
   }
 
   /**
    * End the ready up sequence by cleaning up timers and actions
    */
   public end () {
-    if (!this.isStarted) return
-    this.isStarted = false
-    if (this.readyUpTimer) {
-      this.readyUpTimer.cancel()
-    }
-    def readyPlayers = []
-    def notReadyPlayers = []
-    this.players.each{
-      this.clearActions(it)
-
-      if (it._system.isReady) {
-        readyPlayers << it
-      } else {
-        notReadyPlayers << it
+    this.withLock() {
+      if (!this.isStarted) return
+      this.isStarted = false
+      if (this.readyUpTimer) {
+        this.readyUpTimer.cancel()
       }
-    }
+      def readyPlayers = []
+      def notReadyPlayers = []
+      this.players.each{
+        this.clearActions(it)
 
-    for (def cb: this.doneCbs) {
-      cb(readyPlayers, notReadyPlayers)
+        if (it._system.isReady) {
+          readyPlayers << it
+        } else {
+          notReadyPlayers << it
+        }
+      }
+
+      for (def cb: this.doneCbs) {
+        cb(readyPlayers, notReadyPlayers)
+      }
     }
   }
 

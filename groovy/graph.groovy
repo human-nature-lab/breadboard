@@ -132,23 +132,23 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
     submitForm += "<input type=\"hidden\" name=\"bonus\" value=\"" + dollars + "\">"
     submitForm += "<input type=\"hidden\" name=\"reason\" value=\"" + reason + "\">"
     submitForm += "</form>"
-
     return submitForm
   }
 
   def addVertices(n) {
     int startId = 1;
-
+    def added = []
     for (i in 0..n - 1) {
       while (hasVertex(startId)) {
         startId++;
       }
-      addVertex(startId)
+      added << addVertex(startId)
     }
+    return added
   }
 
   def addPlayers(n) {
-    addVertices(n)
+    return addVertices(n)
   }
 
   public Edge addEdge(Vertex v1, Vertex v2, String label) {
@@ -679,6 +679,18 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
       if (connectedEdge.getVertex(Direction.IN) == v2 || connectedEdge.getVertex(Direction.OUT) == v2) {
         _removeEdge(connectedEdge, false)
       }
+    }
+  }
+
+  def addTrackedEdgeList (List vertices, List edges, String label) {
+    for (def edge : edges) {
+      addTrackedEdge(vertices[edge[0]], vertices[edge[1]], label)
+    }
+  }
+
+  def addEdgeList (List vertices, List edges, String label) {
+    for (def edge : edges) {
+      addEdge(vertices[edge[0]], vertices[edge[1]], label)
     }
   }
 
