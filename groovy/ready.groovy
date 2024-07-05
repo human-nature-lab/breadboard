@@ -90,7 +90,8 @@ public class ReadyUpSequence extends FormBase {
       this.readyUpTimer = new SharedTimer([
         content: this.timerContent,
         name: this.key,
-        time: this.time
+        time: this.time,
+        appearance: "error"
       ])
       this.readyUpTimer.onDone{
         this.end()
