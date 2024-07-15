@@ -2,122 +2,146 @@ import com.tinkerpop.blueprints.Vertex
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 
-CHAT_KEY = "chatState"
-CHAT_EVENT = "chat"
+class BaseChatManager extends BreadboardBase {}
 
-def withLock(Lock lock, Closure cb) {
-  lock.lock()
-  try {
-    return cb()
-  } finally {
-    lock.unlock()
-  }
+BaseChatManager.metaClass.getVertex = { id ->
+  return g.getVertex(id)
 }
 
-_chatLockMut = new ReentrantLock()
-_chatLocks = [:]
+class ChatManager extends BaseChatManager {
+  private mut = new ReentrantLock()
+  private chatLocks = [:]
+  public CHAT_KEY = "chatState"
+  public CHAT_EVENT = "chat"
 
-def withPlayerChatLock(String playerId, Closure cb) {
-  def playerLock = withLock(_chatLockMut){
-    if (!(playerId in _chatLocks)) {
-      _chatLocks[playerId] = new ReentrantLock()
-    }
-    return _chatLocks[playerId]
-  }
-  return withLock(playerLock, cb)
-}
-
-chatHandler = { player, data ->
-  withPlayerChatLock(player.id){
-    // Stop listening to this event if the chat has been disabled
-    if (!player.private[CHAT_KEY]) {
-      return disableTextChat(player)
-    }
-
-    def chatState = player.private[CHAT_KEY]
-    def text = data["text"]
-    def recipientIds = data["recipients"]
-    if (text.length() == 0 || recipientIds.size() == 0) {
-      return
-    }
-    // Check if we've exceeded text max length
-    if (text.length() > chatState.maxLength) {
-      text = text.substring(0, chatState.maxLength)
-    }
-    def msg = [
-      sender: player.id,
-      recipients: recipientIds,
-      text: text
-    ]
-    println "chat " + msg
-
-    if (chatState.recordEvents) {
-      a.addEvent(CHAT_EVENT, msg)
-    }
-    
-    pushMessage(player, msg)    
-    
-    recipientIds.each{ id ->
-      // Make sure the player is allowed to talk with this player before sending the message to them
-      if (id && id in chatState.allowedRecipients) {
-        def v = g.getVertex(id)
-        if (v && v.private[CHAT_KEY]) {
-          pushMessage(v, msg)
-        }
-      }
-    } 
-  }
-}
-
-def enableTextChat (Vertex v, Map opts = [:]) {
-  withPlayerChatLock(v.id) {
+  private withMut(Closure cb) {
+    this.mut.lock()
     try {
-      def defaultOpts = [maxLength: 255, messageBufferSize: 10, recordEvents: true]
-      opts = defaultOpts + opts
+      return cb()
+    } finally {
+      this.mut.unlock()
+    }
+  }
 
-      if (opts.maxLength > 255) {
-        println "Messages longer than 255 characters will get cutoff by the database"
+  private withPlayerChatLock(String playerId, Closure cb) {
+    def self = this
+    def lock = this.withMut() {
+      if (!(playerId in self.chatLocks)) {
+        self.chatLocks[playerId] = new ReentrantLock()
+      }
+      return self.chatLocks[playerId]
+    }
+    lock.lock()
+    try {
+      return cb()
+    } finally {
+      lock.unlock()
+    }
+  }
+
+  private chatHandler (player, data) {
+    def self = this
+    this.withPlayerChatLock(player.id){
+      // Stop listening to this event if the chat has been disabled
+      if (!player.private[self.CHAT_KEY]) {
+        return disableTextChat(player)
       }
 
-      // Automatically allow all neighbors to be recipients if none are specified
-      def recipients = opts.recipients
-      if (!opts.recipients) {
-        opts.recipients = v.neighbors.toList().collect{ it.id }
+      def chatState = player.private[self.CHAT_KEY]
+      def text = data["text"]
+      def recipientIds = data["recipients"]
+      if (text.length() == 0 || recipientIds.size() == 0) {
+        return
       }
-      println "enable text chat for " + v.id + " to " + opts.recipients
-      
-      a.addEvent("chat-enabled", opts)
-      
-      v.private[CHAT_KEY] = [
-        isEnabled: true,
-        recordEvents: opts.recordEvents,
-        allowedRecipients: opts.recipients,
-        maxLength: opts.maxLength,
-        messageBufferSize: opts.messageBufferSize,
-        messages: []
+      // Check if we've exceeded text max length
+      if (text.length() > chatState.maxLength) {
+        text = text.substring(0, chatState.maxLength)
+      }
+      def msg = [
+        sender: player.id,
+        recipients: recipientIds,
+        text: text
       ]
+      println "chat " + msg
+
+      if (chatState.recordEvents) {
+        self.addEvent(self.CHAT_EVENT, msg)
+      }
       
-      v.on(CHAT_EVENT, chatHandler)
-    } catch (err) {
-      println err.getMessage()
-      throw err
+      self._pushMessage(player, msg)    
+      
+      recipientIds.each{ id ->
+        // Make sure the player is allowed to talk with this player before sending the message to them
+        if (id && id in chatState.allowedRecipients) {
+          def v = self.getVertex(id)
+          if (v && v.private[self.CHAT_KEY]) {
+            self.pushMessage(v, msg)
+          }
+        }
+      } 
     }
   }
-}
 
-def disableTextChat (Vertex v, removeExisting = true) {
-  withPlayerChatLock(v.id) {
-    if (removeExisting && "private" in v && CHAT_KEY in v.private) {
-      v.private.remove(CHAT_KEY)
+  public enableTextChat (Vertex v, Map opts = [:]) {
+    def self = this
+    println "start enable text chat for " + v.id
+    return this.withPlayerChatLock(v.id) {
+       println "enabling text chat for " + v.id
+      try {
+        def defaultOpts = [maxLength: 255, messageBufferSize: 10, recordEvents: true]
+        opts = defaultOpts + opts
+
+        if (opts.maxLength > 255) {
+          println "Messages longer than 255 characters will get cutoff by the database"
+        }
+
+        // Automatically allow all neighbors to be recipients if none are specified
+        def recipients = opts.recipients
+        if (!opts.recipients) {
+          opts.recipients = v.neighbors.toList().collect{ it.id }
+        }
+        println "enable text chat for " + v.id + " to " + opts.recipients
+        
+        self.addEvent("chat-enabled", opts)
+        
+        v.private[self.CHAT_KEY] = [
+          isEnabled: true,
+          recordEvents: opts.recordEvents,
+          allowedRecipients: opts.recipients,
+          maxLength: opts.maxLength,
+          messageBufferSize: opts.messageBufferSize,
+          messages: []
+        ]
+        
+        v.on(self.CHAT_EVENT, self.&chatHandler)
+      } catch (err) {
+        println err.getMessage()
+        throw err
+      }
+      println "end enable text chat for " + v.id
     }
-    v.off(CHAT_EVENT, chatHandler)
-    a.addEvent("chat-removed", [player: v.id])
   }
-}
 
-pushMessage = { recipient, msg ->
-  withPlayerChatLock(recipient.id) {
-    def chatState = recipient.private[CHAT_KEY]
+  public disableTextChat (Vertex v, removeExisting = true) {
+    def self = this
+    return this.withPlayerChatLock(v.id) {
+      if (removeExisting && "private" in v && self.CHAT_KEY in v.private) {
+        v.private.remove(self.CHAT_KEY)
+      }
+      v.off(self.CHAT_EVENT, self.&chatHandler)
+      self.addEvent("chat-removed", [player: v.id])
+    }
+  }
+
+  public pushMessage (Vertex recipient, Map msg) {
+    def self = this
+    return this.withPlayerChatLock(recipient.id) {
+      return self._pushMessage(recipient, msg)
+    }
+  }
+
+  private _pushMessage (Vertex recipient, Map msg) {
+    def chatState = recipient.private[this.CHAT_KEY]
     def messages = chatState.messages
     messages << msg
     // Check if we've exceeded message buffer size
@@ -125,4 +149,5 @@ pushMessage = { recipient, msg ->
       messages.remove(0)
     }
   }
+  
 }
