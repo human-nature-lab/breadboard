@@ -133,9 +133,9 @@ module.exports = {
     }]
   },
   resolve: {
-    extensions: ['.js','.json','.css','.html', '.jsx', '.ts', '.tsx', '.vue'],
+    extensions: ['.js', '.json', '.css', '.html', '.jsx', '.ts', '.tsx', '.vue'],
     alias: {
-      'vue$': 'vue/dist/vue.esm.js' // 'vue/dist/vue.common.js' for webpack 1
+      'vue$': 'vue/dist/vue.esm.js',
     }
   },
   // externals: {
