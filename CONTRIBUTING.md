@@ -7,8 +7,9 @@ documentation and examples.
 ### Environment setup
 Breadboard works with Java 7+. Make sure the Java SDK is installed before beginning development. 
 Also, [SBT 0.13.x](https://github.com/sbt/sbt/releases/tag/v0.13.17) must be used in development for
-now. If using multiple Java installations, you can specify the correct java version for SBT (1.7 or 
-1.8) by adding `-java-home <path-to-java-home>` to the sbt commands used below.
+now. Add a .env file to set environment variables (AMT keys, JAVA_HOME, etc) and start with the 
+`./start-dev.sh` script. If using multiple Java installations, make sure you point JAVA_HOME to 1.8 
+or 1.7.
 
 - `cd frontend`
 - `npm install`
@@ -23,7 +24,7 @@ instructions instead
 This uses a slightly different configuration to allow hot module replacement via webpack on frontend
 files.
 - Start the webpack server using `cd frontend && npm start`
-- Start the play framework server using `sbt "run -Dconfig.file=conf/application-dev.conf"`
+- Start the play framework server using `./start-dev.sh`
 
 ## Production
 

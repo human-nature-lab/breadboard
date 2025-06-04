@@ -31,28 +31,21 @@ public class Global extends GlobalSettings {
   @Override
   public void onStart(Application app) {
 
+    if (isNewInstall()) {
+      Logger.info("New install detected");
+    } else {
+      Logger.info("Existing install detected");
+    }
+
     String sql = "select count(*) as table_count from information_schema.tables where table_name = 'breadboard_version';";
     SqlRow versionTableCount = Ebean.createSqlQuery(sql).findUnique();
     String count = versionTableCount.getString("table_count");
-
-    // if (isNewInstall()) {
-    //   // INSERT_YOUR_CODE
-    //   // Ensure the evolutions plugin is enabled by setting the system property if not already set
-    //   // This will make sure evolutions run even if the config disables it
-    //   System.setProperty("evolutionplugin", "enabled");
-    //   Logger.info("New install detected");
-    //   return;
-    // }
     // // If the breadboard_version table doesn't exist we're < v2.3
     if (count.equals("0")) {
-      Logger.info("Upgrading to v2.3");
+      Logger.info("Upgrading to v2.3.1");
       // Create the breadboard_version table
-      sql = "create table breadboard_version ( version varchar(255) ); ";
-      Ebean.createSqlUpdate(sql).execute();
       // Update the version
-      String version = play.Play.application().configuration().getString("application.version");
-      sql = "insert into breadboard_version values ('" + version + "'); ";
-      Ebean.createSqlUpdate(sql).execute();
+      setVersion("v2.3.1");
 
       // Create the languages table
       sql = "create table if not exists languages ( id bigint not null, code varchar(8), name varchar(255), " +
@@ -94,7 +87,7 @@ public class Global extends GlobalSettings {
       sql = "alter table users add column if not exists default_language_id bigint; ";
       Ebean.createSqlUpdate(sql).execute();
 
-      sql = "alter table users add constraint fk_default_language_languages " +
+      sql = "alter table users add constraint if not exists fk_default_language_languages " +
           "foreign key (default_language_id) references languages (id) " +
           "on delete restrict on update restrict; ";
       Ebean.createSqlUpdate(sql).execute();
@@ -116,7 +109,7 @@ public class Global extends GlobalSettings {
       Ebean.createSqlUpdate(sql).execute();
 
       // Messages table
-      sql = "create table messages (\n" +
+      sql = "create table if not exists messages (\n" +
           "  id                        bigint not null,\n" +
           "  message_uid               varchar(36),\n" +
           "  message_title             varchar(255),\n" +
@@ -172,15 +165,31 @@ public class Global extends GlobalSettings {
 
       // Upgrade to version 2.4.0
       version2Point4Upgrade();
-    } else {
-      // The breadboard_version table exists, let's check if we're v2.3 or v2.4
-      sql = "select version from breadboard_version limit 1;";
-      SqlRow versionString = Ebean.createSqlQuery(sql).findUnique();
-      String version = versionString != null ? versionString.getString("version") : "";
-      if (version.equals("v2.3.0") || version.equals("v2.3.1")) {
-        // Add v2.4.0 fields
-        version2Point4Upgrade();
-      } // Otherwise, no upgrade needed
+    }
+
+    // The breadboard_version table exists, let's check if we're v2.3 or v2.4
+    sql = "select version from breadboard_version limit 1;";
+    SqlRow versionString = Ebean.createSqlQuery(sql).findUnique();
+    String version = versionString != null ? versionString.getString("version") : "";
+    Logger.info("Validating version: " + version);
+    if (version.equals("v2.3.0") || version.equals("v2.3.1")) {
+      // Add v2.4.0 fields
+      version2Point4Upgrade();
+    } // Otherwise, no upgrade needed
+  }
+
+  private void setVersion(String version) {
+    String sql = "create table if not exists breadboard_version ( version varchar(255) ); ";
+    Ebean.createSqlUpdate(sql).execute();
+    Ebean.beginTransaction();
+    try {
+      Ebean.createSqlUpdate("delete from breadboard_version;").execute();
+      Ebean.createSqlUpdate("insert into breadboard_version values ('" + version + "');").execute();
+      Ebean.commitTransaction();
+    } catch (Exception e) {
+      Logger.error("Error setting version: " + e.getMessage());
+    } finally {
+      Ebean.endTransaction();
     }
   }
 
@@ -196,9 +205,11 @@ public class Global extends GlobalSettings {
   }
 
   private void version2Point4Upgrade() {
+    Logger.info("Upgrading to v2.4.0");
     // Changes to support Experiment fileMode
     String sql = "alter table experiments add column if not exists file_mode bit default 0;";
     Ebean.createSqlUpdate(sql).execute();
+    setVersion("v2.4.0");
   }
 
   @Override
