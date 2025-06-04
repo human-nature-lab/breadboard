@@ -35,9 +35,13 @@ public class Global extends GlobalSettings {
     SqlRow versionTableCount = Ebean.createSqlQuery(sql).findUnique();
     String count = versionTableCount.getString("table_count");
 
+    if (isNewInstall()) {
+      Logger.info("New install detected");
+      return;
+    }
     // If the breadboard_version table doesn't exist we're < v2.3
     if (count.equals("0")) {
-
+      Logger.info("Upgrading to v2.3");
       // Create the breadboard_version table
       sql = "create table breadboard_version ( version varchar(255) ); ";
       Ebean.createSqlUpdate(sql).execute();
@@ -169,6 +173,17 @@ public class Global extends GlobalSettings {
         version2Point4Upgrade();
       } // Otherwise, no upgrade needed
     }
+  }
+
+  private boolean isNewInstall() {
+    boolean isNew = false;
+    try {
+      String sql = "select count(*) from experiments;";
+      SqlRow experimentTableCount = Ebean.createSqlQuery(sql).findUnique();
+    } catch (Exception e) {
+      isNew = true;
+    }
+    return isNew;
   }
 
   private void version2Point4Upgrade() {
