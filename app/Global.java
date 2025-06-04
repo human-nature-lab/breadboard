@@ -35,11 +35,15 @@ public class Global extends GlobalSettings {
     SqlRow versionTableCount = Ebean.createSqlQuery(sql).findUnique();
     String count = versionTableCount.getString("table_count");
 
-    if (isNewInstall()) {
-      Logger.info("New install detected");
-      return;
-    }
-    // If the breadboard_version table doesn't exist we're < v2.3
+    // if (isNewInstall()) {
+    //   // INSERT_YOUR_CODE
+    //   // Ensure the evolutions plugin is enabled by setting the system property if not already set
+    //   // This will make sure evolutions run even if the config disables it
+    //   System.setProperty("evolutionplugin", "enabled");
+    //   Logger.info("New install detected");
+    //   return;
+    // }
+    // // If the breadboard_version table doesn't exist we're < v2.3
     if (count.equals("0")) {
       Logger.info("Upgrading to v2.3");
       // Create the breadboard_version table
@@ -53,6 +57,11 @@ public class Global extends GlobalSettings {
       // Create the languages table
       sql = "create table if not exists languages ( id bigint not null, code varchar(8), name varchar(255), " +
           "constraint pk_language primary key (id) ); ";
+      Ebean.createSqlUpdate(sql).execute();
+
+
+      sql = "create table if not exists experiments ( id bigint not null, name varchar(255), style text, " +
+          "constraint pk_experiment primary key (id) ); ";
       Ebean.createSqlUpdate(sql).execute();
 
       // Create the experiment_languages table

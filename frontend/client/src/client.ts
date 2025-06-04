@@ -47,7 +47,7 @@ export function loadVue(opts: VueLoadOpts) {
     //@ts-ignore
     window.Vue = (await import('vue')).default
     window.Vuetify = (await import('vuetify')).default
-    await import(/* webpackChunkName: "vue-components" */'./vue-components')
+    // await import(/* webpackChunkName: "vue-components" */'./vue-components')
     // await this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)
     // await import('./vue-components')
     // core.addStyleFromURL(`${config.assetsRoot}/bundles/vue-components.css`)

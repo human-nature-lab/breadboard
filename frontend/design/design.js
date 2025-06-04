@@ -23,6 +23,7 @@ import 'codemirror/keymap/vim';
 import 'codemirror/keymap/sublime';
 import 'codemirror/keymap/emacs';
 import './design/app';
-import '@human-nature-lab/breadboard-core';
+import { Breadboard } from '@human-nature-lab/breadboard-core';
+window.Breadboard = Breadboard;
 import '../lib/ui-bootstrap/ui-bootstrap-tpls-0.11.0'
 import 'bootstrap/dist/css/bootstrap.css'
