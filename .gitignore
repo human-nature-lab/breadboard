@@ -37,3 +37,4 @@ csv
 .vscode
 generated
 null
+.env
