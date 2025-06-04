@@ -29,6 +29,11 @@ object ApplicationBuild extends Build {
     )
 
     val main = play.Project(appName, appVersion, appDependencies).settings(
+      javacOptions ++= Seq("-source", "1.8", "-target", "1.8"),
+      resolvers ++= Seq(
+        "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
+        "Maven Central" at "https://repo1.maven.org/maven2/"
+      )
     )
 
 }
