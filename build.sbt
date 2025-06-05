@@ -1,0 +1,32 @@
+name := "breadboard"
+
+version := "v2.3.1"
+
+scalaVersion := "2.13.12"
+
+libraryDependencies ++= Seq(
+  "org.codehaus.groovy" % "groovy" % "1.8.6",
+  "com.tinkerpop.blueprints" % "blueprints" % "2.5.0",
+  "com.tinkerpop.blueprints" % "blueprints-core" % "2.5.0",
+  "com.tinkerpop.blueprints" % "blueprints-graph-jung" % "2.5.0",
+  "com.tinkerpop.gremlin" % "gremlin-groovy" % "2.5.0",
+  "commons-io" % "commons-io" % "2.3",
+  "org.apache.commons" % "commons-lang3" % "3.1",
+  "org.apache.commons" % "commons-csv" % "1.5",
+  "net.lingala.zip4j" % "zip4j" % "1.3.2",
+  "commons-codec" % "commons-codec" % "1.7",
+  "org.imgscalr" % "imgscalr-lib" % "4.2",
+  "net.sf.jung" % "jung2" % "2.0.1",
+  "org.mindrot" % "jbcrypt" % "0.3m",
+  "com.google.code.gson" % "gson" % "2.8.2",
+  "com.amazonaws" % "aws-java-sdk" % "1.11.328"
+)
+
+javacOptions ++= Seq("-source", "1.8", "-target", "1.8")
+
+resolvers ++= Seq(
+  "Typesafe repository" at "https://repo.typesafe.com/typesafe/releases/",
+  "Maven Central" at "https://repo1.maven.org/maven2/"
+)
+
+enablePlugins(PlayJava) 
