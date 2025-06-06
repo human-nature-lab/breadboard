@@ -27,3 +27,8 @@ export const login = async (req: LoginRequest) => {
   const response = await api.post<LoginRequest, LoginResponse>('/login', req)
   return response
 }
+
+export const getState = async () => {
+  const response = await api.get<StateResponse>('/state')
+  return response
+}

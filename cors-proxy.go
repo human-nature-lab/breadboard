@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"strings"
 )
 
 func main() {
@@ -28,8 +29,8 @@ func main() {
 	}
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		log.Info("Request", "method", r.Method, "url", r.URL.String())
-		addCORSHeaders(w)
+		log.Info(r.Method, "url", r.URL.String())
+		addCORSHeaders(r, w)
 
 		if r.Method == http.MethodOptions {
 			w.WriteHeader(http.StatusNoContent)
@@ -58,7 +59,7 @@ func main() {
 				w.Header().Add(k, v)
 			}
 		}
-		addCORSHeaders(w) // Ensure CORS headers are not overwritten
+		addCORSHeaders(r, w) // Ensure CORS headers are not overwritten
 		w.WriteHeader(resp.StatusCode)
 		_, err = io.Copy(w, resp.Body)
 		if err != nil {
@@ -70,8 +71,10 @@ func main() {
 	log.Error("Error listening", "error", http.ListenAndServe(*listenAddr, nil))
 }
 
-func addCORSHeaders(w http.ResponseWriter) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
+func addCORSHeaders(r *http.Request, w http.ResponseWriter) {
+	defaultHeaders := []string{"Content-Type", "Authorization"}
+	w.Header().Set("Access-Control-Allow-Origin", r.Header.Get("Origin"))
 	w.Header().Set("Access-Control-Allow-Methods", "*")
-	w.Header().Set("Access-Control-Allow-Headers", "*")
+	w.Header().Set("Access-Control-Allow-Headers", r.Header.Get("Access-Control-Request-Headers")+", "+strings.Join(defaultHeaders, ", "))
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
 }
