@@ -206,8 +206,7 @@ public class ExperimentController extends Controller {
       ZipEntry e;
 
       ObjectNode dotBreadboard = Json.newObject();
-      String version = play.Play.application().configuration().getString("application.version");
-      dotBreadboard.put("version", version);
+      dotBreadboard.put("version", "v2.4.0");
       dotBreadboard.put("experimentName", experiment.name);
       dotBreadboard.put("experimentUid", experiment.uid);
 
