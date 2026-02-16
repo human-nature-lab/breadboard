@@ -7,4 +7,4 @@ if [ -f .env ]; then
 fi
 
 RUN_ARGS="-Dconfig.file=conf/application-dev.conf -DAMT_ACCESS_KEY=$AMT_ACCESS_KEY -DAMT_SECRET_KEY=$AMT_SECRET_KEY"
-sbt -java-home "$JAVA8_HOME" "run $RUN_ARGS"
+sbt -java-home "$JAVA_HOME" "run $RUN_ARGS"
