@@ -1,6 +1,8 @@
 <template>
   <div class="svg-container flex flex-grow-0 flex-shrink-0" ref="container">
     <svg ref="svg" viewBox="0 0 600 600" width="100%" height="100%">
+      <!-- Default slot for any custom svg content -->
+      <slot />
       <!-- Replace the edge with your own edge. This could be used to replace lines with Bezier curves or arrows.
                   Positioning has to be done manually. -->
       <slot name="edge" v-for="edge in graph.edges" :edge="edge">
