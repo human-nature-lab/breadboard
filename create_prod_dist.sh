@@ -3,7 +3,12 @@ breadboard_version="v2.3.1"
 cd frontend
 webpack -p --config webpack/webpack.prod.js
 cd ..
-activator dist
+# Activator was deprecated; use sbt directly (same as `activator dist` for this project).
+if [ -n "${JAVA_HOME:-}" ]; then
+  sbt -java-home "$JAVA_HOME" dist
+else
+  sbt dist
+fi
 rm -r install/breadboard-${breadboard_version}
 rm install/breadboard-${breadboard_version}.zip
 unzip target/universal/breadboard-${breadboard_version}.zip -d install
@@ -22,4 +27,5 @@ rm install/breadboard-${breadboard_version}/conf/application-dev.conf
 rm install/breadboard-${breadboard_version}/conf/generated.keystore
 cp prod_dist/${breadboard_version}/bin/breadboard install/breadboard-${breadboard_version}/bin/
 cd install
+cp breadboard-${breadboard_version}/lib/breadboard.breadboard-${breadboard_version}.jar ../target/universal/breadboard.breadboard-${breadboard_version}.jar
 zip -r breadboard-${breadboard_version}.zip breadboard-${breadboard_version}
