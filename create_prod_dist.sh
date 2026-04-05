@@ -3,6 +3,13 @@ breadboard_version="v2.3.1"
 cd frontend
 webpack -p --config webpack/webpack.prod.js
 cd ..
+
+# read a .env file if it exists
+if [ -f .env ]; then
+  echo "Reading .env file"
+  source .env
+fi
+
 # Activator was deprecated; use sbt directly (same as `activator dist` for this project).
 if [ -n "${JAVA_HOME:-}" ]; then
   sbt -java-home "$JAVA_HOME" dist
@@ -28,4 +35,4 @@ rm install/breadboard-${breadboard_version}/conf/generated.keystore
 cp prod_dist/${breadboard_version}/bin/breadboard install/breadboard-${breadboard_version}/bin/
 cd install
 cp breadboard-${breadboard_version}/lib/breadboard.breadboard-${breadboard_version}.jar ../target/universal/breadboard.breadboard-${breadboard_version}.jar
-zip -r breadboard-${breadboard_version}.zip breadboard-${breadboard_version}
+zip -rq breadboard-${breadboard_version}.zip breadboard-${breadboard_version}
