@@ -2,6 +2,10 @@ import { Breadboard, BreadboardConfig, BreadboardClass, VueLoadOpts } from '@hum
 import DefaultView from "./mixins/DefaultView";
 import './client.sass'
 
+export function loadVueDependencies(opts: VueLoadOpts) {
+  return Breadboard.load(loadVue(opts))
+}
+
 async function client() {
   let config: BreadboardConfig
   try {
@@ -13,9 +17,20 @@ async function client() {
 
   try {
     window.loadVue = loadVue
+    window.loadVueDependencies = loadVueDependencies
     window.createDefaultVue = createDefaultVue
     window.loadAngularClient = loadAngularClient
     window.loadModules = loadModules
+    window.Breadboard = Breadboard
+    // For backwards compatibility, we need to add the Breadboard versions of these functions
+    //@ts-ignore
+    Breadboard.loadVueDependencies = loadVueDependencies
+    //@ts-ignore
+    Breadboard.createDefaultVue = createDefaultVue
+    //@ts-ignore
+    Breadboard.loadAngularClient = loadAngularClient
+    //@ts-ignore
+    Breadboard.loadModules = loadModules
     await Breadboard.addScriptFromString(config.clientGraph)
   } catch (err) {
     console.error('Breadboard: Unable to run client-graph.js')
@@ -40,20 +55,31 @@ export function loadVue(opts: VueLoadOpts) {
     // this.addStyleFromURL('https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900')
     // await import('./client.sass')
     // core.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`)
+    const imports: Promise<any>[] = [import('vue')]
     if (opts.withVuetify) {
-      // this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/@mdi/font@${opts.mdiVersion}/css/materialdesignicons.min.css`)
-      // this.addStyleFromURL(`https://cdn.jsdelivr.net/npm/vuetify@${opts.vuetifyVersion}/dist/vuetify.min.css`)
+      imports.push(import('vuetify'))
+      imports.push(core.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`))
     }
-    //@ts-ignore
-    window.Vue = (await import('vue')).default
-    window.Vuetify = (await import('vuetify')).default
-    await import(/* webpackChunkName: "vue-components" */'./vue-components')
-    // await this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)
-    // await import('./vue-components')
-    // core.addStyleFromURL(`${config.assetsRoot}/bundles/vue-components.css`)
-    // await this.addScriptFromURL(`https://cdnjs.cloudflare.com/ajax/libs/vue/${opts.vueVersion}/vue.${opts.useDev ? 'common.dev.' : 'min.'}js`)
-    // Register Vuetify components
-    window.Vue.use(window.Vuetify)
+    imports.push(import('./vue-components') as any)
+    const res = await Promise.all(imports)
+    window.Vue = res[0].default
+    if (opts.useDev) {
+      window.Vue.config.devtools = true
+    }
+    if (opts.withVuetify) {
+      window.Vuetify = res[1].default
+      window.Vue.use(window.Vuetify)
+    }
+    // //@ts-ignore
+    // window.Vue = (await import('vue')).default
+    // window.Vuetify = (await import('vuetify')).default
+    // await import(/* webpackChunkName: "vue-components" */'./vue-components')
+    // // await this.addScriptFromURL(`${config.assetsRoot}/bundles/vue-components.js`)
+    // // await import('./vue-components')
+    // // core.addStyleFromURL(`${config.assetsRoot}/bundles/vue-components.css`)
+    // // await this.addScriptFromURL(`https://cdnjs.cloudflare.com/ajax/libs/vue/${opts.vueVersion}/vue.${opts.useDev ? 'common.dev.' : 'min.'}js`)
+    // // Register Vuetify components
+    // window.Vue.use(window.Vuetify)
   }
 }
 

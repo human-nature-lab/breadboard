@@ -8,10 +8,12 @@
   },
   "scripts": {
     "test": "test",
-    "build": "cross-env NODE_ENV=production webpack --config webpack.config.js",
-    "start": "webpack serve"
+    "build": "cross-env NODE_ENV=production NODE_OPTIONS='--openssl-legacy-provider' webpack --config webpack.config.js",
+    "start": "NODE_OPTIONS='--openssl-legacy-provider' webpack serve"
   },
   "dependencies": {
+    "@human-nature-lab/breadboard-client": "link:client",
+    "@human-nature-lab/breadboard-core": "link:core",
     "@mdi/font": "^5.9.55",
     "@uirouter/angularjs": "^1.0.11",
     "angular": "1.2.32",
@@ -79,7 +81,7 @@
     "vue-loader": "^15.9.6",
     "vue-template-compiler": "^2.6.10",
     "vuetify": "^2.1.10",
-    "webpack": "^5.27.2",
+    "webpack": "5.27.2",
     "webpack-cli": "^4.5.0",
     "webpack-dev-server": "^3.11.2"
   },

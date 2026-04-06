@@ -1,0 +1,3 @@
+overrides:
+  '@human-nature-lab/breadboard-client': link:client
+  '@human-nature-lab/breadboard-core': link:core
