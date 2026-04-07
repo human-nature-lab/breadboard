@@ -6,6 +6,7 @@
         <v-checkbox
           v-bind="selectIcons"
           :disabled="disabled"
+          dense
           :label="'' + choice.content"
           @change="assign(index, choice.value)" 
           :value="isAssigned(index, choice.value)" />

@@ -7,8 +7,9 @@
                   Positioning has to be done manually. -->
       <slot name="edge" v-for="edge in graph.edges" :edge="edge">
         <line
+            v-if="isRenderableEdge(edge)"
             class="edge"
-            :key="edge.id + '-line'"
+            :key="getEdgeKey(edge)"
             @click="edgeClick(edge, $event)"
             :stroke="evaluateProp('edgeStroke', edge)"
             :stroke-width="evaluateProp('edgeStrokeWidth', edge)"
@@ -18,8 +19,9 @@
             :x2="edge.target.x"
             :y2="edge.target.y">
         </line>
-        <g :transform="`translate(${(edge.source.x + edge.target.x) / 2}, ${(edge.source.y + edge.target.y) / 2})`"
-            :key="edge.id + '-label'"
+        <g v-if="isRenderableEdge(edge)"
+            :transform="`translate(${(edge.source.x + edge.target.x) / 2}, ${(edge.source.y + edge.target.y) / 2})`"
+            :key="getEdgeLabelKey(edge)"
             @click="edgeLabelClick(edge, $event)">
           <!-- Add an element at the center of the edge-->
           <slot name="edge-label" :edge="edge"/>
@@ -162,6 +164,13 @@
         default: '#999'
       },
       /**
+       * A function to get the key/id for each edge. This could be used to help enable custom animations
+       * @type Function
+       */
+      edgeKey: {
+        type: Object as () => (edge: Edge) => string,
+      },
+      /**
        * How much space to try to keep around the edge of the graph. Nodes will try to stay at least this far away from
        * the borders of the graph
        */
@@ -189,6 +198,24 @@
       this.setupEgo()
     },
     methods: {
+      isRenderableEdge (edge: Edge | undefined): edge is Edge {
+        return Boolean(edge && edge.source && edge.target)
+      },
+      getEdgeKey (edge: Edge): string {
+        if (!edge) {
+          return ''
+        }
+        if (this.edgeKey instanceof Function) {
+          return this.edgeKey(edge) as string
+        }
+        return edge && edge.id ? edge.id + '-line' : ''
+      },
+      getEdgeLabelKey (edge: Edge): string {
+        if (!edge || !edge.id) {
+          return ''
+        }
+        return edge.id + '-label'
+      },
       setupEgo () {
         const ensureEgoCentered = () => {
           if (this.player && this.graph) {
@@ -320,7 +347,7 @@
         if (e.isTrusted) {
           this.$emit('edgeLabelClick', edge, e)
         }
-      }
+      },
     },
     computed: {
       linkDistance (): number {
@@ -331,7 +358,7 @@
           x: this.width / 2,
           y: this.height / 2
         }
-      }
+      },
     }
   })
 </script>
