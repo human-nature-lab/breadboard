@@ -51,7 +51,7 @@ importers:
         specifier: ^2.24.3
         version: 2.24.3
       vuetify:
-        specifier: ~2.7
+        specifier: ~2
         version: 2.7.2(vue@2.7.16)
     devDependencies:
       '@types/d3-force':

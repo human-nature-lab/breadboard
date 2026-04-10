@@ -14,7 +14,10 @@ const plugins =  [
     /angular(\\|\/)core(\\|\/)@angular/,
     path.resolve(__dirname, './design')
   ),
-  new VueLoaderPlugin()
+  new VueLoaderPlugin(),
+  new webpack.DefinePlugin({
+    __VUE_PROD_DEVTOOLS__: true,
+  }),
 ]
 if (isProd) {
   plugins.push(new MiniCssExtractPlugin({
@@ -34,6 +37,9 @@ module.exports = {
     // },
     // graph: './client/lib/graph.ts'
   },
+  cache: {
+    type: 'filesystem',
+  },
   output: {
     path: buildPath,
     publicPath: publicPath,
@@ -41,6 +47,7 @@ module.exports = {
     clean: true
   },
   mode: isProd ? 'production' : 'development',
+  devtool: 'eval-source-map',
   devServer: {
     port: PORT,
     hot: true,
@@ -133,8 +140,9 @@ module.exports = {
   },
   resolve: {
     extensions: ['.js','.json','.css','.html', '.jsx', '.ts', '.tsx', '.vue'],
+    // prevents multiple copies of vue being loaded
     alias: {
-      'vue$': 'vue/dist/vue.esm.js' // 'vue/dist/vue.common.js' for webpack 1
+      'vue$': 'vue/dist/vue.js' // 'vue/dist/vue.common.js' for webpack 1
     }
   },
   // externals: {
