@@ -1,7 +1,22 @@
 #!/usr/bin/env bash
+set -e
 breadboard_version="v2.3.1"
-cd frontend
-webpack -p --config webpack/webpack.prod.js
+
+# Build local packages and wire them into the main frontend tree before webpack.
+cd frontend/core
+pnpm install --frozen-lockfile
+pnpm run build
+
+cd ../client
+pnpm install --frozen-lockfile
+pnpm link ../core
+pnpm run build
+
+cd ..
+pnpm install --frozen-lockfile
+pnpm link ./core
+pnpm link ./client
+pnpm run build
 cd ..
 
 # read a .env file if it exists
@@ -16,6 +31,9 @@ if [ -n "${JAVA_HOME:-}" ]; then
 else
   sbt dist
 fi
+
+# turn off error checking for the next commands
+set +e
 rm -r install/breadboard-${breadboard_version}
 rm install/breadboard-${breadboard_version}.zip
 unzip target/universal/breadboard-${breadboard_version}.zip -d install

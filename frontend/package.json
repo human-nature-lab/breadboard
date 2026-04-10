@@ -8,10 +8,12 @@
   },
   "scripts": {
     "test": "test",
-    "build": "cross-env NODE_ENV=production webpack --config webpack.config.js",
-    "start": "webpack serve"
+    "build": "cross-env NODE_ENV=production NODE_OPTIONS='--openssl-legacy-provider' webpack --config webpack.config.js",
+    "start": "NODE_OPTIONS='--openssl-legacy-provider' webpack serve"
   },
   "dependencies": {
+    "@human-nature-lab/breadboard-client": "link:client",
+    "@human-nature-lab/breadboard-core": "link:core",
     "@mdi/font": "^5.9.55",
     "@uirouter/angularjs": "^1.0.11",
     "angular": "1.2.32",

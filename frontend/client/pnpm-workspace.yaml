@@ -1,0 +1,2 @@
+overrides:
+  '@human-nature-lab/breadboard-core': link:../core
