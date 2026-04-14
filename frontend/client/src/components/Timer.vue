@@ -92,7 +92,7 @@
         let res = this.timer.timerText + ' '
         switch (this.timer.type) {
           case 'currency':
-            return res + (this.timer.currencyAmount * this.value / 100 / 100).toFixed(2) + '$'
+            return res + '$' + (this.timer.currencyAmount * this.value / 100 / 100).toFixed(2)
           case 'percent':
             return res + this.value + '%'
           default:
