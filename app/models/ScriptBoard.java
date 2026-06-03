@@ -26,6 +26,7 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class ScriptBoard extends UntypedActor {
   private static ObjectMapper mapper = new ObjectMapper();
@@ -43,6 +44,11 @@ public class ScriptBoard extends UntypedActor {
 
   private static Random rand = new Random();
   private static HashMap<String, Client> clients = new HashMap<>();
+
+  // AMT lifecycle timers scheduled by the HitCreated handler. Tracked so they can be
+  // cancelled on reload / on re-submit instead of being orphaned (MEMORY_LEAKS.md L6).
+  // CopyOnWriteArrayList because the static state is shared across ScriptBoard actors.
+  static final List<Timer> amtTimers = new CopyOnWriteArrayList<Timer>();
 
   // A list of admins currently watching the game.
   private static ArrayList<Admin> admins = new ArrayList<>();
@@ -78,8 +84,58 @@ public class ScriptBoard extends UntypedActor {
     // Disconnect all connected clients
     for (Client client : clients.values()) {
       client.disconnect();
+      // Also drop the client from the graph-change dispatch registry. Otherwise the
+      // listener keeps a reference to every client that ever connected (a leak) and
+      // keeps dispatching graph updates to its now-closed socket until a same-id
+      // client happens to reconnect and overwrite the entry.
+      if (graphChangedListener != null) {
+        graphChangedListener.removeClientListener(client);
+      }
     }
     clients.clear();
+  }
+
+  /** Cancel and forget every tracked AMT lifecycle timer. Safe to call when none exist. */
+  static void cancelAmtTimers() {
+    for (Timer t : amtTimers) {
+      t.cancel();
+    }
+    amtTimers.clear();
+  }
+
+  /**
+   * Schedule the two AMT lifecycle timers, first cancelling any still pending from an
+   * earlier HIT submission so they are never orphaned. Extracted from the HitCreated
+   * handler so the scheduling/cancellation contract is unit-testable without the actor
+   * or a live script engine (MEMORY_LEAKS.md L6).
+   *
+   * @param noNewConnectionsDelayMs delay after which no new client connections are allowed
+   * @param startInitStepDelayMs    delay after which {@code initStep.start()} is sent
+   * @param onNoNewConnections      action run by the first timer
+   * @param onStartInitStep         action run by the second timer
+   */
+  static void scheduleAmtTimers(long noNewConnectionsDelayMs, long startInitStepDelayMs,
+                                final Runnable onNoNewConnections, final Runnable onStartInitStep) {
+    // Replace any timers still pending from an earlier submission.
+    cancelAmtTimers();
+
+    Timer noNewConnectionsTimer = new Timer();
+    noNewConnectionsTimer.schedule(new TimerTask() {
+      @Override
+      public void run() {
+        onNoNewConnections.run();
+      }
+    }, noNewConnectionsDelayMs);
+    amtTimers.add(noNewConnectionsTimer);
+
+    Timer startInitStepTimer = new Timer();
+    startInitStepTimer.schedule(new TimerTask() {
+      @Override
+      public void run() {
+        onStartInitStep.run();
+      }
+    }, startInitStepDelayMs);
+    amtTimers.add(startInitStepTimer);
   }
 
   private void resetEngine(Experiment experiment) throws IOException, ScriptException {
@@ -99,6 +155,9 @@ public class ScriptBoard extends UntypedActor {
       processScript("g.empty()", null, null);
       // Reset the timers
       processScript("timers.cancel()", null, null);
+      // Cancel any pending AMT lifecycle timers from a previous session so they don't
+      // fire against the rebuilt engine or outlive it (MEMORY_LEAKS.md L6).
+      cancelAmtTimers();
     }
 
     // Global events used to communicate via the groovy scripting
@@ -371,22 +430,24 @@ public class ScriptBoard extends UntypedActor {
             processScript("startAt = " + timerTime, breadboardMessage.out, null);
 
             final ThrottledWebSocketOut breadboardOut = breadboardMessage.out;
-            // Set timer for lifetimeInSeconds time after which no longer allow new client connections
-            new Timer().schedule(new TimerTask() {
-              @Override
-              public void run() {
-                gameListener.hasStarted();
-              }
-            }, lifetimeInMs);
-
-            // Set timer for lifetimeInMs + tutorialTimeInMs time after which send an initStep.start() message
-            new Timer().schedule(new TimerTask() {
-              @Override
-              public void run() {
-                processScript("initStep.start()", breadboardOut, null);
-                Logger.debug("initStep.start()");
-              }
-            }, (lifetimeInMs + tutorialTimeInMs));
+            // Schedule the two AMT lifecycle timers via the tracked registry so they are
+            // cancelled on reload / superseded on re-submit instead of leaking. Same delays
+            // and actions as before: at lifetimeInMs no new connections are allowed; at
+            // lifetimeInMs + tutorialTimeInMs initStep.start() is sent (MEMORY_LEAKS.md L6).
+            scheduleAmtTimers(lifetimeInMs, lifetimeInMs + tutorialTimeInMs,
+              new Runnable() {
+                @Override
+                public void run() {
+                  gameListener.hasStarted();
+                }
+              },
+              new Runnable() {
+                @Override
+                public void run() {
+                  processScript("initStep.start()", breadboardOut, null);
+                  Logger.debug("initStep.start()");
+                }
+              });
           }
         } else if (message instanceof Breadboard.SendScript) {
           Breadboard.SendScript sendScript = (Breadboard.SendScript) message;

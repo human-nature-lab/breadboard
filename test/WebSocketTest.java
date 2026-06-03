@@ -84,18 +84,11 @@ public class WebSocketTest extends BaseTest {
         return graph;
     }
 
-    /**
-     * EventGraphChangedListener.clientListeners is a {@code private static} map shared by
-     * every listener instance, so client registrations leak across tests. Clear it after
-     * each test (in addition to BaseTest's DB truncation) so dispatch tests don't see
-     * clients registered by a previous test.
-     */
-    @org.junit.After
-    public void clearClientRegistry() throws Exception {
-        java.lang.reflect.Field f = EventGraphChangedListener.class.getDeclaredField("clientListeners");
-        f.setAccessible(true);
-        ((Map<?, ?>) f.get(null)).clear();
-    }
+    // NOTE: there used to be an @After here that reflectively cleared
+    // EventGraphChangedListener.clientListeners because it was a `private static` map
+    // shared across every listener / test (a leak -- see MEMORY_LEAKS.md L2). That field
+    // is now an instance field, so each test's own listener is isolated and no cross-test
+    // cleanup is needed. `clientRegistriesAreIsolatedPerListener` below pins that.
 
     // === ThrottledWebSocketOut ===
     //
@@ -627,6 +620,84 @@ public class WebSocketTest extends BaseTest {
         assertTrue("Neighbour p2's client SHOULD be updated on a public change", outP2.messages.size() > 0);
         assertTrue("Admin still receives every change",
             adminCalls.contains("vertexPropChanged:p1:score"));
+    }
+
+    // === Client Listener Registry: removal + isolation (MEMORY_LEAKS.md L2/L3) ===
+    //
+    // These pin the leak fix: a registered client is dispatched to exactly as before,
+    // but once removed (which ScriptBoard.disconnectClients now does on reload) it must
+    // no longer be referenced or dispatched to; and two listeners must not share state.
+
+    @Test
+    public void registeredClientReceivesUpdatesThenRemovedClientDoesNot() {
+        Experiment exp = createExperiment("RemoveExp");
+        ExperimentInstance instance = createInstance("RemoveRun", exp);
+
+        TinkerGraph base = new TinkerGraph();
+        EventGraph<TinkerGraph> graph = new EventGraph<>(base);
+        Vertex v1 = graph.addVertex("p1");
+        v1.setProperty("name", "Alice");
+
+        EventGraphChangedListener listener = new EventGraphChangedListener(base);
+        TestWebSocketOut outP1 = new TestWebSocketOut();
+        Client c1 = new Client("p1", instance, null, new ThrottledWebSocketOut(outP1, 0L));
+        listener.addClientListener(c1);
+
+        // Existing behavior preserved: a registered client receives its own updates.
+        listener.vertexPropertyChanged(v1, "score", null, 1);
+        int afterFirst = outP1.messages.size();
+        assertTrue("Registered client should receive updates (unchanged behavior)", afterFirst > 0);
+
+        // Leak fix: after removal the client is gone from the registry and gets nothing more.
+        listener.removeClientListener(c1);
+        assertFalse("Registry must no longer reference the removed client",
+            listener.getClientListeners().containsKey("p1"));
+
+        listener.vertexPropertyChanged(v1, "score", null, 2);
+        assertEquals("Removed client must not receive any further updates",
+            afterFirst, outP1.messages.size());
+    }
+
+    @Test
+    public void clientListenerRegistryShrinksOnRemove() {
+        Experiment exp = createExperiment("ShrinkExp");
+        ExperimentInstance instance = createInstance("ShrinkRun", exp);
+        ThrottledWebSocketOut out = new ThrottledWebSocketOut(new TestWebSocketOut(), 0L);
+
+        EventGraphChangedListener listener = new EventGraphChangedListener(new TinkerGraph());
+        Client c1 = new Client("p1", instance, null, out);
+        Client c2 = new Client("p2", instance, null, out);
+        listener.addClientListener(c1);
+        listener.addClientListener(c2);
+        assertEquals("Both clients registered", 2, listener.getClientListeners().size());
+
+        listener.removeClientListener(c1);
+        assertEquals("Registry shrinks after removal", 1, listener.getClientListeners().size());
+        assertFalse(listener.getClientListeners().containsKey("p1"));
+        assertTrue(listener.getClientListeners().containsKey("p2"));
+
+        // Removing an unregistered/unknown client is a safe no-op.
+        listener.removeClientListener(new Client("ghost", instance, null, out));
+        assertEquals("Removing an unknown client changes nothing", 1, listener.getClientListeners().size());
+    }
+
+    @Test
+    public void clientRegistriesAreIsolatedPerListener() {
+        // Before the fix `clientListeners` was static, so a client added to one listener
+        // was visible to every other listener. This asserts the per-instance isolation
+        // that replaced it -- it would FAIL against the old static field.
+        Experiment exp = createExperiment("IsolationExp");
+        ExperimentInstance instance = createInstance("IsolationRun", exp);
+        ThrottledWebSocketOut out = new ThrottledWebSocketOut(new TestWebSocketOut(), 0L);
+
+        EventGraphChangedListener l1 = new EventGraphChangedListener(new TinkerGraph());
+        EventGraphChangedListener l2 = new EventGraphChangedListener(new TinkerGraph());
+
+        l1.addClientListener(new Client("p1", instance, null, out));
+
+        assertEquals("First listener holds its own client", 1, l1.getClientListeners().size());
+        assertEquals("Second listener must NOT see the first listener's client (no shared static state)",
+            0, l2.getClientListeners().size());
     }
 
     // === Client Disconnect ===
