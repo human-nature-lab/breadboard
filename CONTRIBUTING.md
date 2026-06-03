@@ -5,7 +5,7 @@ and examples.
 ## Development
 
 ### Environment setup
-Breadboard works with Java 7+. Make sure the Java SDK is installed before beginning development.
+Breadboard works with Java 8+. Make sure the Java SDK is installed before beginning development.
 
 - `cd frontend`
 - `pnpm install`
