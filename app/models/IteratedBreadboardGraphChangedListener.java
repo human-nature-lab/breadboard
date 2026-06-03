@@ -95,6 +95,13 @@ public class IteratedBreadboardGraphChangedListener implements BreadboardGraphCh
   }
 
   @Override
+  public void removeClientListener(Client clientListener) {
+    if (clientListener != null) {
+      clientListeners.remove(clientListener.id);
+    }
+  }
+
+  @Override
   public void edgeAdded(Edge edge) {
     for (ClientListener al : adminListeners)
       al.edgeAdded(edge);

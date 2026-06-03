@@ -12,7 +12,11 @@ import java.util.Map;
 public class EventGraphChangedListener implements BreadboardGraphChangedListener {
   private Graph graph;
   private ArrayList<ClientListener> adminListeners = new ArrayList<>();
-  private static HashMap<String, Client> clientListeners = new HashMap<>();
+  // Instance-scoped (was `static`): a static map was shared by every listener / every
+  // ScriptBoard, so clients from one game/user leaked into another's dispatch and the
+  // map could never be safely cleared. Per-instance state is cleared on reload via
+  // ScriptBoard.disconnectClients -> removeClientListener.
+  private final HashMap<String, Client> clientListeners = new HashMap<>();
 
   public EventGraphChangedListener(Graph graph) {
     this.graph = graph;
@@ -33,6 +37,18 @@ public class EventGraphChangedListener implements BreadboardGraphChangedListener
 
   public void addClientListener(Client clientListener) {
     clientListeners.put(clientListener.id, clientListener);
+  }
+
+  @Override
+  public void removeClientListener(Client clientListener) {
+    if (clientListener != null) {
+      clientListeners.remove(clientListener.id);
+    }
+  }
+
+  // Exposed for tests/diagnostics (mirrors IteratedBreadboardGraphChangedListener).
+  public HashMap<String, Client> getClientListeners() {
+    return this.clientListeners;
   }
 
   @Override
