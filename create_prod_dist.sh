@@ -1,22 +1,13 @@
 #!/usr/bin/env bash
-set -e
+set -e # exit on error
+set -o pipefail # exit on pipe failure
+
 breadboard_version="v2.3.1"
 
 # Build local packages and wire them into the main frontend tree before webpack.
-cd frontend/core
+cd frontend/
 pnpm install --frozen-lockfile
-pnpm run build
-
-cd ../client
-pnpm install --frozen-lockfile
-pnpm link ../core
-pnpm run build
-
-cd ..
-pnpm install --frozen-lockfile
-pnpm link ./core
-pnpm link ./client
-pnpm run build
+pnpm run build:all
 cd ..
 
 # read a .env file if it exists
