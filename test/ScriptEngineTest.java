@@ -1,10 +1,7 @@
 import models.*;
 import org.junit.Test;
-import org.apache.commons.io.FileUtils;
-import play.Play;
 
 import javax.script.*;
-import java.io.File;
 import java.util.*;
 
 import static org.junit.Assert.*;
@@ -17,8 +14,12 @@ import static org.junit.Assert.*;
  * These tests validate the most fragile subsystem in the application --
  * the one most likely to break during a Play Framework upgrade due to
  * classpath and classloader changes.
+ *
+ * No FakeApplication/DB is needed: the engine is built standalone via
+ * {@link ScriptTestHarness}, which is the single source of truth for the script
+ * load order and binding setup (mirroring ScriptBoard.resetEngine).
  */
-public class ScriptEngineTest extends BaseTest {
+public class ScriptEngineTest {
 
     private ScriptEngine createEngine() throws Exception {
         ScriptEngineManager manager = new ScriptEngineManager();
@@ -27,39 +28,9 @@ public class ScriptEngineTest extends BaseTest {
     }
 
     private ScriptEngine createAndInitializeEngine() throws Exception {
-        ScriptEngine engine = createEngine();
-        assertNotNull("gremlin-groovy engine must be available", engine);
-
-        // Inject required bindings (mirrors ScriptBoard.resetEngine)
-        engine.getBindings(ScriptContext.ENGINE_SCOPE).put("r", new Random());
-        engine.getBindings(ScriptContext.ENGINE_SCOPE).put("results", new HashMap());
-        engine.getBindings(ScriptContext.ENGINE_SCOPE).put("eventTracker", new EventTracker());
-        engine.getBindings(ScriptContext.ENGINE_SCOPE).put("gameListener", new GameListener());
-        engine.getBindings(ScriptContext.ENGINE_SCOPE).put("events", new EventBus());
-
-        // Load all Groovy scripts in order
-        String[] scriptFiles = {
-            "/util.groovy",
-            "/timer.groovy",
-            "/graph.groovy",
-            "/actions.groovy",
-            "/step.groovy",
-            "/test.groovy",
-            "/events.groovy",
-            "/chat.groovy",
-            "/form.groovy",
-            "/ready.groovy"
-        };
-
-        String groovyDir = Play.application().path().toString() + "/groovy";
-        for (String file : scriptFiles) {
-            File scriptFile = new File(groovyDir + file);
-            assertTrue("Script file should exist: " + file, scriptFile.exists());
-            String source = FileUtils.readFileToString(scriptFile, "UTF-8") + ";null;";
-            engine.eval(source);
-        }
-
-        return engine;
+        // Delegate to the shared harness so the script list and binding setup live in
+        // exactly one place. Persistence is disabled and no running Play app is required.
+        return new ScriptTestHarness().engine;
     }
 
     // === Engine Discovery ===
