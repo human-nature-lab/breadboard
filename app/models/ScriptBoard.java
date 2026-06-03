@@ -213,7 +213,7 @@ public class ScriptBoard extends UntypedActor {
   }
 
   private String makeUniqueClientId (String clientId) {
-    return this.experimentId + "-" + this.instanceId + "-" + clientId;
+    return ScriptBoardSupport.makeUniqueClientId(this.experimentId, this.instanceId, clientId);
   }
 
   private void rebuildScriptBoard(Experiment experiment) throws IOException, ScriptException {
@@ -682,36 +682,18 @@ public class ScriptBoard extends UntypedActor {
     String key = param.name;
     Logger.debug("initParam: " + key);
     Parameter parameter = experiment == null ? null : experiment.getParameterByName(key);
-    if (parameter == null) {
-      //default string value
-      engine.getBindings(ScriptContext.ENGINE_SCOPE).put(key, param.value);
-      return;
-    }
-    // TODO: Perhaps put this code elsewhere?
-    // Bind the initial variables to the script engine
-    if (parameter != null) {
-      if (parameter.type.equals("Integer")) {
-        try {
-          Integer intParameter = Integer.parseInt(param.value);
-          engine.getBindings(ScriptContext.ENGINE_SCOPE).put(key, intParameter);
-        } catch (NumberFormatException npe) {
-          Logger.error("Breadboard.LaunchGame: Caught NumberFormatException parsing string as Integer: " + param.value);
-        }
-      } else if (parameter.type.equals("Decimal")) {
-        try {
-          Double doubleParameter = Double.parseDouble(param.value);
-          engine.getBindings(ScriptContext.ENGINE_SCOPE).put(key, doubleParameter);
-        } catch (NumberFormatException npe) {
-          Logger.error("Breadboard.LaunchGame: Caught NumberFormatException parsing string as Double: " + param.value);
-        }
+    String type = parameter == null ? null : parameter.type;
 
-      } else if (parameter.type.equals("Text")) {
-        engine.getBindings(ScriptContext.ENGINE_SCOPE).put(key, param.value);
-      } else if (parameter.type.equals("Boolean")) {
-        Boolean booleanParameter = Boolean.parseBoolean(param.value);
-        engine.getBindings(ScriptContext.ENGINE_SCOPE).put(key, booleanParameter);
-      }
-    } //END if (parameter != null)
+    // Coercion logic lives in ScriptBoardSupport.coerceParam so it can be unit-tested
+    // without the engine/DB. A null result means "leave the binding unset" -- which for
+    // Integer/Decimal indicates a parse failure worth logging (as the original did).
+    Object coerced = ScriptBoardSupport.coerceParam(type, param.value);
+    if (coerced != null) {
+      engine.getBindings(ScriptContext.ENGINE_SCOPE).put(key, coerced);
+    } else if ("Integer".equals(type) || "Decimal".equals(type)) {
+      Logger.error("Breadboard.LaunchGame: Caught NumberFormatException parsing string as "
+          + type + ": " + param.value);
+    }
   }
 
   private static void makeChoice(String uid, String params, ThrottledWebSocketOut out) {

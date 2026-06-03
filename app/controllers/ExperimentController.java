@@ -657,17 +657,20 @@ public class ExperimentController extends Controller {
 
   public static ArrayList<Parameter> getParametersFromFile(File parameterFile) throws IOException {
     ArrayList<Parameter> returnParameters = new ArrayList<>();
-    Reader in = new FileReader(parameterFile);
     CSVFormat format = CSVFormat.DEFAULT.withHeader("Name", "Type", "Min.", "Max.", "Default", "Short Description").withFirstRecordAsHeader();
-    for (CSVRecord record : format.parse(in)) {
-      Parameter parameter = new Parameter();
-      parameter.name = record.get("Name");
-      parameter.type = record.get("Type");
-      parameter.minVal = record.get("Min.");
-      parameter.maxVal = record.get("Max.");
-      parameter.defaultVal = record.get("Default");
-      parameter.description = record.get("Short Description");
-      returnParameters.add(parameter);
+    // try-with-resources so the underlying file handle is always released (an unclosed
+    // FileReader here leaked a handle and, on Windows, left parameters.csv locked).
+    try (Reader in = new FileReader(parameterFile)) {
+      for (CSVRecord record : format.parse(in)) {
+        Parameter parameter = new Parameter();
+        parameter.name = record.get("Name");
+        parameter.type = record.get("Type");
+        parameter.minVal = record.get("Min.");
+        parameter.maxVal = record.get("Max.");
+        parameter.defaultVal = record.get("Default");
+        parameter.description = record.get("Short Description");
+        returnParameters.add(parameter);
+      }
     }
     return returnParameters;
   }
