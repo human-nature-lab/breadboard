@@ -36,4 +36,4 @@ csv
 
 .vscode
 generated
-.env
+.env*
