@@ -84,42 +84,58 @@ public class WebSocketTest extends BaseTest {
         return graph;
     }
 
-    // === ThrottledWebSocketOut ===
-
-    @Test
-    public void throttledWebSocketOutPassthrough() {
-        TestWebSocketOut testOut = new TestWebSocketOut();
-        ThrottledWebSocketOut throttled = new ThrottledWebSocketOut(testOut, 100L);
-
-        ObjectNode msg = Json.newObject();
-        msg.put("action", "test");
-        throttled.write(msg);
-
-        assertEquals("Should have 1 message", 1, testOut.messages.size());
-        assertEquals("test", testOut.messages.get(0).get("action").asText());
+    /**
+     * EventGraphChangedListener.clientListeners is a {@code private static} map shared by
+     * every listener instance, so client registrations leak across tests. Clear it after
+     * each test (in addition to BaseTest's DB truncation) so dispatch tests don't see
+     * clients registered by a previous test.
+     */
+    @org.junit.After
+    public void clearClientRegistry() throws Exception {
+        java.lang.reflect.Field f = EventGraphChangedListener.class.getDeclaredField("clientListeners");
+        f.setAccessible(true);
+        ((Map<?, ?>) f.get(null)).clear();
     }
 
+    // === ThrottledWebSocketOut ===
+    //
+    // NOTE: throttling is currently DISABLED in production -- the queue/timer logic in
+    // ThrottledWebSocketOut.write() is commented out and it simply forwards every message
+    // to the wrapped Out immediately (ThrottledWebSocketOut.java). These tests therefore
+    // pin the *current* behaviour: a transparent pass-through wrapper. The `wait` argument
+    // is unused today. If batching/throttling is ever restored, these tests must be
+    // rewritten to assert timing/coalescing (and the `wait` value below will become
+    // meaningful) -- they are written here so that regression is loud rather than silent.
+
     @Test
-    public void throttledWebSocketOutMultipleMessages() {
+    public void writesPassThroughImmediately() {
         TestWebSocketOut testOut = new TestWebSocketOut();
         ThrottledWebSocketOut throttled = new ThrottledWebSocketOut(testOut, 100L);
 
-        for (int i = 0; i < 5; i++) {
+        ObjectNode first = Json.newObject();
+        first.put("action", "test");
+        throttled.write(first);
+
+        // No coalescing today: a second write arrives as its own frame, not merged.
+        for (int i = 0; i < 4; i++) {
             ObjectNode msg = Json.newObject();
             msg.put("index", i);
             throttled.write(msg);
         }
 
-        assertEquals("Should pass through all 5 messages", 5, testOut.messages.size());
+        assertEquals("Throttling is disabled: all 5 frames pass straight through",
+            5, testOut.messages.size());
+        assertEquals("First frame forwarded verbatim", "test",
+            testOut.messages.get(0).get("action").asText());
     }
 
     @Test
-    public void throttledWebSocketOutClose() {
+    public void closeIsDelegatedToWrappedOut() {
         TestWebSocketOut testOut = new TestWebSocketOut();
         ThrottledWebSocketOut throttled = new ThrottledWebSocketOut(testOut, 100L);
 
         throttled.close();
-        assertTrue("Close should be delegated", testOut.closed);
+        assertTrue("close() should be delegated to the wrapped Out", testOut.closed);
     }
 
     // === Admin Graph Change Messages ===
@@ -364,16 +380,21 @@ public class WebSocketTest extends BaseTest {
         priv.put("secret", 42);
         p1.setProperty("private", priv);
 
-        // vertexPropertyChanged for "private" key with prefix "private" should go to owner
+        // A "private"-prefixed key on the player's OWN vertex is delivered to that player.
         clientP1.vertexPropertyChanged(p1, "private", priv);
+        assertEquals("Owner (p1) should receive their own private property change",
+            1, testOut.messages.size());
+        assertEquals("nodePropertyChanged", testOut.last().get("action").asText());
+        assertEquals("Message should target p1", "p1", testOut.last().get("id").asText());
 
-        // Check that the private key content was not sent to another client
+        // The same change must NOT be delivered to a different player's client.
         TestWebSocketOut testOut2 = new TestWebSocketOut();
         ThrottledWebSocketOut throttled2 = new ThrottledWebSocketOut(testOut2, 100L);
         Client clientP2 = new Client("p2", instance, null, throttled2);
 
         clientP2.vertexPropertyChanged(p1, "private", priv);
-        // p2 should NOT see p1's private properties via vertexPropertyChanged
+        assertEquals("Non-owner (p2) must NOT receive p1's private property",
+            0, testOut2.messages.size());
     }
 
     @Test
@@ -391,6 +412,87 @@ public class WebSocketTest extends BaseTest {
         JsonNode msg = testOut.messages.get(0);
         assertEquals("gameOver", msg.get("eventName").asText());
         assertTrue("Should have data array", msg.has("data"));
+    }
+
+    /** Find the node object with the given id inside a D3 "graph.nodes" array. */
+    private static JsonNode findNode(JsonNode nodes, String id) {
+        for (JsonNode n : nodes) {
+            if (n.has("id") && id.equals(n.get("id").asText())) {
+                return n;
+            }
+        }
+        return null;
+    }
+
+    @Test
+    public void clientStripsPrivateKeysFromNeighborVertices() {
+        TestWebSocketOut testOut = new TestWebSocketOut();
+        ThrottledWebSocketOut throttled = new ThrottledWebSocketOut(testOut, 0L);
+
+        Experiment exp = createExperiment("NeighborStripExp");
+        ExperimentInstance instance = createInstance("NeighborStripRun", exp);
+        Client client = new Client("p1", instance, null, throttled);
+
+        TinkerGraph base = new TinkerGraph();
+        EventGraph<TinkerGraph> graph = new EventGraph<>(base);
+        Vertex p1 = graph.addVertex("p1");
+        p1.setProperty("name", "Alice");
+        Vertex p2 = graph.addVertex("p2");        // p1's neighbour
+        p2.setProperty("name", "Bob");
+        p2.setProperty("score", 30);
+        p2.setProperty("text", "Bob's private prompt");
+        p2.setProperty("choices", "[a, b]");
+        Map<String, Object> p2Private = new HashMap<>();
+        p2Private.put("secret", 1);
+        p2.setProperty("private", p2Private);
+        graph.addEdge(null, p1, p2, "connected");
+
+        client.updateGraph(p1);
+
+        JsonNode neighbor = findNode(testOut.last().get("graph").get("nodes"), "p2");
+        assertNotNull("Neighbour p2 should appear in p1's subgraph", neighbor);
+        assertTrue("Public neighbour props are kept", neighbor.has("name"));
+        assertTrue("Public neighbour props are kept", neighbor.has("score"));
+        assertFalse("Neighbour 'text' must be stripped", neighbor.has("text"));
+        assertFalse("Neighbour 'choices' must be stripped", neighbor.has("choices"));
+        assertFalse("Neighbour 'private' map must be stripped", neighbor.has("private"));
+        assertFalse("Neighbour private sub-keys must NOT leak", neighbor.has("secret"));
+    }
+
+    @Test
+    public void clientSeesOutPropsButNotInPropsOnOutgoingEdge() {
+        TestWebSocketOut testOut = new TestWebSocketOut();
+        ThrottledWebSocketOut throttled = new ThrottledWebSocketOut(testOut, 0L);
+
+        Experiment exp = createExperiment("EdgePropsExp");
+        ExperimentInstance instance = createInstance("EdgePropsRun", exp);
+        Client client = new Client("p1", instance, null, throttled);
+
+        TinkerGraph base = new TinkerGraph();
+        EventGraph<TinkerGraph> graph = new EventGraph<>(base);
+        Vertex p1 = graph.addVertex("p1");
+        p1.setProperty("name", "Alice");
+        Vertex p2 = graph.addVertex("p2");
+        p2.setProperty("name", "Bob");
+        // Edge p1 -> p2: p1 is the OUT (source) vertex, so it should see outProps, not inProps.
+        Edge e = graph.addEdge(null, p1, p2, "connected");
+        Map<String, Object> outProps = new HashMap<>();
+        outProps.put("trust", 0.6);
+        e.setProperty("outProps", outProps);
+        Map<String, Object> inProps = new HashMap<>();
+        inProps.put("trust", 0.8);
+        e.setProperty("inProps", inProps);
+
+        client.updateGraph(p1);
+
+        JsonNode links = testOut.last().get("graph").get("links");
+        assertEquals("Subgraph should contain the single edge", 1, links.size());
+        JsonNode link = links.get(0);
+        assertTrue("Source vertex should see its outProps expanded onto the edge", link.has("trust"));
+        assertEquals("outProps.trust (0.6) is the value visible to the source", 0.6,
+            link.get("trust").asDouble(), 0.0001);
+        assertFalse("Raw 'outProps' map must not be sent", link.has("outProps"));
+        assertFalse("Raw 'inProps' map must not be sent", link.has("inProps"));
     }
 
     // === EventGraphChangedListener Dispatch ===
@@ -443,27 +545,14 @@ public class WebSocketTest extends BaseTest {
         assertTrue("Admin should receive edgeAdded", hasEdgeAdded);
     }
 
-    @Test
-    public void listenerPrivatePropertyDoesNotUpdateNeighborClients() {
-        // When a private property changes, only the vertex's own client should be updated,
-        // not neighbor clients. We test the dispatch logic by checking that
-        // clientVertexChanged is called appropriately.
-        TinkerGraph base = new TinkerGraph();
-        EventGraphChangedListener listener = new EventGraphChangedListener(base);
-
-        Vertex v1 = base.addVertex("p1");
-        Vertex v2 = base.addVertex("p2");
-        base.addEdge(null, v1, v2, "connected");
-
-        // Track which clients get called using simple mock admin listeners
-        final List<String> calls = new ArrayList<>();
-
-        ClientListener adminMock = new ClientListener() {
+    // An admin ClientListener that records the vertexPropertyChanged events it receives.
+    private static ClientListener recordingAdmin(final List<String> calls) {
+        return new ClientListener() {
             public void graphChanged(Graph g) {}
             public void vertexAdded(Vertex v) {}
             public void vertexRemoved(Vertex v) {}
             public void vertexPropertyChanged(Vertex v, String key, Object old, Object val) {
-                calls.add("admin:vertexPropChanged:" + v.getId() + ":" + key);
+                calls.add("vertexPropChanged:" + v.getId() + ":" + key);
             }
             public void vertexPropertyRemoved(Vertex v, String key) {}
             public void edgeAdded(Edge e) {}
@@ -471,49 +560,73 @@ public class WebSocketTest extends BaseTest {
             public void edgePropertyChanged(Edge e, String key, Object val) {}
             public void edgePropertyRemoved(Edge e, String key) {}
         };
-        listener.addAdminListener(adminMock);
+    }
 
-        // Private property change
-        calls.clear();
-        listener.vertexPropertyChanged(v1, "private", null, new HashMap<>());
+    @Test
+    public void listenerPrivatePropertyDoesNotUpdateNeighborClients() {
+        // p1 -- p2. A change to a PRIVATE key (private/text/choices) on p1 must update
+        // only p1's own client, never the neighbour p2's client.
+        Experiment exp = createExperiment("PrivDispatchExp");
+        ExperimentInstance instance = createInstance("PrivDispatchRun", exp);
 
-        // Admin always gets the event
-        assertTrue("Admin should receive private prop change",
-            calls.stream().anyMatch(c -> c.contains("vertexPropChanged:p1:private")));
+        TinkerGraph base = new TinkerGraph();
+        EventGraph<TinkerGraph> graph = new EventGraph<>(base);
+        Vertex v1 = graph.addVertex("p1");
+        v1.setProperty("name", "Alice");
+        Vertex v2 = graph.addVertex("p2");
+        v2.setProperty("name", "Bob");
+        graph.addEdge(null, v1, v2, "connected");
+
+        EventGraphChangedListener listener = new EventGraphChangedListener(base);
+
+        TestWebSocketOut outP1 = new TestWebSocketOut();
+        TestWebSocketOut outP2 = new TestWebSocketOut();
+        listener.addClientListener(new Client("p1", instance, null, new ThrottledWebSocketOut(outP1, 0L)));
+        listener.addClientListener(new Client("p2", instance, null, new ThrottledWebSocketOut(outP2, 0L)));
+
+        final List<String> adminCalls = new ArrayList<>();
+        listener.addAdminListener(recordingAdmin(adminCalls));
+
+        listener.vertexPropertyChanged(v1, "private", null, new HashMap<String, Object>());
+
+        assertTrue("Owner p1's client should be updated on a private change", outP1.messages.size() > 0);
+        assertEquals("Neighbour p2's client must NOT be updated on a private change",
+            0, outP2.messages.size());
+        assertTrue("Admin still receives every change",
+            adminCalls.contains("vertexPropChanged:p1:private"));
     }
 
     @Test
     public void listenerPublicPropertyUpdatesNeighborClients() {
+        // p1 -- p2. A change to a PUBLIC key (e.g. score) on p1 must update both p1's
+        // own client AND the neighbour p2's client.
+        Experiment exp = createExperiment("PubDispatchExp");
+        ExperimentInstance instance = createInstance("PubDispatchRun", exp);
+
         TinkerGraph base = new TinkerGraph();
+        EventGraph<TinkerGraph> graph = new EventGraph<>(base);
+        Vertex v1 = graph.addVertex("p1");
+        v1.setProperty("name", "Alice");
+        Vertex v2 = graph.addVertex("p2");
+        v2.setProperty("name", "Bob");
+        graph.addEdge(null, v1, v2, "connected");
+
         EventGraphChangedListener listener = new EventGraphChangedListener(base);
 
-        Vertex v1 = base.addVertex("p1");
-        Vertex v2 = base.addVertex("p2");
-        base.addEdge(null, v1, v2, "connected");
+        TestWebSocketOut outP1 = new TestWebSocketOut();
+        TestWebSocketOut outP2 = new TestWebSocketOut();
+        listener.addClientListener(new Client("p1", instance, null, new ThrottledWebSocketOut(outP1, 0L)));
+        listener.addClientListener(new Client("p2", instance, null, new ThrottledWebSocketOut(outP2, 0L)));
 
-        final List<String> calls = new ArrayList<>();
+        final List<String> adminCalls = new ArrayList<>();
+        listener.addAdminListener(recordingAdmin(adminCalls));
 
-        ClientListener adminMock = new ClientListener() {
-            public void graphChanged(Graph g) {}
-            public void vertexAdded(Vertex v) {}
-            public void vertexRemoved(Vertex v) {}
-            public void vertexPropertyChanged(Vertex v, String key, Object old, Object val) {
-                calls.add("admin:vertexPropChanged:" + v.getId() + ":" + key);
-            }
-            public void vertexPropertyRemoved(Vertex v, String key) {}
-            public void edgeAdded(Edge e) {}
-            public void edgeRemoved(Edge e) {}
-            public void edgePropertyChanged(Edge e, String key, Object val) {}
-            public void edgePropertyRemoved(Edge e, String key) {}
-        };
-        listener.addAdminListener(adminMock);
-
-        calls.clear();
         listener.vertexPropertyChanged(v1, "score", null, 42);
 
-        // Admin always gets the event
-        assertTrue("Admin should receive public prop change",
-            calls.stream().anyMatch(c -> c.contains("vertexPropChanged:p1:score")));
+        assertTrue("Owner p1's client should be updated on a public change", outP1.messages.size() > 0);
+        assertTrue("Neighbour p2's client SHOULD be updated on a public change", outP2.messages.size() > 0);
+        assertTrue("Admin still receives every change",
+            adminCalls.contains("vertexPropChanged:p1:score"));
     }
 
     // === Client Disconnect ===

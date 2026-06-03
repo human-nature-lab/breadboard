@@ -230,85 +230,8 @@ public class ScriptEngineTest {
         assertEquals("Engine should recover after runtime error", 5, result);
     }
 
-    // === EventBus ===
-
-    @Test
-    public void eventBusOnAndEmit() {
-        EventBus<Object> bus = new EventBus<>();
-
-        final List<Object> received = new ArrayList<>();
-        groovy.lang.Closure closure = new groovy.lang.Closure(null) {
-            public void doCall(Object... args) {
-                received.add(args.length > 0 ? args[0] : null);
-            }
-        };
-
-        bus.on("testEvent", closure);
-        bus.emit("testEvent", "hello");
-
-        assertEquals("Should receive 1 event", 1, received.size());
-        assertEquals("Should receive correct data", "hello", received.get(0));
-    }
-
-    @Test
-    public void eventBusOff() {
-        EventBus<Object> bus = new EventBus<>();
-
-        final List<Object> received = new ArrayList<>();
-        groovy.lang.Closure closure = new groovy.lang.Closure(null) {
-            public void doCall(Object... args) {
-                received.add("fired");
-            }
-        };
-
-        bus.on("removeMe", closure);
-        bus.off("removeMe");
-        bus.emit("removeMe", "data");
-
-        assertEquals("Should not receive events after off()", 0, received.size());
-    }
-
-    @Test
-    public void eventBusClear() {
-        EventBus<Object> bus = new EventBus<>();
-
-        final List<Object> received = new ArrayList<>();
-        groovy.lang.Closure c1 = new groovy.lang.Closure(null) {
-            public void doCall(Object... args) { received.add("e1"); }
-        };
-        groovy.lang.Closure c2 = new groovy.lang.Closure(null) {
-            public void doCall(Object... args) { received.add("e2"); }
-        };
-
-        bus.on("event1", c1);
-        bus.on("event2", c2);
-        bus.clear();
-        bus.emit("event1", "data");
-        bus.emit("event2", "data");
-
-        assertEquals("Should not receive events after clear()", 0, received.size());
-    }
-
-    @Test
-    public void eventBusMultipleListeners() {
-        EventBus<Object> bus = new EventBus<>();
-
-        final List<String> received = new ArrayList<>();
-        groovy.lang.Closure c1 = new groovy.lang.Closure(null) {
-            public void doCall(Object... args) { received.add("listener1"); }
-        };
-        groovy.lang.Closure c2 = new groovy.lang.Closure(null) {
-            public void doCall(Object... args) { received.add("listener2"); }
-        };
-
-        bus.on("multi", c1);
-        bus.on("multi", c2);
-        bus.emit("multi", "data");
-
-        assertEquals("Both listeners should fire", 2, received.size());
-        assertTrue(received.contains("listener1"));
-        assertTrue(received.contains("listener2"));
-    }
+    // NOTE: EventBus pub/sub is covered by EventBusTest (it needs neither the engine
+    // nor a DB, so it does not belong here).
 
     // === Graph Operations via Script ===
 

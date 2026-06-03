@@ -13,6 +13,7 @@ import javax.script.ScriptEngineManager;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -80,6 +81,15 @@ public class ScriptTestHarness {
         "/ready.groovy"
     };
 
+    /**
+     * The eval-ready source of each script (raw file contents + ";null;"), read from disk
+     * once per JVM. ~29 harnesses are built across the suite; without this cache each one
+     * re-read all 10 files. Script bodies don't change during a run, so the text is stable;
+     * only the (cheap) {@code engine.eval} still runs per harness, preserving isolation.
+     */
+    private static final ConcurrentHashMap<String, String> SOURCE_CACHE =
+        new ConcurrentHashMap<String, String>();
+
     public final ScriptEngine engine;
     public final EventTracker eventTracker;
     public final RecordingGameListener gameListener;
@@ -102,9 +112,7 @@ public class ScriptTestHarness {
             b.put("events", new EventBus());
 
             for (String file : SCRIPT_FILES) {
-                File scriptFile = resolveScript(file);
-                String source = FileUtils.readFileToString(scriptFile, "UTF-8") + ";null;";
-                engine.eval(source);
+                engine.eval(loadSource(file));
             }
         } catch (RuntimeException e) {
             throw e;
@@ -278,6 +286,18 @@ public class ScriptTestHarness {
             cur = cur.getCause();
         }
         return cur;
+    }
+
+    /** Eval-ready source for a script file, cached across harness instances. */
+    private String loadSource(String file) throws Exception {
+        String cached = SOURCE_CACHE.get(file);
+        if (cached != null) {
+            return cached;
+        }
+        File scriptFile = resolveScript(file);
+        String source = FileUtils.readFileToString(scriptFile, "UTF-8") + ";null;";
+        SOURCE_CACHE.put(file, source);
+        return source;
     }
 
     private File resolveScript(String name) {
