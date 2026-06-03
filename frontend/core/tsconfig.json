@@ -16,7 +16,8 @@
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
     "allowSyntheticDefaultImports": true,
-    "strictPropertyInitialization": false
+    "strictPropertyInitialization": false,
+    "types": [],
   },
   "include": ["src"],
   "exclude": ["node_modules", "**/*.spec.ts"]

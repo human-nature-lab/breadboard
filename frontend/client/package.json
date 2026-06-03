@@ -6,13 +6,13 @@
   "scripts": {
     "build": "vue-cli-service build --target lib --name client src/index.ts",
     "tsc": "tsc",
-    "prepublishOnly": "npm run build"
+    "prepublishOnly": "pnpm run build"
   },
   "main": "dist/client.common.js",
   "types": "dist/src/index.d.ts",
   "module": "./dist/client.umd.js",
   "dependencies": {
-    "@human-nature-lab/breadboard-core": "^1.0.7",
+    "@human-nature-lab/breadboard-core": "workspace:*",
     "async-mutex": "^0.3.2",
     "core-js": "^2.6.5",
     "d3-force": "^3.0.0",
@@ -34,6 +34,7 @@
     "cache-loader": "^4.1.0",
     "sass": "~1.32.0",
     "sass-loader": "^10.0.0",
+    "ts-loader": "^9.2.6",
     "typescript": "^4.6.2",
     "vue-cli-plugin-vuetify": "^2.4.8",
     "vue-template-compiler": "^2.6.14",

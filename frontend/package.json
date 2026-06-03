@@ -7,11 +7,15 @@
     "test": "test"
   },
   "scripts": {
+    "preinstall": "npx only-allow pnpm",
     "test": "test",
-    "build": "cross-env NODE_ENV=production webpack --config webpack.config.js",
-    "start": "webpack serve"
+    "build": "cross-env NODE_ENV=production NODE_OPTIONS='--openssl-legacy-provider' webpack --config webpack.config.js",
+    "build:all": "pnpm -r run build && pnpm run build",
+    "start": "NODE_OPTIONS='--openssl-legacy-provider' webpack serve"
   },
   "dependencies": {
+    "@human-nature-lab/breadboard-client": "workspace:*",
+    "@human-nature-lab/breadboard-core": "workspace:*",
     "@mdi/font": "^5.9.55",
     "@uirouter/angularjs": "^1.0.11",
     "angular": "1.2.32",
@@ -84,7 +88,8 @@
     "webpack-dev-server": "^3.11.2"
   },
   "engines": {
-    "node": ">= 5",
-    "npm": ">= 3"
-  }
+    "node": ">=18",
+    "pnpm": ">=10"
+  },
+  "packageManager": "pnpm@10.33.0"
 }

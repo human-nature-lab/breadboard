@@ -14,7 +14,10 @@ const plugins =  [
     /angular(\\|\/)core(\\|\/)@angular/,
     path.resolve(__dirname, './design')
   ),
-  new VueLoaderPlugin()
+  new VueLoaderPlugin(),
+  new webpack.DefinePlugin({
+    __VUE_PROD_DEVTOOLS__: true,
+  }),
 ]
 if (isProd) {
   plugins.push(new MiniCssExtractPlugin({
@@ -27,13 +30,15 @@ module.exports = {
     breadboard: './core/src/breadboard.ts',
     design: './design/design.js',
     'client-angular': './design/client.js',
-    'vue-components': './client/src/vue-components.ts',
     // vue: ['vue', 'vuetify'],
     // 'vue-components': {
     //   import: './client/vue-components.ts',
     //   dependOn: 'vue'
     // },
     // graph: './client/lib/graph.ts'
+  },
+  cache: {
+    type: 'filesystem',
   },
   output: {
     path: buildPath,
@@ -42,6 +47,7 @@ module.exports = {
     clean: true
   },
   mode: isProd ? 'production' : 'development',
+  devtool: 'eval-source-map',
   devServer: {
     port: PORT,
     hot: true,
@@ -134,8 +140,9 @@ module.exports = {
   },
   resolve: {
     extensions: ['.js','.json','.css','.html', '.jsx', '.ts', '.tsx', '.vue'],
+    // prevents multiple copies of vue being loaded
     alias: {
-      'vue$': 'vue/dist/vue.esm.js' // 'vue/dist/vue.common.js' for webpack 1
+      'vue$': 'vue/dist/vue.js' // 'vue/dist/vue.common.js' for webpack 1
     }
   },
   // externals: {

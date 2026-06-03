@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
+set -e # exit on error
+set -o pipefail # exit on pipe failure
+
 breadboard_version="v2.3.1"
-cd frontend
-webpack -p --config webpack/webpack.prod.js
+
+# Build local packages and wire them into the main frontend tree before webpack.
+cd frontend/
+pnpm install --frozen-lockfile
+pnpm run build:all
 cd ..
 
 # read a .env file if it exists
@@ -16,6 +22,9 @@ if [ -n "${JAVA_HOME:-}" ]; then
 else
   sbt dist
 fi
+
+# turn off error checking for the next commands
+set +e
 rm -r install/breadboard-${breadboard_version}
 rm install/breadboard-${breadboard_version}.zip
 unzip target/universal/breadboard-${breadboard_version}.zip -d install
