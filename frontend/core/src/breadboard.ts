@@ -51,6 +51,7 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
         this.socket.on(event, (...args: any) => this.emit(event, ...args))
       }
       this.attachParser()
+      this.socket.connect()
     } finally {
       release()
     }

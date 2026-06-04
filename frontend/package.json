@@ -12,7 +12,7 @@
     "build": "cross-env NODE_ENV=production NODE_OPTIONS='--openssl-legacy-provider' webpack --config webpack.config.js",
     "build:all": "pnpm -r run build && pnpm run build",
     "test:all": "pnpm -r run test",
-    "start": "NODE_OPTIONS='--openssl-legacy-provider' webpack serve"
+    "start": "cross-env NODE_OPTIONS='--openssl-legacy-provider' webpack serve"
   },
   "dependencies": {
     "@human-nature-lab/breadboard-client": "workspace:*",
@@ -82,6 +82,7 @@
     "url-loader": "^4.1.0",
     "vue": "^2.6.10",
     "vue-loader": "^15.9.6",
+    "vue-style-loader": "^4.1.3",
     "vue-template-compiler": "^2.6.10",
     "vuetify": "^2.1.10",
     "webpack": "^5.27.2",

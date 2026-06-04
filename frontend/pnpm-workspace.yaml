@@ -1,3 +1,5 @@
+ignoreWorkspaceRootCheck: true
 packages:
   - client
   - core
+  - e2e
