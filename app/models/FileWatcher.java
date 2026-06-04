@@ -34,7 +34,15 @@ public class FileWatcher {
   public FileWatcher(ArrayList<Admin> adminListeners) {
     this.adminListeners = adminListeners;
 
-    Path devPath = FileSystems.getDefault().getPath("dev");
+    // Resolve 'dev' against the Play application root (matching Experiment/ImagesController),
+    // not the process working directory, so the watcher always targets the same directory the
+    // rest of the app reads from. Create it if missing — 'dev' is gitignored and won't exist on
+    // a fresh checkout, and listing a non-existent directory would crash this actor on startup.
+    File devDir = new File(play.Play.application().path(), "dev");
+    if (!devDir.isDirectory()) {
+      devDir.mkdirs();
+    }
+    Path devPath = devDir.toPath();
     this.watchKeys = new HashMap<>();
     try {
       this.watcher = FileSystems.getDefault().newWatchService();
@@ -57,6 +65,10 @@ public class FileWatcher {
   }
 
   public void registerRecursive(Path parent) throws IOException {
+    if (!parent.toFile().isDirectory()) {
+      Logger.warn("Not watching '" + parent + "' because it is not a directory.");
+      return;
+    }
     for (File f : FileUtils.listFilesAndDirs(parent.toFile(), FalseFileFilter.INSTANCE, DirectoryFileFilter.DIRECTORY)) {
       WatchKey watchKey = f.toPath().register(watcher, new WatchEvent.Kind[]{ENTRY_CREATE, ENTRY_DELETE, ENTRY_MODIFY}, SensitivityWatchEventModifier.HIGH);
       watchKeys.put(watchKey, f.toPath());
