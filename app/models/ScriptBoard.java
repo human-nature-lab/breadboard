@@ -10,7 +10,6 @@ import com.tinkerpop.blueprints.Vertex;
 import com.tinkerpop.gremlin.groovy.GremlinGroovyPipeline;
 import groovy.util.ObservableMap;
 import groovy.lang.Closure;
-import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.output.ByteArrayOutputStream;
 import org.apache.commons.lang3.StringUtils;
 import org.codehaus.groovy.control.CompilationFailedException;
@@ -194,28 +193,13 @@ public class ScriptBoard extends UntypedActor {
       engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", experiment.contentFetcher);
     }
 
-    String[] scriptFiles = {
-      "/util.groovy", 
-      "/timer.groovy",
-      "/graph.groovy", 
-      "/actions.groovy", 
-      "/step.groovy", 
-      "/test.groovy",
-      "/events.groovy",
-      "/chat.groovy",
-      "/form.groovy",
-      "/ready.groovy"
-    };
-
-    // Load Groovy scripts
-    for (String file : scriptFiles) {
-      File utilFile = new File(Play.application().path().toString() + "/groovy" + file);
-      // Add a null terminator for each file so the script engine can always reload even after errors
-      String utilString = FileUtils.readFileToString(utilFile, "UTF-8") + ";null;";
-      Logger.debug("loading " + file);
-      engine.eval(utilString);
-      Logger.debug(file + " load done");
-    }
+    // Load the Groovy DSL scripts. ScriptLoader is the single source of truth for which
+    // files load and in what order: the core scripts first, in dependency order, then every
+    // other *.groovy file alphabetically, skipping *_test.groovy. Dropping a new script into
+    // the groovy directory is enough to have it loaded -- no edit here required. A failure in
+    // a non-core script is logged (naming the file) and skipped rather than aborting the boot.
+    File groovyDir = new File(Play.application().path().toString(), "groovy");
+    ScriptLoader.loadAll(engine, groovyDir);
 
     // get script object on which we want to implement the interface with
     Object a = engine.get("a");
@@ -805,20 +789,25 @@ public class ScriptBoard extends UntypedActor {
 
       jsonOutput.put("output", outputString.trim());
     } catch (CompilationFailedException cfe) {
+      // Translate Groovy's opaque "Script<N>.groovy" names back to real file names in both the
+      // logged stack trace and the error sent to the browser (see ScriptLoader.humanize*).
+      ScriptLoader.humanizeStackTrace(cfe);
       Logger.error("Unable to compile the script. " + scriptName, cfe);
-      jsonOutput.put("error", "Caught error: ".concat(cfe.getMessage()).concat("\n"));
+      jsonOutput.put("error", "Caught error: ".concat(ScriptLoader.humanize(cfe.getMessage())).concat("\n"));
       if (initStep) {
         engine.put("initStep.start()", null);
       }
     } catch (ScriptException se) {
+      ScriptLoader.humanizeStackTrace(se);
       Logger.error("Script Error. " + scriptName, se);
-      jsonOutput.put("error", "Caught error: ".concat(se.getMessage()).concat("\n"));
+      jsonOutput.put("error", "Caught error: ".concat(ScriptLoader.humanize(se.getMessage())).concat("\n"));
       if (initStep) {
         engine.put("initStep.start()", null);
       }
     } catch (Exception e) {
+      ScriptLoader.humanizeStackTrace(e);
       Logger.error("Failed to process the script. " + scriptName, e);
-      jsonOutput.put("error", "Caught error: ".concat(e.getMessage()).concat("\n"));
+      jsonOutput.put("error", "Caught error: ".concat(ScriptLoader.humanize(e.getMessage())).concat("\n"));
       if (initStep) {
         engine.put("initStep.start()", null);
       }

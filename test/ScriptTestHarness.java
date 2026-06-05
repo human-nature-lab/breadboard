@@ -2,6 +2,7 @@ import groovy.lang.Closure;
 import models.EventBus;
 import models.EventTracker;
 import models.GameListener;
+import models.ScriptLoader;
 import org.apache.commons.io.FileUtils;
 import org.codehaus.groovy.runtime.InvokerHelper;
 import org.codehaus.groovy.runtime.InvokerInvocationException;
@@ -10,6 +11,7 @@ import javax.script.Bindings;
 import javax.script.ScriptContext;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
+import javax.script.ScriptException;
 import java.io.File;
 import java.util.HashMap;
 import java.util.Random;
@@ -67,25 +69,11 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class ScriptTestHarness {
 
-    /** The script load order, mirroring {@code ScriptBoard.resetEngine}. */
-    public static final String[] SCRIPT_FILES = {
-        "/util.groovy",
-        "/timer.groovy",
-        "/graph.groovy",
-        "/actions.groovy",
-        "/step.groovy",
-        "/test.groovy",
-        "/events.groovy",
-        "/chat.groovy",
-        "/form.groovy",
-        "/ready.groovy"
-    };
-
     /**
-     * The eval-ready source of each script (raw file contents + ";null;"), read from disk
-     * once per JVM. ~29 harnesses are built across the suite; without this cache each one
-     * re-read all 10 files. Script bodies don't change during a run, so the text is stable;
-     * only the (cheap) {@code engine.eval} still runs per harness, preserving isolation.
+     * The eval-ready source of each script (raw file contents + ";null;"), keyed by file name
+     * and read from disk once per JVM. ~29 harnesses are built across the suite; without this
+     * cache each one re-read every script. Script bodies don't change during a run, so the text
+     * is stable; only the (cheap) {@code engine.eval} still runs per harness, preserving isolation.
      */
     private static final ConcurrentHashMap<String, String> SOURCE_CACHE =
         new ConcurrentHashMap<String, String>();
@@ -111,8 +99,18 @@ public class ScriptTestHarness {
             b.put("gameListener", gameListener);
             b.put("events", new EventBus());
 
-            for (String file : SCRIPT_FILES) {
-                engine.eval(loadSource(file));
+            // Load in the same order production uses (ScriptLoader is the single source of
+            // truth, so the harness and ScriptBoard can't drift). A core script failing to
+            // load is fatal; a non-core drop-in script failing is skipped, matching production
+            // and keeping the rest of the suite runnable.
+            File groovyDir = resolveGroovyDir();
+            for (String name : ScriptLoader.resolveLoadOrder(groovyDir)) {
+                try {
+                    ScriptLoader.evalNamed(engine, name, loadSource(groovyDir, name));
+                } catch (ScriptException | RuntimeException ex) {
+                    if (ScriptLoader.isCore(name)) throw ex;
+                    System.err.println("ScriptTestHarness: skipping non-core script " + name + " -> " + ex.getMessage());
+                }
             }
         } catch (RuntimeException e) {
             throw e;
@@ -288,31 +286,31 @@ public class ScriptTestHarness {
         return cur;
     }
 
-    /** Eval-ready source for a script file, cached across harness instances. */
-    private String loadSource(String file) throws Exception {
-        String cached = SOURCE_CACHE.get(file);
+    /** Eval-ready source for a script file (raw contents + ";null;"), cached across harnesses. */
+    private String loadSource(File groovyDir, String name) throws Exception {
+        String cached = SOURCE_CACHE.get(name);
         if (cached != null) {
             return cached;
         }
-        File scriptFile = resolveScript(file);
-        String source = FileUtils.readFileToString(scriptFile, "UTF-8") + ";null;";
-        SOURCE_CACHE.put(file, source);
+        String source = FileUtils.readFileToString(new File(groovyDir, name), "UTF-8") + ";null;";
+        SOURCE_CACHE.put(name, source);
         return source;
     }
 
-    private File resolveScript(String name) {
-        File local = new File("groovy" + name);            // sbt runs tests with cwd = project root
-        if (local.exists()) return local;
+    /** Locate the groovy script directory: relative to the test cwd (project root), else via Play. */
+    private File resolveGroovyDir() {
+        File local = new File("groovy");                   // sbt runs tests with cwd = project root
+        if (local.isDirectory()) return local;
         try {
             if (play.Play.application() != null) {
-                File viaPlay = new File(play.Play.application().path().toString() + "/groovy" + name);
-                if (viaPlay.exists()) return viaPlay;
+                File viaPlay = new File(play.Play.application().path().toString(), "groovy");
+                if (viaPlay.isDirectory()) return viaPlay;
             }
         } catch (Throwable ignored) {
             // Play not running -- fall through to the error below
         }
         throw new IllegalStateException(
-            "Cannot find groovy script '" + name + "' (cwd=" + new File(".").getAbsolutePath() + ")");
+            "Cannot find groovy script directory (cwd=" + new File(".").getAbsolutePath() + ")");
     }
 
     /** A GameListener that records finish() calls. With no ExperimentInstance, nothing persists. */
