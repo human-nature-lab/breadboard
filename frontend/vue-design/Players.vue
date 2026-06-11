@@ -36,6 +36,13 @@
     name: 'App',
     components: { VueJsonPretty },
     props: {
+      // Long-lived store created and attached to Breadboard in main.ts. It is
+      // shared (not owned by this component), so the view can mount/unmount
+      // without dropping events or detaching the data stream.
+      graph: <PropOptions<AdminGraph>>{
+        type: Object,
+        required: true
+      },
       propBlacklist: <PropOptions<string[]>>{
         type: Array,
         default: () => ['text', 'choices']
@@ -44,16 +51,13 @@
     data () {
       return {
         expression: '',
-        graph: new AdminGraph(),
         selectedNode: null as Node | null | undefined
       }
     },
     created () {
-      this.graph.attachToBreadboard(window.Breadboard)
       window.Breadboard.on('graph-select', this.selectNode)
     },
     beforeDestroy () {
-      this.graph.releaseFromBreadboard()
       window.Breadboard.off('graph-select', this.selectNode)
     },
     methods: {
