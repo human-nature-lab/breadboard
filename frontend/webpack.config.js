@@ -9,6 +9,12 @@ const buildPath = path.resolve(__dirname, '../public/bundles/')
 const PORT = 8765
 const isProd = process.env.NODE_ENV === 'production'
 const publicPath = isProd ? '/assets/bundles/' : `http://localhost:${PORT}/bundles/`
+// webpack-dev-server v3's client isn't injected when launched via webpack-cli's
+// `webpack serve`, so the HMR websocket never connects. Inject it manually in dev.
+const devClient = isProd ? [] : [
+  `webpack-dev-server/client?http://localhost:${PORT}`,
+  'webpack/hot/dev-server',
+]
 const plugins =  [
   new webpack.ContextReplacementPlugin(
     /angular(\\|\/)core(\\|\/)@angular/,
@@ -26,10 +32,10 @@ if (isProd) {
 }
 module.exports = {
   entry: {
-    client: './client/src/client.ts',
-    breadboard: './core/src/breadboard.ts',
-    design: './design/design.js',
-    'client-angular': './design/client.js',
+    client: [...devClient, './client/src/client.ts'],
+    breadboard: [...devClient, './core/src/breadboard.ts'],
+    design: [...devClient, './design/design.js'],
+    'client-angular': [...devClient, './design/client.js'],
     // vue: ['vue', 'vuetify'],
     // 'vue-components': {
     //   import: './client/vue-components.ts',

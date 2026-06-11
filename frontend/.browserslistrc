@@ -1,0 +1,15 @@
+# Supported browser matrix for the Breadboard frontend.
+#
+# This drives two things:
+#   - Babel polyfill injection (@vue/app preset -> @babel/preset-env, useBuiltIns: 'usage')
+#   - autoprefixer (CSS vendor prefixes)
+#
+# It currently mirrors browserslist's built-in `defaults` query, which is what
+# was resolving implicitly before this file existed -- so adding it changes no
+# build output. With caniuse-lite pinned in pnpm-lock.yaml, the resolved version
+# list is now reproducible across machines/CI.
+#
+# To reduce the injected polyfill set, narrow this to the real participant
+# browser matrix (e.g. "last 2 Chrome versions, last 2 Firefox versions,
+# last 2 Safari versions, not dead") and re-run the polyfill audit.
+defaults
