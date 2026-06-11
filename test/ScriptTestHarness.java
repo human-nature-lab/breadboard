@@ -103,10 +103,10 @@ public class ScriptTestHarness {
             // truth, so the harness and ScriptBoard can't drift). A core script failing to
             // load is fatal; a non-core drop-in script failing is skipped, matching production
             // and keeping the rest of the suite runnable.
-            File groovyDir = resolveGroovyDir();
-            for (String name : ScriptLoader.resolveLoadOrder(groovyDir)) {
+            File dir = groovyDir();
+            for (String name : ScriptLoader.resolveLoadOrder(dir)) {
                 try {
-                    ScriptLoader.evalNamed(engine, name, loadSource(groovyDir, name));
+                    ScriptLoader.evalNamed(engine, name, loadSource(dir, name));
                 } catch (ScriptException | RuntimeException ex) {
                     if (ScriptLoader.isCore(name)) throw ex;
                     System.err.println("ScriptTestHarness: skipping non-core script " + name + " -> " + ex.getMessage());
@@ -138,12 +138,28 @@ public class ScriptTestHarness {
      * with no arguments. Any thrown exception (including AssertionError) propagates.
      */
     public void runSync(String closureSource) {
+        Object callable;
         try {
-            Object callable = engine.eval(closureSource);
-            if (!(callable instanceof Closure)) {
-                throw new IllegalArgumentException("runSync body must evaluate to a closure");
-            }
-            ((Closure) callable).call();
+            callable = engine.eval(closureSource);
+        } catch (Throwable t) {
+            cancelTimers();
+            rethrow(t);
+            return;
+        }
+        if (!(callable instanceof Closure)) {
+            cancelTimers();
+            throw new IllegalArgumentException("runSync body must evaluate to a closure");
+        }
+        runSyncClosure((Closure) callable);
+    }
+
+    /**
+     * Run a synchronous test body that is already a {@link Closure} (e.g. one registered by a
+     * {@code *_test.groovy} file). Any thrown exception (including AssertionError) propagates.
+     */
+    public void runSyncClosure(Closure<?> body) {
+        try {
+            body.call();
         } catch (Throwable t) {
             rethrow(t);
         } finally {
@@ -160,6 +176,25 @@ public class ScriptTestHarness {
      *                        assertion routed through {@code done}/{@code check} failed.
      */
     public void runAsync(String closureSource, long timeoutMs) {
+        Object callable;
+        try {
+            callable = engine.eval(closureSource);
+        } catch (Throwable t) {
+            // Synchronous failure before any closure could be invoked.
+            cancelTimers();
+            rethrow(t);
+            return;
+        }
+        runAsyncClosure(callable, timeoutMs);
+    }
+
+    /**
+     * Run an async test body that is already a {@link Closure} (or callable), blocking until
+     * {@code done} is signalled or {@code timeoutMs} elapses. Same contract as
+     * {@link #runAsync(String, long)}, but for a closure registered by a {@code *_test.groovy}
+     * file rather than an eval'd string.
+     */
+    public void runAsyncClosure(Object callable, long timeoutMs) {
         final CountDownLatch latch = new CountDownLatch(1);
         final AtomicReference<Throwable> error = new AtomicReference<>();
         final AtomicBoolean completed = new AtomicBoolean(false);
@@ -210,7 +245,6 @@ public class ScriptTestHarness {
         b.put("check", check);
 
         try {
-            Object callable = engine.eval(closureSource);
             invoke(callable, done);
         } catch (Throwable t) {
             // Synchronous failure before any async callback registered.
@@ -251,6 +285,35 @@ public class ScriptTestHarness {
     public void close() {
         cancelTimers();
     }
+
+    // --- *_test.groovy registration support ---
+
+    /**
+     * Bind a fresh {@link GroovyTestRegistry} as {@code test} and evaluate the given
+     * {@code *_test.groovy} file (resolved from {@link #groovyDir()}) into this engine, so its
+     * {@code test(...)} / {@code test.async(...)} calls register their cases. Returns the
+     * registry holding what the file registered. The file is named for error attribution, the
+     * same way production scripts are.
+     */
+    public GroovyTestRegistry loadTestFile(String fileName) throws Exception {
+        GroovyTestRegistry registry = new GroovyTestRegistry();
+        put("test", registry);
+        String source = FileUtils.readFileToString(new File(groovyDir(), fileName), "UTF-8") + ";null;";
+        ScriptLoader.evalNamed(engine, fileName, source);
+        return registry;
+    }
+
+    /** Run one registered case: synchronous bodies via {@link #runSyncClosure}, async via {@link #runAsyncClosure}. */
+    public void runCase(GroovyTestRegistry.Case c) {
+        if (c.async) {
+            runAsyncClosure(c.body, c.timeoutMs > 0 ? c.timeoutMs : DEFAULT_ASYNC_TIMEOUT_MS);
+        } else {
+            runSyncClosure(c.body);
+        }
+    }
+
+    /** Default await for {@code test.async("name") { done -> ... }} when no explicit timeout is given. */
+    public static final long DEFAULT_ASYNC_TIMEOUT_MS = 2000L;
 
     // --- internals ---
 
@@ -298,7 +361,7 @@ public class ScriptTestHarness {
     }
 
     /** Locate the groovy script directory: relative to the test cwd (project root), else via Play. */
-    private File resolveGroovyDir() {
+    public static File groovyDir() {
         File local = new File("groovy");                   // sbt runs tests with cwd = project root
         if (local.isDirectory()) return local;
         try {
