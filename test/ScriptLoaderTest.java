@@ -32,7 +32,7 @@ public class ScriptLoaderTest {
         File dir = Files.createTempDirectory("bb-scripts").toFile();
         for (String n : new String[] {
             "util.groovy", "timer.groovy", "actions.groovy",   // core, intentionally out of order
-            "zeta.groovy", "alpha.groovy", "groups.groovy",     // non-core
+            "zeta.groovy", "alpha.groovy", "beta.groovy",       // non-core (synthetic names, not real core scripts)
             "my_test.groovy", "notes.txt"                        // must be skipped
         }) {
             assertTrue(new File(dir, n).createNewFile());
@@ -42,9 +42,11 @@ public class ScriptLoaderTest {
 
         // Core files first in CORE_ORDER (only those present: util, timer, actions), then the
         // remaining *.groovy alphabetically. Test scripts and non-groovy files are excluded.
+        // Synthetic non-core names are used so this test stays decoupled from which real scripts
+        // are core (e.g. groups.groovy is core, so it would NOT sort alphabetically here).
         assertEquals(Arrays.asList(
             "util.groovy", "timer.groovy", "actions.groovy",
-            "alpha.groovy", "groups.groovy", "zeta.groovy"
+            "alpha.groovy", "beta.groovy", "zeta.groovy"
         ), order);
     }
 

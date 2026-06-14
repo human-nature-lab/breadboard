@@ -50,7 +50,10 @@ public final class ScriptLoader {
    *   <li>{@code timer}   &mdash; {@code class SharedTimer extends BreadboardBase}; defines {@code BBTimer}</li>
    *   <li>{@code graph}   &mdash; {@code g = new BreadboardGraph(...)}</li>
    *   <li>{@code actions} &mdash; {@code a = new PlayerActions(...)} (constructs a {@code BBTimer})</li>
-   *   <li>{@code step, test, events, chat, form, ready} &mdash; remaining core DSL</li>
+   *   <li>{@code step, events, chat, form, ready} &mdash; remaining core DSL</li>
+   *   <li>{@code groups} &mdash; group steps/actions; loaded last so {@code events} has installed
+   *       {@code Vertex.on} first. Listed here (rather than auto-discovered) so a load failure is
+   *       fatal instead of silently skipped.</li>
    * </ol>
    * Any groovy file not listed here is loaded afterwards, in alphabetical order.
    */
@@ -65,7 +68,8 @@ public final class ScriptLoader {
       "events.groovy",
       "chat.groovy",
       "form.groovy",
-      "ready.groovy"
+      "ready.groovy",
+      "groups.groovy"
     )
   );
 

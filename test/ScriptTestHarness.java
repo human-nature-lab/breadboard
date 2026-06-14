@@ -78,6 +78,22 @@ public class ScriptTestHarness {
     private static final ConcurrentHashMap<String, String> SOURCE_CACHE =
         new ConcurrentHashMap<String, String>();
 
+    /**
+     * Shared across all harnesses, cleared in each constructor. events.groovy installs
+     * {@code Vertex.metaClass.on/once/off/send} -- JVM-global metaclass mutations whose closures
+     * permanently capture the {@code events} binding of the FIRST harness to evaluate events.groovy
+     * (re-assigning a global metaclass method from a later engine does NOT replace the closure). With a
+     * per-harness {@code new EventBus()}, every harness after the first desynced: {@code player.on(...)}
+     * routed through the stale metaclass closure registered listeners on the first harness's bus, while
+     * that harness's own CustomEvent handler emitted on its own bus -- so player-scoped events never
+     * delivered and group choices never resolved (in ANY harness after the first, on any thread). A
+     * single shared bus keeps the metaclass closure and every harness pointed at the same instance;
+     * clearing it per harness keeps listeners from leaking between cases. This matches production, which
+     * uses one static EventBus for the life of the engine. Safe because tests run sequentially
+     * (parallelExecution in Test := false).
+     */
+    private static final EventBus SHARED_EVENTS = new EventBus();
+
     public final ScriptEngine engine;
     public final EventTracker eventTracker;
     public final RecordingGameListener gameListener;
@@ -97,7 +113,8 @@ public class ScriptTestHarness {
             b.put("results", new HashMap());
             b.put("eventTracker", eventTracker);
             b.put("gameListener", gameListener);
-            b.put("events", new EventBus());
+            SHARED_EVENTS.clear();                        // see SHARED_EVENTS: per-harness bus desyncs from the global Vertex.metaClass closures
+            b.put("events", SHARED_EVENTS);
 
             // Load in the same order production uses (ScriptLoader is the single source of
             // truth, so the harness and ScriptBoard can't drift). A core script failing to
