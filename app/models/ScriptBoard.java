@@ -354,7 +354,10 @@ public class ScriptBoard extends UntypedActor {
           } catch (java.io.IOException ignored) {
             Logger.debug("java.io.IOException");
           } catch (Exception e) {
-            Logger.error(e.getMessage());
+            // Log the full (humanized) trace, not just e.getMessage() -- which is a single
+            // line and "null" for the common Groovy NPE, burying the real cause.
+            ScriptLoader.humanizeStackTrace(e);
+            Logger.error("Error handling client message", e);
           }
         }
       });
@@ -678,7 +681,10 @@ public class ScriptBoard extends UntypedActor {
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      // Route through the Play logger with the humanized trace instead of printStackTrace
+      // (which only reaches stderr and keeps the opaque Script<N>.groovy frame names).
+      ScriptLoader.humanizeStackTrace(e);
+      Logger.error("Unhandled error in ScriptBoard.onReceive", e);
     }
   }
 
@@ -743,7 +749,17 @@ public class ScriptBoard extends UntypedActor {
 
   private static void makeChoice(String uid, String params, ThrottledWebSocketOut out) {
     ObjectNode jsonOutput = Json.newObject();
-    playerActions.choose(uid, params);
+    // The choice's result closure is user-written Groovy. Without this try/catch a throw
+    // escaped all the way to the websocket onMessage handler, which logged only
+    // e.getMessage() (a single line, "null" for an NPE) and surfaced nothing. Route it
+    // through the same humanized log + non-null console message as processScript instead.
+    try {
+      playerActions.choose(uid, params);
+    } catch (Exception e) {
+      ScriptLoader.humanizeStackTrace(e);
+      Logger.error("Failed to make choice " + uid, e);
+      jsonOutput.put("error", "Caught error: " + ScriptBoardSupport.describeError(e) + "\n");
+    }
     out.write(jsonOutput);
   }
 
@@ -793,21 +809,21 @@ public class ScriptBoard extends UntypedActor {
       // logged stack trace and the error sent to the browser (see ScriptLoader.humanize*).
       ScriptLoader.humanizeStackTrace(cfe);
       Logger.error("Unable to compile the script. " + scriptName, cfe);
-      jsonOutput.put("error", "Caught error: ".concat(ScriptLoader.humanize(cfe.getMessage())).concat("\n"));
+      jsonOutput.put("error", "Caught error: " + ScriptBoardSupport.describeError(cfe) + "\n");
       if (initStep) {
         engine.put("initStep.start()", null);
       }
     } catch (ScriptException se) {
       ScriptLoader.humanizeStackTrace(se);
       Logger.error("Script Error. " + scriptName, se);
-      jsonOutput.put("error", "Caught error: ".concat(ScriptLoader.humanize(se.getMessage())).concat("\n"));
+      jsonOutput.put("error", "Caught error: " + ScriptBoardSupport.describeError(se) + "\n");
       if (initStep) {
         engine.put("initStep.start()", null);
       }
     } catch (Exception e) {
       ScriptLoader.humanizeStackTrace(e);
       Logger.error("Failed to process the script. " + scriptName, e);
-      jsonOutput.put("error", "Caught error: ".concat(ScriptLoader.humanize(e.getMessage())).concat("\n"));
+      jsonOutput.put("error", "Caught error: " + ScriptBoardSupport.describeError(e) + "\n");
       if (initStep) {
         engine.put("initStep.start()", null);
       }
