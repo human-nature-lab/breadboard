@@ -21,7 +21,15 @@ class EventHandler<A> {
 
   public void emit (A... data) {
     for (Closure<A> closure : this.closures) {
-      closure.call(data);
+      // Isolate each handler: a throw from one user-registered listener (e.g. a
+      // vertex.on('...') callback) must not abort the remaining listeners or bubble up
+      // silently into whatever emitted the event. Log the full humanized trace instead.
+      try {
+        closure.call(data);
+      } catch (Exception e) {
+        ScriptLoader.humanizeStackTrace(e);
+        Logger.error("Event handler threw", e);
+      }
     }
   }
 
