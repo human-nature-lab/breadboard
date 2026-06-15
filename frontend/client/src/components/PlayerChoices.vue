@@ -41,7 +41,10 @@ export default Vue.extend({
   },
   methods: {
     submit (choice: PlayerChoice) {
-      if (choice.params) {
+      if (choice._route === 'group') {
+        // Group choices aren't in the platform action map; route to the group handler.
+        window.Breadboard.sendGroupChoice(choice.uid, choice.params)
+      } else if (choice.params) {
         window.Breadboard.sendChoice(choice.uid, choice.params)
       } else {
         window.Breadboard.sendChoice(choice.uid)

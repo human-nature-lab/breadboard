@@ -217,7 +217,11 @@ class GroupActions {
 
   private void assignChoice(Object player, Map choice) {
     if (player.choices == null) player.choices = []
-    player.choices << choice
+    // Tag the choice as group-scoped so the client routes the click to this group's
+    // handler (the SUBMIT_EVENT custom event) instead of the platform's global
+    // a.choose(uid), which knows nothing about per-group queues. Push a copy so the
+    // caller's choice map isn't mutated.
+    player.choices << (choice + [_route: 'group'])
   }
 
   private void unassignChoices(Object player, Set<String> uids) {

@@ -38,6 +38,11 @@ export interface PlayerChoice {
   uid: string
   params?: Record<string, any>
   class?: string
+  /**
+   * Set to 'group' by group steps (GroupActions.assignChoice) so the client routes
+   * the click to the group handler via sendGroupChoice rather than sendChoice.
+   */
+  _route?: 'group'
 }
 
 export interface PlayerTimer {
