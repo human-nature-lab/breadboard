@@ -354,8 +354,6 @@ public class ScriptBoard extends UntypedActor {
           } catch (java.io.IOException ignored) {
             Logger.debug("java.io.IOException");
           } catch (Exception e) {
-            // Log the full (humanized) trace, not just e.getMessage() -- which is a single
-            // line and "null" for the common Groovy NPE, burying the real cause.
             ScriptLoader.humanizeStackTrace(e);
             Logger.error("Error handling client message", e);
           }
@@ -681,8 +679,6 @@ public class ScriptBoard extends UntypedActor {
         }
       }
     } catch (Exception e) {
-      // Route through the Play logger with the humanized trace instead of printStackTrace
-      // (which only reaches stderr and keeps the opaque Script<N>.groovy frame names).
       ScriptLoader.humanizeStackTrace(e);
       Logger.error("Unhandled error in ScriptBoard.onReceive", e);
     }
@@ -749,10 +745,6 @@ public class ScriptBoard extends UntypedActor {
 
   private static void makeChoice(String uid, String params, ThrottledWebSocketOut out) {
     ObjectNode jsonOutput = Json.newObject();
-    // The choice's result closure is user-written Groovy. Without this try/catch a throw
-    // escaped all the way to the websocket onMessage handler, which logged only
-    // e.getMessage() (a single line, "null" for an NPE) and surfaced nothing. Route it
-    // through the same humanized log + non-null console message as processScript instead.
     try {
       playerActions.choose(uid, params);
     } catch (Exception e) {

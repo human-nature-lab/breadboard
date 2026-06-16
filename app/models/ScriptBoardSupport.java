@@ -17,57 +17,26 @@ public final class ScriptBoardSupport {
 
     private ScriptBoardSupport() {}
 
-    /**
-     * Build a never-null, human-readable description of a Throwable for surfacing to the
-     * admin/client console (the message field the browser shows). This replaces the old
-     * {@code "Caught error: " + e.getMessage()} pattern, which collapsed to the useless
-     * {@code "Caught error: null"} for the most common Groovy failures (e.g. a
-     * {@link NullPointerException} from touching a null vertex property, whose message is
-     * null) — and which actually threw a fresh NPE of its own via {@code String.concat(null)}.
-     *
-     * <p>The result is:
-     * <pre>
-     *   &lt;SimpleExceptionType&gt;[: &lt;message&gt;]
-     *     at &lt;file&gt;.groovy:&lt;line&gt;
-     *     ...
-     * </pre>
-     * i.e. always at least the exception type (so it can never be just "null"), the message
-     * when there is one, and every distinct {@code *.groovy} stack frame from the throwable
-     * and its causes so the user sees <em>where</em> in their step it failed.
-     *
-     * <p>Groovy's opaque {@code Script<N>.groovy} frame names are translated back to real file
-     * names first via {@link ScriptLoader#humanizeStackTrace} (a no-op when no scripts are
-     * loaded, which keeps this method unit-testable without the engine).
-     */
+    /** A never-null, human-readable description of a Throwable for the admin/client console. */
     public static String describeError(Throwable t) {
         if (t == null) {
             return "Unknown error (null)";
         }
-        // Translate Groovy's "Script<N>.groovy" frame names back to real file names in place.
-        // Idempotent and safe to call even when callers have already humanized the trace.
         ScriptLoader.humanizeStackTrace(t);
-
         StringBuilder sb = new StringBuilder(headline(t));
         appendGroovyFrames(sb, t);
         return sb.toString();
     }
 
-    /** "&lt;SimpleType&gt;" or "&lt;SimpleType&gt;: &lt;message&gt;" — never null, never empty. */
     private static String headline(Throwable t) {
         String type = t.getClass().getSimpleName();
         if (type == null || type.isEmpty()) {
-            type = t.getClass().getName(); // anonymous classes have an empty simple name
+            type = t.getClass().getName();
         }
         String msg = ScriptLoader.humanize(t.getMessage());
         return (msg == null || msg.isEmpty()) ? type : type + ": " + msg;
     }
 
-    /**
-     * Append each distinct {@code *.groovy} stack frame ("file.groovy:line") from {@code t} and
-     * its cause chain. Walking the causes matters because the script engine wraps the real Groovy
-     * exception: the user's frames live on the cause, not the top-level ScriptException. Frames are
-     * de-duplicated (the same frame typically appears on both the wrapper and the cause).
-     */
     private static void appendGroovyFrames(StringBuilder sb, Throwable t) {
         Set<Throwable> seenCauses = new HashSet<Throwable>();
         Set<String> frames = new LinkedHashSet<String>();

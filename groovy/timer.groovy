@@ -72,10 +72,6 @@ class GroovyTimerTask extends TimerTask {
   Closure closure
 
   void run() {
-    // The closure is user-written Groovy running on a java.util.Timer thread. An uncaught
-    // throw there silently kills the Timer thread and cancels every task scheduled on it,
-    // with nothing logged -- the most deeply buried failure mode in the DSL. Catch
-    // everything and log the humanized trace so the error surfaces instead of vanishing.
     try {
       closure()
     } catch (Throwable t) {

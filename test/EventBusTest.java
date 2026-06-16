@@ -133,8 +133,6 @@ public class EventBusTest {
 
     @Test
     public void aThrowingListenerDoesNotStopTheOthers() {
-        // Regression: a throw from one handler used to abort the emit loop, so every
-        // later listener silently never fired (and the throw bubbled into the emitter).
         EventBus<Object> bus = new EventBus<>();
         List<Object> received = new ArrayList<>();
         bus.on("e", new groovy.lang.Closure(null) {
