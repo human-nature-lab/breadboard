@@ -219,6 +219,21 @@ public class Breadboard extends UntypedActor {
   }
 
   public void onReceive(Object message) throws Exception {
+    // Guard the whole dispatch. These actors have no custom SupervisorStrategy and are
+    // created via Akka.system().actorOf, so they're top-level -- supervised by the guardian
+    // with the default strategy, which RESTARTS the actor on an uncaught throw. A restart
+    // re-runs construction; for the ScriptBoard this actor spawns that resets the engine,
+    // empties the graph, and disconnects every client mid-game. Catch and log instead.
+    // No humanize(): Breadboard only orchestrates (DB / file / tell()) and never evals user
+    // Groovy itself, so its traces carry no Script<N> frames to translate.
+    try {
+      handleMessage(message);
+    } catch (Exception e) {
+      Logger.error("Unhandled error in Breadboard.onReceive", e);
+    }
+  }
+
+  private void handleMessage(Object message) throws Exception {
     if (message instanceof BreadboardMessage) {
       BreadboardMessage breadboardMessage = (BreadboardMessage) message;
       Logger.debug("breadboardMessage.getClass().getName() = " + breadboardMessage.getClass().getName());

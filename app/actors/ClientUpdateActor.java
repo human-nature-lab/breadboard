@@ -3,6 +3,7 @@ package actors;
 import actors.ClientUpdateActorProtocol.ClientUpdate;
 import akka.actor.UntypedActor;
 import models.Client;
+import models.ScriptLoader;
 import play.Logger;
 
 import java.text.DateFormat;
@@ -33,7 +34,11 @@ public class ClientUpdateActor extends UntypedActor {
           try {
             c.updateGraph(clientUpdate.graphChangedListener.getGraph().getVertex(c.id));
           } catch (Exception e) {
-            Logger.debug("Caught exception in ClientUpdateTask: " + e.getLocalizedMessage());
+            // The vertex being serialized may hold a property set by a Groovy script, so
+            // this trace can carry Script<N> frames -- humanize them. error (not debug) so
+            // it's visible at the configured log level instead of being silently buried.
+            ScriptLoader.humanizeStackTrace(e);
+            Logger.error("Failed to push client graph update for " + c.id, e);
           }
         } else {
           //Logger.debug(dateFormat.format(new Date()) + " - clientUpdate.graph.getVertex(c.id) == null");
