@@ -11,6 +11,7 @@ declare global {
     createDefaultVue: typeof createDefaultVue
     loadModules: typeof loadModules
     loadAngularClient: typeof loadAngularClient
+    bbClientInit: () => void
   }
 }
 

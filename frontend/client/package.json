@@ -5,13 +5,13 @@
   "author": "wyattis",
   "scripts": {
     "build": "vue-cli-service build --target lib --name client src/index.ts",
-    "tsc": "tsc",
+    "tsc": "tsc --emitDeclarationOnly",
     "test": "vitest run",
     "test:watch": "vitest",
-    "prepublishOnly": "pnpm run build"
+    "prepublishOnly": "pnpm run build && pnpm run tsc"
   },
   "main": "dist/client.common.js",
-  "types": "dist/src/index.d.ts",
+  "types": "dist/index.d.ts",
   "module": "./dist/client.umd.js",
   "dependencies": {
     "@human-nature-lab/breadboard-core": "workspace:*",
