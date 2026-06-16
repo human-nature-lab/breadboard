@@ -5,7 +5,10 @@ and examples.
 ## Development
 
 ### Environment setup
-Breadboard works with Java 8+. Make sure the Java SDK is installed before beginning development.
+Breadboard requires **Java 8** specifically (the Play 2.2 / Scala 2.10 / sbt 0.13.18 stack does
+not build under Java 9 or newer — it hangs silently during compilation). Install a Java 8 JDK and
+point sbt at it, e.g. `sbt -java-home /path/to/jdk8 test`. See `CLAUDE.md` for the full build/test
+commands.
 
 - `cd frontend`
 - `pnpm install`

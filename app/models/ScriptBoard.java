@@ -354,7 +354,8 @@ public class ScriptBoard extends UntypedActor {
           } catch (java.io.IOException ignored) {
             Logger.debug("java.io.IOException");
           } catch (Exception e) {
-            Logger.error(e.getMessage());
+            ScriptLoader.humanizeStackTrace(e);
+            Logger.error("Error handling client message", e);
           }
         }
       });
@@ -678,7 +679,8 @@ public class ScriptBoard extends UntypedActor {
         }
       }
     } catch (Exception e) {
-      e.printStackTrace();
+      ScriptLoader.humanizeStackTrace(e);
+      Logger.error("Unhandled error in ScriptBoard.onReceive", e);
     }
   }
 
@@ -743,7 +745,13 @@ public class ScriptBoard extends UntypedActor {
 
   private static void makeChoice(String uid, String params, ThrottledWebSocketOut out) {
     ObjectNode jsonOutput = Json.newObject();
-    playerActions.choose(uid, params);
+    try {
+      playerActions.choose(uid, params);
+    } catch (Exception e) {
+      ScriptLoader.humanizeStackTrace(e);
+      Logger.error("Failed to make choice " + uid, e);
+      jsonOutput.put("error", "Caught error: " + ScriptBoardSupport.describeError(e) + "\n");
+    }
     out.write(jsonOutput);
   }
 
@@ -793,21 +801,21 @@ public class ScriptBoard extends UntypedActor {
       // logged stack trace and the error sent to the browser (see ScriptLoader.humanize*).
       ScriptLoader.humanizeStackTrace(cfe);
       Logger.error("Unable to compile the script. " + scriptName, cfe);
-      jsonOutput.put("error", "Caught error: ".concat(ScriptLoader.humanize(cfe.getMessage())).concat("\n"));
+      jsonOutput.put("error", "Caught error: " + ScriptBoardSupport.describeError(cfe) + "\n");
       if (initStep) {
         engine.put("initStep.start()", null);
       }
     } catch (ScriptException se) {
       ScriptLoader.humanizeStackTrace(se);
       Logger.error("Script Error. " + scriptName, se);
-      jsonOutput.put("error", "Caught error: ".concat(ScriptLoader.humanize(se.getMessage())).concat("\n"));
+      jsonOutput.put("error", "Caught error: " + ScriptBoardSupport.describeError(se) + "\n");
       if (initStep) {
         engine.put("initStep.start()", null);
       }
     } catch (Exception e) {
       ScriptLoader.humanizeStackTrace(e);
       Logger.error("Failed to process the script. " + scriptName, e);
-      jsonOutput.put("error", "Caught error: ".concat(ScriptLoader.humanize(e.getMessage())).concat("\n"));
+      jsonOutput.put("error", "Caught error: " + ScriptBoardSupport.describeError(e) + "\n");
       if (initStep) {
         engine.put("initStep.start()", null);
       }

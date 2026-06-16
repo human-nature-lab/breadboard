@@ -72,7 +72,12 @@ class GroovyTimerTask extends TimerTask {
   Closure closure
 
   void run() {
-    closure()
+    try {
+      closure()
+    } catch (Throwable t) {
+      models.ScriptLoader.humanizeStackTrace(t)
+      play.Logger.error("Uncaught error in timer task", t)
+    }
   }
 }
 

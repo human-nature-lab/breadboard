@@ -219,6 +219,14 @@ public class Breadboard extends UntypedActor {
   }
 
   public void onReceive(Object message) throws Exception {
+    try {
+      handleMessage(message);
+    } catch (Exception e) {
+      Logger.error("Unhandled error in Breadboard.onReceive", e);
+    }
+  }
+
+  private void handleMessage(Object message) throws Exception {
     if (message instanceof BreadboardMessage) {
       BreadboardMessage breadboardMessage = (BreadboardMessage) message;
       Logger.debug("breadboardMessage.getClass().getName() = " + breadboardMessage.getClass().getName());

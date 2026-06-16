@@ -65,4 +65,49 @@ public class ScriptBoardSupportTest {
         // Mirrors the original's string concatenation, where a null id renders as "null".
         assertEquals("null-null-abc", ScriptBoardSupport.makeUniqueClientId(null, null, "abc"));
     }
+
+    @Test
+    public void describeErrorNeverReturnsBareNullForANullMessageException() {
+        String desc = ScriptBoardSupport.describeError(new NullPointerException());
+        assertNotNull(desc);
+        assertFalse("must not collapse to the string \"null\"", "null".equals(desc));
+        assertTrue("should name the exception type", desc.contains("NullPointerException"));
+    }
+
+    @Test
+    public void describeErrorIncludesTheMessageWhenThereIsOne() {
+        String desc = ScriptBoardSupport.describeError(new IllegalStateException("boom"));
+        assertTrue(desc.contains("IllegalStateException"));
+        assertTrue(desc.contains("boom"));
+    }
+
+    @Test
+    public void describeErrorHandlesNullThrowable() {
+        assertEquals("Unknown error (null)", ScriptBoardSupport.describeError(null));
+    }
+
+    @Test
+    public void describeErrorAppendsGroovyStackFrames() {
+        NullPointerException e = new NullPointerException();
+        e.setStackTrace(new StackTraceElement[]{
+            new StackTraceElement("Script7", "run", "graph.groovy", 42),
+            new StackTraceElement("models.ScriptBoard", "processScript", "ScriptBoard.java", 772)
+        });
+        String desc = ScriptBoardSupport.describeError(e);
+        assertTrue("should include the groovy frame", desc.contains("graph.groovy:42"));
+        assertFalse("should not include non-groovy (java) frames",
+            desc.contains("ScriptBoard.java"));
+    }
+
+    @Test
+    public void describeErrorWalksCausesForGroovyFrames() {
+        NullPointerException cause = new NullPointerException();
+        cause.setStackTrace(new StackTraceElement[]{
+            new StackTraceElement("Script7", "doCall", "actions.groovy", 269)
+        });
+        RuntimeException wrapper = new RuntimeException("wrapped", cause);
+        wrapper.setStackTrace(new StackTraceElement[0]);
+        String desc = ScriptBoardSupport.describeError(wrapper);
+        assertTrue("should surface the cause's groovy frame", desc.contains("actions.groovy:269"));
+    }
 }

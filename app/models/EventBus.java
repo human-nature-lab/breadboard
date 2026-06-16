@@ -21,7 +21,12 @@ class EventHandler<A> {
 
   public void emit (A... data) {
     for (Closure<A> closure : this.closures) {
-      closure.call(data);
+      try {
+        closure.call(data);
+      } catch (Exception e) {
+        ScriptLoader.humanizeStackTrace(e);
+        Logger.error("Event handler threw", e);
+      }
     }
   }
 

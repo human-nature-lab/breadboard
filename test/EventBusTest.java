@@ -132,6 +132,21 @@ public class EventBusTest {
     }
 
     @Test
+    public void aThrowingListenerDoesNotStopTheOthers() {
+        EventBus<Object> bus = new EventBus<>();
+        List<Object> received = new ArrayList<>();
+        bus.on("e", new groovy.lang.Closure(null) {
+            public void doCall(Object... args) { throw new RuntimeException("boom"); }
+        });
+        bus.on("e", recorder(received, "after"));
+
+        bus.emit("e", "data"); // must not throw
+
+        assertEquals("the listener after the throwing one should still fire", 1, received.size());
+        assertEquals("after", received.get(0));
+    }
+
+    @Test
     public void clearRemovesEverything() {
         EventBus<Object> bus = new EventBus<>();
         List<Object> received = new ArrayList<>();
