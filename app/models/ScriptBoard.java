@@ -201,6 +201,14 @@ public class ScriptBoard extends UntypedActor {
     File groovyDir = new File(Play.application().path().toString(), "groovy");
     ScriptLoader.loadAll(engine, groovyDir);
 
+    // The fresh engine above starts with empty bindings, so every parameter variable from
+    // parameters.csv is gone after a reload. The reload message handlers only restore params
+    // that were saved as instance Data (and only when an instance is selected), so a plain
+    // engine reload -- the common design/test loop -- used to leave those variables undefined
+    // and any script referencing them failed. Bind the declared defaults here so the variables
+    // always exist; any instance-specific Data applied afterward in onReceive still overrides.
+    bindDefaultParameters(experiment);
+
     // get script object on which we want to implement the interface with
     Object a = engine.get("a");
     Invocable inv = (Invocable) engine;
@@ -723,6 +731,33 @@ public class ScriptBoard extends UntypedActor {
 
       initParam(data, experiment);
     } // END while(it.hasNext())
+  }
+
+  /**
+   * Bind every parameter declared for the experiment to its default value in the freshly
+   * built engine. Called from {@link #resetEngine} so the variables defined in parameters.csv
+   * survive an engine reload even when no instance is selected. In fileMode {@code
+   * getParameters()} re-reads parameters.csv from disk, so this also picks up edits made since
+   * the last reload. A blank numeric default just means "no default given" and is left unbound;
+   * a malformed one is logged. Instance Data applied later in {@link #onReceive} overrides these.
+   */
+  private void bindDefaultParameters(Experiment experiment) {
+    if (experiment == null) {
+      return;
+    }
+    for (Parameter parameter : experiment.getParameters()) {
+      if (parameter.name == null || parameter.name.isEmpty()) {
+        continue;
+      }
+      Object coerced = ScriptBoardSupport.coerceParam(parameter.type, parameter.defaultVal);
+      if (coerced != null) {
+        engine.getBindings(ScriptContext.ENGINE_SCOPE).put(parameter.name, coerced);
+      } else if (("Integer".equals(parameter.type) || "Decimal".equals(parameter.type))
+          && parameter.defaultVal != null && !parameter.defaultVal.trim().isEmpty()) {
+        Logger.error("bindDefaultParameters: could not parse default value as " + parameter.type
+            + " for parameter '" + parameter.name + "': " + parameter.defaultVal);
+      }
+    }
   }
 
   private void initParam(Data param, Experiment experiment) {
