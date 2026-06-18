@@ -13,7 +13,7 @@ cd ..
 # read a .env file if it exists
 if [ -f .env ]; then
   echo "Reading .env file"
-  source .env
+  source ./.env
 fi
 
 # Activator was deprecated; use sbt directly (same as `activator dist` for this project).
