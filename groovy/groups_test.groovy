@@ -180,6 +180,32 @@ test.async("an AI player auto-resolves its ask", 4000) { done ->
   game.go('trial')                         // asks the AI; it auto-submits after a short delay
 }
 
+// An AI asked MORE THAN ONCE in a single step must auto-resolve EVERY ask: each ask drives a
+// submit for its OWN uid, so the step's pending queue drains and done fires exactly once.
+// (Previously the AI chose a random uid across all the player's group choices, so some asks
+// could go unanswered and the step would stall.) The two asks also resolve off two separate
+// timer threads, exercising the concurrent-resolve path that must fire done exactly once.
+test.async("an AI asked multiple times in one step resolves every ask", 4000) { done ->
+  def doneCount = new AtomicInteger(0)
+  def handlerCount = new AtomicInteger(0)
+  Games.define { game ->
+    game.step('trial', [
+      run:  { game.players.each { p ->
+        game.ask(p, [name: 'q1'], { v, data -> handlerCount.incrementAndGet() })
+        game.ask(p, [name: 'q2'], { v, data -> handlerCount.incrementAndGet() })
+      } },
+      done: { doneCount.incrementAndGet(); done {
+        assert doneCount.get() == 1            // step completed exactly once...
+        assert handlerCount.get() == 2         // ...with both asks answered
+      } },
+    ])
+  }
+  def game = Games.create('grpAIMulti', [])
+  game.addAI(1)
+  check { assert game.players.size() == 1 }
+  game.go('trial')
+}
+
 // With drop enabled and short warn/drop times, a player who never responds is dropped after the
 // warn->drop sequence; dropping the only player empties the cohort and abandons the game.
 test.async("idle/drop drops a non-responder and abandons the emptied game", 6000) { done ->
@@ -242,21 +268,28 @@ test("a multi-round define/create loop fires onFinish exactly once and disposes 
 // disabled and has no ExperimentInstance, so nothing would actually persist to assert on.
 test("game.a.addEvent tags events with the group id and current step") {
   def recorded = []
+  // GroupContext.a is a JVM-static field shared across every test case; swap in a recording
+  // double, but restore the real `a` in a finally so later cases (and addAI, which reads
+  // GroupContext.a) aren't left pointing at the double regardless of test execution order.
+  def realA = GroupContext.a
   GroupContext.a = new Expando(addEvent: { String name, data -> recorded << [name: name, data: data] })
+  try {
+    def game = Games.create('grpEvt', [g.addPlayer('evt1')])
+    game.step('play', [run: { }, done: { }])
+    game.go('play')
 
-  def game = Games.create('grpEvt', [g.addPlayer('evt1')])
-  game.step('play', [run: { }, done: { }])
-  game.go('play')
+    game.a.addEvent('scored', [points: 5])
+    assert recorded.size() == 1
+    assert recorded[0].name == 'scored'
+    assert recorded[0].data.groupId == 'grpEvt'        // tagged with the game id
+    assert recorded[0].data.step == 'play'             // ...and the current step
+    assert recorded[0].data.points == 5                // caller data preserved
 
-  game.a.addEvent('scored', [points: 5])
-  assert recorded.size() == 1
-  assert recorded[0].name == 'scored'
-  assert recorded[0].data.groupId == 'grpEvt'        // tagged with the game id
-  assert recorded[0].data.step == 'play'             // ...and the current step
-  assert recorded[0].data.points == 5                // caller data preserved
-
-  game.a.addEvent('scored', [groupId: 'explicit'])   // a caller-supplied groupId is not clobbered
-  assert recorded[1].data.groupId == 'explicit'
+    game.a.addEvent('scored', [groupId: 'explicit'])   // a caller-supplied groupId is not clobbered
+    assert recorded[1].data.groupId == 'explicit'
+  } finally {
+    GroupContext.a = realA
+  }
 }
 
 // Group choices submitted from a java.util.Timer thread must resolve the queue and fire done,

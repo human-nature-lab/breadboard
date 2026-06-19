@@ -93,14 +93,13 @@ class Game {
   private final List members = new ArrayList()
 
   // Per-step pending asks. pending[stepName] == list of entry maps:
-  //   [player, uid, stepName, handler, listener, warnTimer, dropTimer, aiTimer]
+  //   [player, uid, stepName, handler, listener, warnTimer, dropTimer, aiTimer, cancelled]
   private final Map<String, List> pending = new LinkedHashMap<>()
 
   private final Lock lock = new ReentrantLock(true)
-  private final Random rng = new Random()
 
-  // Lifecycle
-  private boolean finished = false
+  // Lifecycle. `finished` is read outside the lock in drop(), so keep it volatile.
+  private volatile boolean finished = false
   private Closure onFinishClosure = null
   private Closure onAbandonClosure = null
 
@@ -146,6 +145,10 @@ class Game {
   void addPlayer(Object v) {
     if (v == null) return
     if (v._system == null) v._system = [:]
+    def existing = v._system.groupId
+    if (existing != null && existing != this.id) {
+      println "[Game ${id}] addPlayer: player ${v.id} was already tagged for game ${existing}; reassigning to ${this.id}"
+    }
     v._system.groupId = this.id
     v._system.active = true
     lock.lock()
@@ -228,6 +231,7 @@ class Game {
       warnTimer: null,
       dropTimer: null,
       aiTimer:   null,
+      cancelled: false,
     ]
 
     lock.lock()
@@ -267,9 +271,14 @@ class Game {
     if (player._system != null) player._system.active = false
 
     List affected = []
+    boolean drained = false
+    Closure doneC = null
     lock.lock()
     try {
       def pid = player.id
+      // Whether the current step had outstanding asks before this drop; we only fire
+      // done if this drop is what empties it (a genuine non-empty -> empty transition).
+      boolean hadCurrent = (currentStepName != null) && pending.containsKey(currentStepName)
       pending.each { stepName, list ->
         def matches = list.findAll { it.player?.id == pid }
         list.removeAll(matches)
@@ -277,12 +286,17 @@ class Game {
       }
       def emptyKeys = pending.findAll { k, v -> v.isEmpty() }.keySet().toList()
       emptyKeys.each { pending.remove(it) }
+      if (hadCurrent && !pending.containsKey(currentStepName)) {
+        def step = steps[currentStepName]
+        doneC = (step != null) ? step.done : null
+        drained = true
+      }
     } finally { lock.unlock() }
 
     affected.each { e ->
       cancelEntryTimers(e)
-      if (e.listener != null) {
-        try { player.off(Games.SUBMIT_EVENT, e.listener) } catch (Exception ex) { /* ignore */ }
+      if (e.listener != null && e.player != null) {
+        try { e.player.off(Games.SUBMIT_EVENT, e.listener) } catch (Exception ex) { /* ignore */ }
       }
     }
     unassignAllGroupChoices(player)
@@ -290,8 +304,8 @@ class Game {
 
     if (!finished && getPlayers().isEmpty()) {
       abandon()
-    } else {
-      maybeFireDone()
+    } else if (drained && doneC != null) {
+      doneC()   // outside the lock: done may re-enter go/ask/finish
     }
   }
 
@@ -330,7 +344,12 @@ class Game {
       pending.each { stepName, list -> pendingEntries.addAll(list) }
     } finally { lock.unlock() }
 
-    pendingEntries.each { e -> cancelEntryTimers(e) }
+    pendingEntries.each { e ->
+      cancelEntryTimers(e)
+      if (e.listener != null && e.player != null) {
+        try { e.player.off(Games.SUBMIT_EVENT, e.listener) } catch (Exception ex) { /* ignore */ }
+      }
+    }
 
     membersCopy.each { v ->
       if (v?.getProperty("ai") == 1) {
@@ -395,55 +414,54 @@ class Game {
     }
   }
 
-  // A player submitted their choice: detach, cancel timers, drop from pending,
-  // run the caller's handler, then maybe fire the step's done.
+  // A player submitted their choice. The pending-list removal AND the "did this drain
+  // the current step?" decision happen in ONE critical section, so the done closure is
+  // claimed atomically by whichever call empties the step -- under concurrent submits of
+  // the last outstanding asks, done fires exactly once. The call is also idempotent: if
+  // this entry was already resolved or dropped (a duplicate/stale submit, e.g. two bus
+  // threads racing the same click), `removed` is false and we run nothing.
   private void resolve(Map entry, Object v, Object data) {
+    String stepName = entry.stepName
+    boolean removed = false
+    boolean drained = false
+    Closure doneC = null
+    lock.lock()
+    try {
+      def list = pending[stepName]
+      removed = (list != null) && list.remove(entry)
+      if (removed && list.isEmpty()) {
+        pending.remove(stepName)
+        if (stepName == currentStepName) {
+          def step = steps[stepName]
+          doneC = (step != null) ? step.done : null
+          drained = true
+        }
+      }
+    } finally { lock.unlock() }
+
+    if (!removed) return   // already resolved or dropped -- ignore the duplicate/stale submit
+
     cancelEntryTimers(entry)
     if (entry.listener != null) {
       try { v.off(Games.SUBMIT_EVENT, entry.listener) } catch (Exception ex) { /* ignore */ }
     }
     unassignChoice(v, entry.uid)
 
-    String stepName = entry.stepName
-    lock.lock()
-    try {
-      def list = pending[stepName]
-      if (list != null) {
-        list.remove(entry)
-        if (list.isEmpty()) pending.remove(stepName)
-      }
-    } finally { lock.unlock() }
-
     if (entry.handler != null) {
       try { entry.handler(v, data) } catch (Exception e) { logErr("ask handler", e) }
     }
 
-    maybeFireDone()
+    if (drained && doneC != null) doneC()   // outside the lock: done may re-enter go/ask/finish
   }
 
-  // Fire the current step's done closure iff its pending queue has drained.
-  private void maybeFireDone() {
-    boolean empty
-    Closure doneC = null
-    lock.lock()
-    try {
-      String stepName = currentStepName
-      empty = stepName != null && !pending.containsKey(stepName)
-      if (empty) {
-        def step = steps[stepName]
-        doneC = (step != null) ? step.done : null
-      }
-    } finally { lock.unlock() }
-    if (empty && doneC != null) doneC()   // outside the lock: done may re-enter go/ask/finish
-  }
-
-  // Auto-submit for an AI player after a short delay. The option is chosen on
-  // THIS (eval) thread to avoid racing the choice write; the timer thread only
-  // emits the submit CustomEvent, exactly like a real client.
+  // Auto-submit for an AI player after a short delay. It submits THIS ask's own uid:
+  // each ask is one decision, so multiple asks to the same AI in a step each resolve
+  // independently (picking a random uid across all the player's group choices would
+  // leave the others' asks unanswered and stall the step). The timer thread only emits
+  // the submit CustomEvent, exactly like a real client.
   private void driveAI(Map entry) {
     def player = entry.player
-    def groupChoices = (player.choices ?: []).findAll { it?._route == 'group' }
-    def chosenUid = groupChoices ? groupChoices[rng.nextInt(groupChoices.size())].uid : entry.uid
+    def chosenUid = entry.uid
     def timer = new BBTimer()
     entry.aiTimer = timer
     // GDK Timer.runAfter has no error trap of its own; guard the body so a late fire during
@@ -493,16 +511,36 @@ class Game {
             }
           }
         ])
-        entry.dropTimer = shared
+        // The player may have resolved (cancelEntryTimers) while this SharedTimer was being
+        // built. Decide keep-vs-cancel under the lock against the entry's cancelled flag, so a
+        // late-armed drop timer can never escape cancellation and drop a player who already
+        // responded.
+        boolean keep
+        lock.lock()
+        try {
+          if (entry.cancelled) { keep = false } else { entry.dropTimer = shared; keep = true }
+        } finally { lock.unlock() }
+        if (!keep) { try { shared.cancel() } catch (Exception e) { /* ignore */ } }
       } catch (Throwable t) {
         logErr("idle/warn timer", t)
       }
     }
   }
 
+  // Mark the entry cancelled and tear down its timers. The drop SharedTimer is armed
+  // asynchronously on the warn-timer thread (see armIdleTimer); flipping `cancelled` and
+  // reading/clearing `dropTimer` under the lock closes the race where a drop timer armed
+  // just after this call would otherwise survive and drop an already-resolved player.
   private void cancelEntryTimers(Map entry) {
+    Object dropTimer
+    lock.lock()
+    try {
+      entry.cancelled = true
+      dropTimer = entry.dropTimer
+      entry.dropTimer = null
+    } finally { lock.unlock() }
     if (entry.warnTimer != null) { try { entry.warnTimer.cancel() } catch (Exception e) { /* ignore */ } ; entry.warnTimer = null }
-    if (entry.dropTimer != null) { try { entry.dropTimer.cancel() } catch (Exception e) { /* ignore */ } ; entry.dropTimer = null }
+    if (dropTimer != null)       { try { dropTimer.cancel() }       catch (Exception e) { /* ignore */ } }
     if (entry.aiTimer != null)   { try { entry.aiTimer.cancel() }   catch (Exception e) { /* ignore */ } ; entry.aiTimer = null }
   }
 

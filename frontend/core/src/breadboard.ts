@@ -9,7 +9,7 @@ const CUSTOM_EVENT = 'CustomEvent'
 // Group-scoped choices don't exist in the platform's global action map, so they
 // can't be resolved via MAKE_CHOICE / a.choose(uid). Instead the click is sent as
 // a custom event that the group's own handler listens for. Must stay in sync with
-// GroupActions.SUBMIT_EVENT in groovy/groups.groovy.
+// Games.SUBMIT_EVENT in groovy/groups.groovy.
 const GROUP_CHOICE_EVENT = 'group-action-submit'
 
 export class BreadboardClass extends Emitter implements BreadboardMessages {
@@ -107,7 +107,7 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
    * server resolves against the global action map via a.choose(uid)), this routes
    * the click through the custom-event bus to the group's own handler. The server
    * delivers `data` to the player-scoped GROUP_CHOICE_EVENT listener, which matches
-   * on `uid`. See GroupActions.attachChoiceListener in groovy/groups.groovy.
+   * on `uid`. See the per-ask listener installed by Game.ask in groovy/groups.groovy.
    * @param uuid the uid of the group choice the player picked
    * @param params optional extra payload forwarded to the group handler
    */
