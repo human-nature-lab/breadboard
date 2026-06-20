@@ -80,6 +80,8 @@ test("addPlayers de-duplicates by id and seeds each player's waiting-room state"
   assert a._system.waitingRoom.readyUpFailures == 0
   assert a._system.waitingRoom.notChosenForGroup == false
   assert a._system.waitingRoom.notEnoughReadyForGroup == false
+  // The default stage callback writes the top-level `step` the client reads (not private.step).
+  assert a.getProperty("step") == 'waiting-room'
 }
 
 test("removePlayer takes a player out of the room, clears its state, and can be re-added") {
@@ -169,7 +171,7 @@ test.async("a full cycle fills the room, runs ready-up, and starts the group", 1
     done {
       assert started.size() == 1
       assert started[0].ids == ['cyc-a', 'cyc-b'] as Set
-      assert started[0].groupId == 1            // groupId is incremented from 0 for the first group
+      assert started[0].groupId == '1'          // id is exposed as a String (matches groupCompleted)
       assert wr.waitingPlayers.isEmpty()        // the selected players left the room
     }
   })
@@ -212,4 +214,40 @@ test.async("a player who fails to ready up is dropped, and a short group cannot 
       assert a._system.waitingRoom.priority == 1
     }
   }
+}
+
+// --- RecruitmentController: client/game state tracking ----------------------------------------
+
+test("RecruitmentController tracks a client through its lifecycle without duplicating it") {
+  def rc = new RecruitmentController()
+  rc.clientPending("c1")
+  assert rc.clients.find { it.id == "c1" }.state == "pending"
+  rc.clientWaiting("c1")
+  assert rc.clients.find { it.id == "c1" }.state == "waiting"
+  rc.clientCompleted("c1")                  // regression: this method previously didn't exist
+  assert rc.clients.find { it.id == "c1" }.state == "completed"
+  assert rc.clients.size() == 1            // same client updated in place (no clients[-1] dup)
+}
+
+test("RecruitmentController.gameStarted/gameCompleted move clients and count completed games") {
+  def rc = new RecruitmentController()
+  rc.clientWaiting("g1")
+  rc.clientWaiting("g2")
+
+  rc.gameStarted("game-1", ["g1", "g2"])
+  assert rc.clients.find { it.id == "g1" }.state == "active"
+  assert rc.clients.find { it.id == "g1" }.gameId == "game-1"
+  assert rc.activeGames.containsKey("game-1")
+
+  rc.gameCompleted("game-1")
+  assert rc.clients.find { it.id == "g1" }.state == "completed"
+  assert rc.clients.find { it.id == "g1" }.gameId == null
+  assert !rc.activeGames.containsKey("game-1")
+  assert rc.completedGames == 1
+}
+
+test("WaitingRoom.clientCompleted delegates to the recruitment controller without throwing") {
+  def wr = new WaitingRoom(2, 3)
+  wr.clientCompleted("x")                   // regression: was a MissingMethodException
+  assert wr._recruitmentController.clients.find { it.id == "x" }.state == "completed"
 }

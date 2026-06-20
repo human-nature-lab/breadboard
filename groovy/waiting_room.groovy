@@ -5,16 +5,16 @@ import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.ConcurrentHashMap
 
-// TODO: The approach used to prevent overlapping loop executions just drops loops if the 
-// previous execution is still running. It's theoretically possible that it could cause a 
-// deadlock if a loop takes forever.
+// Overlapping loop executions are prevented by the isLoopRunning AtomicBoolean guard: if a tick
+// is still running when the next fires, the new tick is skipped. Under sustained load this can
+// drop a tick, but the guard itself cannot deadlock.
 
 // This is here to make the compiler happy
 def doNothing = {}
 
 class WaitingRoomReadyUp {
   ArrayList<Vertex> players
-  int createdAt
+  long createdAt
   int readyUpSeconds = 20
   boolean isRunning = false
   SharedTimer _timer
@@ -32,10 +32,12 @@ class WaitingRoomReadyUp {
       timerText: "Remaining time: ",
       players: this.players,
       result: {
+        def readyPlayers
+        def notReadyPlayers
         synchronized (this) {
           this.isRunning = false
-          def readyPlayers = this.players.findAll { it._system.waitingRoom.isReady }
-          def notReadyPlayers = this.players.findAll { !it._system.waitingRoom.isReady }
+          readyPlayers = this.players.findAll { it._system.waitingRoom.isReady }
+          notReadyPlayers = this.players.findAll { !it._system.waitingRoom.isReady }
           this.players.each {
             it._system.waitingRoom.isReady = false
             it.off("waiting-room:ready")
@@ -43,9 +45,12 @@ class WaitingRoomReadyUp {
             // their Game's begin step runs, returned players go back to waiting.
             it.step = "waiting-room"
           }
-          onDone(readyPlayers, notReadyPlayers)
           this._timer = null
         }
+        // Invoke the callback OUTSIDE this monitor. handleReadyUpResult takes WaitingRoom.mutex,
+        // and addPlayer() takes this monitor while holding that mutex; calling onDone here (still
+        // holding the monitor) would invert the lock order and could deadlock (ABBA).
+        onDone(readyPlayers, notReadyPlayers)
       }
     ])
     synchronized (this) {
@@ -57,6 +62,7 @@ class WaitingRoomReadyUp {
   }
 
   private startPlayer(player) {
+    def self = this
     player._system.waitingRoom.state = "ready-up"
     player._system.waitingRoom.notChosenForGroup = false
     player._system.waitingRoom.notEnoughReadyForGroup = false
@@ -65,7 +71,11 @@ class WaitingRoomReadyUp {
     player.step = "ready-up"
     player.text = "<p><strong>Press 'Ready' before the timer expires to begin the game.</strong></p>"
     player.once("waiting-room:ready", { v, data ->
-      player._system.waitingRoom.isReady = true
+      // Write isReady under the ready-up monitor so it is visibly ordered against the timer
+      // thread's partition read (the _system.waitingRoom map is not itself thread-safe).
+      synchronized (self) {
+        player._system.waitingRoom.isReady = true
+      }
       // Hide the button and show a waiting message once they've readied up.
       player.step = "waiting-room"
       player.text = "<p>You are ready. Waiting for the other players...</p>"
@@ -106,11 +116,12 @@ class WaitingRoom extends BreadboardBase {
   private Closure _setStageCb
   private WaitingRoomReadyUp readyUp
   BBTimer _loopTimer
-  SharedTimer _foundGroupTimer
+  private SharedTimer _foundGroupTimer
   private SharedTimer _startGroupTimer
   private Closure _readyUpFailureCb
   private AtomicInteger groupId
   private AtomicBoolean isLoopRunning = new AtomicBoolean(false)
+  private boolean _started = false
   public RecruitmentController _recruitmentController
 
   public WaitingRoom(int minPlayers, int maxPlayers) {
@@ -128,12 +139,8 @@ class WaitingRoom extends BreadboardBase {
   }
 
   public setGroupId(int groupId) {
-    mutex.lock()
-    try {
-      this.groupId.set(groupId)
-    } finally {
-      mutex.unlock()
-    }
+    // groupId is an AtomicInteger; no extra lock needed.
+    this.groupId.set(groupId)
   }
 
   private withLock(Closure c) {
@@ -221,7 +228,10 @@ class WaitingRoom extends BreadboardBase {
   }
 
   def defaultSetStageCb = { Vertex player ->
-    player.private.step = "waiting-room"
+    // Top-level vertex property: this is the field the client reads to pick its view (see the
+    // ready-up code, which also writes player.step). Writing player.private.step instead would
+    // be invisible to the client.
+    player.step = "waiting-room"
   }
 
   public start() {
@@ -232,6 +242,10 @@ class WaitingRoom extends BreadboardBase {
       if (this._readyUpFailureCb == null) {
         throw new Exception("Must supply a callback to WaitingRoom.onReadyUpFailure")
       }
+      if (this._started) {
+        return  // already running; don't schedule the loop twice
+      }
+      this._started = true
       this._loopTimer.scheduleAtFixedRate(this._loop as GroovyTimerTask, 0, 1000)
       this._recruitmentController.start()
     }
@@ -313,12 +327,14 @@ class WaitingRoom extends BreadboardBase {
       if (this.foundGroup && isTimeToStart && hasEnoughPlayers) {
          // Start the ready step
         this.log("starting ready step")
+        this._cancelFoundGroupTimer()   // countdown is over; ready-up shows its own timer
         this.readyUpRunning = true
         this.readyUp = new WaitingRoomReadyUp(new ArrayList(this.waitingPlayers), this.readyUpSeconds)
         this.readyUp.run(this.handleReadyUpResult)
       } else if (isTimeToStart) {
         this.log("failed to start group")
         // Reset the group and try again later
+        this._cancelFoundGroupTimer()
         this.foundGroup = false
         this.foundGroupAt = 0
         this.readyUpRunning = false
@@ -327,77 +343,98 @@ class WaitingRoom extends BreadboardBase {
   }
 
   private handleReadyUpResult = { List<Vertex> readyPlayers, List<Vertex> notReadyPlayers ->
+    def droppedPlayers = []
+    def selectedPlayers = null
+    def groupId = null
+
+    // All shared-state mutation happens under the lock; waitingPlayers is a plain ArrayList, so
+    // racing the per-second loop here would risk ConcurrentModificationException / lost updates.
     this.withLock {
       this.readyUp = null
       this.foundGroup = false
       this.foundGroupAt = 0
       this.readyUpRunning = false
-    }
-    for (def player in notReadyPlayers) {
-      player._system.waitingRoom.state = "waiting-room"
-      player._system.waitingRoom.readyUpFailures++
-      if (player._system.waitingRoom.readyUpFailures >= this.readyUpFailureLimit) {
-        this.log("player $player.id has failed to ready up too many times, removing from waiting room")
-        this.removePlayer(player)
-        this._readyUpFailureCb(player)
+      this._cancelFoundGroupTimer()
+
+      for (def player in notReadyPlayers) {
+        player._system.waitingRoom.state = "waiting-room"
+        player._system.waitingRoom.readyUpFailures++
+        if (player._system.waitingRoom.readyUpFailures >= this.readyUpFailureLimit) {
+          this.log("player $player.id has failed to ready up too many times, removing from waiting room")
+          this._removePlayer(player)   // already holding the lock; use the unlocked variant
+          droppedPlayers.add(player)
+        }
+      }
+
+      if (readyPlayers.size() < this.minPlayers) {
+        def readyPlayerIds = readyPlayers.collect { it.id }
+        def notReadyPlayerIds = notReadyPlayers.collect { it.id }
+        this.log("not enough players", readyPlayerIds, notReadyPlayerIds)
+        this.addEvent("waiting_room.not_enough_players", [
+          readyPlayers: readyPlayerIds,
+          notReadyPlayers: notReadyPlayerIds,
+        ])
+        for (def player in readyPlayers) {
+          player._system.waitingRoom.state = "waiting-room"
+          player._system.waitingRoom.notEnoughReadyForGroup = true
+          player._system.waitingRoom.priority++
+        }
+      } else {
+        selectedPlayers = readyPlayers
+        if (readyPlayers.size() > this.maxPlayers) {
+          this.log("too many players for group, using a random sample")
+          Collections.shuffle(readyPlayers)
+          // Participants who readied up but weren't selected are prioritized for the next group.
+          // This sort is stable, so players are randomized within priority groups.
+          readyPlayers.sort { -it._system.waitingRoom.priority }
+          selectedPlayers = readyPlayers[0..this.maxPlayers-1]
+          def notSelectedPlayers = readyPlayers[this.maxPlayers..-1]
+          this.log("not selected players", notSelectedPlayers)
+          for (def player in notSelectedPlayers) {
+            player._system.waitingRoom.state = "waiting-room"
+            player._system.waitingRoom.notChosenForGroup = true
+            player._system.waitingRoom.priority++
+          }
+        }
+        for (def player in selectedPlayers) {
+          player._system.waitingRoom.state = "group-start"
+        }
+        groupId = this.groupId.incrementAndGet()
+        this.log("group $groupId starting in ", this.groupStartDelaySeconds, " seconds")
+        this.waitingPlayers.removeAll(selectedPlayers)
       }
     }
-    if (readyPlayers.size() < this.minPlayers) {
-      def readyPlayerIds = readyPlayers.collect { it.id }
-      def notReadyPlayerIds = notReadyPlayers.collect { it.id }
-      this.log("not enough players", readyPlayerIds, notReadyPlayerIds)
-      this.addEvent("waiting_room.not_enough_players", [
-        readyPlayers: readyPlayerIds,
-        notReadyPlayers: notReadyPlayerIds,
+
+    // External callbacks and timer construction run OUTSIDE the lock: don't execute user code or
+    // build/start a timer while holding the mutex, and avoid re-entrancy surprises.
+    for (def player in droppedPlayers) {
+      this._readyUpFailureCb(player)
+    }
+    if (selectedPlayers != null) {
+      def cb = this._groupReadyCb
+      def selected = selectedPlayers
+      def gid = groupId.toString()   // expose the id as a String to match groupCompleted()
+      this._startGroupTimer = new SharedTimer([
+        time: this.groupStartDelaySeconds,
+        timerText: "Experiment starting in: ",
+        name: "waiting-room-group-start",
+        players: selected,
+        result: {
+          this.log("group $gid starting")
+          this._recruitmentController.gameStarted(gid, selected.collect { it.id })
+          this.removePlayers(*selected)
+          cb(selected, gid)
+        }
       ])
-      for (def player in readyPlayers) {
-        player._system.waitingRoom.state = "waiting-room"
-        player._system.waitingRoom.notEnoughReadyForGroup = true
-        player._system.waitingRoom.priority++
-      }
-      return
     }
-    def selectedPlayers = readyPlayers
-    if (readyPlayers.size() > this.maxPlayers) {
-      this.log("too many players for group, using a random sample")
-      Collections.shuffle(readyPlayers)
-      // The goal is for participants who ready up, but don't get selected to be prioritized for the next group
-      // This sort is stable, so the players should be randomized within priority groups
-      readyPlayers.sort { -it._system.waitingRoom.priority }
-      selectedPlayers = readyPlayers[0..this.maxPlayers-1]
-      def notSelectedPlayers = readyPlayers[this.maxPlayers..-1]
-      this.log("not selected players", notSelectedPlayers)
-      for (def player in notSelectedPlayers) {
-        player._system.waitingRoom.state = "waiting-room"
-        player._system.waitingRoom.notChosenForGroup = true
-        player._system.waitingRoom.priority++
-      }
-    }
+  }
 
-    // Call the single groupReady callback
-    def cb = this.withLock {
-      return this._groupReadyCb
+  // Cancel and clear the "found group" countdown timer if one is running. Callers must hold mutex.
+  private _cancelFoundGroupTimer() {
+    if (this._foundGroupTimer) {
+      this._foundGroupTimer.cancel()
+      this._foundGroupTimer = null
     }
-
-    for (def player in selectedPlayers) {
-      player._system.waitingRoom.state = "group-start"
-    }
-    
-    def groupId = this.groupId.incrementAndGet()
-    this.log("group $groupId starting in ", this.groupStartDelaySeconds, " seconds")
-    this.waitingPlayers.removeAll(selectedPlayers)
-    this._startGroupTimer = new SharedTimer([
-      time: this.groupStartDelaySeconds,
-      timerText: "Experiment starting in: ",
-      name: "waiting-room-group-start",
-      players: selectedPlayers,
-      result: {
-        this.log("group $groupId starting")
-        this._recruitmentController.gameStarted(groupId.toString(), selectedPlayers.collect { it.id })
-        this.removePlayers(*selectedPlayers)
-        cb(selectedPlayers, groupId)
-      }
-    ])
   }
 
   private checkForReadyGroups() {
@@ -414,10 +451,13 @@ class WaitingRoom extends BreadboardBase {
           time: this.readyStartDelaySeconds,
           timerText: "Starting in: ",
           name: "waiting-room-found-group",
-          players: this.waitingPlayers,
+          players: new ArrayList(this.waitingPlayers),
           result: {
-            this._foundGroupTimer.cancel()
-            this._foundGroupTimer = null
+            // Natural expiry: just clear the reference (end() already cancelled the timer). Take
+            // the lock so this off-thread write doesn't race checkForReadyGroups / addPlayers.
+            this.withLock {
+              this._foundGroupTimer = null
+            }
           }
         ])
       }
@@ -501,9 +541,12 @@ class RecruitmentController extends BreadboardBase {
   private _setClientState(String clientId, String state) {
     def index = this.clients.findIndexOf { it.id == clientId }
     if (index == -1) {
+      // New client: set its state and add it. Returning here avoids indexing clients[-1] (Groovy
+      // negative indexing = last element), which is wrong under concurrent adds.
       def client = new RecruitmentClient(clientId)
       client.setState(state)
       this.clients.add(client)
+      return
     }
     this.clients[index].setState(state)
   }
@@ -512,16 +555,18 @@ class RecruitmentController extends BreadboardBase {
     this._setClientState(clientId, "waiting")
   }
 
+  public clientCompleted(String clientId) {
+    this._setClientState(clientId, "completed")
+  }
+
   public removeClient(String clientId) {
     this._setClientState(clientId, "removed")
   }
 
   public gameStarted(String gameId, ArrayList<String> clientIds) {
-    def clients = []
     for (def client in this.clients) {
       if (clientIds.contains(client.id)) {
         client.gameId = gameId
-        clients.add(client)
         this._setClientState(client.id, "active")
       }
     }
