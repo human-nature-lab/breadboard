@@ -198,8 +198,11 @@ public class ScriptBoard extends UntypedActor {
     // other *.groovy file alphabetically, skipping *_test.groovy. Dropping a new script into
     // the groovy directory is enough to have it loaded -- no edit here required. A failure in
     // a non-core script is logged (naming the file) and skipped rather than aborting the boot.
+    // Experimental scripts (ScriptLoader.EXPERIMENTAL_SCRIPTS) load only when the
+    // breadboard.experimental flag is on, defaulting to off.
+    boolean experimental = Play.application().configuration().getBoolean("breadboard.experimental", false);
     File groovyDir = new File(Play.application().path().toString(), "groovy");
-    ScriptLoader.loadAll(engine, groovyDir);
+    ScriptLoader.loadAll(engine, groovyDir, experimental);
 
     // get script object on which we want to implement the interface with
     Object a = engine.get("a");

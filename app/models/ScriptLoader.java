@@ -51,9 +51,16 @@ public final class ScriptLoader {
    *   <li>{@code graph}   &mdash; {@code g = new BreadboardGraph(...)}</li>
    *   <li>{@code actions} &mdash; {@code a = new PlayerActions(...)} (constructs a {@code BBTimer})</li>
    *   <li>{@code step, events, chat, form, ready} &mdash; remaining core DSL</li>
-   *   <li>{@code groups} &mdash; group steps/actions; loaded last so {@code events} has installed
-   *       {@code Vertex.on} first. Listed here (rather than auto-discovered) so a load failure is
+   *   <li>{@code groups} &mdash; group steps/actions; loaded after {@code events} has installed
+   *       {@code Vertex.on}. Listed here (rather than auto-discovered) so a load failure is
    *       fatal instead of silently skipped.</li>
+   *   <li>{@code waiting_room} &mdash; the recruitment / waiting-room state machine
+   *       ({@code WaitingRoom}, {@code WaitingRoomReadyUp}, {@code RecruitmentController}). It
+   *       extends {@code BreadboardBase} ({@code util}) and constructs {@code SharedTimer} /
+   *       {@code BBTimer} / {@code GroovyTimerTask} ({@code timer}), and registers player-scoped
+   *       {@code Vertex.once} listeners ({@code events}), so it loads after all of those. Listed
+   *       here (rather than auto-discovered) so a load failure is fatal instead of silently
+   *       skipped.</li>
    * </ol>
    * Any groovy file not listed here is loaded afterwards, in alphabetical order.
    */
@@ -69,28 +76,53 @@ public final class ScriptLoader {
       "chat.groovy",
       "form.groovy",
       "ready.groovy",
-      "groups.groovy"
+      "groups.groovy",
+      "waiting_room.groovy"
     )
   );
 
   /** Files whose names end with this suffix are test scripts and are skipped by the loader. */
   public static final String TEST_SUFFIX = "_test.groovy";
 
+  /**
+   * Experimental scripts, loaded only when the {@code experimental} flag is on (driven by the
+   * {@code breadboard.experimental} config option; see {@link ScriptBoard#resetEngine}). When the
+   * flag is off these files are excluded from the load order even if present in the groovy
+   * directory; when on they load as ordinary non-core scripts (after the core set, alphabetically).
+   * Add new opt-in scripts here as the experimental feature set grows.
+   */
+  public static final Set<String> EXPERIMENTAL_SCRIPTS = Collections.unmodifiableSet(
+    new LinkedHashSet<String>(Arrays.asList(
+      "wait_group.groovy"
+    ))
+  );
+
   private ScriptLoader() {}
+
+  /**
+   * The script file names to load from {@code groovyDir}, with experimental scripts included.
+   * Equivalent to {@code resolveLoadOrder(groovyDir, true)}; used by the test harness so that
+   * experimental scripts stay testable regardless of any runtime flag.
+   */
+  public static List<String> resolveLoadOrder(File groovyDir) {
+    return resolveLoadOrder(groovyDir, true);
+  }
 
   /**
    * The script file names to load from {@code groovyDir}, in load order: the core scripts
    * first (those actually present, in {@link #CORE_ORDER}), then every other {@code *.groovy}
-   * file alphabetically. Files ending in {@link #TEST_SUFFIX} are excluded. Never returns null.
+   * file alphabetically. Files ending in {@link #TEST_SUFFIX} are excluded. When
+   * {@code experimental} is false, scripts in {@link #EXPERIMENTAL_SCRIPTS} are excluded too.
+   * Never returns null.
    */
-  public static List<String> resolveLoadOrder(File groovyDir) {
+  public static List<String> resolveLoadOrder(File groovyDir, boolean experimental) {
     LinkedHashSet<String> remaining = new LinkedHashSet<String>();
     String[] names = (groovyDir == null) ? null : groovyDir.list();
     if (names != null) {
       List<String> sorted = new ArrayList<String>(Arrays.asList(names));
       Collections.sort(sorted); // alphabetical
       for (String name : sorted) {
-        if (isLoadable(name)) {
+        if (isLoadable(name) && (experimental || !isExperimental(name))) {
           remaining.add(name);
         }
       }
@@ -120,6 +152,11 @@ public final class ScriptLoader {
     return CORE_ORDER.contains(name);
   }
 
+  /** Whether {@code name} is an experimental script (loaded only when the experimental flag is on). */
+  public static boolean isExperimental(String name) {
+    return EXPERIMENTAL_SCRIPTS.contains(name);
+  }
+
   /**
    * Read, name, and eval every resolved script into {@code engine}, in {@link #resolveLoadOrder}
    * order. A failure in a core script aborts the load (the platform can't run without them); a
@@ -128,10 +165,19 @@ public final class ScriptLoader {
    */
   public static void loadAll(ScriptEngine engine, File groovyDir)
     throws IOException, ScriptException {
+    loadAll(engine, groovyDir, true);
+  }
+
+  /**
+   * Like {@link #loadAll(ScriptEngine, File)} but gates experimental scripts: when
+   * {@code experimental} is false, scripts in {@link #EXPERIMENTAL_SCRIPTS} are not loaded.
+   */
+  public static void loadAll(ScriptEngine engine, File groovyDir, boolean experimental)
+    throws IOException, ScriptException {
     // Fresh name map for this (re)load. The engine's script counter is static and never resets,
     // so the Script<N> numbers differ on every reload -- the map must be rebuilt each time.
     resetScriptNames();
-    for (String name : resolveLoadOrder(groovyDir)) {
+    for (String name : resolveLoadOrder(groovyDir, experimental)) {
       File file = new File(groovyDir, name);
       String body = FileUtils.readFileToString(file, "UTF-8");
       // Append (a) a self-registration epilogue that records this eval's generated class name
