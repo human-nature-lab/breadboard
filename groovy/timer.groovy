@@ -31,8 +31,8 @@ BBTimer.metaClass.unregister = {
  * Timers registry. Handles cleaning them up property when necessary
  */
 class BBTimers {
-  ArrayList<BBTimer> timers = new CopyOnWriteArrayList()
-  ArrayList<SharedTimer> sharedTimers = new CopyOnWriteArrayList()
+  List<BBTimer> timers = new CopyOnWriteArrayList()
+  List<SharedTimer> sharedTimers = new CopyOnWriteArrayList()
 
   public void cancel () {
     for (def timer : this.timers) {
