@@ -16,6 +16,6 @@ const data = computed(() => props.player._system?.recruitment)
 
 <template>
   <div>
-    <p v-html="data.message" />
+    <p v-html="data?.message" />
   </div>
 </template>

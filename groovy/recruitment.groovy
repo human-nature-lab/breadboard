@@ -2,10 +2,13 @@ import com.tinkerpop.blueprints.Vertex
 import groovy.transform.ToString
 import org.joda.time.DateTime
 
-enum RecruitmentSource {
-  PROLIFIC = 'prolific',
-  MTURK = 'mturk'
-}
+// Recruitment source identifiers. Kept as a plain map of strings (not an enum) so the
+// value written to player._system.recruitment.source is exactly the string sent to the
+// client -- the frontend compares it directly (see BBMain.vue isProlific / isMTurk).
+RecruitmentSource = [
+  PROLIFIC: 'prolific',
+  MTURK: 'mturk',
+].asImmutable()
 
 @ToString(includeNames = true, includePackage = false)
 class ProlificRegisterOpts {

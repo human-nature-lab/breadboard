@@ -9,7 +9,9 @@ const props = defineProps<{
 }>()
 
 const isWaitingRoom = computed(() => {
-  return props.player?._system?.stage === 'waiting-room'
+  // The waiting room writes player._system.waitingRoom (with a .state sub-field)
+  // and removes it when the player leaves; its presence is what gates the view.
+  return !!props.player?._system?.waitingRoom
 })
 const recruitment = computed(() => {
   return props.player?._system?.recruitment
@@ -21,7 +23,7 @@ const isProlific = computed(() => {
   return recruitment.value?.source === 'prolific'
 })
 const isMTurk = computed(() => {
-  return props.player?._system?.source === 'mturk'
+  return recruitment.value?.source === 'mturk'
 })
 const showTimers = computed(() => {
   return (isWaitingRoom.value || isComplete.value) && !props.hideTimers
@@ -34,7 +36,7 @@ const showTimers = computed(() => {
     <WaitingRoom v-if="isWaitingRoom" :player="props.player" />
     <template v-else-if="isComplete">
       <FinishProlific v-if="isProlific" :player="props.player" />
-      <FinishMTurk v-else-if="isMTurk" :player="props.player" />
+      <FinishMturk v-else-if="isMTurk" :player="props.player" />
       <FinishDefault v-else :player="props.player" />
     </template>
     <template v-else>

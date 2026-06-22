@@ -1,17 +1,12 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { PlayerData } from '@human-nature-lab/breadboard-core'
+
 const props = defineProps<{
-  player: {
-    _system?: {
-      recruitment?: {
-        source: 'mturk'
-        message: string
-        bonus: number
-        sandbox: boolean
-      }
-    }
-  }
+  player: PlayerData
 }>()
 
+const comments = ref('')
 const data = computed(() => props.player._system?.recruitment)
 const submitUrl = computed(() =>
   data.value?.sandbox
@@ -24,7 +19,7 @@ const submitUrl = computed(() =>
   <v-container>
     <div v-html="data.message" />
     <v-form :action="submitUrl" method="get">
-      <v-text-area
+      <v-textarea
         v-if="!data.noFeedback"
         v-model="comments"
         name="comments"
