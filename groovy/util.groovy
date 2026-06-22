@@ -132,11 +132,11 @@ class FrontendConfigOpts {
 }
 
 configureFrontend = { Vertex v, Map opts ->
-  FrontendConfigOpts opts = opts as FrontendConfigOpts
+  FrontendConfigOpts config = opts as FrontendConfigOpts
   _ensureSystem(v, 'frontend')
-  v._system.frontend.trackScreen = opts.trackScreen
-  v._system.frontend.prolific = opts.prolific
-  if (opts.trackScreen) {
+  v._system.frontend.trackScreen = config.trackScreen
+  v._system.frontend.prolific = config.prolific
+  if (config.trackScreen) {
     trackPlayerScreen(v)
   }
 }
