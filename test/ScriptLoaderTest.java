@@ -72,6 +72,26 @@ public class ScriptLoaderTest {
     }
 
     @Test
+    public void resolveLoadOrderGatesCoreExperimentalScriptsButKeepsCoreOrdering() throws Exception {
+        File dir = Files.createTempDirectory("bb-scripts-core-exp").toFile();
+        // groups.groovy is both core (order-sensitive) and experimental (gated)
+        String coreExp = "groups.groovy";
+        assertTrue(ScriptLoader.isCore(coreExp));
+        assertTrue(ScriptLoader.isExperimental(coreExp));
+        for (String n : new String[] { "util.groovy", "events.groovy", coreExp, "zeta.groovy" }) {
+            assertTrue(new File(dir, n).createNewFile());
+        }
+
+        // off: the core+experimental script is excluded; the rest keep core-then-alpha order
+        assertEquals(Arrays.asList("util.groovy", "events.groovy", "zeta.groovy"),
+            ScriptLoader.resolveLoadOrder(dir, false));
+
+        // on: it loads in its core position (after events, before the non-core zeta)
+        assertEquals(Arrays.asList("util.groovy", "events.groovy", "groups.groovy", "zeta.groovy"),
+            ScriptLoader.resolveLoadOrder(dir, true));
+    }
+
+    @Test
     public void isLoadableSkipsTestScriptsAndNonGroovy() {
         assertTrue(ScriptLoader.isLoadable("graph.groovy"));
         assertFalse(ScriptLoader.isLoadable("waiting_room_test.groovy"));

@@ -37,6 +37,10 @@ import play.Logger;
  * offending file (see {@link #evalNamed}). This is what lets test scripts and new drop-in
  * scripts be loaded and pointed at without hand-editing a hard-coded list.
  *
+ * <p>A set of {@linkplain #EXPERIMENTAL_SCRIPTS experimental scripts} is gated behind the
+ * {@code breadboard.experimental} config flag: when off they are excluded from the load order
+ * entirely, even if present in the groovy directory. The flag is off in production and on in dev.
+ *
  * <p>This class is the single source of truth for load order, shared by production
  * ({@link ScriptBoard#resetEngine}) and the test harness, so the two cannot drift.
  */
@@ -53,16 +57,19 @@ public final class ScriptLoader {
    *   <li>{@code step, events, chat, form, ready} &mdash; remaining core DSL</li>
    *   <li>{@code groups} &mdash; group steps/actions; loaded after {@code events} has installed
    *       {@code Vertex.on}. Listed here (rather than auto-discovered) so a load failure is
-   *       fatal instead of silently skipped.</li>
+   *       fatal instead of silently skipped. Gated by the experimental flag
+   *       (see {@link #EXPERIMENTAL_SCRIPTS}): loaded only when {@code breadboard.experimental} is on.</li>
    *   <li>{@code waiting_room} &mdash; the recruitment / waiting-room state machine
    *       ({@code WaitingRoom}, {@code WaitingRoomReadyUp}, {@code RecruitmentController}). It
    *       extends {@code BreadboardBase} ({@code util}) and constructs {@code SharedTimer} /
    *       {@code BBTimer} / {@code GroovyTimerTask} ({@code timer}), and registers player-scoped
    *       {@code Vertex.once} listeners ({@code events}), so it loads after all of those. Listed
    *       here (rather than auto-discovered) so a load failure is fatal instead of silently
-   *       skipped.</li>
+   *       skipped. Gated by the experimental flag (see {@link #EXPERIMENTAL_SCRIPTS}): loaded only
+   *       when {@code breadboard.experimental} is on.</li>
    * </ol>
-   * Any groovy file not listed here is loaded afterwards, in alphabetical order.
+   * Any groovy file not listed here is loaded afterwards, in alphabetical order. Entries that are
+   * also in {@link #EXPERIMENTAL_SCRIPTS} are loaded only when the experimental flag is on.
    */
   public static final List<String> CORE_ORDER = Collections.unmodifiableList(
     Arrays.asList(
@@ -88,12 +95,18 @@ public final class ScriptLoader {
    * Experimental scripts, loaded only when the {@code experimental} flag is on (driven by the
    * {@code breadboard.experimental} config option; see {@link ScriptBoard#resetEngine}). When the
    * flag is off these files are excluded from the load order even if present in the groovy
-   * directory; when on they load as ordinary non-core scripts (after the core set, alphabetically).
+   * directory. A script may be both experimental and {@linkplain #CORE_ORDER core}: the experimental
+   * gate is applied first, so when the flag is off it is skipped entirely, and when on it loads in
+   * its core (order-sensitive, fatal-on-failure) position. A purely experimental script (one not in
+   * {@link #CORE_ORDER}) loads as an ordinary non-core script, after the core set, alphabetically.
    * Add new opt-in scripts here as the experimental feature set grows.
    */
   public static final Set<String> EXPERIMENTAL_SCRIPTS = Collections.unmodifiableSet(
     new LinkedHashSet<String>(Arrays.asList(
-      "wait_group.groovy"
+      "wait_group.groovy",
+      "groups.groovy",
+      "waiting_room.groovy",
+      "recruitment.groovy",
     ))
   );
 

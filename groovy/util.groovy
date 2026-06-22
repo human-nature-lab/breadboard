@@ -104,3 +104,49 @@ BreadboardBase.metaClass.fetchContent = { Map opts ->
 BreadboardBase.metaClass.addEvent = { String name, Map data -> 
   a.addEvent(name, data)
 }
+
+_ensureSystem = { Vertex v, String key ->
+  if (!v.hasProperty('_system')) {
+    v._system = [:] as ObservableMap
+  }
+  if (!v._system.hasProperty(key)) {
+    v._system[key] = [:] as ObservableMap
+  }
+}
+
+// This tracks lots of information about the screen and sends it to the backend
+def trackPlayerScreen = { Vertex v ->
+  player.on("system-screen-tracker", { v, data ->
+    data.groupCondition = v.private.condition
+    data.groupId = v.private.groupId
+    data.playerId = v.id
+    a.addEvent("screen-tracker", data)
+  })
+}
+
+
+@ToString(includeNames = true, includePackage = false)
+class FrontendConfigOpts {
+  Boolean trackScreen
+  Boolean prolific
+}
+
+configureFrontend = { Vertex v, Map opts ->
+  FrontendConfigOpts opts = opts as FrontendConfigOpts
+  _ensureSystem(v, 'frontend')
+  v._system.frontend.trackScreen = opts.trackScreen
+  v._system.frontend.prolific = opts.prolific
+  if (opts.trackScreen) {
+    trackPlayerScreen(v)
+  }
+}
+
+// Send the kick event to the specified players
+kickPlayers = { ...playerIds ->
+  playerIds.each { playerId ->
+    def vertex = g.getVertex(playerId)
+    vertex.send("kick")
+    _ensureSystem(vertex, 'frontend')
+    vertex._system.frontend.kicked = true
+  }
+}
