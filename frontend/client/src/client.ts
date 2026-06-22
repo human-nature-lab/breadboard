@@ -66,7 +66,13 @@ export function loadVue(opts: VueLoadOpts) {
     const imports: Promise<any>[] = [import('vue')]
     if (opts.withVuetify) {
       imports.push(import('vuetify'))
-      imports.push(core.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`))
+      // In production the sass is extracted into client.css by MiniCssExtractPlugin
+      // and has to be pulled in via a <link>. In dev there is no extracted file —
+      // vue-style-loader injects the styles through JS when the modules load — so
+      // requesting client.css from the dev server 404s and rejects the whole load.
+      if (process.env.NODE_ENV === 'production') {
+        imports.push(core.addStyleFromURL(`${config.assetsRoot}/bundles/client.css`))
+      }
     }
     imports.push(import(/* webpackChunkName: "vue-components" */ './vue-components') as any)
     const res = await Promise.all(imports)
