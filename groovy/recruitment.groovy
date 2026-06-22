@@ -10,23 +10,24 @@ RecruitmentSource = [
   MTURK: 'mturk',
 ].asImmutable()
 
-@ToString(includeNames = true, includePackage = false)
+@ToString(includeNames = true)
 class ProlificRegisterOpts {
 }
 
-@ToString(includeNames = true, includePackage = false)
+@ToString(includeNames = true)
 class MTurkRegisterOpts {
 }
 
-@ToString(includeNames = true, includePackage = false)
+@ToString(includeNames = true)
 class ProlificCompleteOpts {
   String completionCode
   String message
   DateTime completedAt
   Double bonus
+  Boolean noFeedback
 }
 
-@ToString(includeNames = true, includePackage = false)
+@ToString(includeNames = true)
 class MTurkCompleteOpts {
   Double bonus
   Boolean noFeedback

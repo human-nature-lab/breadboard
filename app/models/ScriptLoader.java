@@ -106,7 +106,7 @@ public final class ScriptLoader {
       "wait_group.groovy",
       "groups.groovy",
       "waiting_room.groovy",
-      "recruitment.groovy",
+      "recruitment.groovy"
     ))
   );
 
