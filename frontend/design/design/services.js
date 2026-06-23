@@ -54,7 +54,7 @@ angular.module('breadboard.services')
       ? function(url) { return new wsClass(url); }
       : undefined;
   }])
-  .factory('breadboardFactory', ['websocketFactory', '$rootScope', '$cookieStore', '$http', '$q', function($websocketFactory, $rootScope, $cookieStore, $http, $q) {
+  .factory('breadboardFactory', ['websocketFactory', '$rootScope', '$cookies', '$http', '$q', function($websocketFactory, $rootScope, $cookies, $http, $q) {
 
     function websocketRoute(){
       var uri = '';
@@ -74,7 +74,7 @@ angular.module('breadboard.services')
     var sessionId;
     function makeWebsocket(){
       websocket = $websocketFactory('ws://localhost:9000/connect');
-      sessionId = $cookieStore.get('uid');
+      sessionId = $cookies.getObject('uid');
       websocket.onopen = function (evt) {
         websocket.send(JSON.stringify( {"action" : "LogIn", "uid" : sessionId }) );
       };
@@ -82,9 +82,9 @@ angular.module('breadboard.services')
 
     var statePromise = $http.get('/state')
         .then(function (res) {
-          $cookieStore.put('juid', res.data.juid);
-          $cookieStore.put('email', res.data.email);
-          $cookieStore.put('uid', res.data.uid);
+          $cookies.putObject('juid', res.data.juid);
+          $cookies.putObject('email', res.data.email);
+          $cookies.putObject('uid', res.data.uid);
           makeWebsocket();
         }, function (err) {
           console.error(err);

@@ -13,12 +13,14 @@ angular.module('breadboard.routes', ['ui.router', 'breadboard.middleware', 'ngCo
     .state('login', {
       url: '/login',
       templateUrl: loginTemplateUrl,
-      controller: ['$scope', '$state', '$cookieStore', function($scope, $state, $cookieStore){
+      controller: ['$scope', '$state', '$cookies', function($scope, $state, $cookies){
         $scope.path = '/login';
         $scope.onSuccess = function(res){
-          $cookieStore.put('email', res.data.email);
-          $cookieStore.put('juid', res.data.juid);
-          $cookieStore.put('uid', res.data.uid);
+          // $cookieStore was removed in angular-cookies 1.6+; $cookies.putObject/getObject
+          // is the drop-in replacement (same JSON encoding, so existing cookies still decode).
+          $cookies.putObject('email', res.data.email);
+          $cookies.putObject('juid', res.data.juid);
+          $cookies.putObject('uid', res.data.uid);
           window.Breadboard.disconnect()
           $state.go('home');
         };
