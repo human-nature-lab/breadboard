@@ -14,7 +14,11 @@ const submitUrl = computed(() => {
 })
 
 const feedback = ref('')
+// Flips true once the participant clicks Finish, so we can reveal the manual completion link as a
+// fallback in case the automatic redirect below is blocked (e.g. a pop-up/navigation blocker).
+const submitted = ref(false)
 function submit() {
+  submitted.value = true
   Breadboard.send('exiting', { feedback: feedback.value })
   setTimeout(() => {
     window.location.href = submitUrl.value
@@ -28,8 +32,8 @@ function submit() {
     <p v-html="data.message" />
     <h3 class="py-4">Completion code: {{ data.completionCode }}</h3>
     <v-textarea v-if="!data.noFeedback" v-model="feedback" solo />
-    <v-btn @click="submit"> Finish </v-btn>
-    <p v-if="data.submittedFeedback">
+    <v-btn @click="submit" :disabled="submitted"> Finish </v-btn>
+    <p v-if="submitted">
       Click on this link if you're not automatically redirected:
       <a :href="submitUrl">{{ submitUrl }}</a>
     </p>
