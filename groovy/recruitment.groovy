@@ -16,6 +16,7 @@ class ProlificRegisterOpts {
 
 @ToString(includeNames = true)
 class MTurkRegisterOpts {
+  Boolean sandbox
 }
 
 @ToString(includeNames = true)
@@ -34,26 +35,56 @@ class MTurkCompleteOpts {
   String reason
 }
 
+private class RecruitmentController extends BreadboardBase {
 
-recruitment = [
-  registerProlific: { Vertex v, Map opts = [:] ->
+  Boolean recruitmentActive = true
+  TinkerGraph graph
+  Set completedPlayerIds = [] as Set
+  Set inGamePlayerIds = [] as Set
+  Set pendingPlayerIds = [] as Set
+
+  RecruitmentController(TinkerGraph graph) {
+    this.graph = graph
+  }
+
+  public setInGamePlayer(...playerIds){
+    inGamePlayerIds.addAll(playerIds)
+    pendingPlayerIds.removeAll(playerIds)
+  }
+
+  public stopRecruitingProlific(Map opts = [:]) {
+    recruitmentActive = false
+    for (String playerId in pendingPlayerIds) {
+      pendingPlayerIds.remove(playerId)
+      def v = graph.getVertex(playerId)
+      completeProlific(v, opts)
+    }
+  }
+
+  public stopRecruitingMturk(Map opts = [:]) {
+    recruitmentActive = false
+    for (String playerId in pendingPlayerIds) {
+      pendingPlayerIds.remove(playerId)
+      def v = graph.getVertex(playerId)
+      completeMturk(v, opts)
+    }
+  }
+
+  public registerProlific(Vertex v, Map opts = [:]) {
+    if (!recruitmentActive) return
     ProlificRegisterOpts registerOpts = new ProlificRegisterOpts(opts)
     _ensureSystem(v, 'recruitment')
     v._system.recruitment.source = RecruitmentSource.PROLIFIC
-  },
-  registerMturk: { Vertex v, Map opts = [:] ->
-    MTurkRegisterOpts registerOpts = new MTurkRegisterOpts(opts)
-    _ensureSystem(v, 'recruitment')
-    v._system.recruitment.source = RecruitmentSource.MTURK
-  },
-  completeProlific: { Vertex v, Map opts = [:] ->
+    pendingPlayerIds.add(v.id)
+  }
+
+  public completeProlific(Vertex v, Map opts = [:]) {
+    pendingPlayerIds.remove(v.id)
+    completedPlayerIds.add(v.id)
     ProlificCompleteOpts completeOpts = new ProlificCompleteOpts(opts)
     _ensureSystem(v, 'recruitment')
     if (v._system.recruitment.source != RecruitmentSource.PROLIFIC) {
       throw new IllegalArgumentException("Cannot complete prolific registration for non-prolific source")
-    }
-    if (!completeOpts.completionCode) {
-      throw new IllegalArgumentException("Completion code is required")
     }
     v._system.recruitment.completed = true
     v._system.recruitment.completedAt = DateTime.now()
@@ -61,8 +92,20 @@ recruitment = [
     v._system.recruitment.bonus = completeOpts.bonus
     v._system.recruitment.message = completeOpts.message
     v._system.recruitment.noFeedback = completeOpts.noFeedback
-  },
-  completeMturk: { Vertex v, Map opts = [:] ->
+  }
+
+  public registerMturk(Vertex v, Map opts = [:]) {
+    if (!recruitmentActive) return
+    pendingPlayerIds.add(v.id)
+    MTurkRegisterOpts registerOpts = new MTurkRegisterOpts(opts)
+    _ensureSystem(v, 'recruitment')
+    v._system.recruitment.source = RecruitmentSource.MTURK
+    v._system.recruitment.sandbox = registerOpts.sandbox
+  }
+
+  public completeMturk(Vertex v, Map opts = [:]) {
+    pendingPlayerIds.remove(v.id)
+    completedPlayerIds.add(v.id)
     MTurkCompleteOpts completeOpts = new MTurkCompleteOpts(opts)
     _ensureSystem(v, 'recruitment')
     if (v._system.recruitment.source != RecruitmentSource.MTURK) {
@@ -76,4 +119,6 @@ recruitment = [
     v._system.recruitment.reason = completeOpts.reason
     v._system.recruitment.bonus = completeOpts.bonus
   }
-]
+}
+
+recruitment = new RecruitmentController()

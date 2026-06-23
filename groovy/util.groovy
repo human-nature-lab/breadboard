@@ -118,6 +118,8 @@ _ensureSystem = { Vertex v, String key ->
   }
 }
 
+BreadboardBase.metaClass._ensureSystem = _ensureSystem
+
 // This tracks lots of information about the screen and sends it to the backend
 def trackPlayerScreen = { Vertex v ->
   player.on("system-screen-tracker", { ev, data ->
