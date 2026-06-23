@@ -148,6 +148,10 @@ public class ScriptBoard extends UntypedActor {
     }
     Logger.debug("ScriptEngine reload start");
     if (engine != null) {
+      // Give experiment / framework code a chance to release resources before teardown, while
+      // g / a / timers are still live (see onBeforeEngineReload in events.groovy). processScript
+      // already swallows + logs any error, so a misbehaving hook can never abort the reload.
+      processScript("_runBeforeEngineReloadHooks()", null, null);
       // just in case
       playerActions.turnAIOff();
       // clean up the graph

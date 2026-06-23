@@ -126,7 +126,11 @@ class WaitingRoom extends BreadboardBase {
   private AtomicInteger groupId
   private AtomicBoolean isLoopRunning = new AtomicBoolean(false)
   private boolean _started = false
-  public RecruitmentController _recruitmentController
+  // The single recruitment controller (recruitment.groovy), injected via setRecruitment(). Left
+  // null when the lobby is used without recruitment (e.g. unit tests); every call below is guarded.
+  // Untyped on purpose: RecruitmentController is defined in recruitment.groovy, which loads AFTER
+  // this script, so a typed field would be a forward compile reference. Calls dispatch dynamically.
+  def _recruitment = null
 
   public WaitingRoom(int minPlayers, int maxPlayers) {
     this.minPlayers = minPlayers
@@ -139,7 +143,14 @@ class WaitingRoom extends BreadboardBase {
     this._setStageCb = this.defaultSetStageCb
     this.foundGroupAt = 0
     this.groupId = new AtomicInteger(0)
-    this._recruitmentController = new RecruitmentController()
+  }
+
+  // Wire the lobby to the experiment's recruitment controller. Once set, the lobby reports
+  // waiting / game-start / game-complete transitions to it (see the guarded calls below).
+  public setRecruitment(rc) {
+    this.withLock {
+      this._recruitment = rc
+    }
   }
 
   public setGroupId(int groupId) {
@@ -167,7 +178,7 @@ class WaitingRoom extends BreadboardBase {
         if (this.addedPlayers.contains(player.id)) {
           continue
         }
-        this._recruitmentController.clientWaiting(player.id)
+        if (this._recruitment != null) this._recruitment.clientWaiting(player.id)
         this.addedPlayers.add(player.id)
         this.waitingPlayers.add(player)
         this._setStageCb(player)
@@ -190,7 +201,7 @@ class WaitingRoom extends BreadboardBase {
 
   public enableLogging() {
     this.showLogs = true
-    this._recruitmentController.enableLogging()
+    if (this._recruitment != null) this._recruitment.enableLogging()
   }
 
   public removePlayers(...players) {
@@ -251,14 +262,14 @@ class WaitingRoom extends BreadboardBase {
       }
       this._started = true
       this._loopTimer.scheduleAtFixedRate(this._loop as GroovyTimerTask, 0, 1000)
-      this._recruitmentController.start()
+      if (this._recruitment != null) this._recruitment.start()
     }
   }
 
   public stop() {
     this.withLock {
       this._loopTimer.cancel()
-      this._recruitmentController.stop()
+      if (this._recruitment != null) this._recruitment.stop()
       if (this._foundGroupTimer) {
         this._foundGroupTimer.cancel()
       }
@@ -309,15 +320,15 @@ class WaitingRoom extends BreadboardBase {
   }
 
   public clientPending(String clientId) {
-    this._recruitmentController.clientPending(clientId)
+    if (this._recruitment != null) this._recruitment.clientPending(clientId)
   }
 
   public clientCompleted(String clientId) {
-    this._recruitmentController.clientCompleted(clientId)
+    if (this._recruitment != null) this._recruitment.clientCompleted(clientId)
   }
 
   public groupCompleted(String groupId) {
-    this._recruitmentController.gameCompleted(groupId)
+    if (this._recruitment != null) this._recruitment.gameCompleted(groupId)
   }
 
   private startPendingGroups() {
@@ -447,7 +458,7 @@ class WaitingRoom extends BreadboardBase {
       players: group,
       result: {
         this.log("group $gid starting", group.collect { it.id })
-        this._recruitmentController.gameStarted(gid, group.collect { it.id })
+        if (this._recruitment != null) this._recruitment.gameStarted(gid, group.collect { it.id })
         this.removePlayers(*group)
         this._startGroupTimers.remove(timer)
         cb(group, gid)
@@ -488,167 +499,6 @@ class WaitingRoom extends BreadboardBase {
           }
         ])
       }
-    }
-  }
-
-}
-
-
-class RecruitmentClient {
-  String id
-  Date joinedAt
-  Date startedGameAt
-  Date waitingAt
-  Date completedGameAt
-  String state
-  String gameId
-
-  public RecruitmentClient(String id) {
-    this.id = id
-    this.joinedAt = new Date()
-    this.startedGameAt = null
-    this.waitingAt = null
-    this.completedGameAt = null
-    this.state = "pending"
-    this.gameId = null
-  }
-
-  public setState(String state) {
-    this.state = state
-  }
-}
-
-
-/**
- * This class will keep track of counts and timing information for all clients. It's goal is to maximize the completion
- * rate of games while minimizing the time spent on the task before the game starts.
- */
-class RecruitmentController extends BreadboardBase {
-  int maxSimultaneousGames = 5   // max number of games that can be running at once
-  int desiredCompletedGames = 10 // number of games to run before stopping recruitment
-  int minPlayersPerGame = 15     // min number of players per game
-  int maxPlayersPerGame = 25     // max number of players per game
-
-  List<RecruitmentClient> clients
-  Map<String, Boolean> activeGames
-  int completedGames = 0
-  int completedPlayers = 0
-  private BBTimer _loopTimer
-  private boolean _showLogs = false
-  private AtomicBoolean isRecruitmentLoopRunning = new AtomicBoolean(false)
-
-  public RecruitmentController() {
-    this.clients = new CopyOnWriteArrayList<>()
-    this.activeGames = new ConcurrentHashMap<>()
-    this._loopTimer = new BBTimer()
-  }
-
-  private log(...args) {
-    if (this._showLogs) {
-      println "[RecruitmentController] " + args.join(" ")
-    }
-  }
-
-  public enableLogging() {
-    this._showLogs = true
-  }
-
-  public start() {
-    this._loopTimer.scheduleAtFixedRate(this._loop as GroovyTimerTask, 0, 10000)
-  }
-
-  public stop() {
-    this._loopTimer.cancel()
-  }
-
-  public clientPending(String clientId) {
-    this._setClientState(clientId, "pending")
-  }
-
-  private _setClientState(String clientId, String state) {
-    def index = this.clients.findIndexOf { it.id == clientId }
-    if (index == -1) {
-      // New client: set its state and add it. Returning here avoids indexing clients[-1] (Groovy
-      // negative indexing = last element), which is wrong under concurrent adds.
-      def client = new RecruitmentClient(clientId)
-      client.setState(state)
-      this.clients.add(client)
-      return
-    }
-    this.clients[index].setState(state)
-  }
-
-  public clientWaiting(String clientId) {
-    this._setClientState(clientId, "waiting")
-  }
-
-  public clientCompleted(String clientId) {
-    this._setClientState(clientId, "completed")
-  }
-
-  public removeClient(String clientId) {
-    this._setClientState(clientId, "removed")
-  }
-
-  public gameStarted(String gameId, ArrayList<String> clientIds) {
-    for (def client in this.clients) {
-      if (clientIds.contains(client.id)) {
-        client.gameId = gameId
-        this._setClientState(client.id, "active")
-      }
-    }
-    this.activeGames.put(gameId, true)
-  }
-
-  public gameCompleted(String gameId) {
-    def clients = this.clients.findAll { it.gameId == gameId }
-    if (clients) {
-      for (def client in clients) {
-        client.gameId = null
-        this._setClientState(client.id, "completed")
-      }
-      this.activeGames.remove(gameId)
-      this.completedGames++
-    }
-  }
-
-  public canStartGame() {
-    return this.activeGames.size() < this.maxSimultaneousGames
-  }
-
-  private _loop = {
-    // Prevent overlapping executions using atomic boolean
-    if (!isRecruitmentLoopRunning.compareAndSet(false, true)) {
-      // Previous execution still running, skip this iteration
-      return
-    }
-
-    try {
-      def categories = new HashMap<String, Integer>()
-      for (def client : this.clients) {
-        if (!categories.containsKey(client.state)) {
-          categories[client.state] = 0
-        }
-        categories[client.state]++
-      }
-      def s = ""
-      for (def category : categories) {
-        s += "$category.key: $category.value, "
-      }
-      if (s.length() > 0) {
-        s = s.substring(0, s.length() - 2)
-        s = "clients: $s"
-      }
-      def completedGames = this.completedGames
-      def activeGames = this.activeGames.size()
-      def desiredGames = this.desiredCompletedGames
-      this.log("games: $activeGames active, $completedGames completed, $desiredGames desired; $s")
-    } catch (Exception e) {
-      println "Error in RecruitmentController._loop: ${e.message}"
-      e.printStackTrace()
-    } finally {
-      // Always reset the flag, even if an exception occurred
-      isRecruitmentLoopRunning.set(false)
     }
   }
 

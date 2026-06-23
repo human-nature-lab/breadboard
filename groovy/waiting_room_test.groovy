@@ -8,9 +8,9 @@
 //   test.skip("name") { ... }                       -> reported as ignored, not run
 //
 // `g`, `a`, `events`, `timers` etc. are the same engine bindings the platform scripts see;
-// WaitingRoom / WaitingRoomReadyUp / RecruitmentController come from waiting_room.groovy, already
-// loaded (it's a core script). `a.addEvent` forwards to the disabled EventTracker here, so the
-// not-enough-players event path runs without persisting anything.
+// WaitingRoom / WaitingRoomReadyUp come from waiting_room.groovy and RecruitmentController from
+// recruitment.groovy, both already loaded (core scripts). `a.addEvent` forwards to the disabled
+// EventTracker here, so the not-enough-players event path runs without persisting anything.
 //
 // A client "presses Ready" exactly like the real path: a CustomEvent on the bus -> events.groovy
 // routes it to the per-player listener WaitingRoomReadyUp.startPlayer installed via Vertex.once.
@@ -261,38 +261,27 @@ test.async("ready-up with more than maxPlayers forms multiple full groups and bu
   autoReadyUp(roster)                          // everyone readies up as soon as the window opens
 }
 
-// --- RecruitmentController: client/game state tracking ----------------------------------------
+// --- WaitingRoom delegates recruitment tracking to the injected controller ----------------------
+// The controller itself now lives in recruitment.groovy (and is tested there). Here we only verify
+// the lobby forwards to whatever controller is injected via setRecruitment, and that every
+// recruitment call is a safe no-op when none is wired (the orchestration tests above rely on that).
 
-test("RecruitmentController tracks a client through its lifecycle without duplicating it") {
-  def rc = new RecruitmentController()
-  rc.clientPending("c1")
-  assert rc.clients.find { it.id == "c1" }.state == "pending"
-  rc.clientWaiting("c1")
-  assert rc.clients.find { it.id == "c1" }.state == "waiting"
-  rc.clientCompleted("c1")                  // regression: this method previously didn't exist
-  assert rc.clients.find { it.id == "c1" }.state == "completed"
-  assert rc.clients.size() == 1            // same client updated in place (no clients[-1] dup)
-}
-
-test("RecruitmentController.gameStarted/gameCompleted move clients and count completed games") {
-  def rc = new RecruitmentController()
-  rc.clientWaiting("g1")
-  rc.clientWaiting("g2")
-
-  rc.gameStarted("game-1", ["g1", "g2"])
-  assert rc.clients.find { it.id == "g1" }.state == "active"
-  assert rc.clients.find { it.id == "g1" }.gameId == "game-1"
-  assert rc.activeGames.containsKey("game-1")
-
-  rc.gameCompleted("game-1")
-  assert rc.clients.find { it.id == "g1" }.state == "completed"
-  assert rc.clients.find { it.id == "g1" }.gameId == null
-  assert !rc.activeGames.containsKey("game-1")
-  assert rc.completedGames == 1
-}
-
-test("WaitingRoom.clientCompleted delegates to the recruitment controller without throwing") {
+test("WaitingRoom forwards client tracking to the injected recruitment controller") {
+  def rc = new RecruitmentController(g)
   def wr = new WaitingRoom(2, 3)
+  wr.setRecruitment(rc)
+
+  wr.clientPending("x")
+  assert rc.clients.find { it.id == "x" }.state == "pending"
   wr.clientCompleted("x")                   // regression: was a MissingMethodException
-  assert wr._recruitmentController.clients.find { it.id == "x" }.state == "completed"
+  assert rc.clients.find { it.id == "x" }.state == "completed"
+}
+
+test("WaitingRoom recruitment pass-throughs are no-ops when no controller is injected") {
+  def wr = new WaitingRoom(2, 3)            // no setRecruitment -> _recruitment stays null
+  // None of these throw even though no controller is wired.
+  wr.clientPending("y")
+  wr.clientCompleted("y")
+  wr.groupCompleted("game-z")
+  assert wr._recruitment == null
 }

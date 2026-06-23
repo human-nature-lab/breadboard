@@ -567,6 +567,68 @@ test("TreatmentManager + Games: abandon releases the slot for reassignment") {
   assert tm.get('solo').completed == 0       // ...and it was never counted as completed
 }
 
+// --- Games -> recruitment auto-tracking -------------------------------------------------------
+// Games.create / Game.finish / Game.abandon report the game lifecycle to whatever recruitment
+// controller is bound into GroupContext (in production that's the global `recruitment`). These
+// tests swap in a fresh controller and restore the bound one in `finally` so global state is left
+// untouched. The updates are idempotent with WaitingRoom's, so the lobby + Games can both drive them.
+
+test("Games.create + Game.finish report start/completion to the bound recruitment controller") {
+  def saved = GroupContext.recruitment
+  def rc = new RecruitmentController(g)
+  try {
+    GroupContext.recruitment = rc
+    def p1 = g.addPlayer('recGameP1')
+    rc.clientWaiting('recGameP1')              // a known recruitment client
+    def game = Games.create('recGame', [p1], null, { })   // explicit no-op builder
+
+    // create -> gameStarted: client is active and the game holds a slot
+    assert rc.activeGames.containsKey('recGame')
+    assert rc.clients.find { it.id == 'recGameP1' }.state == 'active'
+    assert rc.clients.find { it.id == 'recGameP1' }.gameId == 'recGame'
+
+    game.finish()
+    // finish -> gameCompleted: slot freed, client completed, one completed game counted
+    assert !rc.activeGames.containsKey('recGame')
+    assert rc.clients.find { it.id == 'recGameP1' }.state == 'completed'
+    assert rc.completedGames == 1
+  } finally {
+    GroupContext.recruitment = saved
+  }
+}
+
+test("Game.abandon frees the recruitment slot without counting a completed game") {
+  def saved = GroupContext.recruitment
+  def rc = new RecruitmentController(g)
+  try {
+    GroupContext.recruitment = rc
+    def p1 = g.addPlayer('recGameAbP1')
+    rc.clientWaiting('recGameAbP1')
+    def game = Games.create('recGameAb', [p1], null, { })
+    assert rc.activeGames.containsKey('recGameAb')
+
+    game.drop(p1)                              // only player drops -> cohort empty -> abandon
+    assert !rc.activeGames.containsKey('recGameAb')   // slot freed
+    assert rc.completedGames == 0                     // abandoned, NOT counted as completed
+    assert rc.clients.find { it.id == 'recGameAbP1' }.gameId == null
+  } finally {
+    GroupContext.recruitment = saved
+  }
+}
+
+test("Games auto-tracking is a no-op when no recruitment controller is bound") {
+  def saved = GroupContext.recruitment
+  try {
+    GroupContext.recruitment = null            // nothing bound
+    def p1 = g.addPlayer('recGameNoneP1')
+    def game = Games.create('recGameNone', [p1], null, { })
+    game.finish()                              // must not throw even with no controller
+    assert Games.get('recGameNone') == null    // finished + disposed cleanly
+  } finally {
+    GroupContext.recruitment = saved
+  }
+}
+
 // --- TreatmentManager.factorial ----------------------------------------------
 // factorial enumerates the cartesian product of {var: [values]} into one treatment per cell.
 

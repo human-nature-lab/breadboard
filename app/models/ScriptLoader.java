@@ -59,14 +59,21 @@ public final class ScriptLoader {
    *       {@code Vertex.on}. Listed here (rather than auto-discovered) so a load failure is
    *       fatal instead of silently skipped. Gated by the experimental flag
    *       (see {@link #EXPERIMENTAL_SCRIPTS}): loaded only when {@code breadboard.experimental} is on.</li>
-   *   <li>{@code waiting_room} &mdash; the recruitment / waiting-room state machine
-   *       ({@code WaitingRoom}, {@code WaitingRoomReadyUp}, {@code RecruitmentController}). It
-   *       extends {@code BreadboardBase} ({@code util}) and constructs {@code SharedTimer} /
-   *       {@code BBTimer} / {@code GroovyTimerTask} ({@code timer}), and registers player-scoped
-   *       {@code Vertex.once} listeners ({@code events}), so it loads after all of those. Listed
-   *       here (rather than auto-discovered) so a load failure is fatal instead of silently
-   *       skipped. Gated by the experimental flag (see {@link #EXPERIMENTAL_SCRIPTS}): loaded only
-   *       when {@code breadboard.experimental} is on.</li>
+   *   <li>{@code waiting_room} &mdash; the waiting-room / matchmaking state machine
+   *       ({@code WaitingRoom}, {@code WaitingRoomReadyUp}). It extends {@code BreadboardBase}
+   *       ({@code util}) and constructs {@code SharedTimer} / {@code BBTimer} /
+   *       {@code GroovyTimerTask} ({@code timer}), and registers player-scoped {@code Vertex.once}
+   *       listeners ({@code events}), so it loads after all of those. Listed here (rather than
+   *       auto-discovered) so a load failure is fatal instead of silently skipped. Gated by the
+   *       experimental flag (see {@link #EXPERIMENTAL_SCRIPTS}): loaded only when
+   *       {@code breadboard.experimental} is on.</li>
+   *   <li>{@code recruitment} &mdash; the single {@code RecruitmentController} (the panel
+   *       register/complete lifecycle plus client/game accounting and the recruitment gate). It
+   *       extends {@code BreadboardBase} ({@code util}), constructs {@code BBTimer} ({@code timer}),
+   *       and is handed the graph {@code g} ({@code graph}) at construction, so it loads after them
+   *       (and after {@code waiting_room}, which delegates to it). Listed here so a load failure is
+   *       fatal instead of silently skipped. Gated by the experimental flag (see
+   *       {@link #EXPERIMENTAL_SCRIPTS}): loaded only when {@code breadboard.experimental} is on.</li>
    * </ol>
    * Any groovy file not listed here is loaded afterwards, in alphabetical order. Entries that are
    * also in {@link #EXPERIMENTAL_SCRIPTS} are loaded only when the experimental flag is on.
@@ -84,7 +91,8 @@ public final class ScriptLoader {
       "form.groovy",
       "ready.groovy",
       "groups.groovy",
-      "waiting_room.groovy"
+      "waiting_room.groovy",
+      "recruitment.groovy"
     )
   );
 

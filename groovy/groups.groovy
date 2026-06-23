@@ -21,11 +21,19 @@ class GroupContext {
   static Object g
   static Object a
   static Object events
+  // The recruitment controller (recruitment.groovy). Bound separately, AFTER groups.groovy loads,
+  // because recruitment.groovy loads later (see ScriptLoader.CORE_ORDER) -- it can't exist yet at
+  // groups.groovy load time. Stays null until then; Games/Game guard on it being non-null.
+  static Object recruitment
 
   static void bind(Object gIn, Object aIn, Object eventsIn) {
     if (gIn != null) g = gIn
     if (aIn != null) a = aIn
     if (eventsIn != null) events = eventsIn
+  }
+
+  static void bindRecruitment(Object rec) {
+    if (rec != null) recruitment = rec
   }
 }
 
@@ -55,6 +63,9 @@ class Games {
     def game = new Game(id as String, parameters)
     byId[id as String] = game
     players?.each { game.addPlayer(it) }
+    // Report the cohort start to the recruitment controller (if one is bound). Done before the
+    // builder runs, so the reported cohort is the human players, not AI added during the build.
+    _notifyRecruitmentGameStarted(game)
     def b = (builder != null) ? builder : defaultBuilder
     if (b != null) {
       b.delegate = game
@@ -62,6 +73,20 @@ class Games {
       b(game)
     }
     return game
+  }
+
+  // Best-effort: tell the bound recruitment controller a game started. Idempotent with
+  // WaitingRoom.gameStarted (both key on the game id), so the canonical lobby flow
+  // (onGroupReady -> Games.create with the same id) does NOT double-count. Player ids that aren't
+  // recruitment clients (e.g. AI) are ignored by the controller. Guarded so a recruitment hiccup
+  // can never break game creation.
+  private static void _notifyRecruitmentGameStarted(Game game) {
+    try {
+      def rec = GroupContext.recruitment
+      if (rec != null) rec.gameStarted(game.id, game.getPlayers()*.id)
+    } catch (Exception e) {
+      println "[Games] recruitment.gameStarted threw: $e"
+    }
   }
 
   static Game get(Object id) { byId[id as String] }
@@ -374,6 +399,7 @@ class Game {
     try { already = finished; finished = true } finally { lock.unlock() }
     if (already) return
     if (onFinishClosure != null) { try { onFinishClosure() } catch (Exception e) { logErr("onFinish", e) } }
+    notifyRecruitment(true)   // completed -> counts toward completedGames
     dispose()
   }
 
@@ -384,7 +410,22 @@ class Game {
     try { already = finished; finished = true } finally { lock.unlock() }
     if (already) return
     if (onAbandonClosure != null) { try { onAbandonClosure() } catch (Exception e) { logErr("onAbandon", e) } }
+    notifyRecruitment(false)  // abandoned -> frees the slot, NOT counted as completed
     dispose()
+  }
+
+  // Best-effort: report this game's end to the bound recruitment controller (if one is set).
+  // `completed` true -> gameCompleted (counts); false -> gameAbandoned (frees the slot, no count).
+  // Both are idempotent with WaitingRoom.groupCompleted, so wiring both can't double-count. Guarded
+  // so a recruitment hiccup can never break finish/abandon.
+  private void notifyRecruitment(boolean completed) {
+    try {
+      def rec = GroupContext.recruitment
+      if (rec == null) return
+      if (completed) rec.gameCompleted(this.id) else rec.gameAbandoned(this.id)
+    } catch (Exception e) {
+      logErr("recruitment notify", e)
+    }
   }
 
   // Release AI resources, untag players, drop all pending, unregister.
