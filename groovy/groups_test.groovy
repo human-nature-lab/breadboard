@@ -42,12 +42,12 @@ def submit = { p, uid ->
     [clientId: p.id])
 }
 
-// A reusable single-step game definition: every active player gets one choice, and the step's
-// `done` bumps the supplied counter when the pending queue drains.
+// A reusable single-step game definition: every active player gets one decision with a single
+// option, and the step's `done` bumps the supplied counter when the pending queue drains.
 def defineCounterGame = { AtomicInteger doneCount ->
   Games.define { game ->
     game.step('trial', [
-      run:  { game.players.each { p -> game.ask(p, [name: 'go'], { v, data -> }) } },
+      run:  { game.players.each { p -> game.ask(p, [name: 'go', result: { v, data -> }]) } },
       done: { doneCount.incrementAndGet() },
     ])
   }
@@ -76,7 +76,7 @@ test("two games keep independent queues; resolving one fires done only for that 
   def doneIds = []
   Games.define { game ->
     game.step('trial', [
-      run:  { game.players.each { p -> game.ask(p, [name: 'go'], { v, data -> }) } },
+      run:  { game.players.each { p -> game.ask(p, [name: 'go', result: { v, data -> }]) } },
       done: { doneIds << game.id },
     ])
   }
@@ -99,12 +99,81 @@ test("two games keep independent queues; resolving one fires done only for that 
   assert doneIds == ['grpIsoA']            // ...and only A's step completed
 }
 
+// The defining feature: ONE ask presents MULTIPLE mutually-exclusive options (the a.add model).
+// Every option is a button; picking ANY option resolves the single decision -- it runs that
+// option's OWN result closure and clears ALL of the player's buttons for that decision. This is the
+// prisoner's-dilemma case the old single-choice ask could not express.
+test("a multi-option ask is one decision: picking an option runs its result and clears the buttons") {
+  def picked = []
+  def doneCount = new AtomicInteger(0)
+  Games.define { game ->
+    game.step('trial', [
+      run: { game.players.each { p ->
+        game.ask(p,
+          [name: 'Cooperate', result: { v, data -> picked << [id: v.id, choice: 'C'] }],
+          [name: 'Defect',    result: { v, data -> picked << [id: v.id, choice: 'D'] }])
+      } },
+      done: { doneCount.incrementAndGet() },
+    ])
+  }
+  def p1 = g.addPlayer('mc1')
+  def p2 = g.addPlayer('mc2')
+  def game = Games.create('grpMC', [p1, p2])
+  game.go('trial')
+
+  assert game.pendingCount() == 2                          // one decision per player...
+  assert p1.choices.size() == 2                            // ...each showing BOTH option buttons
+  assert p2.choices.size() == 2
+
+  // p1 cooperates (picks the first button), p2 defects (picks the second).
+  def coopUid   = p1.choices.find { it.name == 'Cooperate' }.uid
+  def defectUid = p2.choices.find { it.name == 'Defect' }.uid
+
+  submit(p1, coopUid)
+  assert game.pendingCount() == 1                          // p1's single decision resolved...
+  assert p1.choices.size() == 0                            // ...and BOTH of p1's buttons were cleared
+  assert doneCount.get() == 0                              // p2 still outstanding -> step not done
+
+  submit(p2, defectUid)
+  assert game.pendingCount() == 0
+  assert p2.choices.size() == 0
+  assert doneCount.get() == 1                              // step drained -> done fired exactly once
+  assert picked.sort { it.id } == [[id: 'mc1', choice: 'C'], [id: 'mc2', choice: 'D']]
+}
+
+// After a decision resolves, a stale submit naming the OTHER (already-cleared) option must be a
+// no-op: the decision is gone from the pending set, so its result must not run a second time.
+test("a second submit for an already-resolved decision is ignored") {
+  def resultCount = new AtomicInteger(0)
+  Games.define { game ->
+    game.step('trial', [
+      run: { game.players.each { p ->
+        game.ask(p,
+          [name: 'Cooperate', result: { v, data -> resultCount.incrementAndGet() }],
+          [name: 'Defect',    result: { v, data -> resultCount.incrementAndGet() }])
+      } },
+      done: { },
+    ])
+  }
+  def p1 = g.addPlayer('stale1')
+  def game = Games.create('grpStale', [p1])
+  game.go('trial')
+
+  def coopUid   = p1.choices.find { it.name == 'Cooperate' }.uid
+  def defectUid = p1.choices.find { it.name == 'Defect' }.uid
+  submit(p1, coopUid)
+  submit(p1, defectUid)                                    // stale: the decision already resolved
+
+  assert resultCount.get() == 1                            // exactly one option's result ran
+  assert game.pendingCount() == 0
+}
+
 test("ask before any go() throws") {
   def p1 = g.addPlayer('pre1')
   def game = Games.create('grpPre', [p1])
-  // No step is current yet -> ask() must refuse to queue a choice.
+  // No step is current yet -> ask() must refuse to queue a decision.
   def threw = false
-  try { game.ask(p1, [name: 'x'], { v, data -> }) } catch (IllegalStateException e) { threw = true }
+  try { game.ask(p1, [name: 'x', result: { v, data -> }]) } catch (IllegalStateException e) { threw = true }
   assert threw : 'ask() before a step is current must throw'
 }
 
@@ -134,7 +203,7 @@ test("dropping a player drains their ask, completes the step, and excludes them 
   game.go('trial')
 
   assert game.pendingCount() == 2
-  submit(p1, p1.choices[0].uid)            // p1 answers normally
+  submit(p1, p1.choices[0].uid)            // p1 answers normally (their decision's only option)
   assert game.pendingCount() == 1          // p2 still outstanding...
   assert doneCount.get() == 0              // ...so done has NOT fired yet
 
@@ -164,13 +233,13 @@ test("parameters is read-only and rejects unknown keys") {
   assert threwMissing : 'reading an unknown parameter must throw MissingPropertyException'
 }
 
-// An AI player (player.ai == 1) auto-resolves its own ask: Game.ask schedules a submit on a timer,
-// which emits the same CustomEvent a real client would. Async because the AI fires off-thread.
-test.async("an AI player auto-resolves its ask", 4000) { done ->
+// An AI player (player.ai == 1) auto-resolves its own decision: Game.ask schedules a submit on a
+// timer, which emits the same CustomEvent a real client would. Async because the AI fires off-thread.
+test.async("an AI player auto-resolves its decision", 4000) { done ->
   def doneCount = new AtomicInteger(0)
   Games.define { game ->
     game.step('trial', [
-      run:  { game.players.each { p -> game.ask(p, [name: 'go'], { v, data -> }) } },
+      run:  { game.players.each { p -> game.ask(p, [name: 'go', result: { v, data -> }]) } },
       done: { doneCount.incrementAndGet(); done { assert doneCount.get() == 1 } },
     ])
   }
@@ -180,23 +249,46 @@ test.async("an AI player auto-resolves its ask", 4000) { done ->
   game.go('trial')                         // asks the AI; it auto-submits after a short delay
 }
 
-// An AI asked MORE THAN ONCE in a single step must auto-resolve EVERY ask: each ask drives a
-// submit for its OWN uid, so the step's pending queue drains and done fires exactly once.
-// (Previously the AI chose a random uid across all the player's group choices, so some asks
-// could go unanswered and the step would stall.) The two asks also resolve off two separate
-// timer threads, exercising the concurrent-resolve path that must fire done exactly once.
-test.async("an AI asked multiple times in one step resolves every ask", 4000) { done ->
+// An AI faced with a MULTI-OPTION decision picks one option at random and resolves the single
+// decision -- so the step drains and done fires exactly once regardless of which option it lands on.
+test.async("an AI resolves a multi-option decision by picking one option", 4000) { done ->
   def doneCount = new AtomicInteger(0)
-  def handlerCount = new AtomicInteger(0)
+  def resultCount = new AtomicInteger(0)
   Games.define { game ->
     game.step('trial', [
       run:  { game.players.each { p ->
-        game.ask(p, [name: 'q1'], { v, data -> handlerCount.incrementAndGet() })
-        game.ask(p, [name: 'q2'], { v, data -> handlerCount.incrementAndGet() })
+        game.ask(p,
+          [name: 'Cooperate', result: { v, data -> resultCount.incrementAndGet() }],
+          [name: 'Defect',    result: { v, data -> resultCount.incrementAndGet() }])
+      } },
+      done: { doneCount.incrementAndGet(); done {
+        assert doneCount.get() == 1            // the one decision drained the step exactly once...
+        assert resultCount.get() == 1          // ...running exactly one option's result
+      } },
+    ])
+  }
+  def game = Games.create('grpAIChoice', [])
+  game.addAI(1)
+  check { assert game.players.size() == 1 }
+  game.go('trial')
+}
+
+// An AI asked MORE THAN ONCE in a single step (two separate decisions) must auto-resolve EVERY
+// decision: each ask drives a submit for one of its OWN option uids, so the step's pending queue
+// drains and done fires exactly once. The two decisions also resolve off two separate timer
+// threads, exercising the concurrent-resolve path that must fire done exactly once.
+test.async("an AI asked multiple times in one step resolves every decision", 4000) { done ->
+  def doneCount = new AtomicInteger(0)
+  def resultCount = new AtomicInteger(0)
+  Games.define { game ->
+    game.step('trial', [
+      run:  { game.players.each { p ->
+        game.ask(p, [name: 'q1', result: { v, data -> resultCount.incrementAndGet() }])
+        game.ask(p, [name: 'q2', result: { v, data -> resultCount.incrementAndGet() }])
       } },
       done: { doneCount.incrementAndGet(); done {
         assert doneCount.get() == 1            // step completed exactly once...
-        assert handlerCount.get() == 2         // ...with both asks answered
+        assert resultCount.get() == 2          // ...with both decisions answered
       } },
     ])
   }
@@ -216,7 +308,7 @@ test.async("idle/drop drops a non-responder and abandons the emptied game", 6000
     game.setDropTime(0.05)                 // then 50ms to drop
     game.onAbandon { abandonCount.incrementAndGet(); done { assert abandonCount.get() == 1 } }
     game.step('trial', [
-      run:  { game.players.each { p -> game.ask(p, [name: 'go'], { v, data -> }) } },
+      run:  { game.players.each { p -> game.ask(p, [name: 'go', result: { v, data -> }]) } },
       done: { },                           // never reached: the lone player is dropped, not resolved
     ])
   }
@@ -235,7 +327,7 @@ test("a multi-round define/create loop fires onFinish exactly once and disposes 
     game.state.round = 0
     game.onFinish { finishCount.incrementAndGet() }
     game.step('round', [
-      run:  { game.players.each { p -> game.ask(p, [name: 'go'], { v, data -> }) } },
+      run:  { game.players.each { p -> game.ask(p, [name: 'go', result: { v, data -> }]) } },
       done: {
         game.state.round = game.state.round + 1
         if (game.state.round >= rounds) {
@@ -287,6 +379,46 @@ test("game.a.addEvent tags events with the group id and current step") {
 
     game.a.addEvent('scored', [groupId: 'explicit'])   // a caller-supplied groupId is not clobbered
     assert recorded[1].data.groupId == 'explicit'
+  } finally {
+    GroupContext.a = realA
+  }
+}
+
+// a.add parity for ask options: a leading init closure runs once before the buttons are shown, and
+// the CHOSEN option's `event` (and only that one) is tracked via game.a.addEvent (so it's tagged
+// with the group id), while the option's `result` still runs.
+test("ask runs the leading init closure and tracks only the chosen option's event") {
+  def initRan = new AtomicInteger(0)
+  def resultRan = new AtomicInteger(0)
+  def recorded = []
+  // Swap in a recording double for the static GroupContext.a (the harness eventTracker is disabled),
+  // restoring the real `a` in a finally so later cases aren't left pointing at the double.
+  def realA = GroupContext.a
+  GroupContext.a = new Expando(addEvent: { String name, data -> recorded << [name: name, data: data] })
+  try {
+    Games.define { game ->
+      game.step('trial', [
+        run: { game.players.each { p ->
+          game.ask(p, { initRan.incrementAndGet() },
+            [name: 'Cooperate', event: [name: 'chose', data: [opt: 'C']], result: { v, data -> resultRan.incrementAndGet() }],
+            [name: 'Defect',    event: [name: 'chose', data: [opt: 'D']], result: { v, data -> resultRan.incrementAndGet() }])
+        } },
+        done: { },
+      ])
+    }
+    def p1 = g.addPlayer('ie1')
+    def game = Games.create('grpIE', [p1])
+    game.go('trial')
+
+    assert initRan.get() == 1                            // init ran once, before the buttons appeared
+    def defectUid = p1.choices.find { it.name == 'Defect' }.uid
+    submit(p1, defectUid)
+
+    assert resultRan.get() == 1                          // the chosen option's result ran
+    assert recorded.size() == 1                          // exactly one event tracked (not both options)
+    assert recorded[0].name == 'chose'
+    assert recorded[0].data.opt == 'D'                   // ...the DEFECT event, since that's what was picked
+    assert recorded[0].data.groupId == 'grpIE'           // ...tagged by game.a.addEvent
   } finally {
     GroupContext.a = realA
   }
@@ -399,7 +531,7 @@ test("TreatmentManager + Games: next -> create -> onFinish completes the quota")
   game.onFinish  { tm.complete(t) }
   game.onAbandon { tm.release(t) }
   game.step('only', [
-    run:  { game.players.each { pl -> game.ask(pl, [name: 'go'], { v, data -> }) } },
+    run:  { game.players.each { pl -> game.ask(pl, [name: 'go', result: { v, data -> }]) } },
     done: { game.finish() },
   ])
   game.go('only')
@@ -423,7 +555,7 @@ test("TreatmentManager + Games: abandon releases the slot for reassignment") {
   game.onFinish  { tm.complete(t) }
   game.onAbandon { tm.release(t) }
   game.step('only', [
-    run:  { game.players.each { pl -> game.ask(pl, [name: 'go'], { v, data -> }) } },
+    run:  { game.players.each { pl -> game.ask(pl, [name: 'go', result: { v, data -> }]) } },
     done: { },
   ])
   game.go('only')

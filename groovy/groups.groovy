@@ -92,8 +92,9 @@ class Game {
   // All players ever added (active and dropped). `players` filters to active.
   private final List members = new ArrayList()
 
-  // Per-step pending asks. pending[stepName] == list of entry maps:
-  //   [player, uid, stepName, handler, listener, warnTimer, dropTimer, aiTimer, cancelled]
+  // Per-step pending decisions. pending[stepName] == list of entry maps:
+  //   [player, uids(Set), buttons(List), stepName, listener, warnTimer, dropTimer, aiTimer, cancelled]
+  // Each `buttons` element is one option: [uid, name, result(Closure|null), event].
   private final Map<String, List> pending = new LinkedHashMap<>()
 
   private final Lock lock = new ReentrantLock(true)
@@ -113,6 +114,9 @@ class Game {
   // AI submit delay (ms). Small by default so test AIs resolve quickly;
   // experiments can raise it for human-like pacing.
   Number aiDelay = 50
+
+  // RNG for AI option selection (mirrors PlayerAI.defaultBehavior's random pick).
+  private final Random _rng = new Random()
 
   // Group-aware facade over the global PlayerActions `a` (see GameActions). Created up front so
   // `game.a` is always live, and so step closures (which delegate to the game) resolve a bare
@@ -206,27 +210,78 @@ class Game {
   }
 
   // --- asking players ---
+  //
+  // One ask == ONE decision presenting one or more mutually-exclusive options, mirroring the
+  // platform's a.add. Every option becomes a button on the player; picking ANY option resolves the
+  // single decision -- it clears ALL of that decision's buttons, runs the chosen option's `result`
+  // closure, and removes the decision from the step's pending set. When the set drains (via submit
+  // or drop), the step's `done` fires.
+  //
+  // Each option is a Map. Recognized keys (a.add parity):
+  //   name            button label (defaults to the uid)
+  //   result/results  Closure run when this option is chosen; invoked as result(player, data).
+  //                   Declare fewer params if you don't need them -- { v -> } and { -> } also work.
+  //   event           [name: ..., data: ...] tracked via game.a.addEvent when this option is chosen
+  //   uid             optional stable id (auto-generated when absent)
+  // Any other keys (e.g. `class`, `custom`) are forwarded verbatim to the client.
+  //
+  //   game.ask(player,
+  //     [name: 'Cooperate', result: { v, data -> ... }],
+  //     [name: 'Defect',    result: { v, data -> ... }])
+  //
+  // An optional leading init closure runs once, just before the buttons are shown:
+  //   game.ask(player, { /* per-ask setup */ }, [name: 'A', result: {...}], [name: 'B', result: {...}])
+  void ask(Object player, Map... options) {
+    ask(player, (Closure) null, options)
+  }
 
-  // Push a group-scoped choice to the player, register a resolver for their
-  // submit, arm idle/drop (if enabled), and auto-drive AI. When the current
-  // step's pending set drains (via submit or drop), the step's `done` fires.
-  void ask(Object player, Map choice, Closure handler) {
+  void ask(Object player, Closure init, Map... options) {
     if (player == null) throw new IllegalArgumentException("ask() requires a player")
+    if (options == null || options.length == 0) {
+      throw new IllegalArgumentException("ask() requires at least one option")
+    }
     String stepName
     lock.lock()
     try { stepName = currentStepName } finally { lock.unlock() }
     if (stepName == null) {
       throw new IllegalStateException("ask() called before any go() in game $id")
     }
-    if (choice == null) choice = [:]
-    if (choice.uid == null) choice.uid = UUID.randomUUID().toString()
-    if (choice.name == null) choice.name = choice.uid
+
+    if (init != null) {
+      init.delegate = this
+      init.resolveStrategy = Closure.DELEGATE_FIRST
+      try { init() } catch (Exception e) { logErr("ask init", e) }
+    }
+
+    // Normalize each option into a client-facing button map (sent to the player) plus an internal
+    // record carrying its result closure. A copy is taken so the caller's option map isn't mutated.
+    List buttons = []
+    List choiceMaps = []
+    for (Map opt : options) {
+      if (opt == null) throw new IllegalArgumentException("ask() option must not be null")
+      def result = (opt.result != null) ? opt.result : opt.results   // accept result or results
+      if (result != null && !(result instanceof Closure)) {
+        throw new IllegalArgumentException("ask() option 'result' must be a Closure")
+      }
+      String uid = (opt.uid != null) ? opt.uid.toString() : UUID.randomUUID().toString()
+      String name = (opt.name != null) ? opt.name.toString() : uid
+
+      def choiceMap = new LinkedHashMap(opt)
+      choiceMap.remove('result')
+      choiceMap.remove('results')
+      choiceMap.remove('event')
+      choiceMap.uid = uid
+      choiceMap.name = name
+
+      buttons << [uid: uid, name: name, result: result, event: opt.event]
+      choiceMaps << choiceMap
+    }
 
     def entry = [
       player:    player,
-      uid:       choice.uid,
+      uids:      buttons.collect { it.uid } as Set,
+      buttons:   buttons,
       stepName:  stepName,
-      handler:   handler,
       listener:  null,
       warnTimer: null,
       dropTimer: null,
@@ -241,11 +296,14 @@ class Game {
       list << entry
     } finally { lock.unlock() }
 
-    assignChoice(player, choice)
+    // Render every option as a button. assignChoice tags each _route:'group' so the client routes
+    // the click to this game's submit handler instead of the platform's global a.choose(uid).
+    choiceMaps.each { assignChoice(player, it) }
 
-    // One listener per ask, filtering on its own uid; resolved (and detached) on submit.
+    // One listener per decision, resolved by ANY of its option uids; detached on resolve.
+    def uids = entry.uids
     def listener = { v, data ->
-      if (data?.uid != entry.uid) return
+      if (!uids.contains(data?.uid?.toString())) return
       resolve(entry, v, data)
     }
     entry.listener = listener
@@ -254,11 +312,6 @@ class Game {
     armIdleTimer(entry)
 
     if (player.getProperty("ai") == 1) driveAI(entry)
-  }
-
-  // Convenience: a named choice with a handler.
-  void ask(Object player, String name, Closure handler) {
-    ask(player, [name: name], handler)
   }
 
   // --- dropping ---
@@ -414,12 +467,12 @@ class Game {
     }
   }
 
-  // A player submitted their choice. The pending-list removal AND the "did this drain
-  // the current step?" decision happen in ONE critical section, so the done closure is
-  // claimed atomically by whichever call empties the step -- under concurrent submits of
-  // the last outstanding asks, done fires exactly once. The call is also idempotent: if
-  // this entry was already resolved or dropped (a duplicate/stale submit, e.g. two bus
-  // threads racing the same click), `removed` is false and we run nothing.
+  // A player picked an option. The pending-list removal AND the "did this drain the current step?"
+  // decision happen in ONE critical section, so the done closure is claimed atomically by whichever
+  // call empties the step -- under concurrent submits of the last outstanding decisions, done fires
+  // exactly once. The call is also idempotent: if this decision was already resolved or dropped (a
+  // duplicate/stale submit, e.g. two bus threads racing the same click), `removed` is false and we
+  // run nothing.
   private void resolve(Map entry, Object v, Object data) {
     String stepName = entry.stepName
     boolean removed = false
@@ -445,31 +498,56 @@ class Game {
     if (entry.listener != null) {
       try { v.off(Games.SUBMIT_EVENT, entry.listener) } catch (Exception ex) { /* ignore */ }
     }
-    unassignChoice(v, entry.uid)
+    // Clear EVERY option button for this decision, not just the one that was chosen.
+    entry.uids.each { unassignChoice(v, it) }
 
-    if (entry.handler != null) {
-      try { entry.handler(v, data) } catch (Exception e) { logErr("ask handler", e) }
+    // Run the chosen option's result (each option carries its own). The submit names the picked uid.
+    def chosenUid = data?.uid?.toString()
+    def button = entry.buttons.find { it.uid == chosenUid }
+    if (button != null) {
+      def ev = button.event
+      if (ev != null) {
+        try {
+          def evName = (ev instanceof Map) ? ev.name : ev
+          def evData = (ev instanceof Map && ev.data != null) ? ev.data : [:]
+          if (evName != null) _actions.addEvent(evName.toString(), evData as Map)
+        } catch (Exception e) { logErr("ask event", e) }
+      }
+      if (button.result instanceof Closure) {
+        try { invokeResult(button.result, v, data) } catch (Exception e) { logErr("ask result", e) }
+      }
     }
 
     if (drained && doneC != null) doneC()   // outside the lock: done may re-enter go/ask/finish
   }
 
-  // Auto-submit for an AI player after a short delay. It submits THIS ask's own uid:
-  // each ask is one decision, so multiple asks to the same AI in a step each resolve
-  // independently (picking a random uid across all the player's group choices would
-  // leave the others' asks unanswered and stall the step). The timer thread only emits
-  // the submit CustomEvent, exactly like a real client.
+  // Invoke an option's result closure, tolerating its declared arity: (), (player) or
+  // (player, data). Lets experiments write { -> }, { v -> } or { v, data -> } as they prefer.
+  private void invokeResult(Closure result, Object v, Object data) {
+    switch (result.maximumNumberOfParameters) {
+      case 0:  result(); break
+      case 1:  result(v); break
+      default: result(v, data); break
+    }
+  }
+
+  // Auto-submit for an AI player after a short delay. The AI picks a uniformly-random option from
+  // THIS decision (mirroring PlayerAI.defaultBehavior) and emits the same submit CustomEvent a real
+  // client would. Each ask is one decision, so multiple asks to the same AI in a step each resolve
+  // independently. The timer thread only emits the event.
   private void driveAI(Map entry) {
     def player = entry.player
-    def chosenUid = entry.uid
+    def buttons = entry.buttons
+    if (buttons == null || buttons.isEmpty()) return
     def timer = new BBTimer()
     entry.aiTimer = timer
     // GDK Timer.runAfter has no error trap of its own; guard the body so a late fire during
     // teardown can't throw uncaught on the daemon timer thread.
     timer.runAfter(aiDelay as int) {
       try {
+        def choice = buttons[_rng.nextInt(buttons.size())]
         GroupContext.events.emit("CustomEvent",
-          [playerId: player.id, eventName: Games.SUBMIT_EVENT, data: [uid: chosenUid]],
+          [playerId: player.id, eventName: Games.SUBMIT_EVENT, data: [uid: choice.uid]],
           [clientId: player.id])
       } catch (Throwable t) {
         logErr("AI auto-submit", t)
