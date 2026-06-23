@@ -216,6 +216,51 @@ test.async("a player who fails to ready up is dropped, and a short group cannot 
   }
 }
 
+test.async("ready-up with more than maxPlayers forms multiple full groups and bumps the leftover", 15000) { done ->
+  def wr = new WaitingRoom(2, 3)               // min 2, max 3 -> 7 ready players = two full groups + 1 leftover
+  wr.readyStartDelaySeconds = 1
+  wr.readyUpSeconds = 1
+  wr.groupStartDelaySeconds = 1
+
+  // The two group-start timers are created in the same ready-up round and fire ~together (possibly
+  // on different threads), so collect both group callbacks under a lock before asserting.
+  def lock = new Object()
+  def groups = []
+  wr.onGroupReady({ players, groupId ->
+    synchronized (lock) {
+      groups << [ids: players*.id as Set, groupId: groupId]
+      if (groups.size() == 2) {
+        done {
+          assert groups.size() == 2
+          // Each group is a full maxPlayers group...
+          assert groups.every { it.ids.size() == 3 }
+          // ...carrying the monotonic String ids "1" and "2" (matches groupCompleted)...
+          assert groups*.groupId as Set == ['1', '2'] as Set
+          // ...and together they cover 6 distinct players.
+          def placed = [] as Set
+          groups.each { placed.addAll(it.ids) }
+          assert placed.size() == 6
+          // The 7th player is too few to form a group, so it stays in the room, flagged
+          // not-chosen and bumped one priority for the next round. waitingPlayers had all 6
+          // selected players removed synchronously inside handleReadyUpResult, so only it remains.
+          def leftover = wr.waitingPlayers
+          assert leftover.size() == 1
+          assert !placed.contains(leftover[0].id)
+          assert leftover[0]._system.waitingRoom.state == 'waiting-room'
+          assert leftover[0]._system.waitingRoom.notChosenForGroup == true
+          assert leftover[0]._system.waitingRoom.priority == 1
+        }
+      }
+    }
+  })
+  wr.onReadyUpFailure({ p -> })
+  wr.start()
+
+  def roster = (1..7).collect { g.addPlayer("mg-$it") }
+  wr.addPlayers(*roster)
+  autoReadyUp(roster)                          // everyone readies up as soon as the window opens
+}
+
 // --- RecruitmentController: client/game state tracking ----------------------------------------
 
 test("RecruitmentController tracks a client through its lifecycle without duplicating it") {
