@@ -841,18 +841,40 @@ test("TreatmentManager weighted favors higher-weight treatments") {
   assert counts.heavy > counts.light * 4 : "heavy (weight 9) should dominate: $counts"
 }
 
-// "Defined once": when code diverges from the file, the FILE definition wins (target/weight frozen).
-test("TreatmentManager keeps the file target when code diverges") {
+// The code definition is authoritative: when the script diverges from the file, the CODE target/weight
+// win and only the persisted progress (completed) is adopted.
+test("TreatmentManager uses the code target/weight when code diverges from the file") {
   def tmp = java.nio.file.Files.createTempDirectory('tm-div').toFile()
   try {
     def tm1 = new TreatmentManager(key: 'div', dir: tmp.absolutePath)
-    tm1.treatment('A', new SampleParams(1, 'a'), 5)
+    tm1.treatment(name: 'A', parameters: new SampleParams(1, 'a'), target: 5, weight: 1.0)
     3.times { tm1.complete(tm1.get('A')) }
 
     def tm2 = new TreatmentManager(key: 'div', dir: tmp.absolutePath)
-    tm2.treatment('A', new SampleParams(1, 'a'), 10)     // code target 10, file target 5 -> file wins
-    assert tm2.get('A').target == 5 : 'file target wins (defined once)'
-    assert tm2.get('A').completed == 3
+    tm2.treatment(name: 'A', parameters: new SampleParams(1, 'a'), target: 10, weight: 3.0)   // code wins
+    assert tm2.get('A').target == 10 : 'code target wins'
+    assert tm2.get('A').weight == 3.0 : 'code weight wins'
+    assert tm2.get('A').completed == 3 : 'persisted progress is still adopted'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// Lowering the code target below the already-collected completed count clamps completed down to the
+// new target (the arm is simply treated as met) rather than leaving negative remaining slots.
+test("TreatmentManager clamps persisted progress down to a lowered code target") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-lower').toFile()
+  try {
+    def tm1 = new TreatmentManager(key: 'lower', dir: tmp.absolutePath)
+    tm1.treatment('A', new SampleParams(1, 'a'), 10)
+    6.times { tm1.complete(tm1.get('A')) }                // 6 of 10 collected
+
+    def tm2 = new TreatmentManager(key: 'lower', dir: tmp.absolutePath)
+    tm2.treatment('A', new SampleParams(1, 'a'), 4)       // script lowers target to 4 (below the 6 done)
+    assert tm2.get('A').target == 4 : 'code target wins'
+    assert tm2.get('A').completed == 4 : 'completed clamped down to the new target'
+    assert tm2.get('A').isMet()
+    assert tm2.next() == null : 'the now-met arm is not assigned'
   } finally {
     org.apache.commons.io.FileUtils.deleteDirectory(tmp)
   }
@@ -946,4 +968,108 @@ test("TreatmentManager accepts a custom sampling function") {
   } finally {
     org.apache.commons.io.FileUtils.deleteDirectory(tmp)
   }
+}
+
+// A reload that does NOT re-supply distribution() must restore the persisted built-in strategy from
+// the file, not silently fall back to uniform random while replaying the round-robin cursor.
+test("TreatmentManager restores a built-in distribution on reload without re-specifying it") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-restore').toFile()
+  try {
+    def define = { tm ->
+      tm.treatment('A', new SampleParams(1, 'a'), 1000)
+      tm.treatment('B', new SampleParams(2, 'b'), 1000)
+      tm.treatment('C', new SampleParams(3, 'c'), 1000)
+    }
+    def tm1 = new TreatmentManager(key: 'restore', dir: tmp.absolutePath, distribution: roundRobin())
+    define(tm1)
+    def seq = []
+    4.times { def t = tm1.next(); seq << t.name; tm1.release(t) }
+    assert seq == ['A', 'B', 'C', 'A']                 // cursor advanced to 4
+
+    def tm2 = new TreatmentManager(key: 'restore', dir: tmp.absolutePath)   // NO distribution: arg
+    define(tm2)
+    def t = tm2.next()
+    assert t.name == 'B' : 'round-robin resumed at cursor 4 (4 % 3 -> B), not random'
+
+    def data = new groovy.json.JsonSlurper().parseText(new File(tmp, 'restore.json').text)
+    assert data.distribution.type == 'round-robin' : 'strategy restored as round-robin, not reset to random'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// The random-block multiplier is part of the strategy's identity, so it must round-trip through the
+// file and be restored on reload -- otherwise a block of the wrong size resumes.
+test("TreatmentManager persists and restores the random-block multiplier") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-blkmult').toFile()
+  try {
+    def tm1 = new TreatmentManager(key: 'blkmult', dir: tmp.absolutePath, distribution: randomBlock(2), seed: 7L)
+    ['A', 'B'].each { tm1.treatment(it, new SampleParams(1, it), 1000) }
+    tm1.complete(tm1.next())                           // force a persist
+    def data = new groovy.json.JsonSlurper().parseText(new File(tmp, 'blkmult.json').text)
+    assert data.distribution.type == 'random-block'
+    assert (data.distribution.mult as int) == 2 : 'block multiplier persisted'
+
+    def tm2 = new TreatmentManager(key: 'blkmult', dir: tmp.absolutePath)   // NO distribution: arg
+    ['A', 'B'].each { tm2.treatment(it, new SampleParams(1, it), 1000) }
+    tm2.complete(tm2.next())                           // assign + persist under the restored strategy
+    def data2 = new groovy.json.JsonSlurper().parseText(new File(tmp, 'blkmult.json').text)
+    assert data2.distribution.type == 'random-block' : 'random-block restored on reload (not reset to random)'
+    assert (data2.distribution.mult as int) == 2 : 'multiplier restored on reload'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// A custom distribution that returns an already-full treatment must NOT be assigned: next() re-verifies
+// eligibility, so the over-target arm is skipped rather than over-recruited (the built-in samplers
+// guaranteed this; a bare closure does not).
+test("TreatmentManager skips an ineligible treatment returned by a custom distribution") {
+  def alwaysFirst = { long s, long c, List ts -> ts[0] }   // buggy: always returns the first arm
+  def tm = new TreatmentManager(distribution: alwaysFirst)
+  tm.treatment('A', new SampleParams(1, 'a'), 1)
+  tm.treatment('B', new SampleParams(2, 'b'), 1)
+
+  def t1 = tm.next()
+  assert t1 != null && t1.name == 'A'
+  tm.complete(t1)                                      // A now met (1 == target) -> full
+  assert tm.get('A').isFull()
+
+  def t2 = tm.next()                                   // strategy still returns the full A
+  assert t2 == null : 'an ineligible (full) treatment from the strategy is skipped, not assigned'
+  assert tm.get('A').completed == 1 : 'A was not over-recruited beyond its target'
+  assert tm.get('A').inFlight == 0 : 'no slot reserved on the rejected treatment'
+}
+
+// A persisted target below 1 (a corrupt or partially-written file, or a missing target defaulting to 0)
+// must NOT create a permanently-full arm: the already-validated code target is used instead.
+test("TreatmentManager ignores an invalid persisted target and uses the code target") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-badtarget').toFile()
+  try {
+    def json = new groovy.json.JsonBuilder([
+      version:      1,
+      key:          'badtarget',
+      distribution: [type: 'random', seed: 1, cursor: 0],
+      treatments:   [A: [target: 0, weight: 1.0, completed: 0]]   // target 0 -> would be full forever
+    ]).toPrettyString()
+    org.apache.commons.io.FileUtils.writeStringToFile(new File(tmp, 'badtarget.json'), json)
+
+    def tm = new TreatmentManager(key: 'badtarget', dir: tmp.absolutePath)
+    tm.treatment('A', new SampleParams(1, 'a'), 3)     // code target 3 is valid
+    assert tm.get('A').target == 3 : 'invalid file target (0) ignored in favor of the code target'
+    assert !tm.get('A').isFull()
+    def t = tm.next()
+    assert t != null && t.name == 'A' : 'the arm assigns instead of being permanently full'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// weight must be > 0 (mirrors the target >= 1 rule): a zero/negative weight is a definition error.
+test("TreatmentManager rejects a non-positive weight") {
+  def tm = new TreatmentManager()
+  def threw = false
+  try { tm.treatment(name: 'bad', parameters: new SampleParams(1, 'x'), target: 1, weight: 0.0) }
+  catch (IllegalArgumentException e) { threw = true }
+  assert threw : 'weight must be > 0'
 }

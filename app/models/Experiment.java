@@ -173,8 +173,11 @@ public class Experiment extends Model {
    * a malicious experiment name could introduce via {@link #getDirectoryName()} (the name is set
    * straight from request params and only has spaces replaced, so "../" survives). Returns null if
    * the resolved path would escape the dev directory; callers must treat null as "not available".
+   *
+   * <p>Public so the (unauthenticated) image-serving endpoint can reuse the same guard instead of
+   * rebuilding the dev path by hand — see {@code ImagesController.getImageByFileName}.
    */
-  private File devPath(String... segments) {
+  public File devPath(String... segments) {
     Path devRoot = new File(Play.application().path(), "dev").toPath();
     StringBuilder child = new StringBuilder(getDirectoryName());
     for (String segment : segments) {
@@ -339,6 +342,10 @@ public class Experiment extends Model {
     // here because this method deletes and recreates experimentDirectory during import/export.
     File experimentDirectory = devPath();
     if (experimentDirectory == null) {
+      // devPath() already logged the traversal refusal; make the abandoned toggle explicit so an
+      // operator can see why fileMode did not change rather than it silently doing nothing.
+      Logger.error("toggleFileMode aborted for experiment " + this.id + " (name='" + this.name
+          + "'): its dev directory escapes the dev root, so fileMode was left unchanged.");
       return;
     }
     try {

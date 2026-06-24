@@ -766,7 +766,11 @@ class Treatment {
 class Sampler {
   final String type
   final Closure fn
-  Sampler(String type, Closure fn) { this.type = type; this.fn = fn }
+  // Optional numeric parameter that defines the strategy (currently only the random-block multiplier).
+  // Persisted alongside `type` so the strategy can be faithfully restored on reload; null otherwise.
+  final Integer param
+  Sampler(String type, Closure fn) { this(type, fn, null) }
+  Sampler(String type, Closure fn, Integer param) { this.type = type; this.fn = fn; this.param = param }
   // Allows a Sampler to be invoked directly as a function too: sampler(seed, cursor, order).
   Treatment call(long s, long c, List ts) { return (Treatment) fn.call(s, c, ts) }
 }
@@ -793,20 +797,33 @@ class TreatmentManager {
   private boolean seedLoaded = false
   private long cursor = 0L
 
+  // Monotonic snapshot sequence (guarded by `lock`): each snapshot taken in persist() is stamped with
+  // the next value, and a write that loses the persistLock race to a higher-numbered snapshot is
+  // dropped rather than clobbering newer state. lastWrittenSeq is guarded by persistLock.
+  private long snapshotSeq = 0L
+  private long lastWrittenSeq = 0L
+
   // Active sampling function (long seed, long cursor, List<Treatment> order) -> Treatment|null, plus
   // a human label persisted for debugging. Defaults to uniform-random (the historical behavior).
+  // strategyParam carries the strategy's numeric parameter (random-block multiplier) so it round-trips.
   private Closure strategy
   private String strategyLabel = 'random'
+  private Integer strategyParam = null
 
   // Set true on the first next(): no treatment may be defined and no distribution changed after
   // assignments begin (keeps the order / block math stable for round-robin and random-block).
   private boolean sealed = false
 
-  // Accounting parsed from the file at construction, consumed by treatment(...) as it (re)defines
-  // each name ("defined once"). Names still present here at write time are dormant (in the file but
-  // not re-defined this run) and are preserved verbatim so a temporarily-removed arm keeps history.
+  // Accounting parsed from the file at construction, consumed by treatment(...) as it (re)defines each
+  // name (only the persisted completed count is adopted; the code definition wins). Names still present
+  // here at write time are dormant (in the file but not re-defined this run) and are preserved verbatim
+  // so a temporarily-removed arm keeps its history.
   private final Map loadedTreatments = new LinkedHashMap()
   private String loadedDistType = null
+  private Integer loadedDistParam = null
+  // Treatment names in the order the persisted file listed them, captured at load so the first next()
+  // can warn if the live definition order has since changed (which silently remaps a positional cursor).
+  private final List loadedOrder = new ArrayList()
 
   // No key => no persistence => identical to the historical in-memory behavior.
   TreatmentManager() { this([:]) }
@@ -830,7 +847,22 @@ class TreatmentManager {
       this.seed = new Random().nextLong()
     }
 
-    if (config.distribution != null) distribution(config.distribution)
+    if (config.distribution != null) {
+      distribution(config.distribution)
+    } else if (loadedDistType != null) {
+      // The caller did not re-supply a distribution, so restore the persisted one. Built-ins are
+      // rebuilt from their label (+ param); a 'custom' closure is code and cannot be reconstructed, so
+      // warn loudly and keep the random default rather than silently resuming a cursor under it.
+      Closure restored = strategyForLabel(loadedDistType, loadedDistParam)
+      if (restored != null) {
+        this.strategy = restored
+        this.strategyLabel = loadedDistType
+        this.strategyParam = loadedDistParam
+      } else {
+        println "[TreatmentManager] persisted distribution '${loadedDistType}' cannot be auto-restored " +
+          "(a custom strategy must be re-supplied via distribution:); falling back to random"
+      }
+    }
   }
 
   // Select the sampling method. Pass a built-in sampler (roundRobin(), randomBlock(2), weighted(),
@@ -839,9 +871,11 @@ class TreatmentManager {
   void distribution(Object arg) {
     Closure fn
     String label
+    Integer param = null
     if (arg instanceof Sampler) {
       fn = ((Sampler) arg).fn
       label = ((Sampler) arg).type
+      param = ((Sampler) arg).param
     } else if (arg instanceof Closure) {
       fn = (Closure) arg
       label = 'custom'
@@ -856,6 +890,7 @@ class TreatmentManager {
       }
       this.strategy = fn
       this.strategyLabel = label
+      this.strategyParam = param
     } finally { lock.unlock() }
   }
 
@@ -865,34 +900,33 @@ class TreatmentManager {
   }
 
   // Define a treatment with an explicit `weight` (used only by the weighted distribution; default
-  // 1.0). On reload a name already present in the persisted file is ADOPTED -- its file
-  // target/weight/completed win ("defined once") and only the opaque `parameters` is taken from this
-  // call. Defining the same name twice in one run, or any treatment after the first next(), throws.
+  // 1.0). The CODE definition is authoritative: on reload the script's target/weight/parameters always
+  // win, and only the persisted PROGRESS (the completed count) is adopted so a run resumes where it
+  // left off. Editing the script therefore changes the experiment as written -- e.g. lowering a target
+  // stops recruitment sooner. Defining the same name twice in one run, or any treatment after the
+  // first next(), throws.
   Treatment treatment(String name, Object parameters, int target, double weight) {
     if (name == null) throw new IllegalArgumentException("treatment requires a name")
     if (target < 1) throw new IllegalArgumentException("treatment '$name' target must be >= 1 (got $target)")
+    if (weight <= 0.0d) throw new IllegalArgumentException("treatment '$name' weight must be > 0 (got $weight)")
     lock.lock()
     try {
       if (sealed) throw new IllegalStateException("cannot define treatment '$name' after the first assignment")
       if (byName.containsKey(name)) throw new IllegalStateException("treatment '$name' already defined")
       def prior = loadedTreatments.remove(name)
-      Treatment t
+      // target/weight/parameters come from this (code) call -- the file never overrides them.
+      Treatment t = new Treatment(name, parameters, target, weight)
       if (prior != null) {
-        int pTarget = prior.target as int
-        double pWeight = prior.weight as double
-        if (pTarget != target) {
-          println "[TreatmentManager] treatment '$name' target differs (file=$pTarget, code=$target); keeping file value (defined-once)"
-        }
-        if (Math.abs(pWeight - weight) > 0.000000001d) {
-          println "[TreatmentManager] treatment '$name' weight differs (file=$pWeight, code=$weight); keeping file value (defined-once)"
-        }
-        t = new Treatment(name, parameters, pTarget, pWeight)
         int pCompleted = prior.completed as int
         if (pCompleted < 0) pCompleted = 0
-        if (pCompleted > pTarget) pCompleted = pTarget
+        if (pCompleted > target) {
+          // The script lowered the target below the already-collected count; clamp so the arm is just
+          // treated as met rather than yielding negative remaining slots.
+          println "[TreatmentManager] treatment '$name' has $pCompleted completed in the file but the code " +
+            "target is now $target; clamping completed to $target (the arm is already met)"
+          pCompleted = target
+        }
         t.completed = pCompleted
-      } else {
-        t = new Treatment(name, parameters, target, weight)
       }
       t.inFlight = 0
       byName[name] = t
@@ -966,10 +1000,18 @@ class TreatmentManager {
     lock.lock()
     try {
       firstSeal = sealIfNeeded()
+      if (firstSeal) warnIfOrderDriftsFromFile()
       boolean anyEligible = false
       for (Treatment t : order) { if (!t.isFull()) { anyEligible = true; break } }
       if (anyEligible) {
         chosen = (Treatment) strategy.call(seed, cursor, order)
+        // A custom distribution closure can return a foreign or already-full treatment; the built-in
+        // eligible-set pick used to make that impossible. Re-verify it is a live, eligible arm so we
+        // never reserve a slot on (or over-recruit) something the strategy should not have returned.
+        if (chosen != null && (byName[chosen.name] != chosen || chosen.isFull())) {
+          println "[TreatmentManager] distribution returned an ineligible treatment '${chosen.name}'; skipping this assignment"
+          chosen = null
+        }
         if (chosen != null) {
           chosen.inFlight = chosen.inFlight + 1
           cursor = cursor + 1
@@ -1054,6 +1096,35 @@ class TreatmentManager {
     return true
   }
 
+  // Rebuild a built-in sampling function from its persisted label (+ param) so a reload restores the
+  // original strategy even when the caller does not re-supply distribution(...). Returns null for
+  // 'custom' (the closure is code and cannot be reconstructed) or an unrecognized label.
+  private static Closure strategyForLabel(String label, Integer param) {
+    if (label == null) return null
+    if (label.equals('random')) return randomFn()
+    if (label.equals('round-robin')) return roundRobinFn()
+    if (label.equals('weighted')) return weightedFn()
+    if (label.equals('random-block')) return randomBlockFn((param != null) ? param.intValue() : 1)
+    return null
+  }
+
+  // Must hold `lock`. The positional cursor (round-robin / random-block) assumes `order` is rebuilt
+  // identically across reloads; if the arms common to both the file and this run were reordered, the
+  // resumed cursor maps to different arms. We cannot fix that without breaking positional resume, so
+  // warn. Pure additions/removals are ignored -- only a true reordering of shared arms is flagged.
+  private void warnIfOrderDriftsFromFile() {
+    if (loadedOrder.isEmpty()) return
+    if (!('round-robin'.equals(strategyLabel) || 'random-block'.equals(strategyLabel))) return
+    List liveCommon = []
+    for (Treatment t : order) { if (loadedOrder.contains(t.name)) liveCommon.add(t.name) }
+    List fileCommon = []
+    for (Object n : loadedOrder) { if (byName.containsKey(n)) fileCommon.add(n) }
+    if (!liveCommon.equals(fileCommon)) {
+      println "[TreatmentManager] treatment order changed since the persisted run (file=${fileCommon}, " +
+        "now=${liveCommon}); the ${strategyLabel} cursor resumes by position and may now map to different arms"
+    }
+  }
+
   private File resolvePersistFile(Map config) {
     def k = config.key
     if (k == null || k.toString().trim().isEmpty()) return null
@@ -1083,6 +1154,7 @@ class TreatmentManager {
       def dist = data.distribution
       if (dist instanceof Map) {
         loadedDistType = (dist.type != null) ? dist.type.toString() : null
+        loadedDistParam = (dist.mult != null) ? (dist.mult as int) : null
         if (dist.seed != null) { this.seed = dist.seed as long; seedLoaded = true }
         if (dist.cursor != null) { this.cursor = dist.cursor as long }
       }
@@ -1097,11 +1169,20 @@ class TreatmentManager {
             ]
           }
         }
+        loadedOrder.addAll(loadedTreatments.keySet())
       }
     } catch (Exception e) {
       println "[TreatmentManager] failed to read ${persistFile}: $e (starting fresh)"
+      // Reset ALL state that may have been partially applied before the exception (e.g. seed/cursor
+      // parsed from a valid distribution block before a corrupt treatments block threw) so "start
+      // fresh" really means fresh, not a half-loaded cursor against wiped treatments.
       loadedTreatments.clear()
+      loadedOrder.clear()
       loadedDistType = null
+      loadedDistParam = null
+      this.seed = 0L
+      this.cursor = 0L
+      this.seedLoaded = false
     }
   }
 
@@ -1110,10 +1191,14 @@ class TreatmentManager {
   private void persist() {
     if (persistFile == null) return
     Map snapshot
+    long seq
     lock.lock()
-    try { snapshot = buildSnapshot() } finally { lock.unlock() }
+    try { seq = ++snapshotSeq; snapshot = buildSnapshot() } finally { lock.unlock() }
     persistLock.lock()
     try {
+      // Snapshots are stamped under `lock`, so a higher seq reflects strictly newer (or equal) state.
+      // If a newer snapshot already reached disk, skip this stale write instead of clobbering it.
+      if (seq <= lastWrittenSeq) return
       File dir = persistFile.getAbsoluteFile().getParentFile()
       if (dir != null) Files.createDirectories(dir.toPath())
       String json = new JsonBuilder(snapshot).toPrettyString()
@@ -1125,6 +1210,7 @@ class TreatmentManager {
       } catch (Exception atomicEx) {
         Files.move(tmp.toPath(), persistFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
       }
+      lastWrittenSeq = seq
     } catch (Exception e) {
       println "[TreatmentManager] failed to persist ${persistFile}: $e"
     } finally { persistLock.unlock() }
@@ -1142,7 +1228,7 @@ class TreatmentManager {
     return [
       version:      CURRENT_SCHEMA_VERSION,
       key:          key,
-      distribution: [type: strategyLabel, seed: seed, cursor: cursor],
+      distribution: [type: strategyLabel, mult: strategyParam, seed: seed, cursor: cursor],
       treatments:   treatmentsOut,
       savedAt:      System.currentTimeMillis()
     ]
@@ -1239,7 +1325,7 @@ class TreatmentManager {
 simpleRandom = { -> new Sampler('random',       TreatmentManager.randomFn()) }
 roundRobin   = { -> new Sampler('round-robin',  TreatmentManager.roundRobinFn()) }
 weighted     = { -> new Sampler('weighted',     TreatmentManager.weightedFn()) }
-randomBlock  = { Integer mult = 1 -> new Sampler('random-block', TreatmentManager.randomBlockFn(mult == null ? 1 : (int) mult)) }
+randomBlock  = { Integer mult = 1 -> int m = (mult == null) ? 1 : (int) mult; new Sampler('random-block', TreatmentManager.randomBlockFn(m), m) }
 
 // Bind the engine handles from the script binding at load time (see GroupContext).
 GroupContext.bind(g, a, events)
