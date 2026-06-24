@@ -1,6 +1,11 @@
 import java.util.concurrent.ConcurrentHashMap
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
+import java.io.File
+import java.nio.file.Files
+import java.nio.file.StandardCopyOption
+import groovy.json.JsonBuilder
+import groovy.json.JsonSlurper
 
 // Groovy 1.8.9 note: this file (and groups_test.groovy) must stay 1.8.9-compatible.
 // No closure->functional-interface coercion (Map.computeIfAbsent / Collection.removeIf),
@@ -727,17 +732,24 @@ class Treatment {
   final String name
   final Object parameters
   final int target
+  final double weight
   // Owned by the TreatmentManager: only read/written inside its lock.
   int completed = 0
   int inFlight = 0
 
   Treatment(String name, Object parameters, int target) {
+    this(name, parameters, target, 1.0d)
+  }
+
+  Treatment(String name, Object parameters, int target, double weight) {
     this.name = name
     this.parameters = parameters
     this.target = target
+    this.weight = weight
   }
 
   Object getParameters() { parameters }
+  double getWeight() { weight }
 
   // Enough games are done or in progress that the target can be met -> not
   // eligible for a new assignment right now.
@@ -747,35 +759,157 @@ class Treatment {
   boolean isMet() { completed >= target }
 }
 
+// A named sampling strategy: a `type` label (persisted for debugging) plus the pure pick function
+// (long seed, long cursor, List<Treatment> order) -> Treatment|null. Built-in factories
+// (simpleRandom/roundRobin/weighted/randomBlock) return one of these; a custom strategy may instead
+// be passed to TreatmentManager.distribution(...) as a bare closure (labelled 'custom').
+class Sampler {
+  final String type
+  final Closure fn
+  Sampler(String type, Closure fn) { this.type = type; this.fn = fn }
+  // Allows a Sampler to be invoked directly as a function too: sampler(seed, cursor, order).
+  Treatment call(long s, long c, List ts) { return (Treatment) fn.call(s, c, ts) }
+}
+
 class TreatmentManager {
+  static final int CURRENT_SCHEMA_VERSION = 1
+
   private final Map<String, Treatment> byName = new LinkedHashMap<>()
   private final List<Treatment> order = new ArrayList<>()
-  private final Random rng = new Random()
   private final Lock lock = new ReentrantLock(true)
+  // Serializes file writes off the hot `lock`. Declared as the Lock interface per the Groovy 1.8.6
+  // field-typing rule (a concrete concurrent type declared as its subclass is mishandled).
+  private final Lock persistLock = new ReentrantLock()
+
+  // Persistence target. null => persistence disabled => behaves exactly like the pre-persistence
+  // TreatmentManager (no file is ever touched). See resolvePersistFile.
+  private final File persistFile
+  private final String key
+
+  // Sampling state. `seed` + `cursor` are the ONLY persisted sampling state: every distribution is a
+  // pure function pick(seed, cursor, order) -> Treatment, so resuming needs just these two numbers.
+  // `cursor` is the number of assignments made and advances by one on each successful next().
+  private long seed = 0L
+  private boolean seedLoaded = false
+  private long cursor = 0L
+
+  // Active sampling function (long seed, long cursor, List<Treatment> order) -> Treatment|null, plus
+  // a human label persisted for debugging. Defaults to uniform-random (the historical behavior).
+  private Closure strategy
+  private String strategyLabel = 'random'
+
+  // Set true on the first next(): no treatment may be defined and no distribution changed after
+  // assignments begin (keeps the order / block math stable for round-robin and random-block).
+  private boolean sealed = false
+
+  // Accounting parsed from the file at construction, consumed by treatment(...) as it (re)defines
+  // each name ("defined once"). Names still present here at write time are dormant (in the file but
+  // not re-defined this run) and are preserved verbatim so a temporarily-removed arm keeps history.
+  private final Map loadedTreatments = new LinkedHashMap()
+  private String loadedDistType = null
+
+  // No key => no persistence => identical to the historical in-memory behavior.
+  TreatmentManager() { this([:]) }
+
+  TreatmentManager(String key) { this([key: key]) }
+
+  // Recognized config keys: key (enables persistence + names the file), dir (storage dir override;
+  // defaults to ./data/treatments), distribution (a sampler/closure), seed (explicit RNG seed).
+  TreatmentManager(Map config) {
+    if (config == null) config = [:]
+    this.key = (config.key != null) ? config.key.toString() : null
+    this.persistFile = resolvePersistFile(config)
+    this.strategy = randomFn()
+    this.strategyLabel = 'random'
+
+    loadFromFile()
+
+    if (config.seed != null) {
+      this.seed = config.seed as long
+    } else if (!seedLoaded) {
+      this.seed = new Random().nextLong()
+    }
+
+    if (config.distribution != null) distribution(config.distribution)
+  }
+
+  // Select the sampling method. Pass a built-in sampler (roundRobin(), randomBlock(2), weighted(),
+  // simpleRandom()) or a custom closure (long seed, long cursor, List<Treatment> order) -> Treatment.
+  // Configure once, before the first next().
+  void distribution(Object arg) {
+    Closure fn
+    String label
+    if (arg instanceof Sampler) {
+      fn = ((Sampler) arg).fn
+      label = ((Sampler) arg).type
+    } else if (arg instanceof Closure) {
+      fn = (Closure) arg
+      label = 'custom'
+    } else {
+      throw new IllegalArgumentException("distribution requires a sampler (e.g. roundRobin()) or a closure")
+    }
+    lock.lock()
+    try {
+      if (sealed) throw new IllegalStateException("cannot change distribution after the first assignment")
+      if (loadedDistType != null && !loadedDistType.equals(label)) {
+        println "[TreatmentManager] distribution changed (file='${loadedDistType}', now='${label}'); seed/cursor are method-agnostic and are reused"
+      }
+      this.strategy = fn
+      this.strategyLabel = label
+    } finally { lock.unlock() }
+  }
 
   // Define a treatment. `target` is the number of COMPLETED games desired (>= 1).
   Treatment treatment(String name, Object parameters, int target) {
+    return treatment(name, parameters, target, 1.0d)
+  }
+
+  // Define a treatment with an explicit `weight` (used only by the weighted distribution; default
+  // 1.0). On reload a name already present in the persisted file is ADOPTED -- its file
+  // target/weight/completed win ("defined once") and only the opaque `parameters` is taken from this
+  // call. Defining the same name twice in one run, or any treatment after the first next(), throws.
+  Treatment treatment(String name, Object parameters, int target, double weight) {
     if (name == null) throw new IllegalArgumentException("treatment requires a name")
     if (target < 1) throw new IllegalArgumentException("treatment '$name' target must be >= 1 (got $target)")
     lock.lock()
     try {
+      if (sealed) throw new IllegalStateException("cannot define treatment '$name' after the first assignment")
       if (byName.containsKey(name)) throw new IllegalStateException("treatment '$name' already defined")
-      def t = new Treatment(name, parameters, target)
+      def prior = loadedTreatments.remove(name)
+      Treatment t
+      if (prior != null) {
+        int pTarget = prior.target as int
+        double pWeight = prior.weight as double
+        if (pTarget != target) {
+          println "[TreatmentManager] treatment '$name' target differs (file=$pTarget, code=$target); keeping file value (defined-once)"
+        }
+        if (Math.abs(pWeight - weight) > 0.000000001d) {
+          println "[TreatmentManager] treatment '$name' weight differs (file=$pWeight, code=$weight); keeping file value (defined-once)"
+        }
+        t = new Treatment(name, parameters, pTarget, pWeight)
+        int pCompleted = prior.completed as int
+        if (pCompleted < 0) pCompleted = 0
+        if (pCompleted > pTarget) pCompleted = pTarget
+        t.completed = pCompleted
+      } else {
+        t = new Treatment(name, parameters, target, weight)
+      }
+      t.inFlight = 0
       byName[name] = t
       order << t
       return t
     } finally { lock.unlock() }
   }
 
-  // Full named-map form: treatment(name: 'A', parameters: paramsA, target: 20)
+  // Full named-map form: treatment(name: 'A', parameters: paramsA, target: 20, weight: 2.0)
   Treatment treatment(Map opts) {
-    return treatment(opts?.name as String, opts?.parameters, asTarget(opts?.target))
+    return treatment(opts?.name as String, opts?.parameters, asTarget(opts?.target), asWeight(opts?.weight))
   }
 
   // Mixed positional + trailing named args (Groovy gathers the named args into a
-  // leading map): treatment('A', paramsA, target: 20)
+  // leading map): treatment('A', paramsA, target: 20, weight: 2.0)
   Treatment treatment(Map opts, String name, Object parameters) {
-    return treatment(name, parameters, asTarget(opts?.target))
+    return treatment(name, parameters, asTarget(opts?.target), asWeight(opts?.weight))
   }
 
   // Define one treatment per combination in the cartesian product of the given variables.
@@ -822,29 +956,45 @@ class TreatmentManager {
     return created
   }
 
-  // Reserve a slot for a new game and return a uniformly-random eligible treatment,
-  // or null when every treatment is full (target met or enough games in flight).
+  // Reserve a slot and return the sampled eligible treatment, or null when every treatment is full.
+  // The first call seals the manager (no more treatment/distribution changes). Sampling is delegated
+  // to the active pure function; `cursor` advances by one per successful assignment.
   Treatment next() {
+    Treatment chosen = null
+    boolean firstSeal = false
+    boolean advanced = false
     lock.lock()
     try {
-      def eligible = order.findAll { !it.isFull() }
-      if (eligible.isEmpty()) return null
-      def t = eligible[rng.nextInt(eligible.size())]
-      t.inFlight = t.inFlight + 1
-      return t
+      firstSeal = sealIfNeeded()
+      boolean anyEligible = false
+      for (Treatment t : order) { if (!t.isFull()) { anyEligible = true; break } }
+      if (anyEligible) {
+        chosen = (Treatment) strategy.call(seed, cursor, order)
+        if (chosen != null) {
+          chosen.inFlight = chosen.inFlight + 1
+          cursor = cursor + 1
+          advanced = true
+        }
+      }
     } finally { lock.unlock() }
+    if (advanced || firstSeal) persist()
+    return chosen
   }
 
-  // A game for this treatment finished: consume its reserved slot permanently.
+  // A game for this treatment finished: consume its reserved slot permanently, then persist.
   void complete(Treatment t) {
     if (t == null) return
+    boolean changed = false
     lock.lock()
     try {
       def m = byName[t.name]
-      if (m == null) return
-      if (m.inFlight > 0) m.inFlight = m.inFlight - 1
-      m.completed = m.completed + 1
+      if (m != null) {
+        if (m.inFlight > 0) m.inFlight = m.inFlight - 1
+        m.completed = m.completed + 1
+        changed = true
+      }
     } finally { lock.unlock() }
+    if (changed) persist()
   }
 
   // A game for this treatment abandoned before finishing: free its slot so the
@@ -880,7 +1030,7 @@ class TreatmentManager {
     lock.lock()
     try {
       def s = new LinkedHashMap()
-      order.each { s[it.name] = [target: it.target, completed: it.completed, inFlight: it.inFlight] }
+      order.each { s[it.name] = [target: it.target, completed: it.completed, inFlight: it.inFlight, weight: it.weight] }
       return s
     } finally { lock.unlock() }
   }
@@ -889,7 +1039,207 @@ class TreatmentManager {
     if (raw == null) throw new IllegalArgumentException("treatment requires a 'target' (number of completed games)")
     return raw as int
   }
+
+  private static double asWeight(Object raw) {
+    if (raw == null) return 1.0d
+    return raw as double
+  }
+
+  // --- internals: sealing + persistence ---
+
+  // Must hold `lock`. Returns true iff it transitioned to sealed on THIS call.
+  private boolean sealIfNeeded() {
+    if (sealed) return false
+    sealed = true
+    return true
+  }
+
+  private File resolvePersistFile(Map config) {
+    def k = config.key
+    if (k == null || k.toString().trim().isEmpty()) return null
+    String dir = (config.dir != null) ? config.dir.toString() : "./data/treatments"
+    return new File(dir, sanitizeKey(k.toString()) + ".json")
+  }
+
+  private static String sanitizeKey(String k) {
+    return k.replaceAll(/[^A-Za-z0-9._-]/, '_')
+  }
+
+  // Parse the persisted file (if any) into loadedTreatments + seed/cursor/loadedDistType. Best-effort:
+  // a missing/empty/corrupt/newer file just means "start fresh" (logged).
+  private void loadFromFile() {
+    if (persistFile == null) return
+    try {
+      if (!persistFile.exists()) return
+      String text = persistFile.getText('UTF-8')
+      if (text == null || text.trim().isEmpty()) return
+      def data = new JsonSlurper().parseText(text)
+      if (!(data instanceof Map)) return
+      int ver = (data.version != null) ? (data.version as int) : 0
+      if (ver > CURRENT_SCHEMA_VERSION) {
+        println "[TreatmentManager] persisted version $ver > supported $CURRENT_SCHEMA_VERSION; ignoring ${persistFile}"
+        return
+      }
+      def dist = data.distribution
+      if (dist instanceof Map) {
+        loadedDistType = (dist.type != null) ? dist.type.toString() : null
+        if (dist.seed != null) { this.seed = dist.seed as long; seedLoaded = true }
+        if (dist.cursor != null) { this.cursor = dist.cursor as long }
+      }
+      def ts = data.treatments
+      if (ts instanceof Map) {
+        ts.each { tk, tv ->
+          if (tv instanceof Map) {
+            loadedTreatments[tk.toString()] = [
+              target:    (tv.target != null) ? (tv.target as int) : 0,
+              weight:    (tv.weight != null) ? (tv.weight as double) : 1.0d,
+              completed: (tv.completed != null) ? (tv.completed as int) : 0
+            ]
+          }
+        }
+      }
+    } catch (Exception e) {
+      println "[TreatmentManager] failed to read ${persistFile}: $e (starting fresh)"
+      loadedTreatments.clear()
+      loadedDistType = null
+    }
+  }
+
+  // Snapshot under `lock`, then write under `persistLock` via temp-file + atomic rename. Best-effort:
+  // an IO failure must never crash a game lifecycle callback (complete() runs inside onFinish).
+  private void persist() {
+    if (persistFile == null) return
+    Map snapshot
+    lock.lock()
+    try { snapshot = buildSnapshot() } finally { lock.unlock() }
+    persistLock.lock()
+    try {
+      File dir = persistFile.getAbsoluteFile().getParentFile()
+      if (dir != null) Files.createDirectories(dir.toPath())
+      String json = new JsonBuilder(snapshot).toPrettyString()
+      File tmp = File.createTempFile(persistFile.getName() + ".", ".tmp", dir)
+      Files.write(tmp.toPath(), json.getBytes("UTF-8"))
+      try {
+        Files.move(tmp.toPath(), persistFile.toPath(),
+          StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
+      } catch (Exception atomicEx) {
+        Files.move(tmp.toPath(), persistFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+      }
+    } catch (Exception e) {
+      println "[TreatmentManager] failed to persist ${persistFile}: $e"
+    } finally { persistLock.unlock() }
+  }
+
+  // Must hold `lock`. Dormant (loaded-but-not-redefined) entries first, then live treatments overlaid.
+  private Map buildSnapshot() {
+    def treatmentsOut = new LinkedHashMap()
+    loadedTreatments.each { lk, lv ->
+      treatmentsOut[lk] = [target: (lv.target as int), weight: (lv.weight as double), completed: (lv.completed as int)]
+    }
+    order.each { t ->
+      treatmentsOut[t.name] = [target: t.target, weight: t.weight, completed: t.completed]
+    }
+    return [
+      version:      CURRENT_SCHEMA_VERSION,
+      key:          key,
+      distribution: [type: strategyLabel, seed: seed, cursor: cursor],
+      treatments:   treatmentsOut,
+      savedAt:      System.currentTimeMillis()
+    ]
+  }
+
+  // --- built-in sampling functions: pure (long seed, long cursor, List<Treatment> order) -> Treatment ---
+
+  static Closure randomFn() {
+    return { long s, long c, List ts ->
+      def a = ts.findAll { !it.isFull() }
+      if (a.isEmpty()) return null
+      return a[ new Random(TreatmentManager.mix(s, c)).nextInt(a.size()) ]
+    }
+  }
+
+  static Closure roundRobinFn() {
+    return { long s, long c, List ts ->
+      int n = ts.size()
+      if (n == 0) return null
+      for (int i = 0; i < n; i++) {
+        int idx = (int) Math.floorMod(c + i, (long) n)
+        def t = ts[idx]
+        if (!t.isFull()) return t
+      }
+      return null
+    }
+  }
+
+  static Closure weightedFn() {
+    return { long s, long c, List ts ->
+      def a = ts.findAll { !it.isFull() }
+      if (a.isEmpty()) return null
+      double total = 0.0d
+      for (t in a) { double w = t.weight; if (w > 0.0d) total += w }
+      Random r = new Random(TreatmentManager.mix(s, c))
+      if (total <= 0.0d) return a[ r.nextInt(a.size()) ]
+      double draw = r.nextDouble() * total
+      double acc = 0.0d
+      for (t in a) {
+        double w = t.weight
+        if (w <= 0.0d) continue
+        acc += w
+        if (draw < acc) return t
+      }
+      return a[ a.size() - 1 ]
+    }
+  }
+
+  static Closure randomBlockFn(int mult) {
+    final int m = (mult < 1) ? 1 : mult
+    return { long s, long c, List ts ->
+      int n = ts.size()
+      if (n == 0) return null
+      int bs = n * m
+      long blockId = Math.floorDiv(c, (long) bs)
+      int pos = (int) Math.floorMod(c, (long) bs)
+      List perm = TreatmentManager.shuffledIndices(bs, TreatmentManager.mix(s, blockId))
+      for (int j = 0; j < bs; j++) {
+        int idx = ((int) perm[(pos + j) % bs]) % n
+        def t = ts[idx]
+        if (!t.isFull()) return t
+      }
+      return null
+    }
+  }
+
+  // Avalanche mix so consecutive (seed, cursor) draws produce well-separated RNG seeds. Uses the
+  // well-known MMIX-LCG constants kept as POSITIVE decimal longs: this Groovy build's number parser
+  // rejects hex literals with the sign bit set. The exact constants don't matter for correctness,
+  // only that the mix is deterministic and well-distributed.
+  static long mix(long seed, long k) {
+    long z = seed + (k * 6364136223846793005L) + 1442695040888963407L
+    z = (z ^ (z >>> 33)) * 6364136223846793005L
+    z = (z ^ (z >>> 29)) * 1442695040888963407L
+    return z ^ (z >>> 32)
+  }
+
+  // Deterministic Fisher-Yates permutation of [0, n) seeded by `seed`.
+  static List shuffledIndices(int n, long seed) {
+    List idx = new ArrayList(n)
+    for (int i = 0; i < n; i++) idx.add(i)
+    Random r = new Random(seed)
+    for (int i = n - 1; i > 0; i--) {
+      int j = r.nextInt(i + 1)
+      def tmp = idx[i]; idx[i] = idx[j]; idx[j] = tmp
+    }
+    return idx
+  }
 }
+
+// Named sampling functions for TreatmentManager.distribution(...). Each returns a Sampler wrapping a
+// pure pick(long seed, long cursor, List<Treatment> order) -> Treatment. Call them: simpleRandom(),
+// roundRobin(), randomBlock(2), weighted(). A custom strategy is any closure with that signature.
+simpleRandom = { -> new Sampler('random',       TreatmentManager.randomFn()) }
+roundRobin   = { -> new Sampler('round-robin',  TreatmentManager.roundRobinFn()) }
+weighted     = { -> new Sampler('weighted',     TreatmentManager.weightedFn()) }
+randomBlock  = { Integer mult = 1 -> new Sampler('random-block', TreatmentManager.randomBlockFn(mult == null ? 1 : (int) mult)) }
 
 // Bind the engine handles from the script binding at load time (see GroupContext).
 GroupContext.bind(g, a, events)

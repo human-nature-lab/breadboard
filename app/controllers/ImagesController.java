@@ -10,10 +10,12 @@ import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
 import play.mvc.Security;
+import security.PathSafety;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 public class ImagesController extends Controller {
@@ -94,8 +96,15 @@ public class ImagesController extends Controller {
 
     if (experiment.fileMode) {
       File imageDirectory = new File(Play.application().path().toString() + "/dev/" + experiment.getDirectoryName() + "/Images");
+      // This endpoint is intentionally public (participants view images without logging in), so we
+      // cannot gate it with auth. Instead, confine the requested file to the Images directory to
+      // block path traversal (e.g. "..%2f..%2f..%2fconf%2fapplication.conf").
+      Path safePath = PathSafety.resolveContained(imageDirectory.toPath(), fileName);
+      if (safePath == null) {
+        return notFound();
+      }
       try {
-        File file = FileUtils.getFile(imageDirectory, fileName);
+        File file = safePath.toFile();
         String contentType = Files.probeContentType(file.toPath());
         byte[] contents = FileUtils.readFileToByteArray(file);
         response().setContentType(contentType);

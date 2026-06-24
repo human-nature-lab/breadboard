@@ -679,3 +679,271 @@ test("TreatmentManager.factorial gives every cell the completion target") {
   assert assigned == 4
   assert tm.isComplete()
 }
+
+// --- TreatmentManager: persistence + pluggable sampling ----------------------
+// File-backed progress (completed counts + sampling seed/cursor) survives a fresh manager instance
+// (i.e. an engine reload / server restart). inFlight is ephemeral and never persisted. Sampling is a
+// pure function pick(seed, cursor, order) -> Treatment, selectable via named functions. Each test
+// uses its own temp dir (the harness has no temp fixture, and cwd is the repo root) and cleans up.
+
+// No key => persistence disabled => identical to the historical in-memory behavior, and nothing is
+// ever written to disk (even if a dir is supplied).
+test("TreatmentManager without a key persists nothing") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-nokey').toFile()
+  try {
+    def tm = new TreatmentManager(dir: tmp.absolutePath)   // no key -> persistence off
+    tm.treatment('A', new SampleParams(1, 'a'), 1)
+    def t = tm.next()
+    assert t != null && t.name == 'A'
+    tm.complete(t)
+    assert tm.isComplete()
+    assert tmp.listFiles().length == 0 : 'no key -> no file written'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// completed counts are written on complete() and adopted by a fresh manager on the same dir/key.
+test("TreatmentManager persists completed counts and resumes in a fresh instance") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-resume').toFile()
+  try {
+    def tm1 = new TreatmentManager(key: 'exp', dir: tmp.absolutePath)
+    tm1.treatment('A', new SampleParams(1, 'a'), 5)
+    tm1.treatment('B', new SampleParams(2, 'b'), 5)
+    3.times { tm1.complete(tm1.get('A')) }     // simulate 3 finished A-games
+    2.times { tm1.complete(tm1.get('B')) }     // and 2 finished B-games
+    assert tm1.get('A').completed == 3 && tm1.get('B').completed == 2
+
+    // a fresh manager (== an engine reload) with the SAME definitions adopts the file counts
+    def tm2 = new TreatmentManager(key: 'exp', dir: tmp.absolutePath)
+    tm2.treatment('A', new SampleParams(1, 'a'), 5)
+    tm2.treatment('B', new SampleParams(2, 'b'), 5)
+    assert tm2.get('A').completed == 3 : 'completed adopted from file'
+    assert tm2.get('B').completed == 2
+    assert tm2.get('A').inFlight == 0
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// inFlight is a runtime reservation: a fresh manager (reload) always starts it at 0 so a slot held
+// by a game that died on reload is reassignable.
+test("TreatmentManager does not persist inFlight; reload frees reserved slots") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-inflight').toFile()
+  try {
+    def tm1 = new TreatmentManager(key: 'inf', dir: tmp.absolutePath)
+    tm1.treatment('A', new SampleParams(1, 'a'), 3)
+    def t = tm1.next()
+    assert t.name == 'A' && tm1.get('A').inFlight == 1
+
+    def tm2 = new TreatmentManager(key: 'inf', dir: tmp.absolutePath)
+    tm2.treatment('A', new SampleParams(1, 'a'), 3)
+    assert tm2.get('A').inFlight == 0 : 'inFlight is not persisted'
+    assert tm2.get('A').completed == 0
+    assert tm2.next() != null : 'the slot is assignable again after reload'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// "Defined once": re-running the same definitions on reload adopts progress (no reset, no throw);
+// but defining the same name twice within ONE run still throws.
+test("TreatmentManager defines once: reload adopts; in-run duplicate still throws") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-once').toFile()
+  try {
+    def tm1 = new TreatmentManager(key: 'once', dir: tmp.absolutePath)
+    tm1.treatment('A', new SampleParams(1, 'a'), 5)
+    2.times { tm1.complete(tm1.get('A')) }
+
+    def tm2 = new TreatmentManager(key: 'once', dir: tmp.absolutePath)
+    tm2.treatment('A', new SampleParams(1, 'a'), 5)      // same name across reload -> adopt, no throw
+    assert tm2.get('A').completed == 2
+
+    def threw = false
+    try { tm2.treatment('A', new SampleParams(1, 'a'), 5) } catch (IllegalStateException e) { threw = true }
+    assert threw : 'duplicate within a single run must throw'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// The same explicit seed yields the identical assignment sequence (no persistence needed): sampling
+// is a pure function of (seed, cursor, eligible set). release() keeps every treatment eligible.
+test("TreatmentManager sampling is reproducible from the same seed") {
+  def build = { ->
+    def tm = new TreatmentManager(distribution: simpleRandom(), seed: 42L)
+    tm.treatment('A', new SampleParams(1, 'a'), 1000)
+    tm.treatment('B', new SampleParams(2, 'b'), 1000)
+    tm.treatment('C', new SampleParams(3, 'c'), 1000)
+    return tm
+  }
+  def tmA = build(); def tmB = build()
+  def seqA = []; def seqB = []
+  20.times { def t = tmA.next(); seqA << t.name; tmA.release(t) }
+  20.times { def t = tmB.next(); seqB << t.name; tmB.release(t) }
+  assert seqA == seqB : "same seed -> identical sequence ($seqA vs $seqB)"
+  assert seqA.unique().size() > 1 : 'sanity: the sequence is not constant'
+}
+
+// round-robin cycles the defined order and resumes its position (the persisted cursor) after reload.
+test("TreatmentManager roundRobin cycles and resumes its cursor across a reload") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-rr').toFile()
+  try {
+    def define = { tm ->
+      tm.treatment('A', new SampleParams(1, 'a'), 1000)
+      tm.treatment('B', new SampleParams(2, 'b'), 1000)
+      tm.treatment('C', new SampleParams(3, 'c'), 1000)
+    }
+    def tm1 = new TreatmentManager(key: 'rr', dir: tmp.absolutePath, distribution: roundRobin())
+    define(tm1)
+    def seq = []
+    4.times { def t = tm1.next(); seq << t.name; tm1.release(t) }
+    assert seq == ['A', 'B', 'C', 'A'] : "round-robin order ($seq)"
+
+    def tm2 = new TreatmentManager(key: 'rr', dir: tmp.absolutePath, distribution: roundRobin())
+    define(tm2)
+    assert tm2.next().name == 'B' : 'cursor resumed mid-cycle (4 % 3 == 1 -> B)'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// random-block offers a full permutation of the treatments per block, and a reload continues the
+// in-progress block (it does not restart it) -- the two halves form one complete permutation.
+test("TreatmentManager randomBlock completes its block across a reload") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-blk').toFile()
+  try {
+    def define = { tm -> ['A', 'B', 'C', 'D'].each { tm.treatment(it, new SampleParams(1, it), 1000) } }
+    def tm1 = new TreatmentManager(key: 'blk', dir: tmp.absolutePath, distribution: randomBlock(), seed: 7L)
+    define(tm1)
+    def first2 = []
+    2.times { def t = tm1.next(); first2 << t.name; tm1.release(t) }    // cursor -> 2, mid-block
+
+    def tm2 = new TreatmentManager(key: 'blk', dir: tmp.absolutePath, distribution: randomBlock(), seed: 7L)
+    define(tm2)
+    def rest = []
+    2.times { def t = tm2.next(); rest << t.name; tm2.release(t) }      // cursor 2,3 -> completes block 0
+
+    assert ((first2 + rest) as Set) == (['A', 'B', 'C', 'D'] as Set) :
+      "block 0 completes across the reload without restarting ($first2 + $rest)"
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// weighted assignment favors higher-weight treatments (weight passed via the named-map form).
+test("TreatmentManager weighted favors higher-weight treatments") {
+  def tm = new TreatmentManager(distribution: weighted(), seed: 123L)
+  tm.treatment('light', new SampleParams(1, 'l'), 100000)
+  tm.treatment(name: 'heavy', parameters: new SampleParams(2, 'h'), target: 100000, weight: 9.0)
+  def counts = [light: 0, heavy: 0]
+  2000.times { def t = tm.next(); counts[t.name] = counts[t.name] + 1; tm.release(t) }
+  assert counts.heavy > counts.light * 4 : "heavy (weight 9) should dominate: $counts"
+}
+
+// "Defined once": when code diverges from the file, the FILE definition wins (target/weight frozen).
+test("TreatmentManager keeps the file target when code diverges") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-div').toFile()
+  try {
+    def tm1 = new TreatmentManager(key: 'div', dir: tmp.absolutePath)
+    tm1.treatment('A', new SampleParams(1, 'a'), 5)
+    3.times { tm1.complete(tm1.get('A')) }
+
+    def tm2 = new TreatmentManager(key: 'div', dir: tmp.absolutePath)
+    tm2.treatment('A', new SampleParams(1, 'a'), 10)     // code target 10, file target 5 -> file wins
+    assert tm2.get('A').target == 5 : 'file target wins (defined once)'
+    assert tm2.get('A').completed == 3
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// Defensive: a persisted completed count above its target (e.g. a hand-edited file) is clamped on
+// load so the arm is simply treated as met rather than producing negative remaining slots.
+test("TreatmentManager clamps a persisted completed count above its target") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-clamp').toFile()
+  try {
+    def json = new groovy.json.JsonBuilder([
+      version:      1,
+      key:          'clamp',
+      distribution: [type: 'random', seed: 1, cursor: 0],
+      treatments:   [A: [target: 2, weight: 1.0, completed: 5]]
+    ]).toPrettyString()
+    org.apache.commons.io.FileUtils.writeStringToFile(new File(tmp, 'clamp.json'), json)
+
+    def tm = new TreatmentManager(key: 'clamp', dir: tmp.absolutePath)
+    tm.treatment('A', new SampleParams(1, 'a'), 2)
+    assert tm.get('A').completed == 2 : 'completed clamped to the target'
+    assert tm.get('A').isMet()
+    assert tm.next() == null : 'a met treatment is not assigned'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// An arm present in the file but not re-defined this run is dormant: not live/assignable, but its
+// history is preserved in the file across writes.
+test("TreatmentManager keeps a dropped arm dormant in the file") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-dorm').toFile()
+  try {
+    def tm1 = new TreatmentManager(key: 'dorm', dir: tmp.absolutePath)
+    tm1.treatment('A', new SampleParams(1, 'a'), 5)
+    tm1.treatment('B', new SampleParams(2, 'b'), 5)
+    2.times { tm1.complete(tm1.get('B')) }
+
+    def tm2 = new TreatmentManager(key: 'dorm', dir: tmp.absolutePath)
+    tm2.treatment('A', new SampleParams(1, 'a'), 5)      // B omitted this run
+    assert tm2.get('B') == null : 'B is not live this run'
+    assert tm2.all().collect { it.name } == ['A']
+    tm2.complete(tm2.get('A'))                           // force a write
+
+    def data = new groovy.json.JsonSlurper().parseText(new File(tmp, 'dorm.json').text)
+    assert data.treatments.containsKey('B') : 'dormant B is preserved in the file'
+    assert (data.treatments.B.completed as int) == 2
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// The persisted file is valid JSON written to the override dir, with no leftover temp file.
+test("TreatmentManager writes valid JSON and leaves no temp file") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-atom').toFile()
+  try {
+    def tm = new TreatmentManager(key: 'atom', dir: tmp.absolutePath, distribution: roundRobin())
+    tm.treatment('A', new SampleParams(1, 'a'), 3)
+    tm.complete(tm.next())
+
+    def f = new File(tmp, 'atom.json')
+    assert f.exists() : 'file written in the override dir'
+    def data = new groovy.json.JsonSlurper().parseText(f.text)
+    assert (data.version as int) == 1
+    assert data.distribution.type == 'round-robin'
+    assert data.treatments.A != null
+    def leftovers = tmp.listFiles().findAll { it.name.endsWith('.tmp') }
+    assert leftovers.isEmpty() : "no temp files left behind: $leftovers"
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// A custom sampling function (a bare closure with the pick signature) is accepted and persisted as
+// type 'custom', with the manager still owning seed/cursor.
+test("TreatmentManager accepts a custom sampling function") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-custom').toFile()
+  try {
+    def firstEligible = { long s, long c, List ts -> ts.find { !it.isFull() } }
+    def tm = new TreatmentManager(key: 'custom', dir: tmp.absolutePath, distribution: firstEligible)
+    tm.treatment('A', new SampleParams(1, 'a'), 2)
+    tm.treatment('B', new SampleParams(2, 'b'), 2)
+    def t1 = tm.next()
+    assert t1.name == 'A' : 'custom function picked the first eligible'
+    tm.release(t1)
+    assert tm.next().name == 'A'
+
+    def data = new groovy.json.JsonSlurper().parseText(new File(tmp, 'custom.json').text)
+    assert data.distribution.type == 'custom'
+    assert (data.distribution.cursor as int) >= 1
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
