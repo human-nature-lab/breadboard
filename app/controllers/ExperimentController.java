@@ -1,5 +1,6 @@
 package controllers;
 
+import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -82,7 +83,7 @@ public class ExperimentController extends Controller {
   }
 
   @Security.Authenticated(Secured.class)
-  public static Result importExperiment(String experimentName) throws IOException{
+  public static Result importExperiment(String experimentName, Long experimentId) throws IOException{
 
     Http.MultipartFormData body = request().body().asMultipartFormData();
     Long maxUploadSize = play.Play.application().configuration().getLong("maxUploadSize", 50L * 1024L * 1024L);
@@ -112,14 +113,28 @@ public class ExperimentController extends Controller {
 
     String uid = session().get("uid");
     User user = User.findByUID(uid);
-    Experiment experiment = newExperiment(user, false);
-    experiment.name = experimentName;
-    experiment.save();
+
+    // When a positive experimentId is supplied we import "over" that existing experiment (the route
+    // defaults experimentId to 0; ids start at 1). Resolve and authorize the target up front, before
+    // we touch anything, so an unauthorized or missing target fails cleanly.
+    Experiment target = null;
+    boolean isOverwrite = experimentId != null && experimentId > 0;
+    if (isOverwrite) {
+      target = Experiment.findById(experimentId);
+      if (target == null) {
+        return notFound("No experiment found with that ID");
+      }
+      if (!userOwns(user, target)) {
+        return forbidden("You do not have permission to modify this experiment");
+      }
+    }
 
     String timeString = new Date().getTime() + "";
-    String rootOutputFolder = "experiments/" + experiment.name + "_" + experiment.id + "_" + timeString;
+    String rootOutputFolder = "experiments/" + experimentName + "_" + timeString;
     String outputFolder = rootOutputFolder;
 
+    // Extract and validate the archive BEFORE making any destructive change, so a bad upload never
+    // leaves an existing experiment half-wiped.
     try {
       ZipFile zipFile = new ZipFile(zippedFile);
       zipFile.extractAll(outputFolder);
@@ -162,29 +177,83 @@ public class ExperimentController extends Controller {
       e.printStackTrace();
     }
 
+    // Resolve the experiment we're importing into. For an overwrite we keep the existing experiment's
+    // identity (id/uid/name) and its runtime data (instances), but clear its current design resources
+    // so the import below re-creates them — replacing, adding and deleting as needed to match the
+    // archive. For a new import this is the original behaviour.
+    // Determine the export version from the optional .breadboard metadata. A missing or unreadable
+    // file is not an error — older exports without it default to the v2.2 importer.
+    String eVersion = null;
     try{
       String dotBreadboard = readFile(outputFolder + File.separator + ".breadboard", StandardCharsets.UTF_8);
       ObjectMapper mapper = new ObjectMapper();
       JsonNode dotBreadboardJson = mapper.readTree(dotBreadboard);
-      String eVersion = dotBreadboardJson.findPath("version").textValue();
+      eVersion = dotBreadboardJson.findPath("version").textValue();
       String eUid = dotBreadboardJson.findPath("experimentUid").textValue();
       String eName = dotBreadboardJson.findPath("experimentName").textValue();
       // TODO: offer the option to import the Experiment UID and/or Name from the .breadboard file
 
       Logger.debug("Read .breadboard file: experimentVersion = " + eVersion + " experimentUid = " + eUid + " experimentName = " + eName);
-
-      if(eVersion.startsWith("v2.3") || eVersion.startsWith("v2.4")){
-        import23To23(experiment, user, outputFolder);
-      } else if (eVersion.startsWith("v2.2")) {
-        import22To23(experiment, user, outputFolder);
-      } else {
-        // Default to v2.2 import for now
-        import22To23(experiment, user, outputFolder);
-      }
     } catch(IOException e){
       Logger.debug("No .breadboard file present");
-      import22To23(experiment, user, outputFolder);
-    } finally{
+    }
+
+    // Apply the whole wipe-and-reimport inside a single transaction so a failure part way through
+    // never leaves the experiment partially wiped: either every change commits or none do.
+    Experiment experiment = null;
+    Ebean.beginTransaction();
+    try {
+      if (isOverwrite) {
+        // Keep the existing experiment's identity (id/uid/name) and runtime data (instances), but
+        // clear its current design resources so the import re-creates them — replacing, adding and
+        // deleting as needed to match the archive.
+        experiment = target;
+        experiment.setFileMode(false);
+        experiment.removeSteps();
+        experiment.removeContent();
+        experiment.removeParameters();
+        experiment.removeImages();
+        experiment.languages.clear();
+        experiment.save();
+        experiment.saveManyToManyAssociations("languages");
+      } else {
+        experiment = newExperiment(user, false);
+        experiment.name = experimentName;
+        experiment.save();
+      }
+
+      // Run the version-appropriate importer. A thrown IOException, or a false result (a helper that
+      // failed to import a resource), aborts the transaction so nothing is committed.
+      boolean imported;
+      if (eVersion != null && (eVersion.startsWith("v2.3") || eVersion.startsWith("v2.4"))) {
+        imported = import23To23(experiment, user, outputFolder);
+      } else {
+        // v2.2, or no/unknown version
+        imported = import22To23(experiment, user, outputFolder);
+      }
+      if (!imported) {
+        throw new IOException("The experiment archive could not be fully imported");
+      }
+
+      // Persist the language associations imported above (the import helpers add languages but rely
+      // on this to write the join rows / drop the ones removed during an overwrite).
+      experiment.saveManyToManyAssociations("languages");
+
+      // Only a brand new experiment needs to be associated with the user; an overwrite target
+      // already belongs to them.
+      if (!isOverwrite) {
+        user.ownedExperiments.add(experiment);
+        user.update();
+        user.saveManyToManyAssociations("ownedExperiments");
+      }
+
+      Ebean.commitTransaction();
+    } catch (Exception e) {
+      Ebean.rollbackTransaction();
+      Logger.error("Failed to import experiment; rolled back all changes", e);
+      return internalServerError("Failed to import the experiment: " + e.getMessage());
+    } finally {
+      Ebean.endTransaction();
       deleteDirectory(new File(rootOutputFolder));
     }
 
@@ -445,13 +514,10 @@ public class ExperimentController extends Controller {
       return false;
     }
 
-    // Write changes to DB
+    // Write changes to DB. The caller associates the experiment with the user (a brand new import)
+    // or leaves an overwrite target's ownership untouched.
     experiment.setFileMode(false);
     experiment.save();
-
-    user.ownedExperiments.add(experiment);
-    user.update();
-    user.saveManyToManyAssociations("ownedExperiments");
 
     return true;
   }
@@ -474,12 +540,9 @@ public class ExperimentController extends Controller {
     importParameters(experiment, new File(directory, "parameters.csv"));
     // Import Images
     importImages(experiment, new File(directory, "/Images"));
-    // Save
+    // Save. The caller associates the experiment with the user (a brand new import) or leaves an
+    // overwrite target's ownership untouched.
     experiment.save();
-
-    user.ownedExperiments.add(experiment);
-    user.update();
-    user.saveManyToManyAssociations("ownedExperiments");
 
     return true;
   }
@@ -702,6 +765,18 @@ public class ExperimentController extends Controller {
       }
     }
     return returnSteps;
+  }
+
+  private static boolean userOwns(User user, Experiment experiment) {
+    if (user == null || experiment == null) {
+      return false;
+    }
+    for (Experiment e : user.ownedExperiments) {
+      if (e.id != null && e.id.equals(experiment.id)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static Experiment newExperiment(User user, Boolean isNewExperiment){
