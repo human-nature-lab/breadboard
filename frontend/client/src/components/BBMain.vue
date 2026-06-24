@@ -31,16 +31,18 @@ const showTimers = computed(() => {
 </script>
 
 <template>
-  <v-main>
-    <PlayerTimers v-if="showTimers" :player="props.player" />
-    <WaitingRoom v-if="isWaitingRoom" :player="props.player" />
-    <template v-else-if="isComplete">
-      <FinishProlific v-if="isProlific" :player="props.player" />
-      <FinishMturk v-else-if="isMTurk" :player="props.player" />
-      <FinishDefault v-else :player="props.player" />
-    </template>
-    <template v-else>
-      <slot />
-    </template>
-  </v-main>
+  <v-app>
+    <v-main>
+      <PlayerTimers v-if="showTimers" :player="props.player" />
+      <WaitingRoom v-if="isWaitingRoom" :player="props.player" />
+      <template v-else-if="isComplete">
+        <FinishProlific v-if="isProlific" :player="props.player" />
+        <FinishMturk v-else-if="isMTurk" :player="props.player" />
+        <FinishDefault v-else :player="props.player" />
+      </template>
+      <template v-else>
+        <slot />
+      </template>
+    </v-main>
+  </v-app>
 </template>
