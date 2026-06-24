@@ -60,6 +60,17 @@
                     </span>
                     </button>
                     <button class="btn btn-default"
+                            id="replaceExperimentButton"
+                            ng-disabled="breadboard.experiment === undefined || breadboard.experiment === '' || breadboard.experimentInstance.status === 'RUNNING'"
+                            ng-click="openReplaceDialog()">
+                    <span class="glyphicon glyphicon-refresh"
+                          tooltip="Replace the selected experiment from a file"
+                          tooltip-placement="bottom"
+                          tooltip-append-to-body="true"
+                          aria-hidden="true">
+                    </span>
+                    </button>
+                    <button class="btn btn-default"
                             id="devButton"
                             ng-class="{ 'active': (breadboard.experiment.fileMode) }"
                             ng-click="toggleDevMode()">
@@ -256,7 +267,7 @@
     </div>
 
     <!-- Import Experiment -->
-    <experiment-import select-experiment="selectExperiment"></experiment-import>
+    <experiment-import select-experiment="selectExperiment" current-experiment="breadboard.experiment"></experiment-import>
 
     <!-- AMT Admin -->
     <div>

@@ -122,4 +122,105 @@ public class ExperimentImportExportTest extends BaseTest {
             FileUtils.deleteQuietly(dir);
         }
     }
+
+    /**
+     * Imports an archive OVER an already-populated experiment and asserts the resources are synced:
+     * matching resources are replaced, new ones added, and stale ones deleted -- while the
+     * experiment's identity (id/uid) is preserved. This is the wipe-then-reimport contract the HTTP
+     * "replace experiment" endpoint relies on (it shares Experiment.removeSteps()/removeContent()/
+     * removeParameters()/removeImages() with this directory-based importer).
+     */
+    @Test
+    public void importOverPopulatedExperimentSyncsResources() throws Exception {
+        Language eng = createLanguage("eng", "English");
+        User user = createUser("sync@test.com", "Sync User", "pass", eng);
+
+        // --- Source experiment: the desired end state ---
+        Experiment source = createExperiment("SyncSource");
+        source.setStyle("body { color: blue; }");
+        source.setClientHtml("<html>new</html>");
+        source.setClientGraph("// new graph");
+        source.save();
+        createStep(source, "keepStep", "// new source for keepStep");
+        createStep(source, "addedStep", "// only in source");
+        createParameter(source, "rounds", "Integer", "3");
+        Content sourceContent = createContent(source, "intro");
+        Translation st = new Translation();
+        st.setHtml("<p>new intro</p>");
+        st.language = eng;
+        st.content = sourceContent;
+        st.save();
+        Image si = new Image();
+        si.fileName = "new.png";
+        si.contentType = "image/png";
+        si.file = new byte[]{9, 9, 9};
+        source.images.add(si);
+        source.save();
+
+        // --- Target experiment: pre-populated with DIFFERENT, stale resources ---
+        Experiment target = createExperiment("SyncTarget");
+        target.setStyle("body { color: red; }");
+        target.save();
+        Long targetId = target.id;
+        String targetUid = target.uid;
+        createStep(target, "keepStep", "// OLD source for keepStep");
+        createStep(target, "staleStep", "// should be deleted");
+        createParameter(target, "staleParam", "Text", "");
+        Content staleContent = createContent(target, "staleContent");
+        Translation tt = new Translation();
+        tt.setHtml("<p>stale</p>");
+        tt.language = eng;
+        tt.content = staleContent;
+        tt.save();
+        Image ti = new Image();
+        ti.fileName = "stale.png";
+        ti.contentType = "image/png";
+        ti.file = new byte[]{1, 1, 1};
+        target.images.add(ti);
+        target.save();
+
+        File dir = Files.createTempDirectory("bb-sync").toFile();
+        try {
+            ExperimentController.exportExperimentToDirectory(source.id, dir);
+            // Import OVER the populated target.
+            ExperimentController.importExperimentFromDirectory(targetId, user, dir);
+
+            Experiment synced = Experiment.findById(targetId);
+            assertNotNull("Synced experiment should exist", synced);
+
+            // Identity is preserved (same row, not a new experiment).
+            assertEquals("Experiment id should be preserved", targetId, synced.id);
+            assertEquals("Experiment uid should be preserved", targetUid, synced.uid);
+
+            // Scalars replaced.
+            assertEquals("body { color: blue; }", synced.getStyle());
+            assertEquals("<html>new</html>", synced.getClientHtml());
+            assertEquals("// new graph", synced.getClientGraph());
+
+            // Steps: keepStep replaced, addedStep added, staleStep deleted.
+            Map<String, String> steps = new HashMap<String, String>();
+            for (Step s : synced.getSteps()) {
+                steps.put(s.name, s.source);
+            }
+            assertEquals("Only the source's steps should remain", 2, steps.size());
+            assertEquals("keepStep should be replaced", "// new source for keepStep", steps.get("keepStep"));
+            assertTrue("addedStep should be added", steps.containsKey("addedStep"));
+            assertFalse("staleStep should be deleted", steps.containsKey("staleStep"));
+
+            // Parameters: only the source's remain.
+            assertEquals(1, synced.parameters.size());
+            assertEquals("rounds", synced.parameters.get(0).name);
+
+            // Content: only the source's remains.
+            List<Content> contents = synced.getContent();
+            assertEquals(1, contents.size());
+            assertEquals("intro", contents.get(0).name);
+
+            // Images: only the source's remains.
+            assertEquals(1, synced.images.size());
+            assertEquals("new.png", synced.images.get(0).fileName);
+        } finally {
+            FileUtils.deleteQuietly(dir);
+        }
+    }
 }

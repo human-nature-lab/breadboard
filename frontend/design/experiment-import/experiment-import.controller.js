@@ -61,4 +61,49 @@ export default function ExperimentImportCtrl($scope, Upload, $timeout){
     $scope.import.name = '';
   }
 
+  // Replace (import over) the currently selected experiment. The dialog is opened from the toolbar
+  // via openReplaceDialog(); it reads the target from the currentExperiment binding.
+  $scope.replace = {
+    file: null,
+    error: '',
+    success: false,
+    targetName: ''
+  };
+
+  $scope.replaceExperiment = function(){
+    if (!$scope.replace.file) return;
+    let experiment = $scope.currentExperiment;
+    if (!experiment || !experiment.id) return;
+    $scope.replace.targetName = experiment.name;
+    Upload.upload({
+      url: $scope.import.path + `/${encodeURIComponent(experiment.name)}?experimentId=${experiment.id}`,
+      data: {
+        file: $scope.replace.file
+      }
+    }).then(function(resp){
+      if (resp.status < 400) { //Success
+        $scope.replace.file = null;
+        $scope.replace.success = true;
+        // Re-select to reload the freshly synced experiment from the server.
+        $scope.selectExperiment()(experiment.id);
+        $timeout(function() {
+          $scope.replace.success = false;
+          $('#replaceExperimentDialog').dialog('close');
+        }, 1500);
+      } else {
+        replaceErrorOnUpload(resp);
+      }
+    }, function(err){
+      replaceErrorOnUpload(err)
+    }, function(evt){
+      console.log('replace upload progress', evt);
+    });
+  };
+
+  function replaceErrorOnUpload(err) {
+    console.error(err);
+    $scope.replace.error = (err.data) ? err.data : err;
+    $scope.replace.file = null;
+  }
+
 }
