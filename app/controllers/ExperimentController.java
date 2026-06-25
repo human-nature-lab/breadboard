@@ -180,10 +180,13 @@ public class ExperimentController extends Controller {
           return badRequest(msg);
         }
       } else {
+        // Steps is the one folder every experiment has, so it's the marker of a valid archive.
+        // Content and Images are optional — an experiment with no content/images exports without
+        // those folders (see exportExperiment, which only writes entries that exist), and the import
+        // helpers below all tolerate their absence.
         File stepsDirectory = new File(outputFolder, "Steps");
-        File contentDirectory = new File(outputFolder, "Content");
-        if(!stepsDirectory.exists() || !contentDirectory.exists()){
-          String msg = "No Steps or Content directories found. Please upload a valid experiment";
+        if(!stepsDirectory.exists()){
+          String msg = "No Steps directory found. Please upload a valid experiment";
           Logger.debug(msg);
           deleteDirectory(new File(rootOutputFolder));
           return badRequest(msg);
@@ -478,9 +481,11 @@ public class ExperimentController extends Controller {
     Logger.debug("Skipping client.html. Using default instead. Please merge any customizations by hand");
     Logger.debug("Skipping client-graph.js. Using default instead. Please merge any customizations by hand.");
 
-    // Import content
+    // Import content. Content is optional: a missing/empty Content folder is not an error, so guard
+    // against listFiles() returning null (the directory does not exist) before iterating.
     File contentDir = new File(directory, "/Content");
-    for (File langFileOrDir : contentDir.listFiles()){
+    File[] contentEntries = contentDir.listFiles();
+    for (File langFileOrDir : (contentEntries != null ? contentEntries : new File[0])){
       if(!langFileOrDir.isDirectory()){
         Logger.debug("Content is in root of Content directory. Attempting to import as default language.");
         try {
