@@ -26,6 +26,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -127,10 +128,25 @@ public class ExperimentController extends Controller {
       if (!userOwns(user, target)) {
         return forbidden("You do not have permission to modify this experiment");
       }
+      // A replace wipes and re-creates the target's design (steps/content/parameters/images). A
+      // RUNNING instance is actively executing games against that design, so swapping it out from
+      // under the run would corrupt it. The UI disables the Replace button while an instance is
+      // RUNNING, but the endpoint is the real boundary — enforce it here rather than trusting the
+      // client. (Instances and their collected data are otherwise preserved by the overwrite.)
+      for (ExperimentInstance ei : target.instances) {
+        if (ei.status == ExperimentInstance.Status.RUNNING) {
+          return badRequest("Cannot replace an experiment while one of its instances is running. "
+              + "Stop the run before replacing.");
+        }
+      }
     }
 
+    // Scratch directory for this upload's extraction (always deleted in the finally below). It must be
+    // unique per request: the original flow used the experiment id to disambiguate, but extraction now
+    // runs BEFORE the experiment is created/resolved, so there is no id yet for a new import. A random
+    // token guarantees two same-named uploads in the same millisecond never share (and clobber) a dir.
     String timeString = new Date().getTime() + "";
-    String rootOutputFolder = "experiments/" + experimentName + "_" + timeString;
+    String rootOutputFolder = "experiments/" + experimentName + "_" + timeString + "_" + UUID.randomUUID();
     String outputFolder = rootOutputFolder;
 
     // Extract and validate the archive BEFORE making any destructive change, so a bad upload never
