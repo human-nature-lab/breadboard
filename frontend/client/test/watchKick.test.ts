@@ -12,27 +12,27 @@ afterEach(() => {
 })
 
 describe('watchKick', () => {
-  it('redirects when _system.frontend.kicked flips to true', async () => {
-    const player = ref<any>({ _system: { frontend: { kicked: false } } })
+  it('redirects when _system.status flips to kicked', async () => {
+    const player = ref<any>({ _system: { status: 'active' } })
     watchKick(player)
     await nextTick()
     expect(window.location.href).toBe('')
 
-    player.value._system.frontend.kicked = true
+    player.value._system.status = 'kicked'
     await nextTick()
     expect(window.location.href).toBe('https://app.prolific.com')
   })
 
-  it('redirects immediately if kicked is already true on mount', async () => {
-    const player = ref<any>({ _system: { frontend: { kicked: true } } })
+  it('redirects immediately if status is already kicked on mount', async () => {
+    const player = ref<any>({ _system: { status: 'kicked' } })
     watchKick(player)
     await nextTick()
     expect(window.location.href).toBe('https://app.prolific.com')
   })
 
-  it('ignores the legacy top-level player.kicked field (regression)', async () => {
-    // The backend writes _system.frontend.kicked, not a top-level kicked flag.
-    const player = ref<any>({ kicked: true, _system: { frontend: {} } })
+  it('ignores a top-level player.status field (regression)', async () => {
+    // The lifecycle lives at _system.status, not a top-level status flag.
+    const player = ref<any>({ status: 'kicked', _system: { status: 'active' } })
     watchKick(player)
     await nextTick()
     expect(window.location.href).toBe('')

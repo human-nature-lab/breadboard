@@ -33,21 +33,22 @@ describe('BBMain view gating', () => {
   })
 
   it('routes a completed prolific player to FinishProlific', () => {
-    const w = mountWith({ _system: { recruitment: { completed: true, source: 'prolific' } } })
+    // _system.status gates the finish view; recruitment.source only selects which finish screen.
+    const w = mountWith({ _system: { status: 'completed', recruitment: { source: 'prolific' } } })
     expect(w.find('.finish-prolific').exists()).toBe(true)
     expect(w.find('.finish-mturk').exists()).toBe(false)
     expect(w.find('.finish-default').exists()).toBe(false)
   })
 
   it('routes a completed mturk player to FinishMturk (source lives under recruitment)', () => {
-    const w = mountWith({ _system: { recruitment: { completed: true, source: 'mturk' } } })
+    const w = mountWith({ _system: { status: 'completed', recruitment: { source: 'mturk' } } })
     expect(w.find('.finish-mturk').exists()).toBe(true)
     expect(w.find('.finish-prolific').exists()).toBe(false)
     expect(w.find('.finish-default').exists()).toBe(false)
   })
 
   it('falls back to FinishDefault for a completed player with another source', () => {
-    const w = mountWith({ _system: { recruitment: { completed: true, source: 'other' } } })
+    const w = mountWith({ _system: { status: 'completed', recruitment: { source: 'other' } } })
     expect(w.find('.finish-default').exists()).toBe(true)
     expect(w.find('.finish-prolific').exists()).toBe(false)
     expect(w.find('.finish-mturk').exists()).toBe(false)

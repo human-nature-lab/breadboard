@@ -3,7 +3,11 @@ import { computed } from 'vue'
 
 const props = defineProps<{
   player: {
-    _system?: Record<string, any>
+    _system?: {
+      // Study-level lifecycle, the unified flag breadboard sets throughout (see groovy/util.groovy).
+      status?: 'active' | 'completed' | 'kicked' | 'dropped'
+      [key: string]: any
+    }
   }
   hideTimers?: boolean
 }>()
@@ -17,7 +21,9 @@ const recruitment = computed(() => {
   return props.player?._system?.recruitment
 })
 const isComplete = computed(() => {
-  return !!recruitment.value?.completed
+  // Study-level lifecycle drives the finish view; the recruitment.* detail below only chooses WHICH
+  // finish screen (prolific/mturk/default).
+  return props.player?._system?.status === 'completed'
 })
 const isProlific = computed(() => {
   return recruitment.value?.source === 'prolific'

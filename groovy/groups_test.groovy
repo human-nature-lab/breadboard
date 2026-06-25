@@ -193,7 +193,7 @@ test("step() rejects a duplicate step name") {
 }
 
 // Dropping a player drains their pending ask and, if that empties the step's queue, completes the
-// step -- exactly as if they had submitted. drop also flips _system.active so `players` excludes them.
+// step -- exactly as if they had submitted. drop also sets _system.status='dropped' so `players` excludes them.
 test("dropping a player drains their ask, completes the step, and excludes them from players") {
   def doneCount = new AtomicInteger(0)
   defineCounterGame(doneCount)
@@ -210,7 +210,7 @@ test("dropping a player drains their ask, completes the step, and excludes them 
   game.drop(p2)                            // p2 drops; their queued choice is drained
   assert game.pendingCount() == 0          // queue now empty
   assert doneCount.get() == 1              // ...so the step completed exactly once
-  assert p2._system.active == false        // drop flipped the active flag
+  assert p2._system.status == 'dropped'    // drop set the terminal study-level status
   assert !game.players.contains(p2)        // ...so players excludes the dropped member
   assert game.players.contains(p1)
 }

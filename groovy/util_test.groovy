@@ -37,16 +37,40 @@ test("configureFrontend enables screen tracking when trackScreen is set") {
 
 // --- kickPlayers ---------------------------------------------------------------------------------
 
-test("kickPlayers marks _system.frontend.kicked so the client redirect fires") {
+test("kickPlayers marks _system.status = 'kicked' so the client redirect fires") {
   def v = g.addPlayer('kick-1')
   kickPlayers(v.id)
-  assert v._system.frontend.kicked == true
+  assert v._system.status == 'kicked'
 }
 
 test("kickPlayers handles several players in one call") {
   def a1 = g.addPlayer('kick-multi-a')
   def b1 = g.addPlayer('kick-multi-b')
   kickPlayers(a1.id, b1.id)
-  assert a1._system.frontend.kicked == true
-  assert b1._system.frontend.kicked == true
+  assert a1._system.status == 'kicked'
+  assert b1._system.status == 'kicked'
+}
+
+test("a new vertex defaults to _system.status = 'active'") {
+  def v = g.addPlayer('status-default')
+  assert v._system.status == 'active'
+  assert isVertexActive(v)
+}
+
+test("setVertexStatus moves active -> terminal, and terminal statuses are sticky") {
+  def v = g.addPlayer('status-terminal')
+  setVertexStatus(v, 'dropped')
+  assert v._system.status == 'dropped'
+  assert !isVertexActive(v)
+  setVertexStatus(v, 'active')             // refused: 'dropped' is terminal
+  assert v._system.status == 'dropped'
+  setVertexStatus(v, 'dropped')            // re-asserting the same terminal status is a no-op (fine)
+  assert v._system.status == 'dropped'
+}
+
+test("setVertexStatus rejects an unknown status") {
+  def v = g.addPlayer('status-bad')
+  def threw = false
+  try { setVertexStatus(v, 'bogus') } catch (IllegalArgumentException e) { threw = true }
+  assert threw : 'an unknown status must throw'
 }

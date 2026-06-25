@@ -170,6 +170,15 @@ test("clientPending/Waiting/Completed track a client through its lifecycle witho
   assert rc.clients.size() == 1            // same client updated in place (no duplicate)
 }
 
+test("removeClient marks the client removed and the vertex _system.status = 'dropped'") {
+  def rc = new RecruitmentController(g)
+  def v = g.addPlayer('rm1')
+  rc.clientWaiting('rm1')
+  rc.removeClient('rm1')
+  assert rc.clients.find { it.id == 'rm1' }.state == 'removed'
+  assert v._system.status == 'dropped'     // study-level lifecycle mirrors the controller removal
+}
+
 test("gameStarted/gameCompleted move clients and count completed games") {
   def rc = new RecruitmentController(g)
   rc.clientWaiting("g1")

@@ -205,6 +205,11 @@ class RecruitmentController extends BreadboardBase {
 
   public removeClient(String clientId) {
     this._setState(clientId, "removed")
+    // Mirror the controller-side 'removed' onto the participant's study-level lifecycle so the rest of
+    // breadboard (and the frontend) treats them as out of the study. The controller is keyed by client
+    // id; resolve the vertex from the graph (as stopRecruiting* does) and mark it dropped (terminal).
+    def v = (this.graph != null) ? this.graph.getVertex(clientId) : null
+    if (v != null) setVertexStatus(v, 'dropped')
   }
 
   // --- games -----------------------------------------------------------------------------------
@@ -304,6 +309,7 @@ class RecruitmentController extends BreadboardBase {
     v._system.recruitment.bonus = completeOpts.bonus
     v._system.recruitment.message = completeOpts.message
     v._system.recruitment.noFeedback = completeOpts.noFeedback
+    setVertexStatus(v, 'completed')
     this.clientCompleted(v.id)
   }
 
@@ -320,6 +326,7 @@ class RecruitmentController extends BreadboardBase {
     v._system.recruitment.noFeedback = completeOpts.noFeedback
     v._system.recruitment.reason = completeOpts.reason
     v._system.recruitment.bonus = completeOpts.bonus
+    setVertexStatus(v, 'completed')
     this.clientCompleted(v.id)
   }
 

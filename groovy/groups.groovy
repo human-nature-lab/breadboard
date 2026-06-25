@@ -184,7 +184,10 @@ class Game {
       println "[Game ${id}] addPlayer: player ${v.id} was already tagged for game ${existing}; reassigning to ${this.id}"
     }
     v._system.groupId = this.id
-    v._system.active = true
+    // Membership is study-level: a player counts as a member while their _system.status is 'active'.
+    // Vertices default to 'active' at creation, so only seed it if somehow unset -- and never override
+    // a terminal status, so a dropped/kicked/completed player is not silently re-activated.
+    if (v._system.status == null) v._system.status = 'active'
     lock.lock()
     try { if (!members.contains(v)) members.add(v) } finally { lock.unlock() }
   }
@@ -201,10 +204,11 @@ class Game {
     return added
   }
 
-  // Active members only -- dropped players (active == false) vanish immediately.
+  // Active members only -- a player whose study-level _system.status has left 'active'
+  // (dropped/kicked/completed) vanishes immediately.
   List getPlayers() {
     lock.lock()
-    try { return members.findAll { it?._system?.active } } finally { lock.unlock() }
+    try { return members.findAll { it?._system?.status == 'active' } } finally { lock.unlock() }
   }
 
   // --- steps ---
@@ -346,12 +350,12 @@ class Game {
 
   // --- dropping ---
 
-  // In-game drop: mark inactive, drain pending asks, cancel timers, disconnect
-  // edges. If that empties the cohort and the game isn't finished, abandon it;
+  // In-game drop: mark the player dropped (a terminal study-level status), drain pending asks, cancel
+  // timers, disconnect edges. If that empties the cohort and the game isn't finished, abandon it;
   // otherwise let the current step complete if its queue drained.
   void drop(Object player) {
     if (player == null) return
-    if (player._system != null) player._system.active = false
+    if (player._system != null) player._system.status = 'dropped'
 
     List affected = []
     boolean drained = false
@@ -456,8 +460,9 @@ class Game {
         try { GroupContext.g.removePlayer(v.id) } catch (Exception e) { /* ignore */ }
       }
       if (v?._system?.groupId == this.id) {
+        // Detach from this (now-finished) game, but leave the study-level _system.status untouched:
+        // ending a game does not end the participant's study lifecycle (drop/kick/complete do that).
         v._system.remove('groupId')
-        v._system.remove('active')
       }
     }
 
