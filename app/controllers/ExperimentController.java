@@ -478,8 +478,22 @@ public class ExperimentController extends Controller {
     } catch(IOException e){
       Logger.error("Unable to read style.css", e);
     }
-    Logger.debug("Skipping client.html. Using default instead. Please merge any customizations by hand");
-    Logger.debug("Skipping client-graph.js. Using default instead. Please merge any customizations by hand.");
+    // Import the client html/graph when the archive provides them (the v2.3+ export filenames).
+    // Genuine v2.2 exports used a different, incompatible client format under a different filename
+    // ("client.html"), so they simply won't be found here and the experiment keeps its existing client
+    // code. But a modern export coming through this path -- e.g. when replacing an experiment with a
+    // file whose .breadboard version wasn't detected as v2.3/v2.4 -- gets its client html/graph applied
+    // instead of being silently skipped (which left a replaced experiment showing its old client code).
+    try {
+      experiment.setClientHtml(FileUtils.readFileToString(new File(directory, "client-html.html")));
+    } catch (IOException e) {
+      Logger.debug("No client-html.html to import; leaving the client HTML unchanged");
+    }
+    try {
+      experiment.setClientGraph(FileUtils.readFileToString(new File(directory, "client-graph.js")));
+    } catch (IOException e) {
+      Logger.debug("No client-graph.js to import; leaving the client graph unchanged");
+    }
 
     // Import content. Content is optional: a missing/empty Content folder is not an error, so guard
     // against listFiles() returning null (the directory does not exist) before iterating.
