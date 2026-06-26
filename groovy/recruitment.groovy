@@ -22,15 +22,9 @@ RecruitmentSource = [
   MTURK: RecruitmentController.SOURCE_MTURK,
 ].asImmutable()
 
-@ToString(includeNames = true)
-class ProlificRegisterOpts {
-}
-
-@ToString(includeNames = true)
-class MTurkRegisterOpts {
-  Boolean sandbox
-}
-
+// ---------------------------------------------------------------------------
+// Completion option holders -- parsed from the opts map passed to recruitment.end
+// ---------------------------------------------------------------------------
 @ToString(includeNames = true)
 class ProlificCompleteOpts {
   String completionCode
@@ -45,6 +39,62 @@ class MTurkCompleteOpts {
   Double bonus
   Boolean noFeedback
   String reason
+}
+
+// ---------------------------------------------------------------------------
+// RecruitmentProvider -- the per-panel knowledge (Prolific, MTurk, ...)
+// ---------------------------------------------------------------------------
+// A provider is the only place that knows how one recruitment panel differs: its `source` label (the
+// wire contract the Finish*.vue screens compare against), what to stamp at start, and how to validate
+// + record a completion. The shared machinery (client states, game accounting, the gate) lives on the
+// controller, which calls these hooks after running _ensureSystem(v, 'recruitment') -- so providers
+// only ever touch _system.recruitment.*. Abstract (not an interface) because Groovy 1.8.6 has no
+// default methods and onStart needs a no-op default.
+abstract class RecruitmentProvider {
+  abstract String getSource()
+  void onStart(Vertex v, Map opts) {}
+  // Validate opts and stamp the completion fields; throw if opts are insufficient.
+  abstract void onEnd(Vertex v, Map opts)
+  // Consulted only with more than one provider registered (see addProvider), to auto-route start().
+  boolean matches(Vertex v) { return false }
+}
+
+class ProlificProvider extends RecruitmentProvider {
+  String getSource() { return RecruitmentController.SOURCE_PROLIFIC }
+
+  void onEnd(Vertex v, Map opts) {
+    ProlificCompleteOpts o = new ProlificCompleteOpts(opts)
+    if (!o.completionCode) {
+      // A Prolific completion is meaningless without a code -- the client builds its submit URL as
+      // ?cc=<completionCode>, so a null here would redirect the participant to ?cc=null.
+      throw new IllegalArgumentException("Completion code is required")
+    }
+    v._system.recruitment.completionCode = o.completionCode
+    v._system.recruitment.bonus = o.bonus
+    v._system.recruitment.message = o.message
+    v._system.recruitment.noFeedback = o.noFeedback
+  }
+}
+
+class MturkProvider extends RecruitmentProvider {
+  // Study-wide, so it's provider config stamped at start() rather than a per-call opt.
+  Boolean sandbox = false
+
+  String getSource() { return RecruitmentController.SOURCE_MTURK }
+
+  void onStart(Vertex v, Map opts) {
+    v._system.recruitment.sandbox = this.sandbox
+  }
+
+  void onEnd(Vertex v, Map opts) {
+    MTurkCompleteOpts o = new MTurkCompleteOpts(opts)
+    if (!o.bonus) {
+      throw new IllegalArgumentException("Bonus is required")
+    }
+    v._system.recruitment.bonus = o.bonus
+    v._system.recruitment.noFeedback = o.noFeedback
+    v._system.recruitment.reason = o.reason
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -87,8 +137,8 @@ class RecruitmentClient {
 // reports lobby/game events to it.
 //
 // The "gate" (recruitmentActive) lets an experiment stop admitting NEW participants while letting
-// in-progress games finish: registerProlific/registerMturk no-op once it is off, and
-// stopRecruiting* flips it off and completes everyone who hasn't finished yet.
+// in-progress games finish: start() no-ops once it is off, and stopRecruiting() flips it off and
+// ends everyone who hasn't finished yet.
 class RecruitmentController extends BreadboardBase {
 
   // Source identifiers. Defined on the class (not read from the RecruitmentSource binding global)
@@ -101,9 +151,17 @@ class RecruitmentController extends BreadboardBase {
   private volatile boolean recruitmentActive = true
 
   // The engine graph (`g`, a BreadboardGraph) used to resolve a player vertex from its id when
-  // bulk-completing in stopRecruiting*. Untyped on purpose: typing it to the concrete graph class
+  // bulk-completing in stopRecruiting. Untyped on purpose: typing it to the concrete graph class
   // would couple this script to that class at compile time for no benefit.
   private final Object graph
+
+  // Registered recruitment providers, keyed by source. setProvider installs one (the common single-
+  // panel case); addProvider adds more for a deployment that serves several panels and auto-routes
+  // start() via RecruitmentProvider.matches(v). Declared as Map per the 1.8.6 note above.
+  private final Map<String, RecruitmentProvider> providers = new ConcurrentHashMap<String, RecruitmentProvider>()
+  // Provider used by start() when no registered provider claims the participant. volatile: set from
+  // the experiment script, read from socket/game threads.
+  private volatile RecruitmentProvider defaultProvider
 
   // One RecruitmentClient per player id. CopyOnWriteArrayList: read from the logging loop while
   // socket threads register/complete. Declared as List (see the 1.8.6 note above).
@@ -271,89 +329,77 @@ class RecruitmentController extends BreadboardBase {
     return this.recruitmentActive
   }
 
-  // --- register (gated) ------------------------------------------------------------------------
+  // --- providers -------------------------------------------------------------------------------
 
-  public registerProlific(Vertex v, Map opts = [:]) {
+  // Install THE provider for this experiment (the common single-panel case): clears any others and
+  // makes it the default. Use addProvider instead to serve several panels from one deployment.
+  public setProvider(RecruitmentProvider provider) {
+    this.providers.clear()
+    this.providers[provider.getSource()] = provider
+    this.defaultProvider = provider
+  }
+
+  // Register an additional provider. With more than one installed, start() auto-routes each
+  // participant to the first provider whose matches(v) is true, falling back to the default.
+  public addProvider(RecruitmentProvider provider) {
+    this.providers[provider.getSource()] = provider
+    if (this.defaultProvider == null) this.defaultProvider = provider
+  }
+
+  private RecruitmentProvider _resolveProviderForStart(Vertex v) {
+    for (def p in this.providers.values()) {
+      if (p.matches(v)) return p
+    }
+    if (this.defaultProvider == null) {
+      throw new IllegalStateException("No recruitment provider configured; call recruitment.setProvider(...) first")
+    }
+    return this.defaultProvider
+  }
+
+  // --- start (gated) ---------------------------------------------------------------------------
+
+  // No-ops once the gate is closed (see stopRecruiting).
+  public start(Vertex v, Map opts = [:]) {
     if (!this.recruitmentActive) return
-    ProlificRegisterOpts registerOpts = new ProlificRegisterOpts(opts)
+    RecruitmentProvider provider = _resolveProviderForStart(v)
     _ensureSystem(v, 'recruitment')
-    v._system.recruitment.source = SOURCE_PROLIFIC
+    v._system.recruitment.source = provider.getSource()
+    provider.onStart(v, opts)
     this.clientPending(v.id)
   }
 
-  public registerMturk(Vertex v, Map opts = [:]) {
-    if (!this.recruitmentActive) return
-    MTurkRegisterOpts registerOpts = new MTurkRegisterOpts(opts)
-    _ensureSystem(v, 'recruitment')
-    v._system.recruitment.source = SOURCE_MTURK
-    v._system.recruitment.sandbox = registerOpts.sandbox
-    this.clientPending(v.id)
-  }
+  // --- end -------------------------------------------------------------------------------------
 
-  // --- complete --------------------------------------------------------------------------------
-
-  public completeProlific(Vertex v, Map opts = [:]) {
-    ProlificCompleteOpts completeOpts = new ProlificCompleteOpts(opts)
+  // Dispatch to the provider recorded at start() to complete the participant. Throws if start() was
+  // never called (no recorded source to dispatch on).
+  public end(Vertex v, Map opts = [:]) {
     _ensureSystem(v, 'recruitment')
-    if (v._system.recruitment.source != SOURCE_PROLIFIC) {
-      throw new IllegalArgumentException("Cannot complete prolific registration for non-prolific source")
+    def source = v._system.recruitment.source
+    RecruitmentProvider provider = (source != null) ? this.providers[source] : null
+    if (provider == null) {
+      throw new IllegalArgumentException("No recruitment provider for source '${source}'; was start() called for this participant?")
     }
-    if (!completeOpts.completionCode) {
-      // A Prolific completion is meaningless without a code -- the client builds its submit URL as
-      // ?cc=<completionCode>, so a null here would redirect the participant to ?cc=null.
-      throw new IllegalArgumentException("Completion code is required")
-    }
+    // Validate + stamp the provider-specific fields FIRST, so a bad-opts failure (e.g. a missing
+    // completion code) leaves no half-completed state behind.
+    provider.onEnd(v, opts)
     v._system.recruitment.completed = true
     v._system.recruitment.completedAt = DateTime.now()
-    v._system.recruitment.completionCode = completeOpts.completionCode
-    v._system.recruitment.bonus = completeOpts.bonus
-    v._system.recruitment.message = completeOpts.message
-    v._system.recruitment.noFeedback = completeOpts.noFeedback
-    setVertexStatus(v, 'completed')
-    this.clientCompleted(v.id)
-  }
-
-  public completeMturk(Vertex v, Map opts = [:]) {
-    MTurkCompleteOpts completeOpts = new MTurkCompleteOpts(opts)
-    _ensureSystem(v, 'recruitment')
-    if (v._system.recruitment.source != SOURCE_MTURK) {
-      throw new IllegalArgumentException("Cannot complete mturk registration for non-mturk source")
-    }
-    if (!completeOpts.bonus) {
-      throw new IllegalArgumentException("Bonus is required")
-    }
-    v._system.recruitment.completed = true
-    v._system.recruitment.noFeedback = completeOpts.noFeedback
-    v._system.recruitment.reason = completeOpts.reason
-    v._system.recruitment.bonus = completeOpts.bonus
     setVertexStatus(v, 'completed')
     this.clientCompleted(v.id)
   }
 
   // --- stop recruiting -------------------------------------------------------------------------
 
-  // Flip the gate off (no new participants admitted) and complete everyone who hasn't finished yet,
-  // resolving each player's vertex from the graph. Iterates a SNAPSHOT (_completableSnapshot copies
-  // the list), so completeProlific mutating client state mid-loop can't disturb the iteration.
-  public stopRecruitingProlific(Map opts = [:]) {
-    if (!opts.completionCode) {
-      throw new IllegalArgumentException("Completion code is required to stop prolific recruitment")
-    }
+  // Close the gate (no new participants admitted; in-flight games continue) and end everyone who
+  // hasn't finished yet, dispatching each to the provider they started under. Iterates a SNAPSHOT
+  // (_completableSnapshot copies the list) so end() mutating client state mid-loop can't disturb the
+  // iteration. `opts` must satisfy whatever provider(s) are in play -- e.g. a Prolific completionCode
+  // or an MTurk bonus -- otherwise end() throws on the first participant that needs the missing opt.
+  public stopRecruiting(Map opts = [:]) {
     this.recruitmentActive = false
     for (def client in this._completableSnapshot()) {
       def v = (this.graph != null) ? this.graph.getVertex(client.id) : null
-      if (v != null) this.completeProlific(v, opts)
-    }
-  }
-
-  public stopRecruitingMturk(Map opts = [:]) {
-    if (!opts.bonus) {
-      throw new IllegalArgumentException("Bonus is required to stop mturk recruitment")
-    }
-    this.recruitmentActive = false
-    for (def client in this._completableSnapshot()) {
-      def v = (this.graph != null) ? this.graph.getVertex(client.id) : null
-      if (v != null) this.completeMturk(v, opts)
+      if (v != null) this.end(v, opts)
     }
   }
 

@@ -1,5 +1,5 @@
-// Tests for recruitment.groovy (the prolific/mturk register + complete helpers), written as Groovy
-// and registered through the `test` DSL bound by ScriptTestHarness. Production's ScriptLoader skips
+// Tests for recruitment.groovy (the RecruitmentProvider interface + the start/end lifecycle), written
+// as Groovy and registered through the `test` DSL bound by ScriptTestHarness. Production's ScriptLoader skips
 // any file ending in `_test.groovy`, so this never loads into a real experiment. Run via:
 //   sbt -java-home "$JAVA8_HOME" "testOnly GroovyScriptTests"
 //
@@ -22,112 +22,131 @@ test("RecruitmentSource exposes the exact lowercase strings the frontend compare
   assert RecruitmentSource.MTURK == 'mturk'
 }
 
-// --- register: stamps the source onto the player -------------------------------------------------
+// --- providers + start: stamp the source onto the player -----------------------------------------
+// Each test uses a fresh `new RecruitmentController(g)` so the provider it installs (and any gate it
+// closes) can't leak into another test.
 
-test("registerProlific stamps _system.recruitment.source = 'prolific'") {
+test("start with a Prolific provider stamps _system.recruitment.source = 'prolific'") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
   def v = g.addPlayer('rec-prolific-1')
-  recruitment.registerProlific(v)
+  rc.start(v)
   assert v._system.recruitment.source == 'prolific'
 }
 
-test("registerMturk stamps _system.recruitment.source = 'mturk'") {
+test("start with an MTurk provider stamps the source and its sandbox flag") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new MturkProvider(sandbox: true))
   def v = g.addPlayer('rec-mturk-1')
-  recruitment.registerMturk(v)
+  rc.start(v)
   assert v._system.recruitment.source == 'mturk'
+  assert v._system.recruitment.sandbox == true
 }
 
-// --- completeProlific ----------------------------------------------------------------------------
+test("start throws when no provider is configured") {
+  def rc = new RecruitmentController(g)
+  def v = g.addPlayer('rec-noprovider')
+  def threw = false
+  try { rc.start(v) } catch (Exception e) { threw = true }
+  assert threw : 'start without a configured provider must throw'
+}
 
-test("completeProlific marks the player completed and records its completion code") {
+// --- end: completes via the provider recorded at start -------------------------------------------
+
+test("end completes a Prolific participant and records its completion code") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
   def v = g.addPlayer('rec-prolific-2')
-  recruitment.registerProlific(v)
-  recruitment.completeProlific(v, [completionCode: 'CODE123', message: 'Thanks for playing'])
+  rc.start(v)
+  rc.end(v, [completionCode: 'CODE123', message: 'Thanks for playing'])
   assert v._system.recruitment.completed == true
   assert v._system.recruitment.completionCode == 'CODE123'
   assert v._system.recruitment.message == 'Thanks for playing'
   assert v._system.recruitment.source == 'prolific'   // unchanged by completion
+  assert v._system.status == 'completed'               // study-level lifecycle mirrors completion
 }
 
-test("completeProlific requires a completion code") {
+test("end requires a Prolific completion code") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
   def v = g.addPlayer('rec-prolific-3')
-  recruitment.registerProlific(v)
+  rc.start(v)
   def threw = false
-  try { recruitment.completeProlific(v, [:]) } catch (Exception e) { threw = true }
-  assert threw : 'completeProlific without a completion code must throw'
+  try { rc.end(v, [:]) } catch (Exception e) { threw = true }
+  assert threw : 'end without a completion code must throw for Prolific'
 }
 
-test("completeProlific refuses a non-prolific player") {
+test("end throws if the participant was never started (no recorded source)") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
   def v = g.addPlayer('rec-prolific-4')
-  recruitment.registerMturk(v)
   def threw = false
-  try { recruitment.completeProlific(v, [completionCode: 'X']) } catch (Exception e) { threw = true }
-  assert threw : 'completeProlific on an mturk player must throw'
+  try { rc.end(v, [completionCode: 'X']) } catch (Exception e) { threw = true }
+  assert threw : 'end before start (no source recorded) must throw'
 }
 
-// --- completeMturk -------------------------------------------------------------------------------
+// --- end (MTurk) ---------------------------------------------------------------------------------
 
-test("completeMturk marks the player completed and records its bonus") {
+test("end completes an MTurk participant and records its bonus") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new MturkProvider())
   def v = g.addPlayer('rec-mturk-2')
-  recruitment.registerMturk(v)
-  recruitment.completeMturk(v, [bonus: 1.5, reason: 'Good work'])
+  rc.start(v)
+  rc.end(v, [bonus: 1.5, reason: 'Good work'])
   assert v._system.recruitment.completed == true
   assert v._system.recruitment.bonus == 1.5
   assert v._system.recruitment.reason == 'Good work'
+  assert v._system.status == 'completed'
 }
 
-test("completeMturk requires a bonus") {
-  def v = g.addPlayer('rec-mturk-3')
-  recruitment.registerMturk(v)
-  def threw = false
-  try { recruitment.completeMturk(v, [:]) } catch (Exception e) { threw = true }
-  assert threw : 'completeMturk without a bonus must throw'
-}
-
-test("completeMturk refuses a non-mturk player") {
-  def v = g.addPlayer('rec-mturk-4')
-  recruitment.registerProlific(v)
-  def threw = false
-  try { recruitment.completeMturk(v, [bonus: 1.0]) } catch (Exception e) { threw = true }
-  assert threw : 'completeMturk on a prolific player must throw'
-}
-
-// --- the recruitment gate: register no-ops once recruitment is stopped --------------------------
-// These use a FRESH `new RecruitmentController(g)` rather than the shared global `recruitment`, so
-// flipping the gate here can't leak into the register/complete tests above.
-
-test("registerProlific no-ops once recruitment has been stopped") {
+test("end requires an MTurk bonus") {
   def rc = new RecruitmentController(g)
-  rc.stopRecruitingProlific([completionCode: 'DONE'])   // closes the gate (no pending clients yet)
+  rc.setProvider(new MturkProvider())
+  def v = g.addPlayer('rec-mturk-3')
+  rc.start(v)
+  def threw = false
+  try { rc.end(v, [:]) } catch (Exception e) { threw = true }
+  assert threw : 'end without a bonus must throw for MTurk'
+}
+
+// --- the recruitment gate: start no-ops once recruitment is stopped -----------------------------
+
+test("start no-ops once recruitment has been stopped (Prolific)") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
+  rc.stopRecruiting([completionCode: 'DONE'])   // closes the gate (no pending clients yet)
   assert rc.isRecruitmentActive() == false
 
   def v = g.addPlayer('gate-prolific-1')
-  rc.registerProlific(v)
+  rc.start(v)
   // Gate is closed -> nothing stamped on the player and no client tracked.
   assert v._system?.recruitment == null
   assert rc.clients.find { it.id == 'gate-prolific-1' } == null
 }
 
-test("registerMturk no-ops once recruitment has been stopped") {
+test("start no-ops once recruitment has been stopped (MTurk)") {
   def rc = new RecruitmentController(g)
-  rc.stopRecruitingMturk([bonus: 1.0])
+  rc.setProvider(new MturkProvider())
+  rc.stopRecruiting([bonus: 1.0])
   assert rc.isRecruitmentActive() == false
 
   def v = g.addPlayer('gate-mturk-1')
-  rc.registerMturk(v)
+  rc.start(v)
   assert v._system?.recruitment == null
 }
 
-// --- stopRecruiting*: close the gate AND complete everyone not yet finished ---------------------
+// --- stopRecruiting: close the gate AND end everyone not yet finished ----------------------------
 
-test("stopRecruitingProlific completes still-pending prolific players and closes the gate") {
+test("stopRecruiting completes still-pending Prolific participants and closes the gate") {
   def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
   def v1 = g.addPlayer('stop-prolific-1')
   def v2 = g.addPlayer('stop-prolific-2')
-  rc.registerProlific(v1)
-  rc.registerProlific(v2)
+  rc.start(v1)
+  rc.start(v2)
   assert rc.clients.size() == 2
 
-  rc.stopRecruitingProlific([completionCode: 'FINAL', message: 'All done'])
+  rc.stopRecruiting([completionCode: 'FINAL', message: 'All done'])
 
   assert rc.isRecruitmentActive() == false
   assert v1._system.recruitment.completed == true
@@ -136,19 +155,23 @@ test("stopRecruitingProlific completes still-pending prolific players and closes
   assert rc.clients.every { it.state == 'completed' }
 }
 
-test("stopRecruitingProlific requires a completion code") {
+test("stopRecruiting surfaces a provider's missing completion opts via end") {
   def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
+  def v = g.addPlayer('stop-needs-code')
+  rc.start(v)
   def threw = false
-  try { rc.stopRecruitingProlific([:]) } catch (Exception e) { threw = true }
-  assert threw : 'stopRecruitingProlific without a completion code must throw'
+  try { rc.stopRecruiting([:]) } catch (Exception e) { threw = true }
+  assert threw : 'stopRecruiting with a pending Prolific participant but no completion code must throw'
 }
 
-test("stopRecruitingMturk completes still-pending mturk players and closes the gate") {
+test("stopRecruiting completes still-pending MTurk participants and preserves sandbox") {
   def rc = new RecruitmentController(g)
+  rc.setProvider(new MturkProvider(sandbox: true))
   def v1 = g.addPlayer('stop-mturk-1')
-  rc.registerMturk(v1, [sandbox: true])
+  rc.start(v1)
 
-  rc.stopRecruitingMturk([bonus: 2.0, reason: 'wrap up'])
+  rc.stopRecruiting([bonus: 2.0, reason: 'wrap up'])
 
   assert rc.isRecruitmentActive() == false
   assert v1._system.recruitment.completed == true
