@@ -262,14 +262,12 @@ class WaitingRoom extends BreadboardBase {
       }
       this._started = true
       this._loopTimer.scheduleAtFixedRate(this._loop as GroovyTimerTask, 0, 1000)
-      if (this._recruitment != null) this._recruitment.start()
     }
   }
 
   public stop() {
     this.withLock {
       this._loopTimer.cancel()
-      if (this._recruitment != null) this._recruitment.stop()
       if (this._foundGroupTimer) {
         this._foundGroupTimer.cancel()
       }

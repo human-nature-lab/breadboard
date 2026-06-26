@@ -23,7 +23,7 @@ RecruitmentSource = [
 ].asImmutable()
 
 // ---------------------------------------------------------------------------
-// Completion option holders -- parsed from the opts map passed to recruitment.end
+// Completion option holders -- parsed from the opts map passed to recruitment.complete
 // ---------------------------------------------------------------------------
 @ToString(includeNames = true)
 class ProlificCompleteOpts {
@@ -45,24 +45,22 @@ class MTurkCompleteOpts {
 // RecruitmentProvider -- the per-panel knowledge (Prolific, MTurk, ...)
 // ---------------------------------------------------------------------------
 // A provider is the only place that knows how one recruitment panel differs: its `source` label (the
-// wire contract the Finish*.vue screens compare against), what to stamp at start, and how to validate
+// wire contract the Finish*.vue screens compare against), what to stamp on admit, and how to validate
 // + record a completion. The shared machinery (client states, game accounting, the gate) lives on the
 // controller, which calls these hooks after running _ensureSystem(v, 'recruitment') -- so providers
 // only ever touch _system.recruitment.*. Abstract (not an interface) because Groovy 1.8.6 has no
-// default methods and onStart needs a no-op default.
+// default methods and onAdmit needs a no-op default. One provider is active at a time (setProvider).
 abstract class RecruitmentProvider {
   abstract String getSource()
-  void onStart(Vertex v, Map opts) {}
+  void onAdmit(Vertex v, Map opts) {}
   // Validate opts and stamp the completion fields; throw if opts are insufficient.
-  abstract void onEnd(Vertex v, Map opts)
-  // Consulted only with more than one provider registered (see addProvider), to auto-route start().
-  boolean matches(Vertex v) { return false }
+  abstract void onComplete(Vertex v, Map opts)
 }
 
 class ProlificProvider extends RecruitmentProvider {
   String getSource() { return RecruitmentController.SOURCE_PROLIFIC }
 
-  void onEnd(Vertex v, Map opts) {
+  void onComplete(Vertex v, Map opts) {
     ProlificCompleteOpts o = new ProlificCompleteOpts(opts)
     if (!o.completionCode) {
       // A Prolific completion is meaningless without a code -- the client builds its submit URL as
@@ -77,16 +75,16 @@ class ProlificProvider extends RecruitmentProvider {
 }
 
 class MturkProvider extends RecruitmentProvider {
-  // Study-wide, so it's provider config stamped at start() rather than a per-call opt.
+  // Study-wide, so it's provider config stamped on admit rather than a per-call opt.
   Boolean sandbox = false
 
   String getSource() { return RecruitmentController.SOURCE_MTURK }
 
-  void onStart(Vertex v, Map opts) {
+  void onAdmit(Vertex v, Map opts) {
     v._system.recruitment.sandbox = this.sandbox
   }
 
-  void onEnd(Vertex v, Map opts) {
+  void onComplete(Vertex v, Map opts) {
     MTurkCompleteOpts o = new MTurkCompleteOpts(opts)
     if (!o.bonus) {
       throw new IllegalArgumentException("Bonus is required")
@@ -129,7 +127,7 @@ class RecruitmentClient {
 // RecruitmentController -- the single recruitment authority
 // ---------------------------------------------------------------------------
 // Owns BOTH halves of recruitment that used to live in two places:
-//   * the panel lifecycle for each participant (register/complete for Prolific & MTurk, writing
+//   * the panel lifecycle for each participant (admit/complete for Prolific & MTurk, writing
 //     _system.recruitment.* that the Finish*.vue screens read), and
 //   * the cohort/game accounting the lobby relies on (client states, active/completed games),
 //     which previously lived in a second class of the same name inside waiting_room.groovy.
@@ -137,8 +135,8 @@ class RecruitmentClient {
 // reports lobby/game events to it.
 //
 // The "gate" (recruitmentActive) lets an experiment stop admitting NEW participants while letting
-// in-progress games finish: start() no-ops once it is off, and stopRecruiting() flips it off and
-// ends everyone who hasn't finished yet.
+// in-progress games finish: admit() no-ops while admission is paused, pauseAdmission() /
+// resumeAdmission() toggle the gate, and completeAll() completes everyone who hasn't finished yet.
 class RecruitmentController extends BreadboardBase {
 
   // Source identifiers. Defined on the class (not read from the RecruitmentSource binding global)
@@ -146,25 +144,22 @@ class RecruitmentController extends BreadboardBase {
   static final String SOURCE_PROLIFIC = 'prolific'
   static final String SOURCE_MTURK = 'mturk'
 
-  // When false, registerProlific/registerMturk stop admitting new participants (in-flight games
-  // continue). volatile: flipped/read from socket + timer + experiment threads.
+  // When false, admit() stops admitting new participants (in-flight games continue). volatile:
+  // flipped/read from socket + timer + experiment threads.
   private volatile boolean recruitmentActive = true
 
   // The engine graph (`g`, a BreadboardGraph) used to resolve a player vertex from its id when
-  // bulk-completing in stopRecruiting. Untyped on purpose: typing it to the concrete graph class
+  // bulk-completing in completeAll. Untyped on purpose: typing it to the concrete graph class
   // would couple this script to that class at compile time for no benefit.
   private final Object graph
 
-  // Registered recruitment providers, keyed by source. setProvider installs one (the common single-
-  // panel case); addProvider adds more for a deployment that serves several panels and auto-routes
-  // start() via RecruitmentProvider.matches(v). Declared as Map per the 1.8.6 note above.
-  private final Map<String, RecruitmentProvider> providers = new ConcurrentHashMap<String, RecruitmentProvider>()
-  // Provider used by start() when no registered provider claims the participant. volatile: set from
-  // the experiment script, read from socket/game threads.
-  private volatile RecruitmentProvider defaultProvider
+  // The recruitment provider for this experiment (the panel: Prolific, MTurk, ...). One at a time;
+  // setProvider installs it (calling it again replaces it). volatile: set from the experiment
+  // script, read from socket/game threads.
+  private volatile RecruitmentProvider provider
 
   // One RecruitmentClient per player id. CopyOnWriteArrayList: read from the logging loop while
-  // socket threads register/complete. Declared as List (see the 1.8.6 note above).
+  // socket threads admit/complete. Declared as List (see the 1.8.6 note above).
   final List<RecruitmentClient> clients = new CopyOnWriteArrayList<RecruitmentClient>()
   // gameId -> running flag. Removed when the game completes.
   final Map<String, Boolean> activeGames = new ConcurrentHashMap<String, Boolean>()
@@ -172,7 +167,7 @@ class RecruitmentController extends BreadboardBase {
   int completedGames = 0
 
   // Recruitment goals / limits. canStartGame() gates on maxSimultaneousGames; the rest are read by
-  // experiments deciding when to stopRecruiting*.
+  // experiments deciding when to pauseAdmission / completeAll.
   int maxSimultaneousGames = 5
   int desiredCompletedGames = 10
   int minPlayersPerGame = 15
@@ -199,9 +194,11 @@ class RecruitmentController extends BreadboardBase {
     }
   }
 
-  // Start a periodic status log. Idempotent (a second call while running is a no-op). The lobby
-  // does NOT call this -- it's an opt-in convenience for experiments that want visibility.
-  public start() {
+  // Start a periodic (10s) status log. Idempotent (a second call while running is a no-op). Purely
+  // opt-in: nothing in the platform starts it -- an experiment that wants visibility calls this (and
+  // stopStatusLog to end it). TODO: surface recruitment status in the admin UI rather than writing it
+  // to the server log on a timer -- it shouldn't be logged continuously.
+  public startStatusLog() {
     this.lock.lock()
     try {
       if (this._loopTimer != null) return
@@ -212,7 +209,7 @@ class RecruitmentController extends BreadboardBase {
     }
   }
 
-  public stop() {
+  public stopStatusLog() {
     this.lock.lock()
     try {
       if (this._loopTimer != null) {
@@ -265,7 +262,7 @@ class RecruitmentController extends BreadboardBase {
     this._setState(clientId, "removed")
     // Mirror the controller-side 'removed' onto the participant's study-level lifecycle so the rest of
     // breadboard (and the frontend) treats them as out of the study. The controller is keyed by client
-    // id; resolve the vertex from the graph (as stopRecruiting* does) and mark it dropped (terminal).
+    // id; resolve the vertex from the graph (as completeAll does) and mark it dropped (terminal).
     def v = (this.graph != null) ? this.graph.getVertex(clientId) : null
     if (v != null) setVertexStatus(v, 'dropped')
   }
@@ -320,86 +317,82 @@ class RecruitmentController extends BreadboardBase {
     }
   }
 
-  // True while fewer than maxSimultaneousGames are running.
   public boolean canStartGame() {
     return this.activeGames.size() < this.maxSimultaneousGames
   }
 
-  public boolean isRecruitmentActive() {
+  public boolean isAdmitting() {
     return this.recruitmentActive
   }
 
-  // --- providers -------------------------------------------------------------------------------
+  // --- provider --------------------------------------------------------------------------------
 
-  // Install THE provider for this experiment (the common single-panel case): clears any others and
-  // makes it the default. Use addProvider instead to serve several panels from one deployment.
+  // Install the recruitment provider for this experiment (Prolific, MTurk, ...). One provider is
+  // active at a time; calling this again replaces it.
   public setProvider(RecruitmentProvider provider) {
-    this.providers.clear()
-    this.providers[provider.getSource()] = provider
-    this.defaultProvider = provider
+    this.provider = provider
   }
 
-  // Register an additional provider. With more than one installed, start() auto-routes each
-  // participant to the first provider whose matches(v) is true, falling back to the default.
-  public addProvider(RecruitmentProvider provider) {
-    this.providers[provider.getSource()] = provider
-    if (this.defaultProvider == null) this.defaultProvider = provider
+  // --- admission gate --------------------------------------------------------------------------
+
+  // Stop admitting NEW participants; in-flight games continue. admit() no-ops while paused.
+  public pauseAdmission() {
+    this.recruitmentActive = false
   }
 
-  private RecruitmentProvider _resolveProviderForStart(Vertex v) {
-    for (def p in this.providers.values()) {
-      if (p.matches(v)) return p
-    }
-    if (this.defaultProvider == null) {
+  public resumeAdmission() {
+    this.recruitmentActive = true
+  }
+
+  // --- admit (gated) ---------------------------------------------------------------------------
+
+  // Register a participant with the recruitment panel and start tracking them. No-ops while
+  // admission is paused (see pauseAdmission).
+  public admit(Vertex v, Map opts = [:]) {
+    if (!this.recruitmentActive) return
+    if (this.provider == null) {
       throw new IllegalStateException("No recruitment provider configured; call recruitment.setProvider(...) first")
     }
-    return this.defaultProvider
-  }
-
-  // --- start (gated) ---------------------------------------------------------------------------
-
-  // No-ops once the gate is closed (see stopRecruiting).
-  public start(Vertex v, Map opts = [:]) {
-    if (!this.recruitmentActive) return
-    RecruitmentProvider provider = _resolveProviderForStart(v)
     _ensureSystem(v, 'recruitment')
-    v._system.recruitment.source = provider.getSource()
-    provider.onStart(v, opts)
+    v._system.recruitment.source = this.provider.getSource()
+    this.provider.onAdmit(v, opts)
     this.clientPending(v.id)
   }
 
-  // --- end -------------------------------------------------------------------------------------
+  // --- complete --------------------------------------------------------------------------------
 
-  // Dispatch to the provider recorded at start() to complete the participant. Throws if start() was
-  // never called (no recorded source to dispatch on).
-  public end(Vertex v, Map opts = [:]) {
+  // Complete a participant via the configured provider. Throws if the participant was never admitted
+  // (no recorded source) -- complete() always follows admit().
+  public complete(Vertex v, Map opts = [:]) {
+    if (this.provider == null) {
+      throw new IllegalStateException("No recruitment provider configured; call recruitment.setProvider(...) first")
+    }
     _ensureSystem(v, 'recruitment')
-    def source = v._system.recruitment.source
-    RecruitmentProvider provider = (source != null) ? this.providers[source] : null
-    if (provider == null) {
-      throw new IllegalArgumentException("No recruitment provider for source '${source}'; was start() called for this participant?")
+    if (v._system.recruitment.source == null) {
+      throw new IllegalArgumentException("Cannot complete a participant that was never admitted; call recruitment.admit(v) first")
     }
     // Validate + stamp the provider-specific fields FIRST, so a bad-opts failure (e.g. a missing
     // completion code) leaves no half-completed state behind.
-    provider.onEnd(v, opts)
+    this.provider.onComplete(v, opts)
     v._system.recruitment.completed = true
     v._system.recruitment.completedAt = DateTime.now()
     setVertexStatus(v, 'completed')
     this.clientCompleted(v.id)
   }
 
-  // --- stop recruiting -------------------------------------------------------------------------
+  // --- complete all ----------------------------------------------------------------------------
 
-  // Close the gate (no new participants admitted; in-flight games continue) and end everyone who
-  // hasn't finished yet, dispatching each to the provider they started under. Iterates a SNAPSHOT
-  // (_completableSnapshot copies the list) so end() mutating client state mid-loop can't disturb the
-  // iteration. `opts` must satisfy whatever provider(s) are in play -- e.g. a Prolific completionCode
-  // or an MTurk bonus -- otherwise end() throws on the first participant that needs the missing opt.
-  public stopRecruiting(Map opts = [:]) {
-    this.recruitmentActive = false
+  // Complete everyone who hasn't finished yet, via the configured provider. Iterates a SNAPSHOT
+  // (_completableSnapshot copies the list) so complete() mutating client state mid-loop can't disturb
+  // the iteration. `opts` must satisfy the provider (e.g. a Prolific completionCode or an MTurk
+  // bonus), otherwise complete() throws on the first participant that needs the missing opt.
+  //
+  // Does NOT touch the admission gate. The usual end-of-study sequence is pauseAdmission() then
+  // completeAll(opts), so no new participants arrive while you wrap up.
+  public completeAll(Map opts = [:]) {
     for (def client in this._completableSnapshot()) {
       def v = (this.graph != null) ? this.graph.getVertex(client.id) : null
-      if (v != null) this.end(v, opts)
+      if (v != null) this.complete(v, opts)
     }
   }
 
