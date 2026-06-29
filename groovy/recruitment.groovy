@@ -144,9 +144,12 @@ class RecruitmentController extends BreadboardBase {
   static final String SOURCE_PROLIFIC = 'prolific'
   static final String SOURCE_MTURK = 'mturk'
 
-  // When false, admit() stops admitting new participants (in-flight games continue). volatile:
-  // flipped/read from socket + timer + experiment threads.
+  // The admission gate. recruitmentActive is the reversible pause (pauseAdmission / resumeAdmission);
+  // admissionClosed is the terminal close (closeAdmission) that resumeAdmission can't undo. admit()
+  // admits only while isAdmitting() -- active AND not closed. Both volatile: flipped/read from socket
+  // + timer + experiment threads.
   private volatile boolean recruitmentActive = true
+  private volatile boolean admissionClosed = false
 
   // The engine graph (`g`, a BreadboardGraph) used to resolve a player vertex from its id when
   // bulk-completing in completeAll. Untyped on purpose: typing it to the concrete graph class
@@ -322,7 +325,7 @@ class RecruitmentController extends BreadboardBase {
   }
 
   public boolean isAdmitting() {
-    return this.recruitmentActive
+    return this.recruitmentActive && !this.admissionClosed
   }
 
   // --- provider --------------------------------------------------------------------------------
@@ -336,12 +339,24 @@ class RecruitmentController extends BreadboardBase {
   // --- admission gate --------------------------------------------------------------------------
 
   // Stop admitting NEW participants; in-flight games continue. admit() no-ops while paused.
+  // Reversible -- resumeAdmission re-opens it; use closeAdmission to stop admitting for good.
   public pauseAdmission() {
     this.recruitmentActive = false
   }
 
   public resumeAdmission() {
+    // A closed gate is terminal: resuming can't re-open it.
+    if (this.admissionClosed) {
+      println "[recruitment] admission is permanently closed; resumeAdmission ignored"
+      return
+    }
     this.recruitmentActive = true
+  }
+
+  // Permanently stop admitting NEW participants (in-flight games still continue). Unlike
+  // pauseAdmission this can't be undone: resumeAdmission no-ops once the gate is closed.
+  public closeAdmission() {
+    this.admissionClosed = true
   }
 
   // --- admit (gated) ---------------------------------------------------------------------------
@@ -349,7 +364,7 @@ class RecruitmentController extends BreadboardBase {
   // Register a participant with the recruitment panel and start tracking them. No-ops while
   // admission is paused (see pauseAdmission).
   public admit(Vertex v, Map opts = [:]) {
-    if (!this.recruitmentActive) return
+    if (!this.isAdmitting()) return
     if (this.provider == null) {
       throw new IllegalStateException("No recruitment provider configured; call recruitment.setProvider(...) first")
     }

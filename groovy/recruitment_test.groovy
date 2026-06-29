@@ -152,6 +152,23 @@ test("resumeAdmission re-opens the gate after pauseAdmission") {
   assert admitted._system.recruitment.source == 'prolific'   // admitted once re-opened
 }
 
+test("closeAdmission permanently stops admission and resumeAdmission cannot re-open it") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
+
+  rc.closeAdmission()
+  assert rc.isAdmitting() == false
+  def v1 = g.addPlayer('close-1')
+  rc.admit(v1)
+  assert v1._system?.recruitment == null          // closed -> not admitted
+
+  rc.resumeAdmission()                              // must NOT re-open a closed gate
+  assert rc.isAdmitting() == false
+  def v2 = g.addPlayer('close-2')
+  rc.admit(v2)
+  assert v2._system?.recruitment == null
+}
+
 // --- completeAll: complete everyone not yet finished (does NOT touch the gate) -------------------
 
 test("completeAll completes still-pending Prolific participants and leaves the gate open") {
