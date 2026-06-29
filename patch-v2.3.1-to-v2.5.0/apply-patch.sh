@@ -2,11 +2,12 @@
 #
 # In-place patch: Breadboard v2.3.1 -> v2.5.0
 # ------------------------------------------------------------------------------
-# What it does AUTOMATICALLY (after backing up every file it touches):
-#   1. Backs up the database and the files being replaced into a timestamped dir.
-#   2. Installs the new application jar (breadboard.breadboard-v2.5.0.jar) and
+# What it does AUTOMATICALLY:
+#   1. Stops the server if it's running (via the RUNNING_PID file) so the DB is quiescent.
+#   2. Backs up the database and the files being replaced into a timestamped dir.
+#   3. Installs the new application jar (breadboard.breadboard-v2.5.0.jar) and
 #      removes the old v2.3.1 jar.
-#   3. Re-points the bin/breadboard launcher classpath at the renamed jar.
+#   4. Re-points the bin/breadboard launcher classpath at the renamed jar.
 #
 # The schema migration (evolution 30: adds experiments.file_mode and retires the
 # breadboard_version table) is bundled INSIDE the new jar and is applied by Play
@@ -56,13 +57,35 @@ grep -q "breadboard.breadboard-${OLD_VERSION}.jar" "$BIN" || {
   exit 1
 }
 
-# --- require the server to be stopped (copying a live H2 DB can corrupt it) ---
 echo "Target install : $INSTALL_DIR"
 echo "Patch          : $OLD_VERSION -> $NEW_VERSION"
 echo
-if [[ "${1:-}" != "--yes" && "${2:-}" != "--yes" ]]; then
-  read -r -p "Is the Breadboard server STOPPED? Copying a running database can corrupt the backup. [y/N] " ans
-  [[ "$ans" == "y" || "$ans" == "Y" ]] || { echo "Stop the server, then re-run."; exit 1; }
+
+# --- stop the server if it's running (copying a live H2 DB can corrupt the backup) ---
+# Play writes RUNNING_PID in the install dir while up. If it's present and the process is
+# alive, shut it down -- SIGTERM first so Play flushes H2 and removes the lock cleanly,
+# escalating to SIGKILL only if needed. A stale pid file (process gone) is just removed.
+PID_FILE="$INSTALL_DIR/RUNNING_PID"
+if [[ -f "$PID_FILE" ]]; then
+  pid="$(cat "$PID_FILE" 2>/dev/null || true)"
+  if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+    echo "==> Breadboard is running (PID $pid); stopping it before patching..."
+    kill "$pid" 2>/dev/null || true
+    for ((i=0; i<30; i++)); do kill -0 "$pid" 2>/dev/null || break; sleep 1; done
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "    not down after 30s; sending SIGKILL"
+      kill -9 "$pid" 2>/dev/null || true
+      sleep 2
+    fi
+    if kill -0 "$pid" 2>/dev/null; then
+      echo "ERROR: could not stop PID $pid (permissions?). Stop it manually and re-run." >&2
+      exit 1
+    fi
+    echo "    server stopped."
+  else
+    echo "==> Stale RUNNING_PID found (process not alive); cleaning it up."
+  fi
+  rm -f "$PID_FILE"
 fi
 
 # --- backup BEFORE touching anything -----------------------------------------

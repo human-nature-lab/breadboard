@@ -17,22 +17,24 @@ unzip -j breadboard-v2.5.0.zip 'breadboard-v2.5.0/lib/breadboard.breadboard-v2.5
 ```
 
 ## Prerequisites
-- **Stop the Breadboard server first.** The script copies the live H2 database for the
-  backup; copying it while the app holds it open can corrupt the copy.
+- **Run as the user that owns the server process** (or root). The script stops a running
+  server itself (via the `RUNNING_PID` file) so the live H2 database is quiescent before
+  it's copied — this requires permission to signal that process.
 - Java 8 (unchanged from v2.3.1 — the runtime requirement is the same).
 
 ## Run it
 ```bash
 ./apply-patch.sh /path/to/breadboard-v2.3.1
-# add --yes to skip the "is the server stopped?" prompt:
-# ./apply-patch.sh /path/to/breadboard-v2.3.1 --yes
 ```
 
 ### What the script does automatically
-1. **Backs up** (to `<install>/backup-pre-v2.5.0-<timestamp>/`): the database, the old
+1. **Stops the server** if running — reads `RUNNING_PID` from the install dir and shuts the
+   process down (SIGTERM, escalating to SIGKILL if needed) so the database is quiescent
+   before it's copied; a stale pid file (process already gone) is just cleaned up.
+2. **Backs up** (to `<install>/backup-pre-v2.5.0-<timestamp>/`): the database, the old
    `v2.3.1` jar, `bin/breadboard`, and `conf/application-prod.conf`.
-2. **Installs** `breadboard.breadboard-v2.5.0.jar` and removes the old `v2.3.1` jar.
-3. **Re-points** the `bin/breadboard` launcher classpath at the renamed jar (the Unix
+3. **Installs** `breadboard.breadboard-v2.5.0.jar` and removes the old `v2.3.1` jar.
+4. **Re-points** the `bin/breadboard` launcher classpath at the renamed jar (the Unix
    launcher hardcodes the jar name; the Windows `breadboard.bat` uses a `lib/*` glob and
    needs no change once the old jar is gone).
 
