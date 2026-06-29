@@ -244,7 +244,7 @@ public class ExperimentController extends Controller {
       // Run the version-appropriate importer. A thrown IOException, or a false result (a helper that
       // failed to import a resource), aborts the transaction so nothing is committed.
       boolean imported;
-      if (eVersion != null && (eVersion.startsWith("v2.3") || eVersion.startsWith("v2.4"))) {
+      if (eVersion != null && (eVersion.startsWith("v2.3") || eVersion.startsWith("v2.4") || eVersion.startsWith("v2.5"))) {
         imported = import23To23(experiment, user, outputFolder);
       } else {
         // v2.2, or no/unknown version
@@ -294,7 +294,7 @@ public class ExperimentController extends Controller {
       ZipEntry e;
 
       ObjectNode dotBreadboard = Json.newObject();
-      dotBreadboard.put("version", "v2.4.0");
+      dotBreadboard.put("version", "v2.5.0");
       dotBreadboard.put("experimentName", experiment.name);
       dotBreadboard.put("experimentUid", experiment.uid);
 

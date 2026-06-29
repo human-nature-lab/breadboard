@@ -2,7 +2,7 @@
 set -e # exit on error
 set -o pipefail # exit on pipe failure
 
-breadboard_version="v2.3.1"
+breadboard_version="v2.5.0"
 
 # Build local packages and wire them into the main frontend tree before webpack.
 cd frontend/
@@ -30,8 +30,11 @@ rm install/breadboard-${breadboard_version}.zip
 unzip target/universal/breadboard-${breadboard_version}.zip -d install
 mkdir install/breadboard-${breadboard_version}/groovy
 cp groovy/*.groovy install/breadboard-${breadboard_version}/groovy
+# No seed DB is shipped: the app boots with an empty H2 database and Play evolutions build
+# the schema on first start (H2 creates db/breadboard.h2.db, and the dir, on demand). We still
+# create db/ here so the directory ships in the install tree. The first admin account is
+# created via POST /createFirstUser, which is open until a user exists.
 mkdir install/breadboard-${breadboard_version}/db
-cp db/breadboard.h2.db.default.${breadboard_version} install/breadboard-${breadboard_version}/db/breadboard.h2.db
 cp prod_dist/license.txt install/breadboard-${breadboard_version}/
 cp breadboard-${breadboard_version}.bat install/breadboard-${breadboard_version}/breadboard.bat
 cp breadboard-${breadboard_version}.sh install/breadboard-${breadboard_version}/breadboard.sh
