@@ -1,0 +1,4 @@
+# The application jar is a build artifact (16 MB), extracted from
+# target/universal/breadboard-v2.5.0.zip. Don't commit it; see README.md
+# for the one-line command to repopulate it.
+*.jar

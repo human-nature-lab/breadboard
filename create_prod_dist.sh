@@ -44,7 +44,31 @@ rm -r install/breadboard-${breadboard_version}/share
 rm install/breadboard-${breadboard_version}/conf/application.conf
 rm install/breadboard-${breadboard_version}/conf/application-dev.conf
 rm install/breadboard-${breadboard_version}/conf/generated.keystore
-cp prod_dist/${breadboard_version}/bin/breadboard install/breadboard-${breadboard_version}/bin/
+# The sbt-generated bin/breadboard (unzipped above) already has the correct, current
+# classpath. The sbt-native-packager template just doesn't add --add-modules java.xml.bind
+# for JDK 9+ (java.xml.bind was removed from the JDK), so inject that block in place. This
+# keeps the launcher matched to the build -- no hand-maintained copy to drift out of date.
+bin_launcher="install/breadboard-${breadboard_version}/bin/breadboard"
+if grep -q "add-modules java.xml.bind" "$bin_launcher"; then
+  echo "bin/breadboard already contains the JDK9 --add-modules block; skipping injection"
+elif grep -q "# run sbt" "$bin_launcher"; then
+  awk '
+    /# run sbt/ && !injected {
+      print ""
+      print "  # If using JDK9 we need to add --add-modules java.xml.bind"
+      print "  if [[ \"$java_version\" > \"9\" ]]; then"
+      print "    addJava \"--add-modules java.xml.bind\""
+      print "  fi"
+      print ""
+      injected = 1
+    }
+    { print }
+  ' "$bin_launcher" > "$bin_launcher.tmp" && mv "$bin_launcher.tmp" "$bin_launcher"
+  chmod +x "$bin_launcher"
+  echo "Injected JDK9 --add-modules block into bin/breadboard"
+else
+  echo "WARNING: anchor '# run sbt' not found in $bin_launcher; launcher may fail on JDK 9+" >&2
+fi
 cd install
 cp breadboard-${breadboard_version}/lib/breadboard.breadboard-${breadboard_version}.jar ../target/universal/breadboard.breadboard-${breadboard_version}.jar
 zip -rq breadboard-${breadboard_version}.zip breadboard-${breadboard_version}
