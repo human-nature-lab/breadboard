@@ -70,10 +70,11 @@ import java.util.concurrent.atomic.AtomicReference;
 public class ScriptTestHarness {
 
     /**
-     * The eval-ready source of each script (raw file contents + ";null;"), keyed by file name
-     * and read from disk once per JVM. ~29 harnesses are built across the suite; without this
-     * cache each one re-read every script. Script bodies don't change during a run, so the text
-     * is stable; only the (cheap) {@code engine.eval} still runs per harness, preserving isolation.
+     * The eval-ready source of each script (raw file contents + ";null;"), keyed by file name and
+     * read from disk once per JVM. Both {@link #prepare()} calls (the constructor's, and every
+     * {@link #reset()}) re-read the core scripts; this cache makes the re-reads free. Script bodies
+     * don't change during a run, so the text is stable — and feeding the same text back to {@code
+     * engine.eval} is what lets Groovy reuse the already-compiled class on {@code reset()}.
      */
     private static final ConcurrentHashMap<String, String> SOURCE_CACHE =
         new ConcurrentHashMap<String, String>();
@@ -95,8 +96,10 @@ public class ScriptTestHarness {
     private static final EventBus SHARED_EVENTS = new EventBus();
 
     public final ScriptEngine engine;
-    public final EventTracker eventTracker;
-    public final RecordingGameListener gameListener;
+    // Not final: reset() rebuilds these per case so a reused engine starts each case with a fresh
+    // tracker/listener (e.g. RecordingGameListener.finishCount must not carry over between cases).
+    public EventTracker eventTracker;
+    public RecordingGameListener gameListener;
 
     public ScriptTestHarness() {
         try {
@@ -104,35 +107,90 @@ public class ScriptTestHarness {
             if (this.engine == null) {
                 throw new IllegalStateException("gremlin-groovy ScriptEngine not found on the classpath");
             }
-            this.eventTracker = new EventTracker();
-            this.eventTracker.disable();                 // persistence off: track() becomes a no-op
-            this.gameListener = new RecordingGameListener(); // no ExperimentInstance: lifecycle is a no-op
-
-            Bindings b = engine.getBindings(ScriptContext.ENGINE_SCOPE);
-            b.put("r", new Random());
-            b.put("results", new HashMap());
-            b.put("eventTracker", eventTracker);
-            b.put("gameListener", gameListener);
-            SHARED_EVENTS.clear();                        // see SHARED_EVENTS: per-harness bus desyncs from the global Vertex.metaClass closures
-            b.put("events", SHARED_EVENTS);
-
-            // Load in the same order production uses (ScriptLoader is the single source of
-            // truth, so the harness and ScriptBoard can't drift). A core script failing to
-            // load is fatal; a non-core drop-in script failing is skipped, matching production
-            // and keeping the rest of the suite runnable.
-            File dir = groovyDir();
-            for (String name : ScriptLoader.resolveLoadOrder(dir)) {
-                try {
-                    ScriptLoader.evalNamed(engine, name, loadSource(dir, name));
-                } catch (ScriptException | RuntimeException ex) {
-                    if (ScriptLoader.isCore(name)) throw ex;
-                    System.err.println("ScriptTestHarness: skipping non-core script " + name + " -> " + ex.getMessage());
-                }
-            }
+            prepare();
         } catch (RuntimeException e) {
             throw e;
         } catch (Exception e) {
             throw new IllegalStateException("Failed to initialize ScriptTestHarness", e);
+        }
+    }
+
+    /**
+     * Return this engine to a pristine per-case state <b>without recreating it</b>.
+     *
+     * <p>Building a gremlin-groovy engine and compiling the ~7.6k lines of core scripts costs ~8s.
+     * RE-evaluating a script that the same engine has already compiled is ~0ms — Groovy caches the
+     * compiled class per engine, keyed by source text. So a runner that drives ~100 cases can build
+     * <i>one</i> engine and call {@code reset()} before each case instead of paying the 8s compile
+     * every time (measured: ~14 min of compilation across a run collapses to a single compile).
+     *
+     * <p>Re-evaluating the core scripts re-runs their top-level initializers — {@code g = new
+     * BreadboardGraph(...)}, {@code a = new PlayerActions(...)}, {@code timers = new BBTimers()},
+     * {@code GroupContext.bind(g, a, events)}, {@code GroupContext.bindRecruitment(recruitment)} —
+     * so every case still gets fresh bindings. What re-eval does <i>not</i> reset are script-defined
+     * <b>statics</b> (their initializers run once per class load, and each engine keeps its classes);
+     * a brand-new engine would start those empty, so {@link #resetGroovyStatics()} reproduces that.
+     * Clearing the bindings first also drops any global a previous case set ad hoc (e.g. {@code
+     * player}). Tests run sequentially ({@code parallelExecution in Test := false}), so reuse is safe.
+     */
+    public void reset() {
+        try {
+            cancelTimers();   // stop any timer threads the previous case left running before we wipe state
+            engine.getBindings(ScriptContext.ENGINE_SCOPE).clear();
+            prepare();
+        } catch (RuntimeException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new IllegalStateException("Failed to reset ScriptTestHarness", e);
+        }
+    }
+
+    /**
+     * Bind the baseline globals and (re)evaluate every core script into {@link #engine}. Shared by
+     * the constructor (first, paid-once compile) and {@link #reset()} (subsequent, cached re-evals).
+     */
+    private void prepare() throws Exception {
+        this.eventTracker = new EventTracker();
+        this.eventTracker.disable();                 // persistence off: track() becomes a no-op
+        this.gameListener = new RecordingGameListener(); // no ExperimentInstance: lifecycle is a no-op
+
+        Bindings b = engine.getBindings(ScriptContext.ENGINE_SCOPE);
+        b.put("r", new Random());
+        b.put("results", new HashMap());
+        b.put("eventTracker", eventTracker);
+        b.put("gameListener", gameListener);
+        SHARED_EVENTS.clear();                        // see SHARED_EVENTS: per-harness bus desyncs from the global Vertex.metaClass closures
+        b.put("events", SHARED_EVENTS);
+
+        // Load in the same order production uses (ScriptLoader is the single source of
+        // truth, so the harness and ScriptBoard can't drift). A core script failing to
+        // load is fatal; a non-core drop-in script failing is skipped, matching production
+        // and keeping the rest of the suite runnable.
+        File dir = groovyDir();
+        for (String name : ScriptLoader.resolveLoadOrder(dir)) {
+            try {
+                ScriptLoader.evalNamed(engine, name, loadSource(dir, name));
+            } catch (ScriptException | RuntimeException ex) {
+                if (ScriptLoader.isCore(name)) throw ex;
+                System.err.println("ScriptTestHarness: skipping non-core script " + name + " -> " + ex.getMessage());
+            }
+        }
+        resetGroovyStatics();
+    }
+
+    /**
+     * Clear the two stateful statics that re-eval does not reset, so a reused engine matches a fresh
+     * one: the {@code Games} registry ({@code byId}) and the default game builder. Best-effort —
+     * {@code Games} is absent unless groups.groovy loaded (it does under the harness's experimental
+     * load order), so both the Groovy body and this call swallow failures.
+     */
+    private void resetGroovyStatics() {
+        try {
+            engine.eval(
+                "try { Games.all().toList().each { Games.remove(it.id) }; Games.define(null) }" +
+                " catch (Throwable __ignore) {}");
+        } catch (Exception ignored) {
+            // groups.groovy not loaded, or Games unavailable -- nothing to reset.
         }
     }
 
