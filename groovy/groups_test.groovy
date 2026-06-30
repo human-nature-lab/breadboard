@@ -567,6 +567,108 @@ test("TreatmentManager + Games: abandon releases the slot for reassignment") {
   assert tm.get('solo').completed == 0       // ...and it was never counted as completed
 }
 
+// --- TreatmentManager.next(filter) -------------------------------------------------------------
+// next(closure) restricts the eligible set to treatments the filter accepts, then samples among
+// those exactly as next() samples among all. The experiment supplies the predicate (e.g. to match
+// a value assigned to players at join time); the manager never needs to understand parameters.
+
+// Only accepted treatments are ever handed out, even when excluded ones have open slots.
+test("TreatmentManager.next(filter): only treatments the filter accepts are eligible") {
+  def tm = new TreatmentManager()
+  tm.treatment('A', new SampleParams(1, 'keep'), 5)
+  tm.treatment('B', new SampleParams(2, 'skip'), 5)
+
+  def picks = 0
+  def t
+  while ((t = tm.next { it.parameters.mode == 'keep' }) != null) {
+    assert t.name == 'A' : 'filter must exclude B'
+    tm.complete(t)
+    picks++
+    assert picks <= 10 : 'loop must terminate'
+  }
+  assert picks == 5                          // drained A's quota; B never touched
+  assert tm.get('A').completed == 5
+  assert tm.get('B').completed == 0
+  assert tm.next { it.parameters.mode == 'keep' } == null   // A is met -> no accepted arm eligible
+  assert tm.next { it.parameters.mode == 'skip' } != null   // ...but B is still assignable
+}
+
+// A filter that matches only full treatments yields null (the accepted set is at capacity).
+test("TreatmentManager.next(filter): a filter matching only full treatments yields null") {
+  def tm = new TreatmentManager()
+  tm.treatment('A', new SampleParams(1, 'a'), 1)
+  tm.treatment('B', new SampleParams(1, 'b'), 1)
+
+  def a = tm.next { it.name == 'A' }
+  assert a != null && a.name == 'A'
+  assert tm.next { it.name == 'A' } == null               // A's only slot is in-flight
+  assert (tm.next { it.name == 'B' })?.name == 'B'        // B still open
+}
+
+// No match -> null and nothing is reserved (a later unfiltered next still gets the arm).
+test("TreatmentManager.next(filter): no match yields null and reserves nothing") {
+  def tm = new TreatmentManager()
+  tm.treatment('A', new SampleParams(1, 'a'), 1)
+
+  assert tm.next { it.parameters.mode == 'nope' } == null
+  def t = tm.next()
+  assert t != null && t.name == 'A'          // the no-match call reserved no slot
+}
+
+// An accept-all filter behaves exactly like the zero-arg next().
+test("TreatmentManager.next(filter): an accept-all filter drains the same as next()") {
+  def tm = new TreatmentManager()
+  tm.treatment('A', new SampleParams(1, 'a'), 2)
+  tm.treatment('B', new SampleParams(1, 'b'), 1)
+
+  def assigned = 0
+  def t
+  while ((t = tm.next { true }) != null) {
+    assigned++
+    assert assigned <= 10
+    tm.complete(t)
+  }
+  assert assigned == 3
+  assert tm.get('A').completed == 2 && tm.get('B').completed == 1
+  assert tm.isComplete()
+}
+
+// The reserved treatment settles via complete()/release() just like next()'s result.
+test("TreatmentManager.next(filter): result settles via complete() and release()") {
+  def tm = new TreatmentManager()
+  tm.treatment('A', new SampleParams(1, 'a'), 1)
+
+  def t = tm.next { it.name == 'A' }
+  assert t != null
+  tm.release(t)                              // abandoned -> slot reopens
+  def t2 = tm.next { it.name == 'A' }
+  assert t2 != null && t2.name == 'A'
+  tm.complete(t2)
+  assert tm.get('A').completed == 1
+  assert tm.isComplete()
+}
+
+// A filter that throws excludes that treatment (defensively) rather than aborting the assignment.
+test("TreatmentManager.next(filter): a throwing filter excludes that treatment, not the draw") {
+  def tm = new TreatmentManager()
+  tm.treatment('A', new SampleParams(1, 'a'), 1)
+  tm.treatment('B', new SampleParams(2, 'b'), 1)
+
+  def t = tm.next { if (it.name == 'A') throw new RuntimeException('boom'); return it.name == 'B' }
+  assert t != null && t.name == 'B'          // A excluded by the throw, B selected
+}
+
+// The first next(filter) seals the manager, same as the first next().
+test("TreatmentManager.next(filter): the first call seals the manager") {
+  def tm = new TreatmentManager()
+  tm.treatment('A', new SampleParams(1, 'a'), 1)
+
+  tm.next { it.name == 'A' }
+  def threw = false
+  try { tm.treatment('B', new SampleParams(1, 'b'), 1) } catch (IllegalStateException e) { threw = true }
+  assert threw : 'defining a treatment after the first next(filter) must throw'
+}
+
 // --- Games -> recruitment auto-tracking -------------------------------------------------------
 // Games.create / Game.finish / Game.abandon report the game lifecycle to whatever recruitment
 // controller is bound into GroupContext (in production that's the global `recruitment`). These

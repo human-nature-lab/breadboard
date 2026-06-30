@@ -1028,6 +1028,55 @@ class TreatmentManager {
     return chosen
   }
 
+  // Like next(), but only treatments accepted by `filter` (a (Treatment) -> boolean closure) are
+  // eligible; the active distribution then samples among those exactly as next() samples among all.
+  // Lets the caller constrain the draw to treatments consistent with whatever it likes -- e.g. a
+  // per-player value chosen at join time -- without the manager needing to understand parameters.
+  // Returns null when no accepted treatment is still eligible. Seals on the first call, like next().
+  // A filter that throws excludes that treatment (logged) rather than aborting the assignment.
+  // Note: roundRobin/randomBlock balance over whatever list they receive, so a filtered draw will
+  // not reproduce the unfiltered block/round-robin sequence -- prefer random/weighted when filtering.
+  Treatment next(Closure filter) {
+    if (filter == null) return next()
+    Treatment chosen = null
+    boolean firstSeal = false
+    boolean advanced = false
+    lock.lock()
+    try {
+      firstSeal = sealIfNeeded()
+      if (firstSeal) warnIfOrderDriftsFromFile()
+      // Restrict to the treatments the filter accepts, preserving definition order.
+      List candidates = new ArrayList()
+      for (Treatment t : order) {
+        boolean ok = false
+        try {
+          ok = filter.call(t) ? true : false
+        } catch (Exception e) {
+          println "[TreatmentManager] next() filter threw for treatment '${t.name}'; excluding it: $e"
+        }
+        if (ok) candidates.add(t)
+      }
+      boolean anyEligible = false
+      for (Treatment t : candidates) { if (!t.isFull()) { anyEligible = true; break } }
+      if (anyEligible) {
+        chosen = (Treatment) strategy.call(seed, cursor, candidates)
+        // Re-verify the pick is a live, eligible, accepted arm before reserving a slot on it -- a
+        // custom distribution could return a foreign/full treatment or one the filter excluded.
+        if (chosen != null && (byName[chosen.name] != chosen || chosen.isFull() || !candidates.contains(chosen))) {
+          println "[TreatmentManager] distribution returned an ineligible treatment '${chosen.name}'; skipping this assignment"
+          chosen = null
+        }
+        if (chosen != null) {
+          chosen.inFlight = chosen.inFlight + 1
+          cursor = cursor + 1
+          advanced = true
+        }
+      }
+    } finally { lock.unlock() }
+    if (advanced || firstSeal) persist()
+    return chosen
+  }
+
   // A game for this treatment finished: consume its reserved slot permanently, then persist.
   void complete(Treatment t) {
     if (t == null) return
