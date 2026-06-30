@@ -1,4 +1,6 @@
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
 import java.io.File
@@ -31,6 +33,11 @@ class GroupContext {
   // groups.groovy load time. Stays null until then; Games/Game guard on it being non-null.
   static Object recruitment
 
+  // The group-id sequence (a GroupIdSequence, below), built from the engine's ExperimentContext at
+  // load time -- before any of the groups API runs. It mints ids unique across reloads and instances
+  // of the experiment (see Games.nextId).
+  static Object groupIds
+
   static void bind(Object gIn, Object aIn, Object eventsIn) {
     if (gIn != null) g = gIn
     if (aIn != null) a = aIn
@@ -39,6 +46,76 @@ class GroupContext {
 
   static void bindRecruitment(Object rec) {
     if (rec != null) recruitment = rec
+  }
+
+  static void bindGroupIds(Object seq) {
+    groupIds = seq
+  }
+}
+
+// ---------------------------------------------------------------------------
+// GroupIdSequence -- monotonic, file-backed group-id counter (pure groovy)
+// ---------------------------------------------------------------------------
+// Mints group ids that stay unique across reloads and instances of an experiment. The id used to be
+// a per-WaitingRoom counter that reset to 0 on every reload / new instance, so "1", "2", ... repeated
+// across them -- a problem because the id is persisted onto event rows and reported to recruitment.
+//
+// When file-backed (production), each next() does a read-increment-write against a per-experiment
+// file (located from the bound ExperimentContext's dataDir). The read-modify-write is serialized
+// JVM-wide on the interned absolute path, so concurrent instances/reloads in this process -- each
+// its own engine, hence its own copy of this class, so they cannot share an in-memory counter --
+// never reissue an id. The file is the source of truth, so it also survives engine reloads and
+// server restarts. (Breadboard is a single OS process; a multi-process deployment would add a
+// java.nio FileLock here too.)
+//
+// When the file is null (the test harness, or an engine started without an experiment) it is a plain
+// in-memory counter that restarts at 1.
+class GroupIdSequence {
+  private final File file
+  private final AtomicInteger mem
+
+  GroupIdSequence(File file) {
+    this.file = file
+    this.mem = (file == null) ? new AtomicInteger(0) : null
+    if (file != null && file.getParentFile() != null) file.getParentFile().mkdirs()
+  }
+
+  // Build the sequence for an engine from its bound ExperimentContext: file-backed when the context
+  // names a per-experiment data directory, otherwise (no experiment, e.g. the test harness) an
+  // in-memory counter.
+  static GroupIdSequence fromContext(ctx) {
+    ctx.dataDir == null ? new GroupIdSequence(null) : new GroupIdSequence(new File(ctx.dataDir, "group-id.seq"))
+  }
+
+  int next() {
+    if (file == null) return mem.incrementAndGet()
+    // Serialize the read-modify-write across every engine in this JVM via the interned path.
+    synchronized (file.getAbsolutePath().intern()) {
+      int nxt = readCurrent() + 1
+      persist(nxt)
+      return nxt
+    }
+  }
+
+  int current() {
+    if (file == null) return mem.get()
+    synchronized (file.getAbsolutePath().intern()) {
+      return readCurrent()
+    }
+  }
+
+  private int readCurrent() {
+    // First use: no file yet -> 0. Otherwise parse our own last write; a corrupt value should fail
+    // loudly rather than silently reset and reissue ids.
+    file.exists() ? Integer.parseInt(file.getText("UTF-8").trim()) : 0
+  }
+
+  private void persist(int value) {
+    // Write to a temp file then replace, so a crash mid-write can't leave a half-written
+    // (unparseable) sequence file. Same-directory replace is effectively atomic.
+    File tmp = new File(file.getParentFile(), file.getName() + ".tmp")
+    tmp.write(value.toString(), "UTF-8")
+    Files.move(tmp.toPath(), file.toPath(), [StandardCopyOption.REPLACE_EXISTING] as java.nio.file.CopyOption[])
   }
 }
 
@@ -61,6 +138,15 @@ class Games {
   // created without an explicit builder.
   static void define(Closure builder) {
     defaultBuilder = builder
+  }
+
+  // Mint the next group id. This is the group-assignment entry point: it lives here (with the group
+  // model) rather than in the waiting room, so anything forming groups -- the lobby, or an
+  // experiment creating groups directly -- gets ids the same way. Ids are unique across reloads and
+  // instances of an experiment because they come from the per-experiment GroupIdSequence
+  // (GroupContext.groupIds), which is bound at load time before any group is created.
+  static String nextId() {
+    GroupContext.groupIds.next().toString()
   }
 
   // Instantiate, register, populate, and build a Game.
@@ -133,6 +219,13 @@ class Game {
   private volatile boolean finished = false
   private Closure onFinishClosure = null
   private Closure onAbandonClosure = null
+
+  // Still-pending one-shot timers scheduled via after(ms){...}. Tracked so dispose() can cancel any
+  // that haven't fired yet; each is also in the global `timers` registry, so an engine reload cleans
+  // them up too. Declared as the List interface (Groovy 1.8.6 downgrades `CopyOnWriteArrayList f =`
+  // typed as the concrete class) and CopyOnWrite because they are added/removed/iterated across the
+  // caller, timer-fire, and teardown threads without the game lock.
+  private final List afterTimers = new CopyOnWriteArrayList()
 
   // Idle/drop config (mirrors PlayerActions in actions.groovy; times in seconds).
   private Object idleTime = null
@@ -241,6 +334,52 @@ class Game {
       runC = step.run
     } finally { lock.unlock() }
     if (runC != null) runC()   // outside the lock: run may re-enter ask/go
+  }
+
+  // --- deferred work ---
+  //
+  // Run `body` once, `ms` milliseconds from now, WITHOUT blocking the caller's thread. This is the
+  // non-blocking analogue of a sleep: after() returns immediately and `body` fires later on a daemon
+  // timer thread (the same BBTimer mechanism driveAI/armIdleTimer use), so other games and player
+  // actions keep running while this game waits. The typical use is pacing a step transition:
+  //
+  //   game.step('reveal', [ run:  { ask(...) },
+  //                         done: { game.after(2000) { go('results') } } ])
+  //
+  // `body` runs with the game as its delegate (DELEGATE_FIRST, like a step's run/done), so it can
+  // call go/ask/finish/players unqualified. It does NOT fire if the game has finished by the time the
+  // delay elapses (the guard below), and all pending timers are cancelled when the game is disposed
+  // (finish/abandon, see dispose()) and on an engine reload (BBTimer self-registers with `timers`).
+  //
+  // Returns the backing BBTimer as a cancel handle: call .cancel() on it to abort a still-pending
+  // call; cancelling after it has fired is a harmless no-op.
+  //
+  // There is deliberately NO blocking single-arg form (after(ms) with no body): game code has no
+  // thread of its own -- it runs on a shared platform thread (the actor thread, a Netty worker, or a
+  // timer thread) -- and Java 8 has no virtual threads, so a real sleep would park one of those for
+  // the whole delay and, at scale, starve the pool that unrelated games/requests depend on. Always
+  // pass the closure body.
+  Object after(Number ms, Closure body) {
+    if (body == null) throw new IllegalArgumentException("after(ms) { ... } requires a closure body")
+    if (ms == null || (ms as long) < 0) throw new IllegalArgumentException("after() delay must be >= 0 (got $ms)")
+    body.delegate = this
+    body.resolveStrategy = Closure.DELEGATE_FIRST
+    def timer = new BBTimer()
+    afterTimers << timer
+    // Guarded like driveAI/armIdleTimer: a late fire during teardown must not throw uncaught on the
+    // daemon timer thread. The finally always detaches + cancels the one-shot timer so it neither
+    // lingers in the global `timers` registry nor keeps its thread parked after firing.
+    timer.runAfter(ms as int) {
+      try {
+        if (!finished) body()
+      } catch (Throwable t) {
+        logErr("after", t)
+      } finally {
+        afterTimers.remove(timer)
+        try { timer.cancel() } catch (Exception e) { /* ignore */ }
+      }
+    }
+    return timer
   }
 
   // --- asking players ---
@@ -453,6 +592,13 @@ class Game {
         try { e.player.off(Games.SUBMIT_EVENT, e.listener) } catch (Exception ex) { /* ignore */ }
       }
     }
+
+    // Cancel any still-pending after(ms){...} timers so a deferred body can't fire against a disposed
+    // game. (finished is already true here -- finish()/abandon() set it before calling dispose() --
+    // so the after-guard would no-op a late fire anyway; this also frees the timer thread promptly.)
+    def pendingAfters = new ArrayList(afterTimers)
+    afterTimers.clear()
+    pendingAfters.each { t -> try { t.cancel() } catch (Exception e) { /* ignore */ } }
 
     membersCopy.each { v ->
       if (v?.getProperty("ai") == 1) {
@@ -1381,5 +1527,8 @@ roundRobin   = { -> new Sampler('round-robin',  TreatmentManager.roundRobinFn())
 weighted     = { -> new Sampler('weighted',     TreatmentManager.weightedFn()) }
 randomBlock  = { Integer mult = 1 -> int m = (mult == null) ? 1 : (int) mult; new Sampler('random-block', TreatmentManager.randomBlockFn(m), m) }
 
-// Bind the engine handles from the script binding at load time (see GroupContext).
+// Bind the engine handles from the script binding at load time (see GroupContext). The engine always
+// provides `experimentContext` (ScriptBoard in production, the harness in tests), so the group-id
+// sequence is built here, before any group is created.
 GroupContext.bind(g, a, events)
+GroupContext.bindGroupIds(GroupIdSequence.fromContext(experimentContext))

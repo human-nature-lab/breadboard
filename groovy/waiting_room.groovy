@@ -123,7 +123,6 @@ class WaitingRoom extends BreadboardBase {
   // we keep them all so stop() can cancel every outstanding countdown (not just the last one).
   private List<SharedTimer> _startGroupTimers = new CopyOnWriteArrayList<>()
   private Closure _readyUpFailureCb
-  private AtomicInteger groupId
   private AtomicBoolean isLoopRunning = new AtomicBoolean(false)
   private boolean _started = false
   // The single recruitment controller (recruitment.groovy), injected via setRecruitment(). Left
@@ -142,7 +141,6 @@ class WaitingRoom extends BreadboardBase {
     this._groupReadyCb = null
     this._setStageCb = this.defaultSetStageCb
     this.foundGroupAt = 0
-    this.groupId = new AtomicInteger(0)
   }
 
   // Wire the lobby to the experiment's recruitment controller. Once set, the lobby reports
@@ -151,11 +149,6 @@ class WaitingRoom extends BreadboardBase {
     this.withLock {
       this._recruitment = rc
     }
-  }
-
-  public setGroupId(int groupId) {
-    // groupId is an AtomicInteger; no extra lock needed.
-    this.groupId.set(groupId)
   }
 
   private withLock(Closure c) {
@@ -436,14 +429,15 @@ class WaitingRoom extends BreadboardBase {
       this._readyUpFailureCb(player)
     }
     for (def group in groups) {
-      this.startGroup(group, this.groupId.incrementAndGet())
+      this.startGroup(group, Games.nextId())
     }
   }
 
   // Build and start the group-start countdown for an already-reserved group (its players are
   // marked "group-start" and removed from waitingPlayers by the caller). Called outside the lock.
-  private startGroup(List<Vertex> group, int groupId) {
-    def gid = groupId.toString()   // expose the id as a String to match groupCompleted()
+  // The group id is minted by Games.nextId() (the group-assignment API) -- unique across reloads and
+  // instances of the experiment -- and arrives here already a String.
+  private startGroup(List<Vertex> group, String gid) {
     this.log("group $gid starting in ", this.groupStartDelaySeconds, " seconds")
     def cb = this.withLock {
       return this._groupReadyCb

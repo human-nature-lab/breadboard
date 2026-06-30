@@ -13,6 +13,7 @@
 // Groovy 1.8.9 target: no closure->functional-interface coercion, no lambdas / `::` refs.
 
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicBoolean
 
 // A sample experiment parameters object. @Immutable makes every property final, so writing one
 // throws ReadOnlyPropertyException and reading an unknown one throws MissingPropertyException --
@@ -1174,4 +1175,75 @@ test("TreatmentManager rejects a non-positive weight") {
   try { tm.treatment(name: 'bad', parameters: new SampleParams(1, 'x'), target: 1, weight: 0.0) }
   catch (IllegalArgumentException e) { threw = true }
   assert threw : 'weight must be > 0'
+}
+
+// ---------------------------------------------------------------------------
+// game.after(ms) { ... } -- non-blocking deferred work
+// ---------------------------------------------------------------------------
+
+// after() must return immediately (the body has NOT run synchronously) and then fire the body later
+// on a timer thread -- i.e. it defers without blocking the caller's thread.
+test.async("game.after fires the body after the delay, off-thread, without blocking the caller", 4000) { done ->
+  Games.define { game -> }                       // a bare after() needs no steps
+  def game = Games.create('grpAfter', [])
+  def callingThreadId = Thread.currentThread().getId()
+  def fired = new AtomicBoolean(false)
+  game.after(50) {
+    fired.set(true)
+    done {
+      // ran on a timer thread, not the caller's -> the caller was never blocked
+      assert Thread.currentThread().getId() != callingThreadId
+    }
+  }
+  check { assert !fired.get() }                   // after() returned before the deferred body ran
+}
+
+// The returned handle cancels a still-pending call: after the original delay has well elapsed, a
+// cancelled call's body must never have run.
+test.async("cancelling the returned handle aborts a pending after()", 4000) { done ->
+  Games.define { game -> }
+  def game = Games.create('grpAfterCancel', [])
+  def fired = new AtomicBoolean(false)
+  def handle = game.after(50) { fired.set(true) }
+  handle.cancel()                                 // abort before it fires
+  timers.newTimer().runAfter(250) {               // check past the original 50ms delay
+    done { assert !fired.get() }
+  }
+}
+
+// Finishing (disposing) the game cancels any pending call, and the finished-guard means a late fire
+// is a no-op: the deferred body never runs against the disposed game.
+test.async("finishing the game cancels a pending after() so its body never fires", 4000) { done ->
+  def finishCount = new AtomicInteger(0)
+  Games.define { game -> game.onFinish { finishCount.incrementAndGet() } }
+  def game = Games.create('grpAfterFinish', [])
+  def fired = new AtomicBoolean(false)
+  game.after(50) { fired.set(true) }
+  game.finish()                                   // disposes the game -> pending call cancelled
+  check { assert finishCount.get() == 1 }
+  timers.newTimer().runAfter(250) {
+    done {
+      assert !fired.get()                         // the deferred body never ran
+      assert Games.get('grpAfterFinish') == null  // ...and finish() still disposed the game
+    }
+  }
+}
+
+// The canonical use: a step's `done` schedules the next step after a pause. The unqualified `go` in
+// the after() body proves the body runs with the game as its delegate (like a step's run/done).
+test.async("game.after paces a step transition: done defers go() to the next step", 4000) { done ->
+  Games.define { game ->
+    game.step('reveal', [
+      run:  { game.players.each { p -> game.ask(p, [name: 'go', result: { v, data -> }]) } },
+      done: { game.after(50) { go('results') } }, // unqualified go -> resolves via the game delegate
+    ])
+    game.step('results', [
+      run:  { done { assert game.currentStep == 'results' } },   // only reached if the deferred go fired
+      done: { },
+    ])
+  }
+  def p1 = g.addPlayer('paceP1')
+  def game = Games.create('grpPace', [p1])
+  game.go('reveal')
+  submit(p1, p1.choices[0].uid)                   // resolve reveal -> done waits 50ms -> go('results')
 }

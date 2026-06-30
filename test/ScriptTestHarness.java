@@ -161,6 +161,10 @@ public class ScriptTestHarness {
         b.put("gameListener", gameListener);
         SHARED_EVENTS.clear();                        // see SHARED_EVENTS: per-harness bus desyncs from the global Vertex.metaClass closures
         b.put("events", SHARED_EVENTS);
+        // Experiment/instance context for the groovy DSL (see models.ExperimentContext). A null
+        // dataDir means the groovy group-id sequence runs in memory and restarts at 1 each case --
+        // a fresh context per prepare() is what the waiting-room tests' "1"/"2" ids rely on.
+        b.put("experimentContext", new models.ExperimentContext(null, null, null));
 
         // Load in the same order production uses (ScriptLoader is the single source of
         // truth, so the harness and ScriptBoard can't drift). A core script failing to

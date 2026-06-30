@@ -197,6 +197,16 @@ public class ScriptBoard extends UntypedActor {
       engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", experiment.contentFetcher);
     }
 
+    // Immutable experiment/instance info for the groovy DSL (see ExperimentContext). The groovy
+    // group-id sequence consumes dataDir to persist a per-experiment counter, keeping group ids
+    // unique across reloads and instances. dataDir is the per-experiment data directory; null when
+    // there is no experiment, in which case the sequence runs in memory.
+    File experimentDataDir = (experimentId != null)
+        ? new File(Play.application().path(), "data/experiments/" + experimentId)
+        : null;
+    engine.getBindings(ScriptContext.ENGINE_SCOPE).put("experimentContext",
+        new ExperimentContext(experimentId, instanceId, experimentDataDir));
+
     // Load the Groovy DSL scripts. ScriptLoader is the single source of truth for which
     // files load and in what order: the core scripts first, in dependency order, then every
     // other *.groovy file alphabetically, skipping *_test.groovy. Dropping a new script into
