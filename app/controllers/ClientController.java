@@ -104,7 +104,9 @@ public class ClientController extends Controller
                 return FileUtils.readFileToString(file, "UTF-8");
             } catch(IOException ignored) {}
         }
-        return experiment.getClientHtml();
+        // Runtime serving path: expand {{imageBase}} to /images/<experimentId> so image links in the
+        // client HTML survive an export/import that reassigns the experiment id.
+        return experiment.expandImageBase(experiment.getClientHtml());
     }
 
     /**

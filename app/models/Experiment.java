@@ -30,6 +30,8 @@ import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Entity
 @EntityConcurrencyMode(ConcurrencyMode.NONE)
@@ -285,6 +287,27 @@ public class Experiment extends Model {
     } else {
       return this.clientHtml;
     }
+  }
+
+  // --- Image reference stability across export/import -------------------------------------------
+  // Participant-facing markup (content translations, client HTML, style CSS) should reference
+  // uploaded images through the {{imageBase}} placeholder instead of a literal /images/<id> prefix.
+  // The experiment id changes whenever an experiment is exported and re-imported, so a stored literal
+  // id breaks every image link on import. We keep the placeholder in stored/exported markup (edit and
+  // export paths see it verbatim) and substitute the current id only when serving to a participant.
+  private static final Pattern IMAGE_BASE_TOKEN = Pattern.compile("\\{\\{\\s*imageBase\\s*\\}\\}");
+
+  /**
+   * Replace the {{imageBase}} placeholder with this experiment's image URL prefix (/images/<id>).
+   * Call only on the runtime serving path, never on the edit/export path (which must preserve the
+   * placeholder so image links survive a round-trip through export/import).
+   */
+  public String expandImageBase(String markup) {
+    if (markup == null || this.id == null) {
+      return markup;
+    }
+    String base = "/images/" + this.id;
+    return IMAGE_BASE_TOKEN.matcher(markup).replaceAll(Matcher.quoteReplacement(base));
   }
 
   public String getClientGraph() {

@@ -155,7 +155,8 @@ public class Client extends Model {
     int hash = experimentInstance.experiment.getStyle().hashCode();
     if (styleHash != hash) {
       styleHash = hash;
-      jsonOutput.put("style", experimentInstance.experiment.getStyle());
+      // Runtime serving path: expand {{imageBase}} so CSS image links survive an id-reassigning import.
+      jsonOutput.put("style", experimentInstance.experiment.expandImageBase(experimentInstance.experiment.getStyle()));
     }
 
     out.write(jsonOutput);
@@ -289,7 +290,8 @@ public class Client extends Model {
 
   public ObjectNode toJson() {
     ObjectNode client = Json.newObject();
-    client.put("style", experimentInstance.experiment.getStyle());
+    // Runtime serving path: expand {{imageBase}} so CSS image links survive an id-reassigning import.
+    client.put("style", experimentInstance.experiment.expandImageBase(experimentInstance.experiment.getStyle()));
     return client;
   }
 
