@@ -396,8 +396,7 @@ public class ScriptBoard extends UntypedActor {
 
       // Update the client's state
       ObjectNode jsonOutput = Json.newObject();
-      // Runtime serving path: expand {{imageBase}} so CSS image links survive an id-reassigning import.
-      jsonOutput.put("style", experimentInstance.experiment.expandImageBase(experimentInstance.experiment.getStyle()));
+      jsonOutput.put("style", experimentInstance.experiment.getStyle());
       Logger.debug("addClient, " + clientId);
       out.write(jsonOutput);
     } catch (NumberFormatException nfe) {

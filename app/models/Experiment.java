@@ -290,11 +290,11 @@ public class Experiment extends Model {
   }
 
   // --- Image reference stability across export/import -------------------------------------------
-  // Participant-facing markup (content translations, client HTML, style CSS) should reference
-  // uploaded images through the {{imageBase}} placeholder instead of a literal /images/<id> prefix.
-  // The experiment id changes whenever an experiment is exported and re-imported, so a stored literal
-  // id breaks every image link on import. We keep the placeholder in stored/exported markup (edit and
-  // export paths see it verbatim) and substitute the current id only when serving to a participant.
+  // Content translations should reference uploaded images through the {{imageBase}} placeholder
+  // instead of a literal /images/<id> prefix. The experiment id changes whenever an experiment is
+  // exported and re-imported, so a stored literal id breaks every image link on import. We keep the
+  // placeholder in stored/exported content (edit and export paths see it verbatim) and substitute the
+  // current id only when serving to a participant.
   private static final Pattern IMAGE_BASE_TOKEN = Pattern.compile("\\{\\{\\s*imageBase\\s*\\}\\}");
 
   /**
