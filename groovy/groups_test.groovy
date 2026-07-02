@@ -216,6 +216,34 @@ test("dropping a player drains their ask, completes the step, and excludes them 
   assert game.players.contains(p1)
 }
 
+// drop() leaves the player's graph edges intact by default; disconnect() -- or the drop(player, true)
+// flag -- is what tears them out. Split so experiments decide when the graph is torn down.
+test("drop keeps graph edges by default; disconnect / drop(player, true) remove them") {
+  def doneCount = new AtomicInteger(0)
+  defineCounterGame(doneCount)
+  def p1 = g.addPlayer('edrp1')
+  def p2 = g.addPlayer('edrp2')
+  def p3 = g.addPlayer('edrp3')
+  g.addEdge(p1, p2)
+  g.addEdge(p1, p3)
+  def game = Games.create('grpDropEdges', [p1, p2, p3])
+  game.go('trial')
+
+  assert g.hasEdge(p1, p2)
+  game.drop(p2)                            // default: dropped, but NOT disconnected
+  assert p2._system.status == 'dropped'
+  assert g.hasEdge(p1, p2)                 // ...the edge survives the drop
+
+  game.disconnect(p2)                      // explicit teardown removes it
+  assert !g.hasEdge(p1, p2)
+
+  assert g.hasEdge(p1, p3)
+  game.drop(p3, true)                      // flag form drops AND disconnects in one call
+  assert p3._system.status == 'dropped'
+  assert !g.hasEdge(p1, p3)
+  assert game.players.contains(p1)         // p1 still active -> game not abandoned
+}
+
 // `parameters` holds an opaque, read-only object. Using an @Immutable params class, writing a
 // property throws ReadOnlyPropertyException and an unknown property throws MissingPropertyException.
 test("parameters is read-only and rejects unknown keys") {

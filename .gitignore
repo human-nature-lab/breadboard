@@ -40,4 +40,5 @@ generated
 .env*
 .zed
 run-dev.sh
+run-test.sh
 native

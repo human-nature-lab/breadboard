@@ -18,7 +18,7 @@
        b. [ ] Should accept multiple named game definitions
        c. [ ] Should launch games in separate threads if possible/feasible
 7. [ ] Support arbitrary data files that are included in import/export and accessible to groovy code by default
-8. [ ] Fix image naming issues with images referenced in content. With import/export the experiment ids change and break
+8. [x] Fix image naming issues with images referenced in content. With import/export the experiment ids change and break
        the image references.
 9. [ ] Formalize our BREADBOARD_DEV=true variable in by default so we can take advantage of it in other scripts
        a. [ ] Don't throw when COMPLETION_CODE is not set in dev mode, just log a warning

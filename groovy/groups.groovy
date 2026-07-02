@@ -232,7 +232,7 @@ class Game {
   private Object warnTime = null
   private Object dropTime = null
   private boolean dropPlayersEnabled = false
-  private Closure dropPlayerClosure = null
+  private Closure timeoutClosure = null
 
   // AI submit delay (ms). Small by default so test AIs resolve quickly;
   // experiments can raise it for human-like pacing.
@@ -490,9 +490,11 @@ class Game {
   // --- dropping ---
 
   // In-game drop: mark the player dropped (a terminal study-level status), drain pending asks, cancel
-  // timers, disconnect edges. If that empties the cohort and the game isn't finished, abandon it;
-  // otherwise let the current step complete if its queue drained.
-  void drop(Object player) {
+  // timers. Does NOT tear the player's edges out of the graph by default -- pass
+  // disconnectFromGraph=true (or call disconnect(player) yourself) when you want that. If dropping
+  // empties the cohort and the game isn't finished, abandon it; otherwise let the current step
+  // complete if its queue drained.
+  void drop(Object player, boolean disconnectFromGraph = false) {
     if (player == null) return
     if (player._system != null) player._system.status = 'dropped'
 
@@ -526,13 +528,21 @@ class Game {
       }
     }
     unassignAllGroupChoices(player)
-    try { GroupContext.g.removeEdges(player) } catch (Exception ex) { /* ignore */ }
+    if (disconnectFromGraph) disconnect(player)
 
     if (!finished && getPlayers().isEmpty()) {
       abandon()
     } else if (drained && doneC != null) {
       doneC()   // outside the lock: done may re-enter go/ask/finish
     }
+  }
+
+  // Tear the player's edges out of the shared graph, disconnecting them from everyone they were
+  // linked to. Split out of drop() so a dropped player keeps their edges by default; call this
+  // explicitly (or pass drop(player, true)) when you do want the graph torn down.
+  void disconnect(Object player) {
+    if (player == null) return
+    try { GroupContext.g.removeEdges(player) } catch (Exception ex) { /* ignore */ }
   }
 
   // --- lifecycle ---
@@ -629,9 +639,10 @@ class Game {
   void setWarnTime(Object t) { this.warnTime = t }
   void setDropTime(Object t) { this.dropTime = t }
   void setDropPlayers(boolean enabled) { this.dropPlayersEnabled = enabled }
-  void setDropPlayerClosure(Closure c) { this.dropPlayerClosure = c }
-  // Alias matching the SharedTimer/onDone style used elsewhere.
-  void onDrop(Closure c) { this.dropPlayerClosure = c }
+  void setTimeoutClosure(Closure c) { this.timeoutClosure = c }
+  // Alias matching the SharedTimer/onDone style used elsewhere. Named for what it actually hooks: the
+  // idle-timeout expiry, NOT every drop. Explicit drop(player) calls and kicks do not fire it.
+  void onTimeout(Closure c) { this.timeoutClosure = c }
 
   // For tests/debugging: count outstanding asks for a step (current if null).
   int pendingCount(String stepName = null) {
@@ -779,7 +790,7 @@ class Game {
           player:     player,
           result:     {
             try {
-              def handler = (dropPlayerClosure != null) ? dropPlayerClosure : { p -> drop(p) }
+              def handler = (timeoutClosure != null) ? timeoutClosure : { p -> drop(p) }
               handler(player)
             } catch (Throwable t) {
               logErr("idle/drop handler", t)

@@ -1,5 +1,6 @@
 import models.EventBus;
 import models.EventTracker;
+import models.ExperimentContext;
 import models.GameListener;
 import models.ScriptLoader;
 import org.junit.Test;
@@ -153,6 +154,10 @@ public class ScriptLoaderTest {
         b.put("eventTracker", eventTracker);
         b.put("gameListener", new GameListener());
         b.put("events", new EventBus());
+        // groups.groovy reads experimentContext.dataDir at load time to build its group-id sequence.
+        // A null-args ExperimentContext (dataDir == null) yields the in-memory sequence -- same as
+        // ScriptTestHarness binds. Without it, loading groups.groovy throws MissingPropertyException.
+        b.put("experimentContext", new ExperimentContext(null, null, null));
 
         // cwd is the project root under sbt, so the scripts live in ./groovy
         ScriptLoader.loadAll(engine, new File("groovy"));
