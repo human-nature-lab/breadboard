@@ -3,6 +3,7 @@ package controllers;
 import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.*;
 
@@ -24,8 +25,13 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -84,7 +90,7 @@ public class ExperimentController extends Controller {
   }
 
   @Security.Authenticated(Secured.class)
-  public static Result importExperiment(String experimentName, Long experimentId) throws IOException{
+  public static Result importExperiment(String experimentName, Long experimentId, boolean force) throws IOException{
 
     Http.MultipartFormData body = request().body().asMultipartFormData();
     Long maxUploadSize = play.Play.application().configuration().getLong("maxUploadSize", 50L * 1024L * 1024L);
@@ -203,6 +209,10 @@ public class ExperimentController extends Controller {
     // Determine the export version from the optional .breadboard metadata. A missing or unreadable
     // file is not an error — older exports without it default to the v2.2 importer.
     String eVersion = null;
+    // The file hashes the archive recorded at export time (path -> sha256), used below to detect
+    // whether an overwrite target drifted since it was exported. Null when the archive predates this
+    // feature or has no .breadboard — in that case the drift check is simply skipped.
+    JsonNode expectedHashes = null;
     try{
       String dotBreadboard = readFile(outputFolder + File.separator + ".breadboard", StandardCharsets.UTF_8);
       ObjectMapper mapper = new ObjectMapper();
@@ -210,6 +220,9 @@ public class ExperimentController extends Controller {
       eVersion = dotBreadboardJson.findPath("version").textValue();
       String eUid = dotBreadboardJson.findPath("experimentUid").textValue();
       String eName = dotBreadboardJson.findPath("experimentName").textValue();
+      if (dotBreadboardJson.has("hashes") && dotBreadboardJson.get("hashes").isObject()) {
+        expectedHashes = dotBreadboardJson.get("hashes");
+      }
       // TODO: offer the option to import the Experiment UID and/or Name from the .breadboard file
 
       Logger.debug("Read .breadboard file: experimentVersion = " + eVersion + " experimentUid = " + eUid + " experimentName = " + eName);
@@ -222,6 +235,33 @@ public class ExperimentController extends Controller {
     Experiment experiment = null;
     Ebean.beginTransaction();
     try {
+      // Guard against clobbering edits made since the archive was exported. When replacing, the
+      // archive's .breadboard carries the file hashes captured at export time; if the target no
+      // longer matches them it was modified in the meantime, and overwriting would silently discard
+      // those changes. Refuse with 409 (listing what drifted) unless the caller passes force=true.
+      // This runs before any destructive change, so the rollback simply leaves the target untouched.
+      if (isOverwrite && expectedHashes != null && !force) {
+        String defaultLangCode = (user != null && user.defaultLanguage != null)
+            ? user.defaultLanguage.getCode() : "en";
+        ObjectNode currentHashes = computeExperimentHashes(target, defaultLangCode);
+        List<String> changes = diffHashes(expectedHashes, currentHashes);
+        if (!changes.isEmpty()) {
+          Ebean.rollbackTransaction();
+          Logger.warn("Refusing to replace experiment " + target.id + ": " + changes.size()
+              + " file(s) changed since the archive was exported. Pass force=true to override. "
+              + "Changes: " + changes);
+          ObjectNode conflict = Json.newObject();
+          conflict.put("conflict", true);
+          conflict.put("message", "This experiment has been modified since the file you're importing "
+              + "was exported. Replacing it will overwrite those changes.");
+          ArrayNode changed = conflict.putArray("changed");
+          for (String change : changes) {
+            changed.add(change);
+          }
+          return status(Http.Status.CONFLICT, conflict);
+        }
+      }
+
       if (isOverwrite) {
         // Keep the existing experiment's identity (id/uid/name) and runtime data (instances), but
         // clear its current design resources so the import re-creates them — replacing, adding and
@@ -297,6 +337,12 @@ public class ExperimentController extends Controller {
       dotBreadboard.put("version", "v2.4.0");
       dotBreadboard.put("experimentName", experiment.name);
       dotBreadboard.put("experimentUid", experiment.uid);
+      // Record a content hash for every exported file so a later "replace" import can detect whether
+      // the target drifted since this export — see importExperiment. Mirror the language fallback used
+      // for the Content entries written below so the hashed paths match the archived paths exactly.
+      String defaultLangCode = (user != null && user.defaultLanguage != null)
+          ? user.defaultLanguage.getCode() : "en";
+      dotBreadboard.set("hashes", computeExperimentHashes(experiment, defaultLangCode));
 
       e = new ZipEntry(".breadboard");
       zos.putNextEntry(e);
@@ -418,6 +464,9 @@ public class ExperimentController extends Controller {
     dotBreadboard.put("version", version);
     dotBreadboard.put("experimentName", experiment.name);
     dotBreadboard.put("experimentUid", experiment.uid);
+    // Record file hashes for drift detection on import. This exporter defaults missing content
+    // languages to "en" (see the Content loop below), so hash with the same fallback.
+    dotBreadboard.set("hashes", computeExperimentHashes(experiment, "en"));
 
     FileUtils.writeStringToFile(new File(directory, ".breadboard"), dotBreadboard.toString());
     FileUtils.writeStringToFile(new File(directory, "style.css"), experiment.getStyle());
@@ -459,6 +508,92 @@ public class ExperimentController extends Controller {
   private static String readFile(String path, Charset encoding) throws IOException{
     byte[] encoded = Files.readAllBytes(Paths.get(path));
     return new String(encoded, encoding);
+  }
+
+  /**
+   * Compute a content hash for every file this experiment would export, keyed by the export-relative
+   * path (e.g. "Steps/onJoin.groovy", "Content/eng/intro.html", "style.css"). These hashes are
+   * written into the exported .breadboard so a later "replace" import can tell whether the target
+   * experiment drifted since the export (see {@link #importExperiment}). The path derivation MUST
+   * mirror the exporters, so {@code defaultLanguageCode} is the fallback used for content whose
+   * translation has no language — pass the same value the caller uses when laying out Content/.
+   */
+  public static ObjectNode computeExperimentHashes(Experiment experiment, String defaultLanguageCode) {
+    ObjectNode hashes = Json.newObject();
+    hashes.put("style.css", sha256(nullToEmpty(experiment.getStyle())));
+    hashes.put("client-html.html", sha256(nullToEmpty(experiment.getClientHtml())));
+    hashes.put("client-graph.js", sha256(nullToEmpty(experiment.getClientGraph())));
+    hashes.put("parameters.csv", sha256(nullToEmpty(experiment.parametersToCsv())));
+
+    for (Step step : experiment.getSteps()) {
+      hashes.put("Steps/" + step.name + ".groovy", sha256(nullToEmpty(step.source)));
+    }
+
+    for (Content c : experiment.getContent()) {
+      for (Translation t : c.translations) {
+        String language = (t.language == null || t.language.getCode() == null)
+            ? defaultLanguageCode : t.language.getCode();
+        hashes.put("Content/" + language + "/" + c.name + ".html", sha256(nullToEmpty(t.html)));
+      }
+    }
+
+    for (Image image : experiment.getImages()) {
+      hashes.put("Images/" + image.fileName, sha256(image.file == null ? new byte[0] : image.file));
+    }
+
+    return hashes;
+  }
+
+  /**
+   * Compare the file hashes recorded in an export's .breadboard ({@code expected}) against the target
+   * experiment's current hashes ({@code actual}). Returns a human-readable list of the paths that
+   * drifted — modified, removed or added — or an empty list when the target still matches the export.
+   */
+  private static List<String> diffHashes(JsonNode expected, ObjectNode actual) {
+    List<String> changes = new ArrayList<String>();
+    Iterator<Map.Entry<String, JsonNode>> fields = expected.fields();
+    while (fields.hasNext()) {
+      Map.Entry<String, JsonNode> entry = fields.next();
+      String path = entry.getKey();
+      JsonNode current = actual.get(path);
+      if (current == null) {
+        changes.add(path + " (removed)");
+      } else if (!current.textValue().equals(entry.getValue().textValue())) {
+        changes.add(path + " (modified)");
+      }
+    }
+    Iterator<String> currentPaths = actual.fieldNames();
+    while (currentPaths.hasNext()) {
+      String path = currentPaths.next();
+      if (!expected.has(path)) {
+        changes.add(path + " (added)");
+      }
+    }
+    return changes;
+  }
+
+  private static String nullToEmpty(String s) {
+    return s == null ? "" : s;
+  }
+
+  private static String sha256(String s) {
+    return sha256(s.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private static String sha256(byte[] data) {
+    try {
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      byte[] digest = md.digest(data);
+      StringBuilder sb = new StringBuilder(digest.length * 2);
+      for (byte b : digest) {
+        sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+        sb.append(Character.forDigit(b & 0xF, 16));
+      }
+      return sb.toString();
+    } catch (NoSuchAlgorithmException e) {
+      // SHA-256 is a required algorithm on every conformant JVM, so this is unreachable.
+      throw new RuntimeException("SHA-256 not available", e);
+    }
   }
 
   /**

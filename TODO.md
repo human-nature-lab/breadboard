@@ -23,3 +23,6 @@
 9. [ ] Formalize our BREADBOARD_DEV=true variable in by default so we can take advantage of it in other scripts
        a. [ ] Don't throw when COMPLETION_CODE is not set in dev mode, just log a warning
        b. [ ] etc.
+10. [x] Prevent accidental overwrite of modified files when replacing an experiment by exporting hashes in the .breadboard
+        file that can be checked while importing. If a mismatch occurs we should rollback and require a "force" or "unsafe"
+        param to be present to proceed. The UI should prompt to confirm if we should overwrite the files.

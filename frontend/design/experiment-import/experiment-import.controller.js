@@ -71,18 +71,32 @@ export default function ExperimentImportCtrl($scope, Upload, $timeout){
   };
 
   $scope.replaceExperiment = function(){
+    doReplaceUpload(false);
+  };
+
+  // Actually POST the replace. `force` becomes the query param that tells the server to overwrite even
+  // when the target has drifted since the archive was exported (see the 409 handling below).
+  function doReplaceUpload(force){
     if (!$scope.replace.file) return;
     let experiment = $scope.currentExperiment;
     if (!experiment || !experiment.id) return;
     $scope.replace.targetName = experiment.name;
+    // Keep a local handle on the file: the success path clears $scope.replace.file, but a force-retry
+    // after a conflict still needs it.
+    let file = $scope.replace.file;
+    let url = $scope.import.path + `/${encodeURIComponent(experiment.name)}?experimentId=${experiment.id}`;
+    if (force) {
+      url += '&force=true';
+    }
     Upload.upload({
-      url: $scope.import.path + `/${encodeURIComponent(experiment.name)}?experimentId=${experiment.id}`,
+      url: url,
       data: {
-        file: $scope.replace.file
+        file: file
       }
     }).then(function(resp){
       if (resp.status < 400) { //Success
         $scope.replace.file = null;
+        $scope.replace.error = '';
         $scope.replace.success = true;
         // Re-select to reload the freshly synced experiment from the server.
         $scope.selectExperiment()(experiment.id);
@@ -91,14 +105,34 @@ export default function ExperimentImportCtrl($scope, Upload, $timeout){
           $('#replaceExperimentDialog').dialog('close');
         }, 1500);
       } else {
-        replaceErrorOnUpload(resp);
+        handleReplaceError(resp, file);
       }
     }, function(err){
-      replaceErrorOnUpload(err)
+      handleReplaceError(err, file);
     }, function(evt){
       console.log('replace upload progress', evt);
     });
-  };
+  }
+
+  // A 409 means the target experiment was modified since the file being imported was exported.
+  // Confirm the overwrite with the user and, if they agree, retry with force=true. Any other error
+  // falls through to the normal error display. (Depending on the Angular/ng-file-upload version a
+  // non-2xx response can arrive here via either the success callback's else branch or the error
+  // callback, so both route through this handler.)
+  function handleReplaceError(resp, file){
+    if (resp && resp.status === 409 && resp.data && resp.data.conflict) {
+      let changed = resp.data.changed || [];
+      let detail = changed.length ? '\n\nChanged files:\n' + changed.join('\n') : '';
+      let message = (resp.data.message || 'This experiment has been modified since the file was exported.')
+        + '\n\nOverwrite anyway?' + detail;
+      if (window.confirm(message)) {
+        $scope.replace.file = file; // ensure the file survives for the forced retry
+        doReplaceUpload(true);
+      }
+      return;
+    }
+    replaceErrorOnUpload(resp);
+  }
 
   function replaceErrorOnUpload(err) {
     console.error(err);
