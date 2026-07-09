@@ -18,7 +18,7 @@ import static play.test.Helpers.*;
  *
  * <h3>One application for the whole suite</h3>
  * Starting a Play {@code FakeApplication} (boot the runtime, init Ebean, apply all
- * 29 evolutions) costs seconds; doing it per {@code @Test} method multiplied that
+ * 30 evolutions) costs seconds; doing it per {@code @Test} method multiplied that
  * across ~100 tests. Instead we start <b>one</b> application lazily (the first
  * subclass {@code @BeforeClass} wins; the rest short-circuit) and never stop it —
  * the JVM reclaims it at exit.
@@ -53,19 +53,15 @@ public class BaseTest {
         config.put("breadboard.clientUpdateRate", "0");
         config.put("breadboard.rootUrl", "http://localhost:9000");
         config.put("breadboard.wsUrl", "ws://localhost:9000/connect");
-        // Auto-apply all evolutions (1.sql through 29.sql) to create the base schema.
-        // Disable the custom Global class since the evolutions create the
-        // breadboard_version table empty, causing Global to skip the v2.4 upgrade.
+        // Auto-apply all evolutions (1.sql through 30.sql) to create the full schema.
+        // Evolutions now describe the schema completely (file_mode lives in 30.sql,
+        // experiment_instances.version in 5.sql), so no manual schema patches are needed.
         config.put("applyEvolutions.default", "true");
+        // Pin the framework-default Global: the app's Global has no startup behaviour to
+        // exercise here, since schema management is owned entirely by evolutions.
         config.put("application.global", "play.GlobalSettings");
         app = fakeApplication(config);
         start(app);
-
-        // Apply schema patches that Global.version2Point4Upgrade() would add
-        // but which are not covered by evolution files:
-        Ebean.createSqlUpdate("alter table experiments add column if not exists file_mode bit default 0;").execute();
-        // Add @Version column to experiment_instances if not present
-        Ebean.createSqlUpdate("alter table experiment_instances add column if not exists version integer default 0;").execute();
     }
 
     /**

@@ -26,28 +26,71 @@ else
   sbt dist
 fi
 
-# Build the in-place upgrade kit from the dist that 'sbt dist' just produced
-# (target/universal/breadboard-${breadboard_version}.zip). We source the jar from that FRESH dist
-# output -- NOT from a hand-maintained install/ tree, which is gitignored and trivially left stale
-# (doing exactly that once shipped a pre-feature jar in the patch). The runtime groovy/ scripts are not
-# bundled by sbt dist, so they come straight from the repo's tracked groovy/ dir. The applier
-# (scripts/apply-patch.sh) is version-agnostic and re-runnable: it overwrites whatever Breadboard is
-# installed with this kit's jar + groovy, so the kit is named for the target version only. The kit is
-# staged fresh under target/ (a throwaway) -- the tracked source is scripts/apply-patch.sh, NOT the kit
-# dir, so rebuilding never destroys anything. A recipient unzips and runs:
-#   ./upgrade-${breadboard_version}-in-place/apply-patch.sh /path/to/your-breadboard-install
-set -e   # packaging errors must abort -- unlike the best-effort cleanup rm's above (set +e)
+# turn off error checking for the next commands
+set +e
+rm -r install/breadboard-${breadboard_version}
+rm install/breadboard-${breadboard_version}.zip
+unzip target/universal/breadboard-${breadboard_version}.zip -d install
+mkdir install/breadboard-${breadboard_version}/groovy
+cp groovy/*.groovy install/breadboard-${breadboard_version}/groovy
+# No seed DB is shipped: the app boots with an empty H2 database and Play evolutions build
+# the schema on first start (H2 creates db/breadboard.h2.db, and the dir, on demand). We still
+# create db/ here so the directory ships in the install tree. The first admin account is
+# created via POST /createFirstUser, which is open until a user exists.
+mkdir install/breadboard-${breadboard_version}/db
+cp prod_dist/license.txt install/breadboard-${breadboard_version}/
+cp breadboard-${breadboard_version}.bat install/breadboard-${breadboard_version}/breadboard.bat
+cp breadboard-${breadboard_version}.sh install/breadboard-${breadboard_version}/breadboard.sh
+cp ../breadboard-wiki/Release-History.md install/breadboard-${breadboard_version}/CHANGELOG.md
+rm -r install/breadboard-${breadboard_version}/conf/evolutions
+rm -r install/breadboard-${breadboard_version}/share
+rm install/breadboard-${breadboard_version}/conf/application.conf
+rm install/breadboard-${breadboard_version}/conf/application-dev.conf
+rm install/breadboard-${breadboard_version}/conf/generated.keystore
+# The sbt-generated bin/breadboard (unzipped above) already has the correct, current
+# classpath. The sbt-native-packager template just doesn't add --add-modules java.xml.bind
+# for JDK 9+ (java.xml.bind was removed from the JDK), so inject that block in place. This
+# keeps the launcher matched to the build -- no hand-maintained copy to drift out of date.
+bin_launcher="install/breadboard-${breadboard_version}/bin/breadboard"
+if grep -q "add-modules java.xml.bind" "$bin_launcher"; then
+  echo "bin/breadboard already contains the JDK9 --add-modules block; skipping injection"
+elif grep -q "# run sbt" "$bin_launcher"; then
+  awk '
+    /# run sbt/ && !injected {
+      print ""
+      print "  # If using JDK9 we need to add --add-modules java.xml.bind"
+      print "  if [[ \"$java_version\" > \"9\" ]]; then"
+      print "    addJava \"--add-modules java.xml.bind\""
+      print "  fi"
+      print ""
+      injected = 1
+    }
+    { print }
+  ' "$bin_launcher" > "$bin_launcher.tmp" && mv "$bin_launcher.tmp" "$bin_launcher"
+  chmod +x "$bin_launcher"
+  echo "Injected JDK9 --add-modules block into bin/breadboard"
+else
+  echo "WARNING: anchor '# run sbt' not found in $bin_launcher; launcher may fail on JDK 9+" >&2
+fi
+cd install
+cp breadboard-${breadboard_version}/lib/breadboard.breadboard-${breadboard_version}.jar ../target/universal/breadboard.breadboard-${breadboard_version}.jar
+zip -rq breadboard-${breadboard_version}.zip breadboard-${breadboard_version}
+cd ..
 
-# Unzip the fresh dist into a throwaway under target/ and read the jar from there, so the kit ships
-# exactly what the sbt dist above built (not a stale copy).
-dist_zip="target/universal/breadboard-${breadboard_version}.zip"
-[ -f "$dist_zip" ] || { echo "ERROR: dist zip not found (did 'sbt dist' run?): ${dist_zip}" >&2; exit 1; }
-dist_unzipped="target/dist-unzipped"
-rm -rf "$dist_unzipped"
-mkdir -p "$dist_unzipped"
-unzip -q "$dist_zip" -d "$dist_unzipped"
-built_jar="${dist_unzipped}/breadboard-${breadboard_version}/lib/breadboard.breadboard-${breadboard_version}.jar"
-# Runtime groovy scripts are loaded from disk (not bundled in the jar / dist), so ship the repo's copy.
+# --- Build the in-place upgrade kit from the freshly-rebuilt install tree above -----------------
+# install/breadboard-${breadboard_version} is regenerated from target/universal on every run (just
+# above), so it is no longer the stale, hand-maintained dir that once shipped a pre-feature jar in the
+# patch. The applier (scripts/apply-patch.sh) is version-agnostic and re-runnable: it overwrites
+# whatever Breadboard is installed with this kit's jar + groovy, so the kit is named for the target
+# version only. The kit is staged fresh under target/ (a throwaway) -- the tracked source is
+# scripts/apply-patch.sh, NOT the kit dir, so rebuilding never destroys anything. A recipient unzips
+# and runs:
+#   ./upgrade-${breadboard_version}-in-place/apply-patch.sh /path/to/your-breadboard-install
+set -e   # packaging errors must abort -- unlike the best-effort install steps above (set +e)
+
+built_install="install/breadboard-${breadboard_version}"
+built_jar="${built_install}/lib/breadboard.breadboard-${breadboard_version}.jar"
+# Runtime groovy scripts are loaded from disk (not bundled in the jar), so ship the repo's copy.
 groovy_src="groovy"
 apply_script="scripts/apply-patch.sh"
 [ -f "$built_jar" ]    || { echo "ERROR: built jar not found in dist: ${built_jar}" >&2; exit 1; }
