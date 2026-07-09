@@ -1,0 +1,7 @@
+# The build context (target/docker/) is assembled fresh by create_prod_dist.sh,
+# but guard against stray runtime state ever ending up in an image layer.
+**/RUNNING_PID
+**/*.log
+app/db/
+app/logs/
+app/runtime/

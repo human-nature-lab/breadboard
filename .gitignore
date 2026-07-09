@@ -42,3 +42,5 @@ generated
 run-dev.sh
 run-test.sh
 native
+# Cached Java 8 (Corretto) runtimes downloaded by scripts/bundle-runtime.sh
+.cache/

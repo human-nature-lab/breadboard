@@ -1,0 +1,171 @@
+name: release
+
+# Builds the Java-8-bundled, self-contained per-platform zips and the Docker
+# image (TODO #11), then smoke-tests each zip on its native OS. One Linux runner
+# builds every zip -- only the bundled JDK differs per target and we download
+# that per target; the app jar is platform-independent.
+#
+# Triggered by pushing a version tag (v*), or manually via the Actions UI
+# ("Run workflow") with an explicit version -- handy for rebuilding a release
+# without re-pushing the tag. Either way the version drives the build end to end:
+# BREADBOARD_VERSION (below) feeds Build.scala's appVersion, so the dist, the
+# bundled zips, and the image tag all carry it. To build locally, just run
+# ./create_prod_dist.sh (defaults to v2.5.0) or set BREADBOARD_VERSION=... to
+# simulate a tag.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to build, e.g. v2.5.0 (must start with 'v')"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write   # push the image to GHCR
+
+env:
+  # The manual input wins when present (workflow_dispatch); otherwise the pushed
+  # tag (github.ref_name, e.g. v2.5.0).
+  BREADBOARD_VERSION: ${{ inputs.version || github.ref_name }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # Guard the version (the tag trigger already enforces v*, but a manual
+      # dispatch input is free-form) so it can't yield malformed zip/image names.
+      - name: Validate version
+        run: |
+          case "$BREADBOARD_VERSION" in
+            v*) echo "Building version: $BREADBOARD_VERSION" ;;
+            *)  echo "ERROR: version must start with 'v' (got '$BREADBOARD_VERSION')" >&2; exit 1 ;;
+          esac
+
+      # Java 8 is required to BUILD this stack (Play 2.2 / Scala 2.10 / sbt
+      # 0.13.18 hangs on 9+). Corretto 8 here also matches what we bundle.
+      - uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: '8'
+
+      - uses: sbt/setup-sbt@v1
+
+      - uses: pnpm/action-setup@v4   # reads packageManager (pnpm) from frontend/package.json
+        with:
+          package_json_file: frontend/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      # Cache the downloaded Corretto JDKs so re-runs don't re-fetch ~400MB.
+      - uses: actions/cache@v4
+        with:
+          path: .cache/runtimes
+          key: corretto8-runtimes-${{ hashFiles('scripts/bundle-runtime.sh') }}
+
+      # Frontend build + `sbt dist` + patch kit + all four bundled zips + the
+      # Docker context. JAVA_HOME (set by setup-java) points create_prod_dist.sh
+      # at Corretto 8 for the sbt build.
+      - name: Build bundled dists
+        run: ./create_prod_dist.sh
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breadboard-bundles
+          path: dist/*.zip
+          if-no-files-found: error
+
+      # Publish the Docker image to GHCR (the workflow only runs on tags).
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build & push image
+        uses: docker/build-push-action@v6
+        with:
+          context: target/docker
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ env.BREADBOARD_VERSION }}
+
+  # Verify each zip's bundled JDK on its native OS. `java -version` (hard, all
+  # four) proves the per-arch JDK is present and runnable; the boot marker (hard,
+  # linux + windows) proves the bundled JVM actually runs Breadboard through our
+  # hardened launchers. We assert "database [default] connected" rather than a
+  # full HTTP bind: binding needs a provisioned schema (a deployment concern),
+  # whereas reaching JDBC already exercises classloading + a bundled jar on the
+  # bundled JVM -- exactly what this feature delivers.
+  smoke-test:
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { os: ubuntu-latest, target: linux-x64,   boot: linux }
+          - { os: windows-latest, target: windows-x64, boot: windows }
+          - { os: macos-13,       target: mac-x64,     boot: none }   # Intel
+          - { os: macos-14,       target: mac-aarch64, boot: none }   # Apple Silicon
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: breadboard-bundles
+          path: bundle-zips
+
+      - name: Unpack this platform's zip
+        shell: bash
+        run: |
+          unzip -q bundle-zips/breadboard-*-${{ matrix.target }}.zip -d bundle
+          ls bundle
+
+      - name: Bundled JDK is a runnable Java 8 (all platforms)
+        shell: bash
+        run: |
+          root="$(echo bundle/breadboard-*)"
+          java_bin="$root/runtime/bin/java"; [ -x "$java_bin" ] || java_bin="$root/runtime/bin/java.exe"
+          "$java_bin" -version 2>&1 | tee ver.txt
+          grep -q '1\.8\.0' ver.txt || { echo "bundled runtime is not Java 8"; exit 1; }
+
+      - name: Boot smoke test (Linux)
+        if: matrix.boot == 'linux'
+        shell: bash
+        run: |
+          cd "$(echo bundle/breadboard-*)"
+          nohup ./run.sh > boot.log 2>&1 &
+          ok=0
+          for i in $(seq 1 120); do
+            grep -q 'database \[default\] connected' boot.log && { ok=1; break; }
+            grep -Eq 'is not installed|UnsupportedClassVersion|input line is too long' boot.log && break
+            sleep 1
+          done
+          [ -f RUNNING_PID ] && kill "$(cat RUNNING_PID)" 2>/dev/null || true
+          echo "----- boot.log -----"; tail -40 boot.log
+          [ "$ok" = 1 ] || { echo "FAIL: bundled JDK did not bring up Breadboard"; exit 1; }
+          echo "OK: Breadboard booted on the bundled Corretto 8"
+
+      - name: Boot smoke test (Windows)
+        if: matrix.boot == 'windows'
+        shell: pwsh
+        run: |
+          $root = (Get-ChildItem bundle -Directory | Select-Object -First 1).FullName
+          $p = Start-Process cmd.exe -ArgumentList '/c',"`"$root\run.bat`"" -WorkingDirectory $root `
+                -PassThru -RedirectStandardOutput "$root\boot.log" -RedirectStandardError "$root\boot.err" -WindowStyle Hidden
+          $ok = $false
+          foreach ($i in 1..120) {
+            Start-Sleep -Seconds 1
+            $log = (Get-Content "$root\boot.log" -Raw -ErrorAction SilentlyContinue)
+            if ($log -match 'database \[default\] connected') { $ok = $true; break }
+            if ($log -match 'is not installed|UnsupportedClassVersion|input line is too long') { break }
+          }
+          taskkill /T /F /PID $p.Id 2>&1 | Out-Null
+          Write-Host "----- boot.log -----"; Get-Content "$root\boot.log" -Tail 40 -ErrorAction SilentlyContinue
+          if (-not $ok) { Write-Host "----- boot.err -----"; Get-Content "$root\boot.err" -Tail 20 -ErrorAction SilentlyContinue; Write-Host "FAIL: bundled JDK did not bring up Breadboard"; exit 1 }
+          Write-Host "OK: Breadboard booted on the bundled Corretto 8"

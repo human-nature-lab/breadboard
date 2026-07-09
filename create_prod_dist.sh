@@ -3,7 +3,11 @@ set -e # exit on error
 set -u # exit on unset variable
 set -o pipefail # exit on pipe failure
 
-breadboard_version="v2.5.0"
+# The version is NOT hardcoded here -- it is discovered from what `sbt dist`
+# produces (below), which comes from Build.scala's appVersion. That honors the
+# $BREADBOARD_VERSION env var: CI sets it from the pushed git tag, and it
+# defaults to v2.5.0 locally. Deriving it keeps this script in lockstep with the
+# build no matter how the version was chosen.
 
 # Build local packages and wire them into the main frontend tree before webpack.
 cd frontend/
@@ -39,9 +43,12 @@ fi
 set -e   # packaging errors must abort -- unlike the best-effort cleanup rm's above (set +e)
 
 # Unzip the fresh dist into a throwaway under target/ and read the jar from there, so the kit ships
-# exactly what the sbt dist above built (not a stale copy).
-dist_zip="target/universal/breadboard-${breadboard_version}.zip"
-[ -f "$dist_zip" ] || { echo "ERROR: dist zip not found (did 'sbt dist' run?): ${dist_zip}" >&2; exit 1; }
+# exactly what the sbt dist above built (not a stale copy). `sbt clean` emptied target/ first, so
+# there is exactly one zip; derive breadboard_version from its name (its single source of truth).
+dist_zip="$(ls -t target/universal/breadboard-*.zip 2>/dev/null | head -1 || true)"
+[ -n "${dist_zip:-}" ] && [ -f "$dist_zip" ] || { echo "ERROR: dist zip not found (did 'sbt dist' run?): target/universal/breadboard-*.zip" >&2; exit 1; }
+breadboard_version="$(basename "$dist_zip" .zip | sed 's/^breadboard-//')"
+echo "Packaging breadboard ${breadboard_version} (from ${dist_zip})"
 dist_unzipped="target/dist-unzipped"
 rm -rf "$dist_unzipped"
 mkdir -p "$dist_unzipped"
@@ -75,3 +82,14 @@ cp "$groovy_src"/*.groovy "$kit/groovy/"
 mv "$staging/${kit_name}.zip" "$patch_zip"
 rm -rf "$staging"
 echo "Built in-place patch: ${patch_zip}  (apply-patch.sh + jar + groovy from the ${breadboard_version} build)"
+
+# TODO #11 -- bundle a Java 8 runtime so recipients need no host Java. This produces the
+# self-contained per-platform zips (dist + JDK + groovy + wrapper) and the Docker build context
+# from the dist we just unpacked. Kept as a separate, re-runnable script so it can also run in CI
+# right after the dist step, or by hand to re-bundle without rebuilding the app. SKIP_BUNDLE=1
+# stops after the patch kit above.
+if [ "${SKIP_BUNDLE:-0}" = "1" ]; then
+  echo "SKIP_BUNDLE=1 -- skipping the Java-8-bundled platform zips and Docker context."
+else
+  ./scripts/bundle-runtime.sh "${dist_unzipped}/breadboard-${breadboard_version}" "${breadboard_version}"
+fi

@@ -5,7 +5,11 @@ import play.Project._
 object ApplicationBuild extends Build {
 
     val appName         = "breadboard"
-    val appVersion      = "v2.5.0"
+    // Version comes from the $BREADBOARD_VERSION env var (CI sets it from the
+    // pushed git tag, e.g. v2.5.0); defaults to v2.5.0 for local builds. This is
+    // what `sbt dist` names its output after, and create_prod_dist.sh derives
+    // the packaging version from that produced zip.
+    val appVersion      = sys.env.getOrElse("BREADBOARD_VERSION", "v2.5.0")
 
     val appDependencies = Seq(
       javaCore,
