@@ -27,3 +27,4 @@
         file that can be checked while importing. If a mismatch occurs we should rollback and require a "force" or "unsafe"
         param to be present to proceed. The UI should prompt to confirm if we should overwrite the files.
 11. [ ] Bundle java8 with this application if possible
+12. [ ] Guard against client connection when the engine is reloading
