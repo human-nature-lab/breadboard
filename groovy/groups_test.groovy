@@ -244,6 +244,28 @@ test("drop keeps graph edges by default; disconnect / drop(player, true) remove 
   assert game.players.contains(p1)         // p1 still active -> game not abandoned
 }
 
+// A player completed BEFORE an in-game drop (recruitment.complete ran, then the experiment drops them
+// to free their seat for a replacement) must KEEP 'completed'. drop() must not downgrade a terminal
+// status: doing so strips the participant's finish/redirect screen and leaves them on a blank page.
+// Regression for the drop-out-blank-screen bug.
+test("drop does not downgrade an already-completed player to dropped") {
+  def doneCount = new AtomicInteger(0)
+  defineCounterGame(doneCount)
+  def p1 = g.addPlayer('cdrp1')
+  def p2 = g.addPlayer('cdrp2')
+  g.addEdge(p1, p2)
+  def game = Games.create('grpDropCompleted', [p1, p2])
+  game.go('trial')
+
+  setVertexStatus(p2, 'completed')         // simulate recruitment.complete having run for p2
+  assert !game.players.contains(p2)        // completed -> no longer an active member
+
+  game.drop(p2, true)                      // drop the completed seat + tear edges out for the bot
+  assert p2._system.status == 'completed'  // NOT clobbered to 'dropped' -> finish screen survives
+  assert !g.hasEdge(p1, p2)                // disconnect side of drop still runs
+  assert game.players.contains(p1)         // p1 still active -> game not abandoned
+}
+
 // `parameters` holds an opaque, read-only object. Using an @Immutable params class, writing a
 // property throws ReadOnlyPropertyException and an unknown property throws MissingPropertyException.
 test("parameters is read-only and rejects unknown keys") {

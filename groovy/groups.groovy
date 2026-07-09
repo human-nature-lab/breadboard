@@ -496,7 +496,14 @@ class Game {
   // complete if its queue drained.
   void drop(Object player, boolean disconnectFromGraph = false) {
     if (player == null) return
-    if (player._system != null) player._system.status = 'dropped'
+    // Terminal statuses are sticky (see setVertexStatus in util.groovy): don't downgrade a player who
+    // already reached 'completed' (e.g. via recruitment.complete just before this drop) or 'kicked'.
+    // Overwriting 'completed' -> 'dropped' strips their finish/redirect screen and leaves them on a
+    // blank screen. This class can't call the binding-scoped setVertexStatus, so the guard is inlined;
+    // 'active' / null / already-'dropped' still become 'dropped'.
+    if (player._system != null && player._system.status != 'completed' && player._system.status != 'kicked') {
+      player._system.status = 'dropped'
+    }
 
     List affected = []
     boolean drained = false
