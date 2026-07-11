@@ -1,9 +1,17 @@
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.ThreadFactory
+import java.util.concurrent.TimeUnit
+import akka.dispatch.ExecutionContexts
+import play.libs.Akka
+import scala.concurrent.duration.Duration
 /**
  * A custom timer class which will be correctly removed when the script engine reloads
  */
 class BBTimer extends Timer {
+  static def registry
+
   BBTimer () {
     super()
     this.register()
@@ -17,14 +25,79 @@ class BBTimer extends Timer {
     super.cancel()
     this.unregister()
   }
+
+  void register () {
+    registry.register(this)
+  }
+
+  void unregister () {
+    registry.unregister(this)
+  }
 }
 
-BBTimer.metaClass.register = {
-  timers.register(delegate)
-}
+/**
+ * The timer operations SharedTimer needs, backed by Akka's shared scheduler
+ * instead of creating one native thread per experiment timer.
+ */
+class BBScheduledTimer {
+  static def registry
+  // Timer closures are experiment code and may block; like the original
+  // per-timer java.util.Timer threads, they must not run on (and starve)
+  // Akka's shared dispatcher. Threads in this pool die after 60s idle.
+  static def callbackContext
+  def tasks = new CopyOnWriteArrayList()
+  private final def taskLock = new java.util.concurrent.locks.ReentrantLock()
+  private volatile boolean cancelled = false
 
-BBTimer.metaClass.unregister = {
-  timers.unregister(delegate)
+  BBScheduledTimer () {
+    registry.registerScheduled(this)
+  }
+
+  void runAfter (long delay, Closure closure) {
+    tasks << Akka.system().scheduler().scheduleOnce(
+      Duration.create(Math.max(0L, delay), TimeUnit.MILLISECONDS),
+      new GroovyTimerTask(closure: {
+        taskLock.lock()
+        try {
+          if (!cancelled) closure()
+        } finally {
+          taskLock.unlock()
+        }
+      }),
+      callbackContext
+    )
+  }
+
+  void scheduleAtFixedRate (Runnable task, long delay, long period) {
+    tasks << Akka.system().scheduler().schedule(
+      Duration.create(Math.max(0L, delay), TimeUnit.MILLISECONDS),
+      Duration.create(period, TimeUnit.MILLISECONDS),
+      new GroovyTimerTask(closure: {
+        if (!taskLock.tryLock()) return
+        try {
+          if (!cancelled) task.run()
+        } finally {
+          taskLock.unlock()
+        }
+      }),
+      callbackContext
+    )
+  }
+
+  int purge () {
+    return 0
+  }
+
+  void cancel () {
+    cancelled = true
+    tasks.each { it.cancel() }
+    tasks.clear()
+    registry.unregisterScheduled(this)
+  }
+
+  void end () {
+    cancel()
+  }
 }
 
 /**
@@ -32,30 +105,42 @@ BBTimer.metaClass.unregister = {
  */
 class BBTimers {
   ArrayList<BBTimer> timers = new CopyOnWriteArrayList()
+  ArrayList<BBScheduledTimer> scheduledTimers = new CopyOnWriteArrayList()
   ArrayList<SharedTimer> sharedTimers = new CopyOnWriteArrayList()
 
-  public void cancel () {
-    for (def timer : this.timers) {
+  public synchronized void cancel () {
+    for (def timer : new ArrayList(this.timers)) {
       timer.end()
     }
     this.timers.clear()
-    // We don't need to cancel shared timers because they depend on the BBTimers which are cancelled above
+    for (def timer : new ArrayList(this.scheduledTimers)) {
+      timer.end()
+    }
+    this.scheduledTimers.clear()
     this.sharedTimers.clear()
   }
 
-  public void register (BBTimer timer) {
+  public synchronized void register (BBTimer timer) {
     this.timers << timer
   }
 
-  public void unregister (BBTimer timer) {
+  public synchronized void unregister (BBTimer timer) {
     this.timers.remove(timer)
   }
 
-  public void registerShared (SharedTimer timer) {
+  public synchronized void registerScheduled (BBScheduledTimer timer) {
+    this.scheduledTimers << timer
+  }
+
+  public synchronized void unregisterScheduled (BBScheduledTimer timer) {
+    this.scheduledTimers.remove(timer)
+  }
+
+  public synchronized void registerShared (SharedTimer timer) {
     this.sharedTimers << timer
   }
 
-  public void unregisterShared (SharedTimer timer) {
+  public synchronized void unregisterShared (SharedTimer timer) {
     this.sharedTimers.remove(timer)
   }
 
@@ -67,6 +152,10 @@ class BBTimers {
 
 // Global timers registry. Gets cleaned up when the ScriptBoard resets
 timers = new BBTimers()
+BBTimer.registry = timers
+BBScheduledTimer.registry = timers
+BBScheduledTimer.callbackContext = ExecutionContexts.fromExecutorService(
+  Executors.newCachedThreadPool({ r -> new Thread(r, "shared-timer-callback") } as ThreadFactory))
 
 class GroovyTimerTask extends TimerTask {
   Closure closure
@@ -90,6 +179,8 @@ class TimerMethods {
 }
 
 class SharedTimer extends BreadboardBase {
+  static def registry
+
   def players = new CopyOnWriteArrayList()
   def doneClosures = []
   Number updateRate = 1000
@@ -106,7 +197,7 @@ class SharedTimer extends BreadboardBase {
     appearance: "",
     order: 0
   ])
-  private BBTimer timer
+  private BBScheduledTimer timer
 
   SharedTimer (int seconds) {
     this([
@@ -206,8 +297,8 @@ class SharedTimer extends BreadboardBase {
    * Cancel the timer early and remove it from each player
    */
   public cancel () {
-    if (!this.timer) return
     this.unregister()
+    if (!this.timer) return
     this.timer.purge()
     this.timer.cancel()
     this.timer = null
@@ -284,14 +375,14 @@ class SharedTimer extends BreadboardBase {
 
   private registerTimerEvents () {
     if (this.timer) return
-    this.timer = new BBTimer()
-    int delay = this.endTime - System.currentTimeMillis()
+    this.timer = new BBScheduledTimer()
+    long delay = this.endTime - System.currentTimeMillis()
     this.timer.runAfter(delay) {
       this.end()
     }
-    this.timer.scheduleAtFixedRate({
+    this.timer.scheduleAtFixedRate(new GroovyTimerTask(closure: {
       this.tick(this.updateRate)
-    } as GroovyTimerTask, this.updateRate, this.updateRate)
+    }), this.updateRate, this.updateRate)
   }
 
   /**
@@ -341,13 +432,14 @@ class SharedTimer extends BreadboardBase {
   public isRunning () {
     return this.timer != null
   }
+
+  void register () {
+    registry.registerShared(this)
+  }
+
+  void unregister () {
+    registry.unregisterShared(this)
+  }
 }
 
-
-SharedTimer.metaClass.register = {
-  timers.registerShared(delegate)
-}
-
-SharedTimer.metaClass.unregister = {
-  timers.unregisterShared(delegate)
-}
+SharedTimer.registry = timers
