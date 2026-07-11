@@ -25,7 +25,13 @@ import java.beans.PropertyChangeListener;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import play.libs.Akka;
+import scala.concurrent.duration.Duration;
 
 public class ScriptBoard extends UntypedActor {
   private static ObjectMapper mapper = new ObjectMapper();
@@ -42,7 +48,41 @@ public class ScriptBoard extends UntypedActor {
   private static EventBus<Map> eventBus = new EventBus();
 
   private static Random rand = new Random();
-  private static HashMap<String, Client> clients = new HashMap<>();
+  // ConcurrentHashMap: the keepalive scheduler thread iterates this map
+  // while the actor thread adds/removes clients.
+  private static Map<String, Client> clients = new ConcurrentHashMap<>();
+
+  // One shared keepalive tick for every player socket. Proxies in front of
+  // Breadboard commonly kill a WebSocket after 60s without server-to-client
+  // traffic (nginx's proxy_read_timeout defaults to 60s), and a static graph
+  // can legitimately stay silent for longer than that. Verified on prod
+  // 2026-07-11: nginx closed quiet-but-alive clients with code 1006 after
+  // exactly 60s of upstream silence. Clients ignore messages without a key
+  // they recognize, so this is a no-op for every frontend version. One
+  // scheduler for all clients - never one timer per connection.
+  private static final long KEEPALIVE_INTERVAL_MS = 25000;
+  private static final AtomicBoolean keepaliveStarted = new AtomicBoolean(false);
+
+  private static void ensureKeepalive() {
+    if (!keepaliveStarted.compareAndSet(false, true)) return;
+    Akka.system().scheduler().schedule(
+        Duration.create(KEEPALIVE_INTERVAL_MS, TimeUnit.MILLISECONDS),
+        Duration.create(KEEPALIVE_INTERVAL_MS, TimeUnit.MILLISECONDS),
+        new Runnable() {
+          public void run() {
+            ObjectNode keepalive = Json.newObject();
+            keepalive.put("keepalive", System.currentTimeMillis());
+            for (Client client : clients.values()) {
+              try {
+                client.out.write(keepalive);
+              } catch (Exception e) {
+                // Dead socket; the client's own disconnect path reaps it.
+              }
+            }
+          }
+        },
+        Akka.system().dispatcher());
+  }
 
   // AMT lifecycle timers scheduled by the HitCreated handler. Tracked so they can be
   // cancelled on reload / on re-submit instead of being orphaned (MEMORY_LEAKS.md L6).
@@ -73,7 +113,7 @@ public class ScriptBoard extends UntypedActor {
     results = new HashMap();
     mapper = new ObjectMapper();
     admins = new ArrayList<>();
-    clients = new HashMap<>();
+    clients = new ConcurrentHashMap<>();
     eventTracker = new EventTracker();
     manager = new ScriptEngineManager();
     eventBus.clear();
@@ -270,6 +310,7 @@ public class ScriptBoard extends UntypedActor {
   }
 
   public static void addClient(String experimentIdString, String experimentInstanceIdString, String clientId, final WebSocket.In<JsonNode> in, final ThrottledWebSocketOut out) throws Exception {
+    ensureKeepalive();
     try {
       Long experimentId = Long.parseLong(experimentIdString);
       Long experimentInstanceId = Long.parseLong(experimentInstanceIdString);
