@@ -1,59 +1,111 @@
-<div id="importExperimentDialog" style="display: none;">
-    <div class="panel panel-success" ng-show="import.success">
-        <div class="panel-heading">
-            <h3 class="panel-title">Success</h3>
+<div class="experiment-import-dialogs">
+    <div id="importExperimentDialog" style="display: none;">
+        <div class="panel panel-success" ng-show="import.success">
+            <div class="panel-heading">
+                <h3 class="panel-title">Success</h3>
+            </div>
+            <div class="panel-body">
+                Experiment {{vm.import.importedName}} imported.
+            </div>
         </div>
-        <div class="panel-body">
-            Experiment {{vm.import.importedName}} imported.
+        <div class="panel panel-danger" ng-show="import.error.length > 0">
+            <div class="panel-heading">
+                <h3 class="panel-title">Error</h3>
+            </div>
+            <div class="panel-body">
+                <p ng-bind-html="import.error | to_trusted"></p>
+            </div>
+        </div>
+        <div class="new-dialog" ng-show="!import.success">
+            <form name="importExperimentForm">
+                <div class="form-group">
+                    <p class="form-control-static">
+                        You can import exported experiments compressed using the zip format.
+                    </p>
+                    <button ngf-select
+                            class="btn btn-default drop-zone"
+                            ngf-pattern="'.zip'"
+                            ng-model="import.file"
+                            required>
+                        Select an experiment to import
+                    </button>
+                    <p class="form-control-static import-file">
+                        {{import.file.name}}
+                    </p>
+                </div>
+                <div class="form-group">
+                    <label for="experiment-name">
+                        Experiment name
+                    </label>
+                    <input type="text"
+                           id="experiment-name"
+                           ng-model="import.name" required>
+                </div>
+                <div class="form-group">
+                    <label for="select-experiment">
+                        Select experiment on import
+                    </label>
+                    <input type="checkbox"
+                           id="select-experiment"
+                           ng-model="import.selectExperiment">
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-default"
+                            type="submit"
+                            ng-disabled="importExperimentForm.$invalid"
+                            ng-click="importExperiment()">Import</button>
+                </div>
+            </form>
         </div>
     </div>
-    <div class="panel panel-danger" ng-show="import.error.length > 0">
-        <div class="panel-heading">
-            <h3 class="panel-title">Error</h3>
+
+    <div id="replaceExperimentDialog" style="display: none;">
+        <div class="panel panel-success" ng-show="replace.success">
+            <div class="panel-heading">
+                <h3 class="panel-title">Success</h3>
+            </div>
+            <div class="panel-body">
+                Experiment {{replace.targetName}} replaced.
+            </div>
         </div>
-        <div class="panel-body">
-            <p ng-bind-html="import.error | to_trusted"></p>
+        <div class="panel panel-danger" ng-show="replace.error.length > 0">
+            <div class="panel-heading">
+                <h3 class="panel-title">Error</h3>
+            </div>
+            <div class="panel-body">
+                <p ng-bind-html="replace.error | to_trusted"></p>
+            </div>
         </div>
-    </div>
-    <div class="new-dialog" ng-show="!import.success">
-        <form name="importExperimentForm">
-            <div class="form-group">
-                <p class="form-control-static">
-                    You can import exported experiments compressed using the zip format.
-                </p>
-                <button ngf-select
-                        class="btn btn-default drop-zone"
-                        ngf-pattern="'.zip'"
-                        ng-model="import.file"
-                        required>
-                    Select an experiment to import
-                </button>
-                <p class="form-control-static import-file">
-                    {{import.file.name}}
-                </p>
-            </div>
-            <div class="form-group">
-                <label for="experiment-name">
-                    Experiment name
-                </label>
-                <input type="text"
-                       id="experiment-name"
-                       ng-model="import.name" required>
-            </div>
-            <div class="form-group">
-                <label for="select-experiment">
-                    Select experiment on import
-                </label>
-                <input type="checkbox"
-                       id="select-experiment"
-                       ng-model="import.selectExperiment">
-            </div>
-            <div class="form-group">
-                <button class="btn btn-default"
-                        type="submit"
-                        ng-disabled="importExperimentForm.$invalid"
-                        ng-click="importExperiment()">Import</button>
-            </div>
-        </form>
+        <div class="new-dialog" ng-show="!replace.success">
+            <form name="replaceExperimentForm">
+                <div class="form-group">
+                    <p class="form-control-static">
+                        Replace <strong>{{currentExperiment.name}}</strong> with the contents of an
+                        exported experiment (.zip).
+                    </p>
+                    <div class="alert alert-warning">
+                        This replaces all steps, content, parameters and images in
+                        <strong>{{currentExperiment.name}}</strong> to match the file. Resources not in
+                        the file will be deleted. Existing instances and collected data are kept.
+                    </div>
+                    <button ngf-select
+                            class="btn btn-default drop-zone"
+                            ngf-pattern="'.zip'"
+                            ng-model="replace.file"
+                            required>
+                        Select an experiment to import
+                    </button>
+                    <p class="form-control-static import-file">
+                        {{replace.file.name}}
+                    </p>
+                </div>
+                <div class="form-group">
+                    <button class="btn btn-danger"
+                            type="submit"
+                            ng-disabled="replaceExperimentForm.$invalid"
+                            ng-click="replaceExperiment()">Replace</button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>

@@ -1,2 +1,3 @@
 -Dsbt.override.build.repos=true
 -Dsbt.repository.config=./repositories.config
+-Dsbt.log.noformat=true

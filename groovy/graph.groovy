@@ -28,7 +28,10 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
           v.onVertexPropertyChanged(v, "private", evt.oldValue, evt.newValue)
         } as PropertyChangeListener)
         vertex.setProperty("private", pvt);
-        vertex.setProperty("_system", [:])
+        // Stamp the study-level lifecycle status on every new vertex. _system.status is the single
+        // flag used throughout breadboard (group membership, kick, recruitment completion); it starts
+        // 'active' and only ever moves to a terminal 'completed'/'kicked'/'dropped' (see util.groovy).
+        vertex.setProperty("_system", [status: 'active'])
       }
 
       @Override

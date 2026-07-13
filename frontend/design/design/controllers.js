@@ -274,6 +274,17 @@ function ($scope, $breadboardFactory, $timeout, $http, $state, csvService, confi
 
   };
 
+  $scope.openReplaceDialog = function() {
+    if (!$scope.breadboard || !$scope.breadboard.experiment || !$scope.breadboard.experiment.id) {
+      return;
+    }
+    $('#replaceExperimentDialog').dialog({
+      title: 'Replace experiment',
+      width: '600px'
+    });
+
+  };
+
   $scope.toggleDevMode = function() {
     let message = "The experiment will be exported to the 'breadboard/dev/" + getExperimentName() + "/' directory." +
       "This will overwrite any existing files. Continue?";

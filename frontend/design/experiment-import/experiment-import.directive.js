@@ -8,7 +8,8 @@ angular.module('breadboard.experiment-import')
     return {
       restrict: 'E',
       scope: {
-        selectExperiment:'&'
+        selectExperiment:'&',
+        currentExperiment:'='
       },
       replace: true,
       templateUrl: experimentImportTemplate,

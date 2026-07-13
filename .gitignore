@@ -17,6 +17,7 @@ conf/defaults/client-html.html
 conf/defaults/client-graph.js
 target
 tmp
+/data
 ec2
 .history
 dist
@@ -39,4 +40,6 @@ generated
 .env*
 .zed
 run-dev.sh
+run-test.sh
 native
+.cache

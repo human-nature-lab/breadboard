@@ -148,6 +148,10 @@ public class ScriptBoard extends UntypedActor {
     }
     Logger.debug("ScriptEngine reload start");
     if (engine != null) {
+      // Give experiment / framework code a chance to release resources before teardown, while
+      // g / a / timers are still live (see onBeforeEngineReload in events.groovy). processScript
+      // already swallows + logs any error, so a misbehaving hook can never abort the reload.
+      processScript("_runBeforeEngineReloadHooks()", null, null);
       // just in case
       playerActions.turnAIOff();
       // clean up the graph
@@ -193,13 +197,26 @@ public class ScriptBoard extends UntypedActor {
       engine.getBindings(ScriptContext.ENGINE_SCOPE).put("c", experiment.contentFetcher);
     }
 
+    // Immutable experiment/instance info for the groovy DSL (see ExperimentContext). The groovy
+    // group-id sequence consumes dataDir to persist a per-experiment counter, keeping group ids
+    // unique across reloads and instances. dataDir is the per-experiment data directory; null when
+    // there is no experiment, in which case the sequence runs in memory.
+    File experimentDataDir = (experimentId != null)
+        ? new File(Play.application().path(), "data/experiments/" + experimentId)
+        : null;
+    engine.getBindings(ScriptContext.ENGINE_SCOPE).put("experimentContext",
+        new ExperimentContext(experimentId, instanceId, experimentDataDir));
+
     // Load the Groovy DSL scripts. ScriptLoader is the single source of truth for which
     // files load and in what order: the core scripts first, in dependency order, then every
     // other *.groovy file alphabetically, skipping *_test.groovy. Dropping a new script into
     // the groovy directory is enough to have it loaded -- no edit here required. A failure in
     // a non-core script is logged (naming the file) and skipped rather than aborting the boot.
+    // Experimental scripts (ScriptLoader.EXPERIMENTAL_SCRIPTS) load only when the
+    // breadboard.experimental flag is on, defaulting to off.
+    boolean experimental = Play.application().configuration().getBoolean("breadboard.experimental", false);
     File groovyDir = new File(Play.application().path().toString(), "groovy");
-    ScriptLoader.loadAll(engine, groovyDir);
+    ScriptLoader.loadAll(engine, groovyDir, experimental);
 
     // get script object on which we want to implement the interface with
     Object a = engine.get("a");

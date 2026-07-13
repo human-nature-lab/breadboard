@@ -63,7 +63,20 @@ module.exports = {
   devServer: {
     port: PORT,
     hot: true,
-    publicPath: `/bundles`,
+    // wds v4+ removed the top-level `publicPath` option; serving path now lives
+    // under `devMiddleware`. `allowedHosts: 'all'` preserves v3's behavior of
+    // accepting requests regardless of Host (the backend-served page loads these
+    // bundles cross-origin).
+    allowedHosts: 'all',
+    devMiddleware: {
+      publicPath: '/bundles/',
+    },
+    client: {
+      // Bundles + the HMR client are served cross-origin from this dev server,
+      // so point the HMR websocket back at it explicitly instead of letting it
+      // infer the (wrong) backend origin from the page URL.
+      webSocketURL: `ws://localhost:${PORT}/ws`,
+    },
     headers: {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, PATCH, OPTIONS',

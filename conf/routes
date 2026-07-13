@@ -68,7 +68,7 @@ DELETE      /parameters/:experimentId/:parameterId                              
 
 # Create New Experiment
 PUT         /experiment                                                          controllers.ExperimentController.createExperiment()
-POST        /experiment/import/:name                                             controllers.ExperimentController.importExperiment(name: String)
+POST        /experiment/import/:name                                             controllers.ExperimentController.importExperiment(name: String, experimentId: Long ?= 0, force: Boolean ?= false)
 GET         /experiment/export/:experimentId                                     controllers.ExperimentController.exportExperiment(experimentId: Long)
 
 # Languages

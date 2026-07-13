@@ -4,7 +4,6 @@ import 'angular'
 BreadboardFactory.$inject = [
   'websocketFactory',
   '$rootScope',
-  '$cookieStore',
   '$http',
   '$q',
   'configService',
@@ -13,7 +12,6 @@ BreadboardFactory.$inject = [
 export default function BreadboardFactory(
   $websocketFactory,
   $rootScope,
-  $cookieStore,
   $http,
   $q,
   configService,

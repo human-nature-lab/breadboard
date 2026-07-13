@@ -9,8 +9,8 @@ import play.Logger;
 import play.libs.Akka;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import akka.actor.*;
@@ -20,7 +20,12 @@ public class IteratedBreadboardGraphChangedListener implements BreadboardGraphCh
   private Graph graph;
   private Long updateIteration = 0L;
   private ArrayList<ClientListener> adminListeners = new ArrayList<>();
-  private HashMap<String, Client> clientListeners = new HashMap<>();
+  // ConcurrentHashMap, not HashMap: this map is iterated on the Akka scheduler thread
+  // (ClientUpdateActor, once per clientUpdateRate) while WebSocket connect/disconnect
+  // threads call addClientListener/removeClientListener. A plain HashMap threw
+  // ConcurrentModificationException under concurrent-user churn; CHM's iterator is
+  // weakly consistent and tolerates concurrent put/remove.
+  private final Map<String, Client> clientListeners = new ConcurrentHashMap<>();
 
   static ActorRef clientUpdateActor;
 
@@ -63,7 +68,7 @@ public class IteratedBreadboardGraphChangedListener implements BreadboardGraphCh
     }
   }
 
-  public HashMap<String, Client> getClientListeners() {
+  public Map<String, Client> getClientListeners() {
     return this.clientListeners;
   }
 

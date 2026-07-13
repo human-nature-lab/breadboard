@@ -5,15 +5,16 @@ import models.Image;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.FilenameUtils;
 import play.Logger;
-import play.Play;
 import play.mvc.Controller;
 import play.mvc.Http;
 import play.mvc.Result;
 import play.mvc.Security;
+import security.PathSafety;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.Map;
 
 public class ImagesController extends Controller {
@@ -93,12 +94,33 @@ public class ImagesController extends Controller {
     }
 
     if (experiment.fileMode) {
-      File imageDirectory = new File(Play.application().path().toString() + "/dev/" + experiment.getDirectoryName() + "/Images");
+      // This endpoint is intentionally public (participants view images without logging in), so we
+      // cannot gate it with auth. Reuse Experiment.devPath(), which builds the dev/<dir>/Images path
+      // through the same traversal guard used everywhere else: a malicious experiment name containing
+      // "../" is rejected at the source rather than confined after it has already escaped.
+      File imageDirectory = experiment.devPath("Images");
+      if (imageDirectory == null) {
+        return notFound();
+      }
+      // Defense in depth: confine the requested file name to the Images directory too.
+      Path safePath = PathSafety.resolveContained(imageDirectory.toPath(), fileName);
+      if (safePath == null) {
+        return notFound();
+      }
       try {
-        File file = FileUtils.getFile(imageDirectory, fileName);
+        File file = safePath.toFile();
+        // Lexical containment can be fooled by a symlink inside the Images dir that points outside it;
+        // resolve symlinks and re-check before reading on this unauthenticated path.
+        if (!file.getCanonicalFile().toPath().startsWith(imageDirectory.getCanonicalFile().toPath())) {
+          return notFound();
+        }
         String contentType = Files.probeContentType(file.toPath());
         byte[] contents = FileUtils.readFileToByteArray(file);
-        response().setContentType(contentType);
+        // probeContentType returns null for extensions the platform doesn't recognize; only set a
+        // non-null type so we never call setContentType(null) (Play defaults to octet-stream).
+        if (contentType != null) {
+          response().setContentType(contentType);
+        }
         return ok(contents);
       } catch (IOException ioe) {
         return notFound();
