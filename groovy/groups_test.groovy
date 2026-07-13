@@ -833,11 +833,20 @@ test("TreatmentManager.factorial gives every cell the completion target") {
   assert tm.isComplete()
 }
 
-// --- TreatmentManager: persistence + pluggable sampling ----------------------
-// File-backed progress (completed counts + sampling seed/cursor) survives a fresh manager instance
-// (i.e. an engine reload / server restart). inFlight is ephemeral and never persisted. Sampling is a
-// pure function pick(seed, cursor, order) -> Treatment, selectable via named functions. Each test
-// uses its own temp dir (the harness has no temp fixture, and cwd is the repo root) and cleans up.
+// --- TreatmentManager: log persistence + pluggable sampling ------------------
+// Progress persists as an append-only JSON-lines log (<key>.jsonl): 'started' / 'completed' /
+// 'released' event records plus 'config' records (seed, distribution, arm order). State is rebuilt
+// by replaying the log, so a fresh manager instance (an engine reload / server restart) resumes,
+// and the record can be corrected by hand -- every line stands alone. inFlight is ephemeral and
+// never persisted; the cursor is the count of 'started' records. Each test uses its own temp dir
+// (the harness has no temp fixture, and cwd is the repo root) and cleans up.
+
+// Parse every non-blank line of a treatment log into records. Throws on an invalid line, so using
+// it doubles as a validity check on the whole file.
+tmReadLog = { File f ->
+  def slurper = new groovy.json.JsonSlurper()
+  f.readLines('UTF-8').findAll { it.trim() != '' }.collect { slurper.parseText(it) }
+}
 
 // No key => persistence disabled => identical to the historical in-memory behavior, and nothing is
 // ever written to disk (even if a dir is supplied).
@@ -893,6 +902,7 @@ test("TreatmentManager does not persist inFlight; reload frees reserved slots") 
     tm2.treatment('A', new SampleParams(1, 'a'), 3)
     assert tm2.get('A').inFlight == 0 : 'inFlight is not persisted'
     assert tm2.get('A').completed == 0
+    assert tm2.get('A').started == 1 : 'the assignment itself IS on record'
     assert tm2.next() != null : 'the slot is assignable again after reload'
   } finally {
     org.apache.commons.io.FileUtils.deleteDirectory(tmp)
@@ -1033,18 +1043,15 @@ test("TreatmentManager clamps persisted progress down to a lowered code target")
   }
 }
 
-// Defensive: a persisted completed count above its target (e.g. a hand-edited file) is clamped on
-// load so the arm is simply treated as met rather than producing negative remaining slots.
-test("TreatmentManager clamps a persisted completed count above its target") {
+// Defensive: a replayed completed count above its target (e.g. a hand-edited log) is clamped on
+// load so the arm is simply treated as met rather than producing negative remaining slots. The log
+// is hand-written here -- records need no 'at' field and no config record to count.
+test("TreatmentManager clamps a replayed completed count above its target") {
   def tmp = java.nio.file.Files.createTempDirectory('tm-clamp').toFile()
   try {
-    def json = new groovy.json.JsonBuilder([
-      version:      1,
-      key:          'clamp',
-      distribution: [type: 'random', seed: 1, cursor: 0],
-      treatments:   [A: [target: 2, weight: 1.0, completed: 5]]
-    ]).toPrettyString()
-    org.apache.commons.io.FileUtils.writeStringToFile(new File(tmp, 'clamp.json'), json)
+    def lines = ['{"type":"config","version":2,"key":"clamp","seed":1,"distribution":"random","order":["A"]}']
+    5.times { lines << '{"type":"completed","treatment":"A"}' }
+    org.apache.commons.io.FileUtils.writeStringToFile(new File(tmp, 'clamp.jsonl'), lines.join('\n') + '\n')
 
     def tm = new TreatmentManager(key: 'clamp', dir: tmp.absolutePath)
     tm.treatment('A', new SampleParams(1, 'a'), 2)
@@ -1056,9 +1063,9 @@ test("TreatmentManager clamps a persisted completed count above its target") {
   }
 }
 
-// An arm present in the file but not re-defined this run is dormant: not live/assignable, but its
-// history is preserved in the file across writes.
-test("TreatmentManager keeps a dropped arm dormant in the file") {
+// An arm present in the log but not re-defined this run is dormant: not live/assignable, but the
+// log is append-only, so its history stays in the file untouched.
+test("TreatmentManager keeps a dropped arm dormant in the log") {
   def tmp = java.nio.file.Files.createTempDirectory('tm-dorm').toFile()
   try {
     def tm1 = new TreatmentManager(key: 'dorm', dir: tmp.absolutePath)
@@ -1072,28 +1079,31 @@ test("TreatmentManager keeps a dropped arm dormant in the file") {
     assert tm2.all().collect { it.name } == ['A']
     tm2.complete(tm2.get('A'))                           // force a write
 
-    def data = new groovy.json.JsonSlurper().parseText(new File(tmp, 'dorm.json').text)
-    assert data.treatments.containsKey('B') : 'dormant B is preserved in the file'
-    assert (data.treatments.B.completed as int) == 2
+    def recs = tmReadLog(new File(tmp, 'dorm.jsonl'))
+    assert recs.findAll { it.type == 'completed' && it.treatment == 'B' }.size() == 2 :
+      'dormant B keeps its history in the log'
   } finally {
     org.apache.commons.io.FileUtils.deleteDirectory(tmp)
   }
 }
 
-// The persisted file is valid JSON written to the override dir, with no leftover temp file.
-test("TreatmentManager writes valid JSON and leaves no temp file") {
+// Every log line is one standalone valid JSON record, and no temp files are left behind.
+test("TreatmentManager writes one valid JSON record per line and leaves no temp file") {
   def tmp = java.nio.file.Files.createTempDirectory('tm-atom').toFile()
   try {
     def tm = new TreatmentManager(key: 'atom', dir: tmp.absolutePath, distribution: roundRobin())
     tm.treatment('A', new SampleParams(1, 'a'), 3)
     tm.complete(tm.next())
 
-    def f = new File(tmp, 'atom.json')
-    assert f.exists() : 'file written in the override dir'
-    def data = new groovy.json.JsonSlurper().parseText(f.text)
-    assert (data.version as int) == 1
-    assert data.distribution.type == 'round-robin'
-    assert data.treatments.A != null
+    def f = new File(tmp, 'atom.jsonl')
+    assert f.exists() : 'log written in the override dir'
+    def recs = tmReadLog(f)                              // throws if any line is invalid
+    def cfg = recs.findAll { it.type == 'config' }.last()
+    assert (cfg.version as int) == 2
+    assert cfg.distribution == 'round-robin'
+    assert cfg.order == ['A']
+    assert recs.find { it.type == 'started' && it.treatment == 'A' } != null
+    assert recs.find { it.type == 'completed' && it.treatment == 'A' } != null
     def leftovers = tmp.listFiles().findAll { it.name.endsWith('.tmp') }
     assert leftovers.isEmpty() : "no temp files left behind: $leftovers"
   } finally {
@@ -1115,9 +1125,9 @@ test("TreatmentManager accepts a custom sampling function") {
     tm.release(t1)
     assert tm.next().name == 'A'
 
-    def data = new groovy.json.JsonSlurper().parseText(new File(tmp, 'custom.json').text)
-    assert data.distribution.type == 'custom'
-    assert (data.distribution.cursor as int) >= 1
+    def recs = tmReadLog(new File(tmp, 'custom.jsonl'))
+    assert recs.findAll { it.type == 'config' }.last().distribution == 'custom'
+    assert recs.count { it.type == 'started' } == 2 : 'each assignment appended a started record'
   } finally {
     org.apache.commons.io.FileUtils.deleteDirectory(tmp)
   }
@@ -1144,8 +1154,8 @@ test("TreatmentManager restores a built-in distribution on reload without re-spe
     def t = tm2.next()
     assert t.name == 'B' : 'round-robin resumed at cursor 4 (4 % 3 -> B), not random'
 
-    def data = new groovy.json.JsonSlurper().parseText(new File(tmp, 'restore.json').text)
-    assert data.distribution.type == 'round-robin' : 'strategy restored as round-robin, not reset to random'
+    def cfgs = tmReadLog(new File(tmp, 'restore.jsonl')).findAll { it.type == 'config' }
+    assert cfgs.last().distribution == 'round-robin' : 'strategy restored as round-robin, not reset to random'
   } finally {
     org.apache.commons.io.FileUtils.deleteDirectory(tmp)
   }
@@ -1158,17 +1168,18 @@ test("TreatmentManager persists and restores the random-block multiplier") {
   try {
     def tm1 = new TreatmentManager(key: 'blkmult', dir: tmp.absolutePath, distribution: randomBlock(2), seed: 7L)
     ['A', 'B'].each { tm1.treatment(it, new SampleParams(1, it), 1000) }
-    tm1.complete(tm1.next())                           // force a persist
-    def data = new groovy.json.JsonSlurper().parseText(new File(tmp, 'blkmult.json').text)
-    assert data.distribution.type == 'random-block'
-    assert (data.distribution.mult as int) == 2 : 'block multiplier persisted'
+    tm1.complete(tm1.next())                           // force a write
+    def f = new File(tmp, 'blkmult.jsonl')
+    def cfg = tmReadLog(f).findAll { it.type == 'config' }.last()
+    assert cfg.distribution == 'random-block'
+    assert (cfg.mult as int) == 2 : 'block multiplier persisted'
 
     def tm2 = new TreatmentManager(key: 'blkmult', dir: tmp.absolutePath)   // NO distribution: arg
     ['A', 'B'].each { tm2.treatment(it, new SampleParams(1, it), 1000) }
-    tm2.complete(tm2.next())                           // assign + persist under the restored strategy
-    def data2 = new groovy.json.JsonSlurper().parseText(new File(tmp, 'blkmult.json').text)
-    assert data2.distribution.type == 'random-block' : 'random-block restored on reload (not reset to random)'
-    assert (data2.distribution.mult as int) == 2 : 'multiplier restored on reload'
+    tm2.complete(tm2.next())                           // assign + append under the restored strategy
+    def cfg2 = tmReadLog(f).findAll { it.type == 'config' }.last()
+    assert cfg2.distribution == 'random-block' : 'random-block restored on reload (not reset to random)'
+    assert (cfg2.mult as int) == 2 : 'multiplier restored on reload'
   } finally {
     org.apache.commons.io.FileUtils.deleteDirectory(tmp)
   }
@@ -1194,25 +1205,169 @@ test("TreatmentManager skips an ineligible treatment returned by a custom distri
   assert tm.get('A').inFlight == 0 : 'no slot reserved on the rejected treatment'
 }
 
-// A persisted target below 1 (a corrupt or partially-written file, or a missing target defaulting to 0)
-// must NOT create a permanently-full arm: the already-validated code target is used instead.
-test("TreatmentManager ignores an invalid persisted target and uses the code target") {
-  def tmp = java.nio.file.Files.createTempDirectory('tm-badtarget').toFile()
+// Hand-edits happen: a corrupt line (a typo, a crash-truncated tail) or an unknown record type is
+// warned about and skipped, and every other record still replays -- the log never loads
+// all-or-nothing.
+test("TreatmentManager skips corrupt or unknown log lines and replays the rest") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-badline').toFile()
+  try {
+    def lines = [
+      '{"type":"config","version":2,"key":"badline","seed":1,"distribution":"random","order":["A"]}',
+      '{"type":"completed","treatment":"A"}',
+      'this is not json at all',
+      '{"type":"frobnicate","treatment":"A"}',
+      '{"type":"completed","treatment":"A"}',
+      '{"type":"comp'                                    // crash-truncated tail
+    ]
+    org.apache.commons.io.FileUtils.writeStringToFile(new File(tmp, 'badline.jsonl'), lines.join('\n') + '\n')
+
+    def tm = new TreatmentManager(key: 'badline', dir: tmp.absolutePath)
+    tm.treatment('A', new SampleParams(1, 'a'), 5)
+    assert tm.get('A').completed == 2 : 'both valid completed records replayed'
+    assert tm.next() != null : 'the manager still assigns'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// The log records the full assignment lifecycle in order: a config record first, then one 'started'
+// per assignment, 'completed' per finish, 'released' per abandonment. Treatment.started counts every
+// assignment (completed AND released) and survives a reload.
+test("TreatmentManager logs started, completed, and released records") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-log').toFile()
+  try {
+    def tm = new TreatmentManager(key: 'log', dir: tmp.absolutePath)
+    tm.treatment('A', new SampleParams(1, 'a'), 2)
+    def t1 = tm.next()
+    tm.complete(t1)
+    def t2 = tm.next()
+    tm.release(t2)
+    assert tm.get('A').started == 2
+
+    def recs = tmReadLog(new File(tmp, 'log.jsonl'))
+    assert recs[0].type == 'config' : 'the config record precedes the first event'
+    assert recs.findAll { it.treatment == 'A' }.collect { it.type } ==
+      ['started', 'completed', 'started', 'released']
+    assert recs.every { it.at != null } : 'every record is timestamped'
+
+    def tm2 = new TreatmentManager(key: 'log', dir: tmp.absolutePath)
+    tm2.treatment('A', new SampleParams(1, 'a'), 2)
+    assert tm2.get('A').started == 2 : 'started adopted from the log'
+    assert tm2.get('A').completed == 1
+    assert tm2.get('A').inFlight == 0
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// THE point of the log format: a researcher can void a bad game by deleting its 'completed' line;
+// the arm reopens on the next reload.
+test("TreatmentManager reopens an arm when a completed record is deleted from the log") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-void').toFile()
+  try {
+    def tm1 = new TreatmentManager(key: 'void', dir: tmp.absolutePath)
+    tm1.treatment('A', new SampleParams(1, 'a'), 2)
+    2.times { tm1.complete(tm1.get('A')) }
+    assert tm1.get('A').isMet()
+
+    def f = new File(tmp, 'void.jsonl')
+    def lines = f.readLines('UTF-8').findAll { it.trim() != '' }
+    int drop = lines.findLastIndexOf { it.contains('"type":"completed"') }
+    assert drop >= 0
+    lines.remove(drop)                                   // void one game by hand
+    f.setText(lines.join('\n') + '\n', 'UTF-8')
+
+    def tm2 = new TreatmentManager(key: 'void', dir: tmp.absolutePath)
+    tm2.treatment('A', new SampleParams(1, 'a'), 2)
+    assert tm2.get('A').completed == 1 : 'the voided game no longer counts'
+    assert !tm2.get('A').isMet()
+    assert tm2.next() != null : 'the arm is assignable again'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// ...and the inverse: hand-appending a 'completed' line manually credits a game.
+test("TreatmentManager honors a hand-appended completed record") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-credit').toFile()
+  try {
+    def tm1 = new TreatmentManager(key: 'credit', dir: tmp.absolutePath)
+    tm1.treatment('A', new SampleParams(1, 'a'), 3)
+    tm1.complete(tm1.get('A'))
+
+    new File(tmp, 'credit.jsonl').append('{"type":"completed","treatment":"A"}\n', 'UTF-8')
+
+    def tm2 = new TreatmentManager(key: 'credit', dir: tmp.absolutePath)
+    tm2.treatment('A', new SampleParams(1, 'a'), 3)
+    assert tm2.get('A').completed == 2 : 'the hand-appended record counts'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// A schema-1 snapshot (<key>.json) migrates into the log on first load: completed counts become
+// 'completed' records, the old cursor rides in as cursorBase (so positional strategies resume), the
+// distribution is restored, and the legacy file is left in place but never read again (no double
+// count on the next reload).
+test("TreatmentManager migrates a schema-1 snapshot into the log") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-mig').toFile()
   try {
     def json = new groovy.json.JsonBuilder([
       version:      1,
-      key:          'badtarget',
-      distribution: [type: 'random', seed: 1, cursor: 0],
-      treatments:   [A: [target: 0, weight: 1.0, completed: 0]]   // target 0 -> would be full forever
+      key:          'mig',
+      distribution: [type: 'round-robin', seed: 9, cursor: 4],
+      treatments:   [A: [target: 100, weight: 1.0, completed: 2],
+                     B: [target: 100, weight: 1.0, completed: 1],
+                     C: [target: 100, weight: 1.0, completed: 1]]
     ]).toPrettyString()
-    org.apache.commons.io.FileUtils.writeStringToFile(new File(tmp, 'badtarget.json'), json)
+    org.apache.commons.io.FileUtils.writeStringToFile(new File(tmp, 'mig.json'), json)
 
-    def tm = new TreatmentManager(key: 'badtarget', dir: tmp.absolutePath)
-    tm.treatment('A', new SampleParams(1, 'a'), 3)     // code target 3 is valid
-    assert tm.get('A').target == 3 : 'invalid file target (0) ignored in favor of the code target'
-    assert !tm.get('A').isFull()
-    def t = tm.next()
-    assert t != null && t.name == 'A' : 'the arm assigns instead of being permanently full'
+    def define = { tm -> ['A', 'B', 'C'].each { tm.treatment(it, new SampleParams(1, it), 100) } }
+    def tm1 = new TreatmentManager(key: 'mig', dir: tmp.absolutePath)   // NO distribution: arg
+    define(tm1)
+    assert tm1.get('A').completed == 2 && tm1.get('B').completed == 1 && tm1.get('C').completed == 1
+    assert tm1.next().name == 'B' : 'round-robin resumed at the migrated cursor (4 % 3 -> B)'
+
+    def recs = tmReadLog(new File(tmp, 'mig.jsonl'))
+    assert (recs[0].cursorBase as int) == 4 : 'old cursor migrated as cursorBase'
+    assert recs.findAll { it.type == 'completed' && it.migrated == true }.size() == 4
+    assert new File(tmp, 'mig.json').exists() : 'the legacy snapshot is left as a backup'
+
+    def tm2 = new TreatmentManager(key: 'mig', dir: tmp.absolutePath)   // log exists -> legacy ignored
+    define(tm2)
+    assert tm2.get('A').completed == 2 : 'no double count from re-migrating'
+    assert tm2.next().name == 'C' : 'cursor advanced past the tm1 assignment (5 % 3 -> C)'
+  } finally {
+    org.apache.commons.io.FileUtils.deleteDirectory(tmp)
+  }
+}
+
+// Config records are appended only when the effective config changes: steady-state reloads add
+// nothing, while a definition change (an added arm) is recorded once.
+test("TreatmentManager appends a config record only when the configuration changes") {
+  def tmp = java.nio.file.Files.createTempDirectory('tm-cfg').toFile()
+  try {
+    def f = new File(tmp, 'cfg.jsonl')
+    def tm1 = new TreatmentManager(key: 'cfg', dir: tmp.absolutePath, distribution: roundRobin())
+    tm1.treatment('A', new SampleParams(1, 'a'), 100)
+    tm1.treatment('B', new SampleParams(2, 'b'), 100)
+    tm1.release(tm1.next())
+    assert tmReadLog(f).count { it.type == 'config' } == 1
+
+    def tm2 = new TreatmentManager(key: 'cfg', dir: tmp.absolutePath)   // same defs, restored strategy
+    tm2.treatment('A', new SampleParams(1, 'a'), 100)
+    tm2.treatment('B', new SampleParams(2, 'b'), 100)
+    tm2.release(tm2.next())
+    assert tmReadLog(f).count { it.type == 'config' } == 1 : 'an unchanged config appends nothing'
+
+    def tm3 = new TreatmentManager(key: 'cfg', dir: tmp.absolutePath)
+    tm3.treatment('A', new SampleParams(1, 'a'), 100)
+    tm3.treatment('B', new SampleParams(2, 'b'), 100)
+    tm3.treatment('C', new SampleParams(3, 'c'), 100)                   // definition changed
+    tm3.release(tm3.next())
+    def cfgs = tmReadLog(f).findAll { it.type == 'config' }
+    assert cfgs.size() == 2 : 'the changed config is recorded once'
+    assert cfgs.last().order == ['A', 'B', 'C']
   } finally {
     org.apache.commons.io.FileUtils.deleteDirectory(tmp)
   }

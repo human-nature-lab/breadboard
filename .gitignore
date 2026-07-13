@@ -42,3 +42,4 @@ generated
 run-dev.sh
 run-test.sh
 native
+.cache

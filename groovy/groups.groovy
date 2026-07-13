@@ -897,6 +897,13 @@ class GameActions {
 //     game.onFinish  { treatments.complete(t) }
 //     game.onAbandon { treatments.release(t) }
 //   }
+//
+// With a `key`, progress persists as an append-only JSON-lines log (<key>.jsonl): one 'started'
+// record per assignment, one 'completed' per finished game, one 'released' per abandonment, plus a
+// 'config' record whenever the run's seed/distribution/arms differ from the file's last one. State
+// is rebuilt by replaying the log, so the record can be corrected by hand between runs -- delete a
+// bogus 'completed' line (the arm reopens) or append one (manually credit a game); every line
+// stands alone. The old schema-1 snapshot (<key>.json) is migrated into a log on first load.
 class Treatment {
   final String name
   final Object parameters
@@ -905,6 +912,11 @@ class Treatment {
   // Owned by the TreatmentManager: only read/written inside its lock.
   int completed = 0
   int inFlight = 0
+  // Total assignments ever made to this arm (every next() that picked it, across reloads), adopted
+  // from the log like `completed`. Includes assignments that later completed OR were released, so it
+  // is NOT completed + inFlight. Informational (stats/reporting); quota math uses completed+inFlight.
+  // History migrated from a schema-1 snapshot has no started records, so it starts this at 0.
+  int started = 0
 
   Treatment(String name, Object parameters, int target) {
     this(name, parameters, target, 1.0d)
@@ -945,32 +957,43 @@ class Sampler {
 }
 
 class TreatmentManager {
-  static final int CURRENT_SCHEMA_VERSION = 1
+  // Schema 1 was a single rewritten snapshot ({distribution, treatments: {name: counts}}); schema 2
+  // is the append-only record log. The version rides on each 'config' record.
+  static final int CURRENT_SCHEMA_VERSION = 2
 
   private final Map<String, Treatment> byName = new LinkedHashMap<>()
   private final List<Treatment> order = new ArrayList<>()
   private final Lock lock = new ReentrantLock(true)
-  // Serializes file writes off the hot `lock`. Declared as the Lock interface per the Groovy 1.8.6
+  // Serializes log appends off the hot `lock`. Declared as the Lock interface per the Groovy 1.8.6
   // field-typing rule (a concrete concurrent type declared as its subclass is mishandled).
   private final Lock persistLock = new ReentrantLock()
 
-  // Persistence target. null => persistence disabled => behaves exactly like the pre-persistence
-  // TreatmentManager (no file is ever touched). See resolvePersistFile.
+  // Persistence target: an append-only JSON-lines log (<key>.jsonl), one record per line, replayed
+  // at construction to rebuild state. null => persistence disabled => behaves exactly like the
+  // pre-persistence TreatmentManager (no file is ever touched). See resolveDataFile.
   private final File persistFile
+  // The schema-1 snapshot file (<key>.json) this key used before the log format; read once by
+  // migrateLegacySnapshot, never written.
+  private final File legacyFile
   private final String key
+  // Set when the log carries a config record from a NEWER schema than this code understands: replay
+  // stops and appends are disabled for the run, so a file we cannot read is never corrupted.
+  private boolean persistDisabled = false
 
-  // Sampling state. `seed` + `cursor` are the ONLY persisted sampling state: every distribution is a
-  // pure function pick(seed, cursor, order) -> Treatment, so resuming needs just these two numbers.
-  // `cursor` is the number of assignments made and advances by one on each successful next().
+  // Sampling state. Every distribution is a pure function pick(seed, cursor, order) -> Treatment, so
+  // resuming needs just these two numbers. `seed` rides in the log's config records; `cursor` is the
+  // number of assignments made -- it advances by one on each successful next() and is rebuilt on
+  // load by counting the log's 'started' records (on top of a migrated cursorBase, if any), so
+  // hand-deleting a started line rewinds it coherently.
   private long seed = 0L
   private boolean seedLoaded = false
   private long cursor = 0L
 
-  // Monotonic snapshot sequence (guarded by `lock`): each snapshot taken in persist() is stamped with
-  // the next value, and a write that loses the persistLock race to a higher-numbered snapshot is
-  // dropped rather than clobbering newer state. lastWrittenSeq is guarded by persistLock.
-  private long snapshotSeq = 0L
-  private long lastWrittenSeq = 0L
+  // The config fields ([seed, distribution, mult, order]) reflected by the log's last config record;
+  // null when the log has none. Guarded by persistLock. Compared before every append so a run whose
+  // effective config matches the file appends no config record, while any change (new seed, new
+  // distribution, arms added/removed) is recorded exactly once, with the next event written.
+  private Map lastConfig = null
 
   // Active sampling function (long seed, long cursor, List<Treatment> order) -> Treatment|null, plus
   // a human label persisted for debugging. Defaults to uniform-random (the historical behavior).
@@ -983,15 +1006,16 @@ class TreatmentManager {
   // assignments begin (keeps the order / block math stable for round-robin and random-block).
   private boolean sealed = false
 
-  // Accounting parsed from the file at construction, consumed by treatment(...) as it (re)defines each
-  // name (only the persisted completed count is adopted; the code definition wins). Names still present
-  // here at write time are dormant (in the file but not re-defined this run) and are preserved verbatim
-  // so a temporarily-removed arm keeps its history.
+  // Accounting replayed from the log at construction (name -> [started, completed] counts), consumed
+  // by treatment(...) as it (re)defines each name (only the replayed PROGRESS is adopted; the code
+  // definition wins). Names never re-defined this run are dormant: the log is append-only, so their
+  // history stays in the file untouched and a temporarily-removed arm keeps its record.
   private final Map loadedTreatments = new LinkedHashMap()
   private String loadedDistType = null
   private Integer loadedDistParam = null
-  // Treatment names in the order the persisted file listed them, captured at load so the first next()
-  // can warn if the live definition order has since changed (which silently remaps a positional cursor).
+  // Treatment names in the order the log's last config record listed them, captured at load so the
+  // first next() can warn if the live definition order has since changed (which silently remaps a
+  // positional cursor).
   private final List loadedOrder = new ArrayList()
 
   // No key => no persistence => identical to the historical in-memory behavior.
@@ -999,16 +1023,18 @@ class TreatmentManager {
 
   TreatmentManager(String key) { this([key: key]) }
 
-  // Recognized config keys: key (enables persistence + names the file), dir (storage dir override;
-  // defaults to ./data/treatments), distribution (a sampler/closure), seed (explicit RNG seed).
+  // Recognized config keys: key (enables persistence + names the log file), dir (storage dir
+  // override; defaults to ./data/treatments), distribution (a sampler/closure), seed (explicit RNG
+  // seed).
   TreatmentManager(Map config) {
     if (config == null) config = [:]
     this.key = (config.key != null) ? config.key.toString() : null
-    this.persistFile = resolvePersistFile(config)
+    this.persistFile = resolveDataFile(config, ".jsonl")
+    this.legacyFile = resolveDataFile(config, ".json")
     this.strategy = randomFn()
     this.strategyLabel = 'random'
 
-    loadFromFile()
+    loadLog()
 
     if (config.seed != null) {
       this.seed = config.seed as long
@@ -1096,6 +1122,8 @@ class TreatmentManager {
           pCompleted = target
         }
         t.completed = pCompleted
+        int pStarted = (prior.started != null) ? (prior.started as int) : 0
+        t.started = (pStarted < 0) ? 0 : pStarted
       }
       t.inFlight = 0
       byName[name] = t
@@ -1183,12 +1211,14 @@ class TreatmentManager {
         }
         if (chosen != null) {
           chosen.inFlight = chosen.inFlight + 1
+          chosen.started = chosen.started + 1
           cursor = cursor + 1
           advanced = true
         }
       }
     } finally { lock.unlock() }
-    if (advanced || firstSeal) persist()
+    if (advanced) appendEvent('started', chosen.name)
+    else if (firstSeal) appendEvent(null, null)   // nothing assigned, but still record this run's config
     return chosen
   }
 
@@ -1232,16 +1262,19 @@ class TreatmentManager {
         }
         if (chosen != null) {
           chosen.inFlight = chosen.inFlight + 1
+          chosen.started = chosen.started + 1
           cursor = cursor + 1
           advanced = true
         }
       }
     } finally { lock.unlock() }
-    if (advanced || firstSeal) persist()
+    if (advanced) appendEvent('started', chosen.name)
+    else if (firstSeal) appendEvent(null, null)   // nothing assigned, but still record this run's config
     return chosen
   }
 
-  // A game for this treatment finished: consume its reserved slot permanently, then persist.
+  // A game for this treatment finished: consume its reserved slot permanently, then append a
+  // 'completed' record to the log.
   void complete(Treatment t) {
     if (t == null) return
     boolean changed = false
@@ -1254,19 +1287,21 @@ class TreatmentManager {
         changed = true
       }
     } finally { lock.unlock() }
-    if (changed) persist()
+    if (changed) appendEvent('completed', t.name)
   }
 
-  // A game for this treatment abandoned before finishing: free its slot so the
-  // treatment can be assigned again.
+  // A game for this treatment abandoned before finishing: free its slot so the treatment can be
+  // assigned again, and append a 'released' record. The record counts toward nothing on replay; it
+  // just explains why a 'started' record has no matching 'completed'.
   void release(Treatment t) {
     if (t == null) return
+    boolean changed = false
     lock.lock()
     try {
       def m = byName[t.name]
-      if (m == null) return
-      if (m.inFlight > 0) m.inFlight = m.inFlight - 1
+      if (m != null && m.inFlight > 0) { m.inFlight = m.inFlight - 1; changed = true }
     } finally { lock.unlock() }
+    if (changed) appendEvent('released', t.name)
   }
 
   Treatment get(String name) {
@@ -1290,7 +1325,7 @@ class TreatmentManager {
     lock.lock()
     try {
       def s = new LinkedHashMap()
-      order.each { s[it.name] = [target: it.target, completed: it.completed, inFlight: it.inFlight, weight: it.weight] }
+      order.each { s[it.name] = [target: it.target, started: it.started, completed: it.completed, inFlight: it.inFlight, weight: it.weight] }
       return s
     } finally { lock.unlock() }
   }
@@ -1343,113 +1378,240 @@ class TreatmentManager {
     }
   }
 
-  private File resolvePersistFile(Map config) {
+  // Resolve the file this key uses for the given extension (".jsonl" = the record log, ".json" = the
+  // pre-log schema-1 snapshot, read only to migrate). No key => null => persistence off.
+  private File resolveDataFile(Map config, String ext) {
     def k = config.key
     if (k == null || k.toString().trim().isEmpty()) return null
     String dir = (config.dir != null) ? config.dir.toString() : "./data/treatments"
-    return new File(dir, sanitizeKey(k.toString()) + ".json")
+    return new File(dir, sanitizeKey(k.toString()) + ext)
   }
 
   private static String sanitizeKey(String k) {
     return k.replaceAll(/[^A-Za-z0-9._-]/, '_')
   }
 
-  // Parse the persisted file (if any) into loadedTreatments + seed/cursor/loadedDistType. Best-effort:
-  // a missing/empty/corrupt/newer file just means "start fresh" (logged).
-  private void loadFromFile() {
+  // Replay the append-only log (if any) into seed/cursor/loadedTreatments/loadedDistType/loadedOrder.
+  // Every record stands alone, so a bad line (hand-edit typo, crash-truncated tail) is warned about
+  // and skipped rather than discarding the rest of the history -- the log is meant to be hand-
+  // correctable, so tolerance beats the old snapshot's all-or-nothing load.
+  private void loadLog() {
     if (persistFile == null) return
+    migrateLegacySnapshot()
+    if (!persistFile.exists()) return
+    List lines
     try {
-      if (!persistFile.exists()) return
-      String text = persistFile.getText('UTF-8')
-      if (text == null || text.trim().isEmpty()) return
-      def data = new JsonSlurper().parseText(text)
-      if (!(data instanceof Map)) return
-      int ver = (data.version != null) ? (data.version as int) : 0
-      if (ver > CURRENT_SCHEMA_VERSION) {
-        println "[TreatmentManager] persisted version $ver > supported $CURRENT_SCHEMA_VERSION; ignoring ${persistFile}"
-        return
-      }
-      def dist = data.distribution
-      if (dist instanceof Map) {
-        loadedDistType = (dist.type != null) ? dist.type.toString() : null
-        loadedDistParam = (dist.mult != null) ? (dist.mult as int) : null
-        if (dist.seed != null) { this.seed = dist.seed as long; seedLoaded = true }
-        if (dist.cursor != null) { this.cursor = dist.cursor as long }
-      }
-      def ts = data.treatments
-      if (ts instanceof Map) {
-        ts.each { tk, tv ->
-          if (tv instanceof Map) {
-            loadedTreatments[tk.toString()] = [
-              target:    (tv.target != null) ? (tv.target as int) : 0,
-              weight:    (tv.weight != null) ? (tv.weight as double) : 1.0d,
-              completed: (tv.completed != null) ? (tv.completed as int) : 0
-            ]
-          }
-        }
-        loadedOrder.addAll(loadedTreatments.keySet())
-      }
+      lines = persistFile.readLines('UTF-8')
     } catch (Exception e) {
       println "[TreatmentManager] failed to read ${persistFile}: $e (starting fresh)"
-      // Reset ALL state that may have been partially applied before the exception (e.g. seed/cursor
-      // parsed from a valid distribution block before a corrupt treatments block threw) so "start
-      // fresh" really means fresh, not a half-loaded cursor against wiped treatments.
-      loadedTreatments.clear()
-      loadedOrder.clear()
-      loadedDistType = null
-      loadedDistParam = null
-      this.seed = 0L
-      this.cursor = 0L
-      this.seedLoaded = false
+      return
+    }
+    def slurper = new JsonSlurper()
+    int lineNo = 0
+    for (Object raw : lines) {
+      lineNo++
+      String line = (raw == null) ? '' : raw.toString().trim()
+      if (line.isEmpty()) continue
+      def rec = null
+      try { rec = slurper.parseText(line) } catch (Exception e) { rec = null }
+      if (!(rec instanceof Map) || rec.type == null) {
+        println "[TreatmentManager] ${persistFile} line ${lineNo} is not a valid record; skipping it"
+        continue
+      }
+      String type = rec.type.toString()
+      try {
+        if (type.equals('config')) {
+          applyConfigRecord(rec, lineNo)
+          if (persistDisabled) return
+        } else if (type.equals('started')) {
+          if (countEvent(rec, 'started', lineNo)) cursor = cursor + 1
+        } else if (type.equals('completed')) {
+          countEvent(rec, 'completed', lineNo)
+        } else if (type.equals('released')) {
+          // A released slot counts toward nothing on replay; the record is informational.
+        } else {
+          println "[TreatmentManager] ${persistFile} line ${lineNo} has unknown type '${type}'; skipping it"
+        }
+      } catch (Exception e) {
+        println "[TreatmentManager] ${persistFile} line ${lineNo} could not be applied ($e); skipping it"
+      }
     }
   }
 
-  // Snapshot under `lock`, then write under `persistLock` via temp-file + atomic rename. Best-effort:
-  // an IO failure must never crash a game lifecycle callback (complete() runs inside onFinish).
-  private void persist() {
-    if (persistFile == null) return
-    Map snapshot
-    long seq
+  // Apply one 'config' record: seed, distribution label (+ block multiplier), the definition order,
+  // and -- only on records synthesized by migration -- a cursorBase the started-count builds on.
+  // A later record wins over earlier ones wholesale.
+  private void applyConfigRecord(Map rec, int lineNo) {
+    int ver = (rec.version != null) ? (rec.version as int) : 0
+    if (ver > CURRENT_SCHEMA_VERSION) {
+      println "[TreatmentManager] ${persistFile} line ${lineNo} has version ${ver} > supported " +
+        "${CURRENT_SCHEMA_VERSION}; ignoring the log and disabling persistence for this run"
+      resetLoadedState()
+      persistDisabled = true
+      return
+    }
+    if (rec.seed != null) { this.seed = rec.seed as long; this.seedLoaded = true }
+    if (rec.cursorBase != null) { this.cursor = rec.cursorBase as long }
+    loadedDistType = (rec.distribution != null) ? rec.distribution.toString() : null
+    loadedDistParam = (rec.mult != null) ? (rec.mult as int) : null
+    if (rec.order instanceof List) {
+      loadedOrder.clear()
+      for (Object n : rec.order) { if (n != null) loadedOrder.add(n.toString()) }
+    }
+    lastConfig = [seed: this.seed, distribution: loadedDistType, mult: loadedDistParam,
+                  order: new ArrayList(loadedOrder)]
+  }
+
+  // Count one started/completed event record into loadedTreatments. Returns whether it counted.
+  private boolean countEvent(Map rec, String field, int lineNo) {
+    def name = rec.treatment
+    if (name == null) {
+      println "[TreatmentManager] ${persistFile} line ${lineNo} ('${field}') names no treatment; skipping it"
+      return false
+    }
+    def acc = loadedTreatments[name.toString()]
+    if (acc == null) { acc = [started: 0, completed: 0]; loadedTreatments[name.toString()] = acc }
+    acc[field] = (acc[field] as int) + 1
+    return true
+  }
+
+  private void resetLoadedState() {
+    loadedTreatments.clear()
+    loadedOrder.clear()
+    loadedDistType = null
+    loadedDistParam = null
+    lastConfig = null
+    this.seed = 0L
+    this.cursor = 0L
+    this.seedLoaded = false
+  }
+
+  // One-time upgrade from the schema-1 snapshot (<key>.json): when no log exists yet but a legacy
+  // snapshot does, rewrite it as the log's opening records -- one config record carrying the old
+  // seed/distribution/order plus the old cursor as cursorBase, then one 'completed' record (marked
+  // migrated:true) per completed game. cursorBase exists because the snapshot never recorded which
+  // arms its non-completing assignments went to, so their 'started' records cannot be reconstructed.
+  // The legacy file itself is left in place as a backup; once the log exists it is never read again.
+  private void migrateLegacySnapshot() {
+    if (persistFile.exists() || legacyFile == null || !legacyFile.exists()) return
+    def data
+    try {
+      String text = legacyFile.getText('UTF-8')
+      if (text == null || text.trim().isEmpty()) return
+      data = new JsonSlurper().parseText(text)
+    } catch (Exception e) {
+      println "[TreatmentManager] failed to read legacy ${legacyFile}: $e (not migrating)"
+      return
+    }
+    if (!(data instanceof Map)) return
+    int ver = (data.version != null) ? (data.version as int) : 0
+    if (ver > 1) {
+      println "[TreatmentManager] legacy ${legacyFile} has unexpected version ${ver}; not migrating"
+      return
+    }
+    def cfg = new LinkedHashMap()
+    cfg.type = 'config'
+    cfg.version = CURRENT_SCHEMA_VERSION
+    cfg.key = key
+    def dist = data.distribution
+    if (dist instanceof Map) {
+      if (dist.seed != null) cfg.seed = dist.seed as long
+      if (dist.type != null) cfg.distribution = dist.type.toString()
+      if (dist.mult != null) cfg.mult = dist.mult as int
+      if (dist.cursor != null) cfg.cursorBase = dist.cursor as long
+    }
+    def names = new ArrayList()
+    def sb = new StringBuilder()
+    def ts = data.treatments
+    if (ts instanceof Map) {
+      ts.each { tk, tv ->
+        names.add(tk.toString())
+        int done = (tv instanceof Map && tv.completed != null) ? (tv.completed as int) : 0
+        for (int i = 0; i < done; i++) {
+          def rec = new LinkedHashMap()
+          rec.type = 'completed'; rec.treatment = tk.toString(); rec.migrated = true; rec.at = isoNow()
+          sb.append(new JsonBuilder(rec).toString()).append('\n')
+        }
+      }
+    }
+    cfg.order = names
+    cfg.at = isoNow()
+    try {
+      writeRaw(new JsonBuilder(cfg).toString() + '\n' + sb.toString())
+      println "[TreatmentManager] migrated legacy snapshot ${legacyFile} -> ${persistFile}"
+    } catch (Exception e) {
+      println "[TreatmentManager] failed to write migrated log ${persistFile}: $e"
+    }
+  }
+
+  // Append one event record to the log -- preceded, when the run's effective config (seed,
+  // distribution, arm order) differs from the file's last config record, by a fresh config record.
+  // Pass a null type to append just that config check (used when the first next() assigns nothing).
+  // Best-effort: an IO failure must never crash a game lifecycle callback (complete() runs inside
+  // onFinish). Records may interleave across threads in either order; replay only counts them, so
+  // ordering between concurrent events does not matter.
+  private void appendEvent(String type, String treatmentName) {
+    if (persistFile == null || persistDisabled) return
+    Map cfg
     lock.lock()
-    try { seq = ++snapshotSeq; snapshot = buildSnapshot() } finally { lock.unlock() }
+    try { cfg = currentConfig() } finally { lock.unlock() }
     persistLock.lock()
     try {
-      // Snapshots are stamped under `lock`, so a higher seq reflects strictly newer (or equal) state.
-      // If a newer snapshot already reached disk, skip this stale write instead of clobbering it.
-      if (seq <= lastWrittenSeq) return
-      File dir = persistFile.getAbsoluteFile().getParentFile()
-      if (dir != null) Files.createDirectories(dir.toPath())
-      String json = new JsonBuilder(snapshot).toPrettyString()
-      File tmp = File.createTempFile(persistFile.getName() + ".", ".tmp", dir)
-      Files.write(tmp.toPath(), json.getBytes("UTF-8"))
-      try {
-        Files.move(tmp.toPath(), persistFile.toPath(),
-          StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE)
-      } catch (Exception atomicEx) {
-        Files.move(tmp.toPath(), persistFile.toPath(), StandardCopyOption.REPLACE_EXISTING)
+      def sb = new StringBuilder()
+      boolean cfgChanged = !configEquals(cfg, lastConfig)
+      if (cfgChanged) {
+        def cfgLine = new LinkedHashMap()
+        cfgLine.type = 'config'
+        cfgLine.version = CURRENT_SCHEMA_VERSION
+        cfgLine.key = key
+        cfgLine.seed = cfg.seed
+        cfgLine.distribution = cfg.distribution
+        if (cfg.mult != null) cfgLine.mult = cfg.mult
+        cfgLine.order = cfg.order
+        cfgLine.at = isoNow()
+        sb.append(new JsonBuilder(cfgLine).toString()).append('\n')
       }
-      lastWrittenSeq = seq
+      if (type != null) {
+        def evLine = new LinkedHashMap()
+        evLine.type = type
+        evLine.treatment = treatmentName
+        evLine.at = isoNow()
+        sb.append(new JsonBuilder(evLine).toString()).append('\n')
+      }
+      if (sb.length() == 0) return
+      writeRaw(sb.toString())
+      if (cfgChanged) lastConfig = cfg
     } catch (Exception e) {
-      println "[TreatmentManager] failed to persist ${persistFile}: $e"
+      println "[TreatmentManager] failed to append to ${persistFile}: $e"
     } finally { persistLock.unlock() }
   }
 
-  // Must hold `lock`. Dormant (loaded-but-not-redefined) entries first, then live treatments overlaid.
-  private Map buildSnapshot() {
-    def treatmentsOut = new LinkedHashMap()
-    loadedTreatments.each { lk, lv ->
-      treatmentsOut[lk] = [target: (lv.target as int), weight: (lv.weight as double), completed: (lv.completed as int)]
+  // Must hold `lock`. The run's effective config, as compared against the log's last config record.
+  private Map currentConfig() {
+    def names = new ArrayList()
+    for (Treatment t : order) { names.add(t.name) }
+    return [seed: seed, distribution: strategyLabel, mult: strategyParam, order: names]
+  }
+
+  private static boolean configEquals(Map a, Map b) {
+    if (a == null || b == null) return false
+    return a.seed == b.seed && a.distribution == b.distribution && a.mult == b.mult && a.order == b.order
+  }
+
+  // Append raw, pre-rendered line(s), creating the parent dir on first use. Serialized JVM-wide on
+  // the interned path (like GroupIdSequence) so concurrent engine instances sharing a key interleave
+  // whole records rather than corrupting each other's writes. A crash mid-append can at worst leave
+  // a truncated LAST line, which replay warns about and skips.
+  private void writeRaw(String text) {
+    File dir = persistFile.getAbsoluteFile().getParentFile()
+    if (dir != null) Files.createDirectories(dir.toPath())
+    synchronized (persistFile.getAbsolutePath().intern()) {
+      persistFile.append(text, 'UTF-8')
     }
-    order.each { t ->
-      treatmentsOut[t.name] = [target: t.target, weight: t.weight, completed: t.completed]
-    }
-    return [
-      version:      CURRENT_SCHEMA_VERSION,
-      key:          key,
-      distribution: [type: strategyLabel, mult: strategyParam, seed: seed, cursor: cursor],
-      treatments:   treatmentsOut,
-      savedAt:      System.currentTimeMillis()
-    ]
+  }
+
+  private static String isoNow() {
+    return new Date().format("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", TimeZone.getTimeZone('UTC'))
   }
 
   // --- built-in sampling functions: pure (long seed, long cursor, List<Treatment> order) -> Treatment ---
