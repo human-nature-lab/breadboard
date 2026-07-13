@@ -302,3 +302,57 @@ test("gameAbandoned frees the slot without counting, and is idempotent") {
   rc.gameAbandoned("abGame")               // second call is a no-op
   assert rc.completedGames == 0
 }
+
+// --- kick timer: optional post-completion redirect -----------------------------------------------
+// complete(..., kickAfter: seconds) schedules a timer that, on expiry, stamps the completion code onto
+// v.immediatelySubmitCode -- the field the client watches (registerForceSubmitEvent, gated by the
+// forceSubmit opt) to force a redirect to the Prolific submit URL. `v.timers` / `v.immediatelySubmit-
+// Code` are plain top-level vertex props (not gremlin-pipe names), so reading them here is safe.
+
+test.async("complete with kickAfter stamps immediatelySubmitCode onto the vertex after the delay", 4000) { done ->
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
+  def v = g.addPlayer('kick-prolific-1')
+  rc.admit(v)
+  rc.complete(v, [completionCode: 'KICKCODE', kickAfter: 0.1])   // 100ms
+  assert v.immediatelySubmitCode == null    // not stamped synchronously -- the timer hasn't fired yet
+  timers.newTimer().runAfter(700) {
+    done {
+      assert v.immediatelySubmitCode == 'KICKCODE'
+    }
+  }
+}
+
+test("complete without kickAfter schedules no kick timer and leaves immediatelySubmitCode unset") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
+  def v = g.addPlayer('kick-prolific-2')
+  rc.admit(v)
+  rc.complete(v, [completionCode: 'NOKICK'])
+  assert v.immediatelySubmitCode == null
+  assert v.timers == null || v.timers.isEmpty()
+}
+
+test("complete with kickAfter <= 0 schedules no kick timer") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
+  def v = g.addPlayer('kick-prolific-3')
+  rc.admit(v)
+  rc.complete(v, [completionCode: 'ZERO', kickAfter: 0])
+  assert v.immediatelySubmitCode == null
+  assert v.timers == null || v.timers.isEmpty()
+}
+
+test("kickAfter on an MTurk completion is skipped (no completion code to redirect with)") {
+  // The immediatelySubmitCode redirect is Prolific-specific: without a completion code there is nothing
+  // to build ?cc=<code> from, so _scheduleKick bails rather than sending the participant to ?cc=null.
+  // (Also confirms kickAfter is stripped before the provider -- MTurkCompleteOpts has no such field.)
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new MturkProvider())
+  def v = g.addPlayer('kick-mturk-1')
+  rc.admit(v)
+  rc.complete(v, [bonus: 1.0, kickAfter: 0.1])
+  assert v._system.recruitment.completionCode == null
+  assert v.immediatelySubmitCode == null
+  assert v.timers == null || v.timers.isEmpty()
+}

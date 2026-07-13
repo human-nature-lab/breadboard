@@ -35,6 +35,16 @@ test("configureFrontend enables screen tracking when trackScreen is set") {
   assert v._system.frontend.prolific != true
 }
 
+test("configureFrontend writes the forceSubmit flag into _system.frontend") {
+  // forceSubmit turns on the client's post-completion redirect (useBreadboard reads
+  // _system.frontend.forceSubmit); it pairs with recruitment.complete(..., kickAfter: N).
+  def v = g.addPlayer('cf-forcesubmit-1')
+  configureFrontend(v, [forceSubmit: true])
+  assert v._system.frontend.forceSubmit == true
+  assert v._system.frontend.prolific != true      // not requested -> not enabled
+  assert v._system.frontend.trackScreen != true
+}
+
 // --- kickPlayers ---------------------------------------------------------------------------------
 
 test("kickPlayers marks _system.status = 'kicked' so the client redirect fires") {

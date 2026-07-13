@@ -30,10 +30,14 @@ export async function ensureProlificParams (source: () => Player) {
   sendUrlParams()
 }
 
-export async function registerForceSubmitEvent (source: () => Player) {
-  watch(source, p => {
-    if (p && p.immediatelySubmitCode) {
-      window.location.href = `https://app.prolific.com/submissions/complete?cc=${p.immediatelySubmitCode}`
+export async function registerForceSubmitEvent (source: () => Player | null) {
+  // Watch the code VALUE, not the player object's identity. usePlayer.patchPlayer swaps player.value
+  // for a fresh object the first time a brand-new key (like immediatelySubmitCode) appears, so a watch
+  // keyed on a captured player snapshot would go stale and never fire. `source()` must read the live
+  // ref each call so the getter re-tracks after that reassignment.
+  watch(() => source()?.immediatelySubmitCode, code => {
+    if (code) {
+      window.location.href = `https://app.prolific.com/submissions/complete?cc=${code}`
     }
   }, { immediate: true })
 }

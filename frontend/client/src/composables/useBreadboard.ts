@@ -47,10 +47,12 @@ export function useBreadboard (player: Ref<PlayerData | null>, opts: Opts = {}) 
     )
   }
 
-  function applyForceSubmit (p: PlayerData) {
+  function applyForceSubmit () {
     if (applied.forceSubmit) return
     applied.forceSubmit = true
-    registerForceSubmitEvent(() => p)
+    // Read the live player ref, not a captured snapshot: usePlayer reassigns player.value to a new
+    // object when immediatelySubmitCode first arrives (see registerForceSubmitEvent).
+    registerForceSubmitEvent(() => player.value)
   }
 
   // Re-send the current screen info whenever the player advances a step. Only
@@ -70,7 +72,7 @@ export function useBreadboard (player: Ref<PlayerData | null>, opts: Opts = {}) 
     if (!p) return
     if (opts.prolific) applyProlific(p)
     if (opts.trackScreen) applyTrackScreen(p)
-    if (opts.forceSubmit) applyForceSubmit(p)
+    if (opts.forceSubmit) applyForceSubmit()
     stopInitWatch()
   }, { immediate: true })
 
@@ -82,6 +84,7 @@ export function useBreadboard (player: Ref<PlayerData | null>, opts: Opts = {}) 
     if (!p || !frontend) return
     if (frontend.prolific) applyProlific(p)
     if (frontend.trackScreen) applyTrackScreen(p)
+    if (frontend.forceSubmit) applyForceSubmit()
   }, { immediate: true, deep: true })
 
   if (opts.kick) {

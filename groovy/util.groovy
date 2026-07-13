@@ -179,6 +179,11 @@ def trackPlayerScreen = { Vertex v ->
 class FrontendConfigOpts {
   Boolean trackScreen
   Boolean prolific
+  // Enables the client's force-submit redirect (useBreadboard's forceSubmit feature): once on, the
+  // client watches v.immediatelySubmitCode and force-redirects to the Prolific submit URL when it is
+  // set -- e.g. by recruitment.complete(..., kickAfter: N). Set this from the backend so an experiment
+  // gets the post-completion kick without editing its client bundle.
+  Boolean forceSubmit
 }
 
 configureFrontend = { Vertex v, Map opts ->
@@ -186,6 +191,7 @@ configureFrontend = { Vertex v, Map opts ->
   _ensureSystem(v, 'frontend')
   v._system.frontend.trackScreen = config.trackScreen
   v._system.frontend.prolific = config.prolific
+  v._system.frontend.forceSubmit = config.forceSubmit
   if (config.trackScreen) {
     trackPlayerScreen(v)
   }

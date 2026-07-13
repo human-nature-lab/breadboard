@@ -79,4 +79,25 @@ describe('useBreadboard', () => {
 
     expect(trackScreen).not.toHaveBeenCalled()
   })
+
+  it('force-submits (redirects) when the backend sets _system.frontend.forceSubmit', async () => {
+    // configureFrontend(v, [forceSubmit: true]) lands as _system.frontend.forceSubmit; once armed, the
+    // client redirects as soon as immediatelySubmitCode arrives (e.g. from a kickAfter timer).
+    vi.stubGlobal('location', { href: '' })
+    try {
+      const player = ref<any>(null)
+      useBreadboard(player)
+
+      player.value = { _system: { frontend: { forceSubmit: true } } }
+      await nextTick()
+      expect(window.location.href).toBe('')            // armed, but no code yet
+
+      // A brand-new key -> usePlayer would hand us a fresh object; mimic that whole-object swap.
+      player.value = { _system: { frontend: { forceSubmit: true } }, immediatelySubmitCode: 'CC9' }
+      await nextTick()
+      expect(window.location.href).toBe('https://app.prolific.com/submissions/complete?cc=CC9')
+    } finally {
+      vi.unstubAllGlobals()
+    }
+  })
 })

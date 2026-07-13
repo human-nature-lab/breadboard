@@ -386,13 +386,55 @@ class RecruitmentController extends BreadboardBase {
     if (v._system.recruitment.source == null) {
       throw new IllegalArgumentException("Cannot complete a participant that was never admitted; call recruitment.admit(v) first")
     }
+    // 'kickAfter' / 'kickMessage' are cross-cutting completion opts handled here (the post-completion
+    // redirect timer below), not by the provider. Strip them before onComplete so the provider's strict
+    // opts holder (e.g. ProlificCompleteOpts, built from this map) doesn't throw on an unknown key.
+    def providerOpts = opts
+    if (opts.containsKey('kickAfter') || opts.containsKey('kickMessage')) {
+      providerOpts = new LinkedHashMap(opts)
+      providerOpts.remove('kickAfter')
+      providerOpts.remove('kickMessage')
+    }
     // Validate + stamp the provider-specific fields FIRST, so a bad-opts failure (e.g. a missing
     // completion code) leaves no half-completed state behind.
-    this.provider.onComplete(v, opts)
+    this.provider.onComplete(v, providerOpts)
     v._system.recruitment.completed = true
     v._system.recruitment.completedAt = DateTime.now()
     setVertexStatus(v, 'completed')
     this.clientCompleted(v.id)
+    this._scheduleKick(v, opts.kickAfter, opts.kickMessage)
+  }
+
+  // --- kick timer (optional post-completion redirect) ------------------------------------------
+
+  // Optionally schedule a "kick": kickAfter seconds after completion, stamp the recorded completion
+  // code onto v.immediatelySubmitCode. The client watches that field (registerForceSubmitEvent, gated
+  // by useBreadboard's `forceSubmit` opt) and force-redirects the participant to the Prolific submit
+  // URL -- i.e. this is how complete(..., kickAfter: N) boots a finished participant off the finish
+  // screen after a grace period. A visible countdown shows on the finish screen for free (BBMain
+  // renders PlayerTimers once the participant is completed); override its label with `kickMessage`.
+  //
+  // No-op unless kickAfter is a positive number AND a completion code was recorded: the redirect is
+  // Prolific-specific (it builds ?cc=<code>), so an MTurk completion (no code) is skipped with a
+  // warning rather than sending the participant to ?cc=null. Reads the code now -- onComplete stamped
+  // it a few lines above. The kick is not sticky/terminal: it never touches _system.status, so it can
+  // never downgrade the 'completed' status it rides on.
+  private _scheduleKick(Vertex v, kickAfter, kickMessage) {
+    if (!(kickAfter instanceof Number) || kickAfter <= 0) return
+    def code = v._system.recruitment.completionCode
+    if (code == null) {
+      println "[recruitment] kickAfter set for ${v.id} but no completion code recorded; skipping kick redirect"
+      return
+    }
+    new SharedTimer([
+      time: kickAfter,
+      player: v,
+      direction: 'down',
+      timerText: (kickMessage != null ? kickMessage : 'Redirecting in'),
+      result: {
+        v.immediatelySubmitCode = code
+      }
+    ])
   }
 
   // --- complete all ----------------------------------------------------------------------------
