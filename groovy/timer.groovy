@@ -54,6 +54,7 @@ class BBScheduledTimer {
   }
 
   void runAfter (long delay, Closure closure) {
+    if (cancelled) return
     tasks << Akka.system().scheduler().scheduleOnce(
       Duration.create(Math.max(0L, delay), TimeUnit.MILLISECONDS),
       new GroovyTimerTask(closure: {
@@ -69,6 +70,7 @@ class BBScheduledTimer {
   }
 
   void scheduleAtFixedRate (Runnable task, long delay, long period) {
+    if (cancelled) return
     tasks << Akka.system().scheduler().schedule(
       Duration.create(Math.max(0L, delay), TimeUnit.MILLISECONDS),
       Duration.create(period, TimeUnit.MILLISECONDS),
@@ -155,7 +157,11 @@ timers = new BBTimers()
 BBTimer.registry = timers
 BBScheduledTimer.registry = timers
 BBScheduledTimer.callbackContext = ExecutionContexts.fromExecutorService(
-  Executors.newCachedThreadPool({ r -> new Thread(r, "shared-timer-callback") } as ThreadFactory))
+  Executors.newCachedThreadPool({ r ->
+    def t = new Thread(r, "shared-timer-callback")
+    t.setDaemon(true)
+    return t
+  } as ThreadFactory))
 
 class GroovyTimerTask extends TimerTask {
   Closure closure

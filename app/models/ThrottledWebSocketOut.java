@@ -10,7 +10,7 @@ public class ThrottledWebSocketOut {
     this.out = out;
   }
 
-  public void write(JsonNode message) {
+  public synchronized void write(JsonNode message) {
     out.write(message);
   }
 
