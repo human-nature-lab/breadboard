@@ -6,8 +6,8 @@ import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class EventGraphChangedListener implements BreadboardGraphChangedListener {
   private Graph graph;
@@ -16,7 +16,12 @@ public class EventGraphChangedListener implements BreadboardGraphChangedListener
   // ScriptBoard, so clients from one game/user leaked into another's dispatch and the
   // map could never be safely cleared. Per-instance state is cleared on reload via
   // ScriptBoard.disconnectClients -> removeClientListener.
-  private final HashMap<String, Client> clientListeners = new HashMap<>();
+  // ConcurrentHashMap, not HashMap: the client dispatch paths (clientEdgeChanged /
+  // clientVertexChanged) read this map while WebSocket connect/disconnect threads call
+  // addClientListener/removeClientListener. A plain HashMap can throw
+  // ConcurrentModificationException under concurrent-user churn (see
+  // IteratedBreadboardGraphChangedListener); CHM's iterator is weakly consistent.
+  private final Map<String, Client> clientListeners = new ConcurrentHashMap<>();
 
   public EventGraphChangedListener(Graph graph) {
     this.graph = graph;
@@ -47,7 +52,7 @@ public class EventGraphChangedListener implements BreadboardGraphChangedListener
   }
 
   // Exposed for tests/diagnostics (mirrors IteratedBreadboardGraphChangedListener).
-  public HashMap<String, Client> getClientListeners() {
+  public Map<String, Client> getClientListeners() {
     return this.clientListeners;
   }
 

@@ -19,15 +19,19 @@ import play.data.format.Formats;
 import play.data.validation.Constraints;
 import play.db.ebean.Model;
 import play.libs.Json;
+import security.PathSafety;
 
 import javax.persistence.*;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 @Entity
 @EntityConcurrencyMode(ConcurrencyMode.NONE)
@@ -166,6 +170,30 @@ public class Experiment extends Model {
     return returnString;
   }
 
+  /**
+   * Build a {@link File} inside this experiment's dev directory, guarding against path traversal that
+   * a malicious experiment name could introduce via {@link #getDirectoryName()} (the name is set
+   * straight from request params and only has spaces replaced, so "../" survives). Returns null if
+   * the resolved path would escape the dev directory; callers must treat null as "not available".
+   *
+   * <p>Public so the (unauthenticated) image-serving endpoint can reuse the same guard instead of
+   * rebuilding the dev path by hand — see {@code ImagesController.getImageByFileName}.
+   */
+  public File devPath(String... segments) {
+    Path devRoot = new File(Play.application().path(), "dev").toPath();
+    StringBuilder child = new StringBuilder(getDirectoryName());
+    for (String segment : segments) {
+      child.append('/').append(segment);
+    }
+    Path safe = PathSafety.resolveContained(devRoot, child.toString());
+    if (safe == null) {
+      Logger.error("Refusing to access path outside the dev directory for experiment " + this.id
+          + " (name='" + this.name + "')");
+      return null;
+    }
+    return safe.toFile();
+  }
+
   public void setFileMode(Boolean fileMode) {
     this.fileMode = fileMode;
   }
@@ -173,8 +201,8 @@ public class Experiment extends Model {
   public List<Image> getImages() {
     if (this.fileMode) {
       ArrayList<Image> returnImages = new ArrayList<>();
-      File imagesDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/Images");
-      if (imagesDirectory.isDirectory()) {
+      File imagesDirectory = devPath("Images");
+      if (imagesDirectory != null && imagesDirectory.isDirectory()) {
         try {
           returnImages = ExperimentController.getImagesFromDirectory(imagesDirectory);
         } catch (IOException ioe) {
@@ -190,8 +218,8 @@ public class Experiment extends Model {
   public List<Content> getContent() {
     if (this.fileMode) {
       ArrayList<Content> returnContent = new ArrayList<>();
-      File contentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/Content");
-      if (contentDirectory.isDirectory()) {
+      File contentDirectory = devPath("Content");
+      if (contentDirectory != null && contentDirectory.isDirectory()) {
         try {
           returnContent = ExperimentController.getContentFromDirectory(contentDirectory);
         } catch (IOException ioe) {
@@ -228,12 +256,14 @@ public class Experiment extends Model {
   public String getStyle() {
     if (this.fileMode) {
       String returnStyle = "";
-      try {
-        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
-        returnStyle = FileUtils.readFileToString(new File(devDirectory, "style.css"));
-      } catch (IOException ioe) {
-        Logger.error("Error reading style.css file from the dev directory, check your permissions.");
-        Logger.debug(ioe.getMessage());;
+      File styleFile = devPath("style.css");
+      if (styleFile != null) {
+        try {
+          returnStyle = FileUtils.readFileToString(styleFile);
+        } catch (IOException ioe) {
+          Logger.error("Error reading style.css file from the dev directory, check your permissions.");
+          Logger.debug(ioe.getMessage());;
+        }
       }
       return returnStyle;
     } else {
@@ -244,12 +274,14 @@ public class Experiment extends Model {
   public String getClientHtml() {
     if (this.fileMode) {
       String returnClientHtml = "";
-      try {
-        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
-        returnClientHtml = FileUtils.readFileToString(new File(devDirectory, "client-html.html"));
-      } catch (IOException ioe) {
-        Logger.error("Error reading client-html.html file from the dev directory, check your permissions.");
-        Logger.debug(ioe.getMessage());;
+      File clientHtmlFile = devPath("client-html.html");
+      if (clientHtmlFile != null) {
+        try {
+          returnClientHtml = FileUtils.readFileToString(clientHtmlFile);
+        } catch (IOException ioe) {
+          Logger.error("Error reading client-html.html file from the dev directory, check your permissions.");
+          Logger.debug(ioe.getMessage());;
+        }
       }
       return returnClientHtml;
     } else {
@@ -257,15 +289,38 @@ public class Experiment extends Model {
     }
   }
 
+  // --- Image reference stability across export/import -------------------------------------------
+  // Content translations should reference uploaded images through the {{imageBase}} placeholder
+  // instead of a literal /images/<id> prefix. The experiment id changes whenever an experiment is
+  // exported and re-imported, so a stored literal id breaks every image link on import. We keep the
+  // placeholder in stored/exported content (edit and export paths see it verbatim) and substitute the
+  // current id only when serving to a participant.
+  private static final Pattern IMAGE_BASE_TOKEN = Pattern.compile("\\{\\{\\s*imageBase\\s*\\}\\}");
+
+  /**
+   * Replace the {{imageBase}} placeholder with this experiment's image URL prefix (/images/<id>).
+   * Call only on the runtime serving path, never on the edit/export path (which must preserve the
+   * placeholder so image links survive a round-trip through export/import).
+   */
+  public String expandImageBase(String markup) {
+    if (markup == null || this.id == null) {
+      return markup;
+    }
+    String base = "/images/" + this.id;
+    return IMAGE_BASE_TOKEN.matcher(markup).replaceAll(Matcher.quoteReplacement(base));
+  }
+
   public String getClientGraph() {
     if (this.fileMode) {
       String returnClientGraph = "";
-      try {
-        File devDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
-        returnClientGraph = FileUtils.readFileToString(new File(devDirectory, "client-graph.js"));
-      } catch (IOException ioe) {
-        Logger.error("Error reading client-graph.js file from the dev directory, check your permissions.");
-        Logger.debug(ioe.getMessage());;
+      File clientGraphFile = devPath("client-graph.js");
+      if (clientGraphFile != null) {
+        try {
+          returnClientGraph = FileUtils.readFileToString(clientGraphFile);
+        } catch (IOException ioe) {
+          Logger.error("Error reading client-graph.js file from the dev directory, check your permissions.");
+          Logger.debug(ioe.getMessage());;
+        }
       }
       return returnClientGraph;
     } else {
@@ -276,12 +331,14 @@ public class Experiment extends Model {
   public List<Step> getSteps() {
     if (this.fileMode) {
       ArrayList<Step> returnSteps = new ArrayList<>();
-      File stepsDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/steps");
-      try {
-        returnSteps = ExperimentController.getStepsFromDirectory(stepsDirectory);
-      } catch (IOException ioe) {
-        Logger.error("Error reading Steps from " + stepsDirectory + ", check your permissions.");
-        Logger.debug(ioe.getMessage());;
+      File stepsDirectory = devPath("steps");
+      if (stepsDirectory != null) {
+        try {
+          returnSteps = ExperimentController.getStepsFromDirectory(stepsDirectory);
+        } catch (IOException ioe) {
+          Logger.error("Error reading Steps from " + stepsDirectory + ", check your permissions.");
+          Logger.debug(ioe.getMessage());;
+        }
       }
       return returnSteps;
     } else {
@@ -304,7 +361,16 @@ public class Experiment extends Model {
   }
 
   public void toggleFileMode(User user) {
-    File experimentDirectory = new File(Play.application().path().toString() + "/dev/" + getDirectoryName());
+    // devPath() guards against a malicious experiment name escaping the dev directory — important
+    // here because this method deletes and recreates experimentDirectory during import/export.
+    File experimentDirectory = devPath();
+    if (experimentDirectory == null) {
+      // devPath() already logged the traversal refusal; make the abandoned toggle explicit so an
+      // operator can see why fileMode did not change rather than it silently doing nothing.
+      Logger.error("toggleFileMode aborted for experiment " + this.id + " (name='" + this.name
+          + "'): its dev directory escapes the dev root, so fileMode was left unchanged.");
+      return;
+    }
     try {
       if (this.fileMode) {
         // Turning fileMode off, let's import the files into the current experiment
@@ -513,12 +579,14 @@ public class Experiment extends Model {
   public List<Parameter> getParameters() {
     if (this.fileMode) {
       ArrayList<Parameter> returnParameters = new ArrayList<>();
-      File parameterFile = new File(Play.application().path().toString() + "/dev/" + getDirectoryName() + "/parameters.csv");
-      try {
-        returnParameters = ExperimentController.getParametersFromFile(parameterFile);
-      } catch (IOException ioe) {
-        Logger.error("Error reading " + parameterFile + " from the dev directory, check your permissions.");
-        Logger.debug(ioe.getMessage());;
+      File parameterFile = devPath("parameters.csv");
+      if (parameterFile != null) {
+        try {
+          returnParameters = ExperimentController.getParametersFromFile(parameterFile);
+        } catch (IOException ioe) {
+          Logger.error("Error reading " + parameterFile + " from the dev directory, check your permissions.");
+          Logger.debug(ioe.getMessage());;
+        }
       }
       return returnParameters;
 

@@ -5,6 +5,7 @@ import com.tinkerpop.blueprints.util.wrappers.event.EventVertex
 import com.tinkerpop.gremlin.groovy.Gremlin
 import com.tinkerpop.pipes.Pipe
 import java.text.DecimalFormat
+import groovy.transform.ToString
 import static java.math.RoundingMode.UP
 
 // This defines a 'neighbors' property of a vertex that returns the collection of connected vertices
@@ -103,4 +104,104 @@ BreadboardBase.metaClass.fetchContent = { Map opts ->
  */
 BreadboardBase.metaClass.addEvent = { String name, Map data -> 
   a.addEvent(name, data)
+}
+
+_ensureSystem = { Vertex v, String key ->
+  // Use the real property/key accessors: hasProperty() on a vertex or a Map checks for a *bean
+  // property*, not a graph property or a map key, so it always reported "missing" and clobbered
+  // any existing _system[key] (e.g. wiping the source that register* set before complete* runs).
+  if (v.getProperty('_system') == null) {
+    v._system = [:] as ObservableMap
+  }
+  if (!v._system.containsKey(key)) {
+    v._system[key] = [:] as ObservableMap
+  }
+}
+
+BreadboardBase.metaClass._ensureSystem = _ensureSystem
+
+// --- vertex lifecycle status (study-level) --------------------------------------------------------
+// Every vertex carries a single study-level lifecycle flag at _system.status -- the one flag used
+// throughout breadboard (group membership, the kick redirect, recruitment completion; the frontend
+// reads _system.status directly):
+//   'active'    -- still participating (the default, stamped on every vertex at creation)
+//   'completed' -- finished the study successfully
+//   'kicked'    -- removed by an admin
+//   'dropped'   -- left / abandoned without completing
+// 'active' is the only non-terminal value; the other three are terminal ("inactive" == not active).
+STATUS_ACTIVE    = 'active'
+STATUS_COMPLETED = 'completed'
+STATUS_KICKED    = 'kicked'
+STATUS_DROPPED   = 'dropped'
+
+// Set a vertex's study-level status. Terminal statuses (completed/kicked/dropped) are sticky: once
+// set, a vertex cannot move to a DIFFERENT status (re-asserting the same one is a no-op). Kept
+// self-contained (no other script-binding references) so it also works when invoked as a
+// BreadboardBase method (e.g. from the recruitment controller).
+setVertexStatus = { Vertex v, String status ->
+  if (v == null) return null
+  def allStatuses = ['active', 'completed', 'kicked', 'dropped'] as Set
+  def terminalStatuses = ['completed', 'kicked', 'dropped'] as Set
+  if (!allStatuses.contains(status)) {
+    throw new IllegalArgumentException("Unknown vertex status '${status}' (expected one of ${allStatuses})")
+  }
+  if (v.getProperty('_system') == null) v._system = [:]
+  def current = v._system.status
+  if (current != null && current != status && terminalStatuses.contains(current)) {
+    println "[status] refusing to move vertex ${v.id} from terminal '${current}' to '${status}'"
+    return current
+  }
+  v._system.status = status
+  return status
+}
+BreadboardBase.metaClass.setVertexStatus = setVertexStatus
+
+// Convenience wrappers + an "is this node still participating?" predicate (binding-scope helpers;
+// class contexts should call setVertexStatus directly).
+markActive     = { Vertex v -> setVertexStatus(v, 'active') }
+markCompleted  = { Vertex v -> setVertexStatus(v, 'completed') }
+markKicked     = { Vertex v -> setVertexStatus(v, 'kicked') }
+markDropped    = { Vertex v -> setVertexStatus(v, 'dropped') }
+isVertexActive = { Vertex v -> v?.getProperty('_system')?.status == 'active' }
+
+// This tracks lots of information about the screen and sends it to the backend
+def trackPlayerScreen = { Vertex v ->
+  player.on("system-screen-tracker", { ev, data ->
+    data.groupCondition = ev.private.condition
+    data.groupId = ev.private.groupId
+    data.playerId = ev.id
+    a.addEvent("screen-tracker", data)
+  })
+}
+
+
+@ToString(includeNames = true)
+class FrontendConfigOpts {
+  Boolean trackScreen
+  Boolean prolific
+  // Enables the client's force-submit redirect (useBreadboard's forceSubmit feature): once on, the
+  // client watches v.immediatelySubmitCode and force-redirects to the Prolific submit URL when it is
+  // set -- e.g. by recruitment.complete(..., kickAfter: N). Set this from the backend so an experiment
+  // gets the post-completion kick without editing its client bundle.
+  Boolean forceSubmit
+}
+
+configureFrontend = { Vertex v, Map opts ->
+  FrontendConfigOpts config = opts as FrontendConfigOpts
+  _ensureSystem(v, 'frontend')
+  v._system.frontend.trackScreen = config.trackScreen
+  v._system.frontend.prolific = config.prolific
+  v._system.frontend.forceSubmit = config.forceSubmit
+  if (config.trackScreen) {
+    trackPlayerScreen(v)
+  }
+}
+
+// Send the kick event to the specified players
+kickPlayers = { ...playerIds ->
+  playerIds.each { playerId ->
+    def vertex = g.getVertex(playerId)
+    vertex.send("kick")
+    setVertexStatus(vertex, 'kicked')
+  }
 }

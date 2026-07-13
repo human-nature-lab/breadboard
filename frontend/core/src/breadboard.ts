@@ -6,6 +6,11 @@ import { Socket } from './socket'
 
 const MAKE_CHOICE = 'MakeChoice'
 const CUSTOM_EVENT = 'CustomEvent'
+// Group-scoped choices don't exist in the platform's global action map, so they
+// can't be resolved via MAKE_CHOICE / a.choose(uid). Instead the click is sent as
+// a custom event that the group's own handler listens for. Must stay in sync with
+// Games.SUBMIT_EVENT in groovy/groups.groovy.
+const GROUP_CHOICE_EVENT = 'group-action-submit'
 
 export class BreadboardClass extends Emitter implements BreadboardMessages {
 
@@ -95,6 +100,23 @@ export class BreadboardClass extends Emitter implements BreadboardMessages {
       data.params = JSON.stringify(params)
     }
     return this.sendType(MAKE_CHOICE, data)
+  }
+
+  /**
+   * Shortcut for submitting a group-scoped choice. Unlike sendChoice (which the
+   * server resolves against the global action map via a.choose(uid)), this routes
+   * the click through the custom-event bus to the group's own handler. The server
+   * delivers `data` to the player-scoped GROUP_CHOICE_EVENT listener, which matches
+   * on `uid`. See the per-ask listener installed by Game.ask in groovy/groups.groovy.
+   * @param uuid the uid of the group choice the player picked
+   * @param params optional extra payload forwarded to the group handler
+   */
+  sendGroupChoice (uuid: string, params?: SimpleMap<any>) {
+    const data: SimpleMap<any> = { uid: uuid }
+    if (params) {
+      data.params = params
+    }
+    return this.send(GROUP_CHOICE_EVENT, data)
   }
 
   getCustomParams () {

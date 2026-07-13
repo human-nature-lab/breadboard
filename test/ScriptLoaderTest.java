@@ -1,5 +1,6 @@
 import models.EventBus;
 import models.EventTracker;
+import models.ExperimentContext;
 import models.GameListener;
 import models.ScriptLoader;
 import org.junit.Test;
@@ -32,7 +33,7 @@ public class ScriptLoaderTest {
         File dir = Files.createTempDirectory("bb-scripts").toFile();
         for (String n : new String[] {
             "util.groovy", "timer.groovy", "actions.groovy",   // core, intentionally out of order
-            "zeta.groovy", "alpha.groovy", "groups.groovy",     // non-core
+            "zeta.groovy", "alpha.groovy", "beta.groovy",       // non-core (synthetic names, not real core scripts)
             "my_test.groovy", "notes.txt"                        // must be skipped
         }) {
             assertTrue(new File(dir, n).createNewFile());
@@ -42,10 +43,53 @@ public class ScriptLoaderTest {
 
         // Core files first in CORE_ORDER (only those present: util, timer, actions), then the
         // remaining *.groovy alphabetically. Test scripts and non-groovy files are excluded.
+        // Synthetic non-core names are used so this test stays decoupled from which real scripts
+        // are core (e.g. groups.groovy is core, so it would NOT sort alphabetically here).
         assertEquals(Arrays.asList(
             "util.groovy", "timer.groovy", "actions.groovy",
-            "alpha.groovy", "groups.groovy", "zeta.groovy"
+            "alpha.groovy", "beta.groovy", "zeta.groovy"
         ), order);
+    }
+
+    @Test
+    public void resolveLoadOrderGatesExperimentalScriptsOnTheFlag() throws Exception {
+        File dir = Files.createTempDirectory("bb-scripts-exp").toFile();
+        // an experimental script alongside a core and a plain non-core script
+        String experimental = ScriptLoader.EXPERIMENTAL_SCRIPTS.iterator().next();
+        for (String n : new String[] { "util.groovy", "alpha.groovy", experimental }) {
+            assertTrue(new File(dir, n).createNewFile());
+        }
+        assertTrue(ScriptLoader.isExperimental(experimental));
+        assertFalse(ScriptLoader.isExperimental("alpha.groovy"));
+
+        // off: experimental script is excluded; everything else loads as usual
+        assertFalse(ScriptLoader.resolveLoadOrder(dir, false).contains(experimental));
+        assertEquals(Arrays.asList("util.groovy", "alpha.groovy"),
+            ScriptLoader.resolveLoadOrder(dir, false));
+
+        // on (and the no-flag overload, which defaults on): experimental script is included
+        assertTrue(ScriptLoader.resolveLoadOrder(dir, true).contains(experimental));
+        assertTrue(ScriptLoader.resolveLoadOrder(dir).contains(experimental));
+    }
+
+    @Test
+    public void resolveLoadOrderGatesCoreExperimentalScriptsButKeepsCoreOrdering() throws Exception {
+        File dir = Files.createTempDirectory("bb-scripts-core-exp").toFile();
+        // groups.groovy is both core (order-sensitive) and experimental (gated)
+        String coreExp = "groups.groovy";
+        assertTrue(ScriptLoader.isCore(coreExp));
+        assertTrue(ScriptLoader.isExperimental(coreExp));
+        for (String n : new String[] { "util.groovy", "events.groovy", coreExp, "zeta.groovy" }) {
+            assertTrue(new File(dir, n).createNewFile());
+        }
+
+        // off: the core+experimental script is excluded; the rest keep core-then-alpha order
+        assertEquals(Arrays.asList("util.groovy", "events.groovy", "zeta.groovy"),
+            ScriptLoader.resolveLoadOrder(dir, false));
+
+        // on: it loads in its core position (after events, before the non-core zeta)
+        assertEquals(Arrays.asList("util.groovy", "events.groovy", "groups.groovy", "zeta.groovy"),
+            ScriptLoader.resolveLoadOrder(dir, true));
     }
 
     @Test
@@ -110,6 +154,10 @@ public class ScriptLoaderTest {
         b.put("eventTracker", eventTracker);
         b.put("gameListener", new GameListener());
         b.put("events", new EventBus());
+        // groups.groovy reads experimentContext.dataDir at load time to build its group-id sequence.
+        // A null-args ExperimentContext (dataDir == null) yields the in-memory sequence -- same as
+        // ScriptTestHarness binds. Without it, loading groups.groovy throws MissingPropertyException.
+        b.put("experimentContext", new ExperimentContext(null, null, null));
 
         // cwd is the project root under sbt, so the scripts live in ./groovy
         ScriptLoader.loadAll(engine, new File("groovy"));

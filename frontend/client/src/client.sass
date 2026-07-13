@@ -20,11 +20,15 @@ $dirs: ("t": "top", "b": "bottom", "r": "right", "l": "left")
 $types: ("p": "padding", "m": "margin")
 
 @each $d, $dir in ("h": "height", "w": "width")
-  @each $mod in ("-min", "-max", "")
+  // $mod is the class-name suffix (.h-min-*), $prop is the CSS property prefix.
+  // These differ: the property is `min-height`, not `height-min`.
+  @each $mod, $prop in ("-min": "min-", "-max": "max-", "": "")
     .#{$d}#{$mod}-full
-      #{$dir}#{$mod}: 100%
+      #{$prop}#{$dir}: 100%
     .#{$d}#{$mod}-screen
-      #{$dir}#{$mod}: 100v#{$d}
+      // Build the unit as a string ("vh"/"vw"); `100v#{$d}` would parse `100v`
+      // as a dimension and render `100v h` (with a stray space).
+      #{$prop}#{$dir}: #{"100v" + $d}
   @each $fStr, $fraction in $fractions
     .#{$d}-#{$fStr}
       #{$dir}: percentage($fraction)

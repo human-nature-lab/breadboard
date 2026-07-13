@@ -103,6 +103,8 @@ public class ContentFetcher {
         Logger.debug("getTranslated -> c == null");
       }
     }
-    return returnString;
+    // Runtime serving path: turn the {{imageBase}} placeholder into /images/<currentExperimentId>
+    // so image links keep working after an export/import assigns a new experiment id.
+    return selectedExperiment.expandImageBase(returnString);
   }
 }

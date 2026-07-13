@@ -1,7 +1,7 @@
 <template>
   <div class="choice">
     <div v-if="choice.custom" v-html="choice.custom" class="custom-choice"/>
-    <v-btn :disabled="disabled" class="default-choice" @click="sendClick">
+    <v-btn v-bind="choiceAttrs" :disabled="disabled" class="default-choice" @click="sendClick">
       <!-- Add something before the label -->
       <slot name="prepend" :choice="choice" :disabled="disabled"/>
       <!-- Replace the default label with your own label -->
@@ -55,7 +55,10 @@
     },
     computed: {
       choiceAttrs (): any {
-        const res: any = {}
+        // Props passed via the choice (e.g. from a group ask) are bound directly
+        // onto the button. `class` stays a dedicated key, merged on top so the
+        // static `default-choice` class is always preserved by Vue.
+        const res: any = { ...this.choice.props }
         if (this.choice.class) {
           res.class = this.choice.class
         }

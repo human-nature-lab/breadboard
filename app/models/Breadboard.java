@@ -252,13 +252,17 @@ public class Breadboard extends UntypedActor {
           // Add an Admin to the scriptBoardController
           scriptBoardController.tell(new AddAdmin(breadboardMessage.user, scriptBoardController, breadboardMessage.out), null);
 
-          // If the User has a selected experiment, select the experiment
-          if (breadboardMessage.user.selectedExperiment != null) {
-            Logger.debug("breadboardMessage.user.selectedExperiment = " + breadboardMessage.user.selectedExperiment);
-            breadboardController.tell(new SelectExperiment(breadboardMessage.user, breadboardMessage.user.selectedExperiment, breadboardMessage.out), null);
-          }
+          // Rebuild the script engine at most once on first login. SelectInstance already
+          // rebuilds the engine for the user's selected experiment and reloads its steps (and
+          // additionally re-inits params / starts the game), so when an instance will be
+          // selected the preceding SelectExperiment is pure duplication -- it would reload every
+          // Groovy DSL script a second time and flash a second ScriptEngineReloading/Reloaded
+          // cycle at the admin UI. Pick exactly one.
           if (breadboardMessage.user.experimentInstanceId != -1) {
             breadboardController.tell(new SelectInstance(breadboardMessage.user, breadboardMessage.user.experimentInstanceId, breadboardMessage.out), null);
+          } else if (breadboardMessage.user.selectedExperiment != null) {
+            Logger.debug("breadboardMessage.user.selectedExperiment = " + breadboardMessage.user.selectedExperiment);
+            breadboardController.tell(new SelectExperiment(breadboardMessage.user, breadboardMessage.user.selectedExperiment, breadboardMessage.out), null);
           }
         } else {
           //this is reconnect/refresh

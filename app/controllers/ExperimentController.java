@@ -1,7 +1,9 @@
 package controllers;
 
+import com.avaje.ebean.Ebean;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import models.*;
 
@@ -23,8 +25,14 @@ import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -82,7 +90,7 @@ public class ExperimentController extends Controller {
   }
 
   @Security.Authenticated(Secured.class)
-  public static Result importExperiment(String experimentName) throws IOException{
+  public static Result importExperiment(String experimentName, Long experimentId, boolean force) throws IOException{
 
     Http.MultipartFormData body = request().body().asMultipartFormData();
     Long maxUploadSize = play.Play.application().configuration().getLong("maxUploadSize", 50L * 1024L * 1024L);
@@ -112,14 +120,43 @@ public class ExperimentController extends Controller {
 
     String uid = session().get("uid");
     User user = User.findByUID(uid);
-    Experiment experiment = newExperiment(user, false);
-    experiment.name = experimentName;
-    experiment.save();
 
+    // When a positive experimentId is supplied we import "over" that existing experiment (the route
+    // defaults experimentId to 0; ids start at 1). Resolve and authorize the target up front, before
+    // we touch anything, so an unauthorized or missing target fails cleanly.
+    Experiment target = null;
+    boolean isOverwrite = experimentId != null && experimentId > 0;
+    if (isOverwrite) {
+      target = Experiment.findById(experimentId);
+      if (target == null) {
+        return notFound("No experiment found with that ID");
+      }
+      if (!userOwns(user, target)) {
+        return forbidden("You do not have permission to modify this experiment");
+      }
+      // A replace wipes and re-creates the target's design (steps/content/parameters/images). A
+      // RUNNING instance is actively executing games against that design, so swapping it out from
+      // under the run would corrupt it. The UI disables the Replace button while an instance is
+      // RUNNING, but the endpoint is the real boundary — enforce it here rather than trusting the
+      // client. (Instances and their collected data are otherwise preserved by the overwrite.)
+      for (ExperimentInstance ei : target.instances) {
+        if (ei.status == ExperimentInstance.Status.RUNNING) {
+          return badRequest("Cannot replace an experiment while one of its instances is running. "
+              + "Stop the run before replacing.");
+        }
+      }
+    }
+
+    // Scratch directory for this upload's extraction (always deleted in the finally below). It must be
+    // unique per request: the original flow used the experiment id to disambiguate, but extraction now
+    // runs BEFORE the experiment is created/resolved, so there is no id yet for a new import. A random
+    // token guarantees two same-named uploads in the same millisecond never share (and clobber) a dir.
     String timeString = new Date().getTime() + "";
-    String rootOutputFolder = "experiments/" + experiment.name + "_" + experiment.id + "_" + timeString;
+    String rootOutputFolder = "experiments/" + experimentName + "_" + timeString + "_" + UUID.randomUUID();
     String outputFolder = rootOutputFolder;
 
+    // Extract and validate the archive BEFORE making any destructive change, so a bad upload never
+    // leaves an existing experiment half-wiped.
     try {
       ZipFile zipFile = new ZipFile(zippedFile);
       zipFile.extractAll(outputFolder);
@@ -149,10 +186,13 @@ public class ExperimentController extends Controller {
           return badRequest(msg);
         }
       } else {
+        // Steps is the one folder every experiment has, so it's the marker of a valid archive.
+        // Content and Images are optional — an experiment with no content/images exports without
+        // those folders (see exportExperiment, which only writes entries that exist), and the import
+        // helpers below all tolerate their absence.
         File stepsDirectory = new File(outputFolder, "Steps");
-        File contentDirectory = new File(outputFolder, "Content");
-        if(!stepsDirectory.exists() || !contentDirectory.exists()){
-          String msg = "No Steps or Content directories found. Please upload a valid experiment";
+        if(!stepsDirectory.exists()){
+          String msg = "No Steps directory found. Please upload a valid experiment";
           Logger.debug(msg);
           deleteDirectory(new File(rootOutputFolder));
           return badRequest(msg);
@@ -162,29 +202,117 @@ public class ExperimentController extends Controller {
       e.printStackTrace();
     }
 
+    // Resolve the experiment we're importing into. For an overwrite we keep the existing experiment's
+    // identity (id/uid/name) and its runtime data (instances), but clear its current design resources
+    // so the import below re-creates them — replacing, adding and deleting as needed to match the
+    // archive. For a new import this is the original behaviour.
+    // Determine the export version from the optional .breadboard metadata. A missing or unreadable
+    // file is not an error — older exports without it default to the v2.2 importer.
+    String eVersion = null;
+    // The file hashes the archive recorded at export time (path -> sha256), used below to detect
+    // whether an overwrite target drifted since it was exported. Null when the archive predates this
+    // feature or has no .breadboard — in that case the drift check is simply skipped.
+    JsonNode expectedHashes = null;
     try{
       String dotBreadboard = readFile(outputFolder + File.separator + ".breadboard", StandardCharsets.UTF_8);
       ObjectMapper mapper = new ObjectMapper();
       JsonNode dotBreadboardJson = mapper.readTree(dotBreadboard);
-      String eVersion = dotBreadboardJson.findPath("version").textValue();
+      eVersion = dotBreadboardJson.findPath("version").textValue();
       String eUid = dotBreadboardJson.findPath("experimentUid").textValue();
       String eName = dotBreadboardJson.findPath("experimentName").textValue();
+      if (dotBreadboardJson.has("hashes") && dotBreadboardJson.get("hashes").isObject()) {
+        expectedHashes = dotBreadboardJson.get("hashes");
+      }
       // TODO: offer the option to import the Experiment UID and/or Name from the .breadboard file
 
       Logger.debug("Read .breadboard file: experimentVersion = " + eVersion + " experimentUid = " + eUid + " experimentName = " + eName);
-
-      if(eVersion.startsWith("v2.3") || eVersion.startsWith("v2.4")){
-        import23To23(experiment, user, outputFolder);
-      } else if (eVersion.startsWith("v2.2")) {
-        import22To23(experiment, user, outputFolder);
-      } else {
-        // Default to v2.2 import for now
-        import22To23(experiment, user, outputFolder);
-      }
     } catch(IOException e){
       Logger.debug("No .breadboard file present");
-      import22To23(experiment, user, outputFolder);
-    } finally{
+    }
+
+    // Apply the whole wipe-and-reimport inside a single transaction so a failure part way through
+    // never leaves the experiment partially wiped: either every change commits or none do.
+    Experiment experiment = null;
+    Ebean.beginTransaction();
+    try {
+      // Guard against clobbering edits made since the archive was exported. When replacing, the
+      // archive's .breadboard carries the file hashes captured at export time; if the target no
+      // longer matches them it was modified in the meantime, and overwriting would silently discard
+      // those changes. Refuse with 409 (listing what drifted) unless the caller passes force=true.
+      // This runs before any destructive change, so the rollback simply leaves the target untouched.
+      if (isOverwrite && expectedHashes != null && !force) {
+        String defaultLangCode = (user != null && user.defaultLanguage != null)
+            ? user.defaultLanguage.getCode() : "en";
+        ObjectNode currentHashes = computeExperimentHashes(target, defaultLangCode);
+        List<String> changes = diffHashes(expectedHashes, currentHashes);
+        if (!changes.isEmpty()) {
+          Ebean.rollbackTransaction();
+          Logger.warn("Refusing to replace experiment " + target.id + ": " + changes.size()
+              + " file(s) changed since the archive was exported. Pass force=true to override. "
+              + "Changes: " + changes);
+          ObjectNode conflict = Json.newObject();
+          conflict.put("conflict", true);
+          conflict.put("message", "This experiment has been modified since the file you're importing "
+              + "was exported. Replacing it will overwrite those changes.");
+          ArrayNode changed = conflict.putArray("changed");
+          for (String change : changes) {
+            changed.add(change);
+          }
+          return status(Http.Status.CONFLICT, conflict);
+        }
+      }
+
+      if (isOverwrite) {
+        // Keep the existing experiment's identity (id/uid/name) and runtime data (instances), but
+        // clear its current design resources so the import re-creates them — replacing, adding and
+        // deleting as needed to match the archive.
+        experiment = target;
+        experiment.setFileMode(false);
+        experiment.removeSteps();
+        experiment.removeContent();
+        experiment.removeParameters();
+        experiment.removeImages();
+        experiment.languages.clear();
+        experiment.save();
+        experiment.saveManyToManyAssociations("languages");
+      } else {
+        experiment = newExperiment(user, false);
+        experiment.name = experimentName;
+        experiment.save();
+      }
+
+      // Run the version-appropriate importer. A thrown IOException, or a false result (a helper that
+      // failed to import a resource), aborts the transaction so nothing is committed.
+      boolean imported;
+      if (eVersion != null && (eVersion.startsWith("v2.3") || eVersion.startsWith("v2.4") || eVersion.startsWith("v2.5"))) {
+        imported = import23To23(experiment, user, outputFolder);
+      } else {
+        // v2.2, or no/unknown version
+        imported = import22To23(experiment, user, outputFolder);
+      }
+      if (!imported) {
+        throw new IOException("The experiment archive could not be fully imported");
+      }
+
+      // Persist the language associations imported above (the import helpers add languages but rely
+      // on this to write the join rows / drop the ones removed during an overwrite).
+      experiment.saveManyToManyAssociations("languages");
+
+      // Only a brand new experiment needs to be associated with the user; an overwrite target
+      // already belongs to them.
+      if (!isOverwrite) {
+        user.ownedExperiments.add(experiment);
+        user.update();
+        user.saveManyToManyAssociations("ownedExperiments");
+      }
+
+      Ebean.commitTransaction();
+    } catch (Exception e) {
+      Ebean.rollbackTransaction();
+      Logger.error("Failed to import experiment; rolled back all changes", e);
+      return internalServerError("Failed to import the experiment: " + e.getMessage());
+    } finally {
+      Ebean.endTransaction();
       deleteDirectory(new File(rootOutputFolder));
     }
 
@@ -206,9 +334,15 @@ public class ExperimentController extends Controller {
       ZipEntry e;
 
       ObjectNode dotBreadboard = Json.newObject();
-      dotBreadboard.put("version", "v2.4.0");
+      dotBreadboard.put("version", "v2.5.0");
       dotBreadboard.put("experimentName", experiment.name);
       dotBreadboard.put("experimentUid", experiment.uid);
+      // Record a content hash for every exported file so a later "replace" import can detect whether
+      // the target drifted since this export — see importExperiment. Mirror the language fallback used
+      // for the Content entries written below so the hashed paths match the archived paths exactly.
+      String defaultLangCode = (user != null && user.defaultLanguage != null)
+          ? user.defaultLanguage.getCode() : "en";
+      dotBreadboard.set("hashes", computeExperimentHashes(experiment, defaultLangCode));
 
       e = new ZipEntry(".breadboard");
       zos.putNextEntry(e);
@@ -330,6 +464,9 @@ public class ExperimentController extends Controller {
     dotBreadboard.put("version", version);
     dotBreadboard.put("experimentName", experiment.name);
     dotBreadboard.put("experimentUid", experiment.uid);
+    // Record file hashes for drift detection on import. This exporter defaults missing content
+    // languages to "en" (see the Content loop below), so hash with the same fallback.
+    dotBreadboard.set("hashes", computeExperimentHashes(experiment, "en"));
 
     FileUtils.writeStringToFile(new File(directory, ".breadboard"), dotBreadboard.toString());
     FileUtils.writeStringToFile(new File(directory, "style.css"), experiment.getStyle());
@@ -374,6 +511,92 @@ public class ExperimentController extends Controller {
   }
 
   /**
+   * Compute a content hash for every file this experiment would export, keyed by the export-relative
+   * path (e.g. "Steps/onJoin.groovy", "Content/eng/intro.html", "style.css"). These hashes are
+   * written into the exported .breadboard so a later "replace" import can tell whether the target
+   * experiment drifted since the export (see {@link #importExperiment}). The path derivation MUST
+   * mirror the exporters, so {@code defaultLanguageCode} is the fallback used for content whose
+   * translation has no language — pass the same value the caller uses when laying out Content/.
+   */
+  public static ObjectNode computeExperimentHashes(Experiment experiment, String defaultLanguageCode) {
+    ObjectNode hashes = Json.newObject();
+    hashes.put("style.css", sha256(nullToEmpty(experiment.getStyle())));
+    hashes.put("client-html.html", sha256(nullToEmpty(experiment.getClientHtml())));
+    hashes.put("client-graph.js", sha256(nullToEmpty(experiment.getClientGraph())));
+    hashes.put("parameters.csv", sha256(nullToEmpty(experiment.parametersToCsv())));
+
+    for (Step step : experiment.getSteps()) {
+      hashes.put("Steps/" + step.name + ".groovy", sha256(nullToEmpty(step.source)));
+    }
+
+    for (Content c : experiment.getContent()) {
+      for (Translation t : c.translations) {
+        String language = (t.language == null || t.language.getCode() == null)
+            ? defaultLanguageCode : t.language.getCode();
+        hashes.put("Content/" + language + "/" + c.name + ".html", sha256(nullToEmpty(t.html)));
+      }
+    }
+
+    for (Image image : experiment.getImages()) {
+      hashes.put("Images/" + image.fileName, sha256(image.file == null ? new byte[0] : image.file));
+    }
+
+    return hashes;
+  }
+
+  /**
+   * Compare the file hashes recorded in an export's .breadboard ({@code expected}) against the target
+   * experiment's current hashes ({@code actual}). Returns a human-readable list of the paths that
+   * drifted — modified, removed or added — or an empty list when the target still matches the export.
+   */
+  private static List<String> diffHashes(JsonNode expected, ObjectNode actual) {
+    List<String> changes = new ArrayList<String>();
+    Iterator<Map.Entry<String, JsonNode>> fields = expected.fields();
+    while (fields.hasNext()) {
+      Map.Entry<String, JsonNode> entry = fields.next();
+      String path = entry.getKey();
+      JsonNode current = actual.get(path);
+      if (current == null) {
+        changes.add(path + " (removed)");
+      } else if (!current.textValue().equals(entry.getValue().textValue())) {
+        changes.add(path + " (modified)");
+      }
+    }
+    Iterator<String> currentPaths = actual.fieldNames();
+    while (currentPaths.hasNext()) {
+      String path = currentPaths.next();
+      if (!expected.has(path)) {
+        changes.add(path + " (added)");
+      }
+    }
+    return changes;
+  }
+
+  private static String nullToEmpty(String s) {
+    return s == null ? "" : s;
+  }
+
+  private static String sha256(String s) {
+    return sha256(s.getBytes(StandardCharsets.UTF_8));
+  }
+
+  private static String sha256(byte[] data) {
+    try {
+      MessageDigest md = MessageDigest.getInstance("SHA-256");
+      byte[] digest = md.digest(data);
+      StringBuilder sb = new StringBuilder(digest.length * 2);
+      for (byte b : digest) {
+        sb.append(Character.forDigit((b >> 4) & 0xF, 16));
+        sb.append(Character.forDigit(b & 0xF, 16));
+      }
+      return sb.toString();
+    } catch (NoSuchAlgorithmException e) {
+      // SHA-256 is a required algorithm on every conformant JVM, so this is unreachable.
+      throw new RuntimeException("SHA-256 not available", e);
+    }
+  }
+
+  /**
    * Specific import function for import v2.2 exports into v2.3 of breadboard. There are some small differences in the
    * export format that must be dealt with as well as breaking changes to the client-html and client-graph that are
    * avoided by simply not importing those files.
@@ -390,12 +613,28 @@ public class ExperimentController extends Controller {
     } catch(IOException e){
       Logger.error("Unable to read style.css", e);
     }
-    Logger.debug("Skipping client.html. Using default instead. Please merge any customizations by hand");
-    Logger.debug("Skipping client-graph.js. Using default instead. Please merge any customizations by hand.");
+    // Import the client html/graph when the archive provides them (the v2.3+ export filenames).
+    // Genuine v2.2 exports used a different, incompatible client format under a different filename
+    // ("client.html"), so they simply won't be found here and the experiment keeps its existing client
+    // code. But a modern export coming through this path -- e.g. when replacing an experiment with a
+    // file whose .breadboard version wasn't detected as v2.3/v2.4 -- gets its client html/graph applied
+    // instead of being silently skipped (which left a replaced experiment showing its old client code).
+    try {
+      experiment.setClientHtml(FileUtils.readFileToString(new File(directory, "client-html.html")));
+    } catch (IOException e) {
+      Logger.debug("No client-html.html to import; leaving the client HTML unchanged");
+    }
+    try {
+      experiment.setClientGraph(FileUtils.readFileToString(new File(directory, "client-graph.js")));
+    } catch (IOException e) {
+      Logger.debug("No client-graph.js to import; leaving the client graph unchanged");
+    }
 
-    // Import content
+    // Import content. Content is optional: a missing/empty Content folder is not an error, so guard
+    // against listFiles() returning null (the directory does not exist) before iterating.
     File contentDir = new File(directory, "/Content");
-    for (File langFileOrDir : contentDir.listFiles()){
+    File[] contentEntries = contentDir.listFiles();
+    for (File langFileOrDir : (contentEntries != null ? contentEntries : new File[0])){
       if(!langFileOrDir.isDirectory()){
         Logger.debug("Content is in root of Content directory. Attempting to import as default language.");
         try {
@@ -445,13 +684,10 @@ public class ExperimentController extends Controller {
       return false;
     }
 
-    // Write changes to DB
+    // Write changes to DB. The caller associates the experiment with the user (a brand new import)
+    // or leaves an overwrite target's ownership untouched.
     experiment.setFileMode(false);
     experiment.save();
-
-    user.ownedExperiments.add(experiment);
-    user.update();
-    user.saveManyToManyAssociations("ownedExperiments");
 
     return true;
   }
@@ -474,12 +710,9 @@ public class ExperimentController extends Controller {
     importParameters(experiment, new File(directory, "parameters.csv"));
     // Import Images
     importImages(experiment, new File(directory, "/Images"));
-    // Save
+    // Save. The caller associates the experiment with the user (a brand new import) or leaves an
+    // overwrite target's ownership untouched.
     experiment.save();
-
-    user.ownedExperiments.add(experiment);
-    user.update();
-    user.saveManyToManyAssociations("ownedExperiments");
 
     return true;
   }
@@ -702,6 +935,18 @@ public class ExperimentController extends Controller {
       }
     }
     return returnSteps;
+  }
+
+  private static boolean userOwns(User user, Experiment experiment) {
+    if (user == null || experiment == null) {
+      return false;
+    }
+    for (Experiment e : user.ownedExperiments) {
+      if (e.id != null && e.id.equals(experiment.id)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private static Experiment newExperiment(User user, Boolean isNewExperiment){

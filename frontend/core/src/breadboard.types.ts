@@ -38,6 +38,18 @@ export interface PlayerChoice {
   uid: string
   params?: Record<string, any>
   class?: string
+  /**
+   * Attributes/props bound directly onto the choice's <v-btn> (e.g. color,
+   * outlined, block, large). Group asks pass the choice map through verbatim,
+   * so `game.ask(p, [name: 'Go', props: [color: 'primary']], handler)` lands
+   * here. Merged with `class` in Choice.vue.
+   */
+  props?: Record<string, any>
+  /**
+   * Set to 'group' by group steps (GroupActions.assignChoice) so the client routes
+   * the click to the group handler via sendGroupChoice rather than sendChoice.
+   */
+  _route?: 'group'
 }
 
 export interface PlayerTimer {

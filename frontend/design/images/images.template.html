@@ -36,7 +36,7 @@
             <th>Preview</th>
             <th>Filename</th>
             <th ng-hide="experiment.fileMode">ID URL</th>
-            <th>Filename URL</th>
+            <th>Content reference</th>
             <th>Delete</th>
         </tr>
         </thead>
@@ -46,7 +46,10 @@
             <td><img class="thumbs" ng-src="/images/{{experiment.id}}/{{image.fileName}}"></td>
             <td>{{image.fileName}}</td>
             <td ng-hide="experiment.fileMode">/images/{{image.id}}</td>
-            <td>/images/{{experiment.id}}/{{image.fileName}}</td>
+            <!-- Portable, import-safe reference: the server expands {{imageBase}} to /images/<currentId>
+                 at serve time, so this survives an export/import that reassigns the experiment id.
+                 ng-non-bindable keeps Angular from interpolating the literal {{imageBase}} token. -->
+            <td><span ng-non-bindable>{{imageBase}}</span>/{{image.fileName}}</td>
             <td>
                 <button title='Delete image'
                         class="btn btn-default"
