@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
 
 const props = defineProps<{
   player: {
@@ -8,9 +8,24 @@ const props = defineProps<{
       status?: 'active' | 'completed' | 'kicked' | 'dropped'
       [key: string]: any
     }
+    // Server-driven force-submit signal: recruitment.complete(..., kickAfter: N) stamps the Prolific
+    // completion code here when the kick timer fires (see groovy/recruitment.groovy).
+    immediatelySubmitCode?: string
   }
   hideTimers?: boolean
 }>()
+
+// Force-submit redirect, wired here (not only in the useBreadboard composable) so the DEFAULT client
+// -- which mounts BBMain but never calls useBreadboard -- honors it too. Armed per-study by the backend
+// via configureFrontend(..., forceSubmit: true) -> _system.frontend.forceSubmit; triggered when the
+// kick timer stamps immediatelySubmitCode. Watches the code value (not object identity) so it fires
+// however the player payload updates. Prolific-specific by construction: only Prolific completions
+// carry a completion code.
+watch(() => props.player?.immediatelySubmitCode, code => {
+  if (code && props.player?._system?.frontend?.forceSubmit) {
+    window.location.href = `https://app.prolific.com/submissions/complete?cc=${code}`
+  }
+}, { immediate: true })
 
 const isWaitingRoom = computed(() => {
   // The waiting room writes player._system.waitingRoom (with a .state sub-field)

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, vi, afterEach } from 'vitest'
 import { mount } from '@vue/test-utils'
 import BBMain from '../src/components/BBMain.vue'
 
@@ -69,5 +69,37 @@ describe('BBMain view gating', () => {
     expect(w.find('.waiting-room').exists()).toBe(false)
     expect(w.find('.finish-mturk').exists()).toBe(false)
     expect(w.find('.game-content').exists()).toBe(true)
+  })
+})
+
+describe('BBMain force-submit redirect', () => {
+  // The redirect assigns window.location.href; stub location so it's observable and jsdom doesn't
+  // attempt a real navigation.
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('redirects to the Prolific submit URL when forceSubmit is armed and immediatelySubmitCode is set', () => {
+    vi.stubGlobal('location', { href: '' })
+    mountWith({
+      _system: { status: 'completed', frontend: { forceSubmit: true }, recruitment: { source: 'prolific' } },
+      immediatelySubmitCode: 'CC42',
+    })
+    expect(window.location.href).toBe('https://app.prolific.com/submissions/complete?cc=CC42')
+  })
+
+  it('does NOT redirect when immediatelySubmitCode is set but forceSubmit is not armed', () => {
+    vi.stubGlobal('location', { href: '' })
+    mountWith({
+      _system: { status: 'completed', recruitment: { source: 'prolific' } },
+      immediatelySubmitCode: 'CC42',
+    })
+    expect(window.location.href).toBe('')
+  })
+
+  it('does NOT redirect while there is no immediatelySubmitCode (armed, mid-study)', () => {
+    vi.stubGlobal('location', { href: '' })
+    mountWith({ step: 2, _system: { frontend: { forceSubmit: true }, recruitment: { source: 'prolific' } } })
+    expect(window.location.href).toBe('')
   })
 })
