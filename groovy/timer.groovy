@@ -41,6 +41,10 @@ class BBTimer extends Timer {
  */
 class BBScheduledTimer {
   static def registry
+  // Akka Scheduler backing the timer tasks. Null in production, where schedulerOrDefault() falls
+  // back to the running Play app's Akka.system(); tests inject a standalone ActorSystem's scheduler
+  // so this real scheduling code runs without a started application.
+  static def scheduler
   // Timer closures are experiment code and may block; like the original
   // per-timer java.util.Timer threads, they must not run on (and starve)
   // Akka's shared dispatcher. Threads in this pool die after 60s idle.
@@ -53,9 +57,15 @@ class BBScheduledTimer {
     registry.registerScheduled(this)
   }
 
+  // Prod leaves `scheduler` null and uses the app's shared Akka scheduler, exactly as before;
+  // tests inject one so no started Play application is required.
+  private schedulerOrDefault () {
+    return scheduler ?: Akka.system().scheduler()
+  }
+
   void runAfter (long delay, Closure closure) {
     if (cancelled) return
-    tasks << Akka.system().scheduler().scheduleOnce(
+    tasks << schedulerOrDefault().scheduleOnce(
       Duration.create(Math.max(0L, delay), TimeUnit.MILLISECONDS),
       new GroovyTimerTask(closure: {
         taskLock.lock()
@@ -71,7 +81,7 @@ class BBScheduledTimer {
 
   void scheduleAtFixedRate (Runnable task, long delay, long period) {
     if (cancelled) return
-    tasks << Akka.system().scheduler().schedule(
+    tasks << schedulerOrDefault().schedule(
       Duration.create(Math.max(0L, delay), TimeUnit.MILLISECONDS),
       Duration.create(period, TimeUnit.MILLISECONDS),
       new GroovyTimerTask(closure: {
