@@ -1,3 +1,4 @@
+import akka.actor.ActorSystem;
 import groovy.lang.Closure;
 import models.EventBus;
 import models.EventTracker;
@@ -101,12 +102,22 @@ public class ScriptTestHarness {
     public EventTracker eventTracker;
     public RecordingGameListener gameListener;
 
+    /**
+     * Standalone Akka actor system whose scheduler backs the timer scripts (SharedTimer ->
+     * BBScheduledTimer). Production schedules on the running Play app's {@code Akka.system()}; this
+     * harness has no FakeApplication, so we run the real scheduling code against this system and
+     * inject its scheduler in {@link #prepare()}. Shut down in {@link #close()} -- its
+     * default-dispatcher threads are non-daemon and would otherwise keep the test JVM alive.
+     */
+    private ActorSystem timerSystem;
+
     public ScriptTestHarness() {
         try {
             this.engine = new ScriptEngineManager().getEngineByName("gremlin-groovy");
             if (this.engine == null) {
                 throw new IllegalStateException("gremlin-groovy ScriptEngine not found on the classpath");
             }
+            this.timerSystem = ActorSystem.create("bb-timer-test");
             prepare();
         } catch (RuntimeException e) {
             throw e;
@@ -180,6 +191,24 @@ public class ScriptTestHarness {
             }
         }
         resetGroovyStatics();
+        injectTimerScheduler();
+    }
+
+    /**
+     * Wire the standalone {@link #timerSystem}'s scheduler into the timer script so SharedTimer /
+     * BBScheduledTimer schedule on it instead of falling back to {@code Akka.system()} (which needs a
+     * started application this harness deliberately doesn't have). Runs on every {@link #prepare()}
+     * so the injection survives {@code reset()}'s re-eval. In production this static stays null.
+     */
+    private void injectTimerScheduler() {
+        if (timerSystem == null) return;
+        try {
+            put("__bbScheduler", timerSystem.scheduler());
+            engine.eval("BBScheduledTimer.scheduler = __bbScheduler; null;");
+        } catch (Exception ignored) {
+            // timer.groovy is a core script and always loads; if it somehow didn't, there's nothing
+            // to inject and the timer-dependent tests will fail loudly on their own.
+        }
     }
 
     /**
@@ -363,6 +392,10 @@ public class ScriptTestHarness {
     /** Release resources. Safe to call from an @After method. */
     public void close() {
         cancelTimers();
+        if (timerSystem != null) {
+            timerSystem.shutdown();   // non-daemon dispatcher threads -- must not outlive the harness
+            timerSystem = null;
+        }
     }
 
     // --- *_test.groovy registration support ---
