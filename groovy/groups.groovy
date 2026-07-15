@@ -285,14 +285,13 @@ class Game {
     try { if (!members.contains(v)) members.add(v) } finally { lock.unlock() }
   }
 
-  // Fill the cohort up to `target` players with AI. AIs are added with a no-op
-  // global behavior so the platform's PlayerAI driver does NOT fire against the
-  // (empty) global action map -- group AIs are driven by `ask` instead.
-  List addAI(int target) {
-    int need = target - getPlayers().size()
-    if (need <= 0) return []
+  // Add `n` AI players to the cohort. AIs are added with a no-op global behavior
+  // so the platform's PlayerAI driver does NOT fire against the (empty) global
+  // action map -- group AIs are driven by `ask` instead.
+  List addAI(int n) {
+    if (n <= 0) return []
     def noop = { p -> }
-    def added = GroupContext.g.addAI(GroupContext.a, need, noop)
+    def added = GroupContext.g.addAI(GroupContext.a, n, noop)
     added?.each { addPlayer(it) }
     return added
   }
