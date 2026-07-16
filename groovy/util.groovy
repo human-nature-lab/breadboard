@@ -102,8 +102,15 @@ BreadboardBase.metaClass.fetchContent = { Map opts ->
 /**
  * Accessible alias for a.addEvent
  */
-BreadboardBase.metaClass.addEvent = { String name, Map data -> 
+BreadboardBase.metaClass.addEvent = { String name, Map data ->
   a.addEvent(name, data)
+}
+
+/**
+ * Accessible alias for a.add -- attach one or more action choices to a player in a single call
+ */
+BreadboardBase.metaClass.addChoices = { Vertex player, HashMap... choices ->
+  a.add(player, *choices)
 }
 
 _ensureSystem = { Vertex v, String key ->

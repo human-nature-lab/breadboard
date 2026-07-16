@@ -118,9 +118,11 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
 
   def addTimer(Map params) {
     def sharedTimer = new SharedTimer(params)
-    if ("player" in params && params.player != null) {
-      sharedTimer.addPlayer(params.player)
-    } else {
+    // The SharedTimer constructor already attaches params.player / params.players. Only fall back to
+    // "everyone" (g.V) when neither was actually supplied, so a passed-in subset isn't clobbered with
+    // all vertices. We check the value, not just key presence: the positional addTimer(...) helper
+    // always includes a `player: null` key, and that must still mean "add everyone".
+    if (params.player == null && params.players == null) {
       sharedTimer.addPlayers(this.V)
     }
     return sharedTimer

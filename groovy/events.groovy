@@ -7,21 +7,27 @@ final PLAYER_DATA_PROP = "data"
 final PLAYER_ID_PROP = "playerId"
 final SEND_EVENT = "__send-event"
 
-logPlayerEvents = true
+// Player-event tracing is opt-in and off by default. Call enablePlayerEventLogging() from an
+// experiment (or a test) to switch on the eventLog() traces emitted by the vertex event methods.
+def _logPlayerEvents = false
+
+enablePlayerEventLogging = {
+  _logPlayerEvents = true
+}
 
 def makePlayerEventHash (String id, String eventName) {
   return "__player-" + id + "-" + eventName
 }
 
-log = { Object ...vals ->
-  if (logPlayerEvents) {
+eventLog = { Object ...vals ->
+  if (_logPlayerEvents) {
     println vals.collect{ "${it}" }.join(" ")
   }
 }
 
 Vertex.metaClass.playerEvents = [].toSet()
 Vertex.metaClass.on = { String eventName, Closure cb ->
-  log("vertex.on", delegate.id, eventName)
+  eventLog("vertex.on", delegate.id, eventName)
   try {
     def globalEventName = makePlayerEventHash(delegate.id, eventName)
     delegate.playerEvents.add(eventName)
@@ -31,10 +37,10 @@ Vertex.metaClass.on = { String eventName, Closure cb ->
   }
 }
 Vertex.metaClass.once = { String eventName, Closure cb ->
-  log("vertex.once", delegate.id, eventName)
+  eventLog("vertex.once", delegate.id, eventName)
   def internalClosure
   internalClosure = { Vertex v, Object ...data ->
-    log("vertex.once callback", v.id)
+    eventLog("vertex.once callback", v.id)
     v.off(eventName, internalClosure)
     cb(v, *data)
   }
@@ -47,7 +53,7 @@ Vertex.metaClass.off = { String eventName, Closure cb ->
   if (wasRemoved) {
     delegate.playerEvents.remove(eventName)
   }
-  log("vertex.off 1", delegate.id, eventName, wasRemoved)
+  eventLog("vertex.off 1", delegate.id, eventName, wasRemoved)
   return wasRemoved
 }
 Vertex.metaClass.off << { String eventName ->
@@ -55,15 +61,15 @@ Vertex.metaClass.off << { String eventName ->
   if (wasRemoved) {
     delegate.playerEvents.remove(eventName)
   }
-  log("vertex.off 2", delegate.id, eventName, wasRemoved)
+  eventLog("vertex.off 2", delegate.id, eventName, wasRemoved)
   return wasRemoved
 }
 Vertex.metaClass.send = { String eventName, Object ...data ->
-  log("vertex.send", delegate.id, eventName)
+  eventLog("vertex.send", delegate.id, eventName)
   events.emit(SEND_EVENT, delegate.id, eventName, data)
 }
 Vertex.metaClass.clearListeners = {
-  log("vertex.clearListeners", delegate.id)
+  eventLog("vertex.clearListeners", delegate.id)
   playerId = delegate.id
   delegate.playerEvents.toList().each{ String event ->
     delegate.off(event)
@@ -71,7 +77,7 @@ Vertex.metaClass.clearListeners = {
 }
 
 clearAllPlayerListeners = {
-  log("clearing all player listeners")
+  eventLog("clearing all player listeners")
   g.V.each{
     it.clearListeners()
   }

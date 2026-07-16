@@ -162,10 +162,11 @@ class BBTimers {
    * vertex) around after they're gone. Only shared timers track players, so
    * BBTimer/BBScheduledTimer need nothing here.
    * @param {Vertex} player - The player to remove from all shared timers
+   * @param {Boolean} [endIfEmpty=false] - End any shared timer left with no players after the removal
    */
-  public void removePlayer (Vertex player) {
+  public void removePlayer (Vertex player, Boolean endIfEmpty = false) {
     for (def timer : new ArrayList(this.sharedTimers)) {
-      timer.removePlayer(player)
+      timer.removePlayer(player, endIfEmpty)
     }
   }
 
@@ -315,6 +316,22 @@ class SharedTimer extends BreadboardBase {
   }
 
   /**
+   * Whether the given player is currently attached to this timer
+   * @param {Vertex} player - The player to check for
+   */
+  public hasPlayer (Vertex player) {
+    return this.players.contains(player)
+  }
+
+  /**
+   * Whether a player with the given id is currently attached to this timer
+   * @param {String} playerId - The id of the player to check for
+   */
+  public hasPlayer (String playerId) {
+    return this.players.any { it.id == playerId }
+  }
+
+  /**
    * Register a closure to be called when the timer has ended
    * @param {Closure} cb - Closure without arguments
    */
@@ -369,11 +386,15 @@ class SharedTimer extends BreadboardBase {
   /**
    * Remove a single player from the timer.
    * @param {Vertex} player - The player to remove
+   * @param {Boolean} [endIfEmpty=false] - End the timer if no players remain after removing this one
    */
-  public removePlayer (Vertex player) {
+  public removePlayer (Vertex player, Boolean endIfEmpty = false) {
     if (this.players.contains(player)) {
       this.endPlayer(player)
       this.players.remove(player)
+    }
+    if (endIfEmpty && this.players.isEmpty()) {
+      this.end()
     }
   }
 
@@ -381,6 +402,7 @@ class SharedTimer extends BreadboardBase {
    * Stop displaying this timer for this player
    */
   private endPlayer (Vertex player) {
+    if (!player.timers) return
     player.timers.remove(this.playerTimer.name)
   }
 
@@ -419,12 +441,17 @@ class SharedTimer extends BreadboardBase {
    * @param {int} duration - The new timer duration in milliseconds
    */ 
   public setDuration (int duration) {
+    // Floor the duration so a very short (or negative) value can't schedule a timer that fires
+    // before the client can render/react to it.
+    if (duration < 2000) {
+      duration = 2000
+    }
     this.playerTimer.duration = duration
     if (this.timer) {
       this.resetTimer()
       this.endTime = this.startTime + duration
       // Check if we've already exceeded the duration and end if we have
-      if (System.currentTimeMillis() > this.endTime) {
+      if (System.currentTimeMillis() >= this.endTime) {
         return this.end()
       }
       this.registerTimerEvents()

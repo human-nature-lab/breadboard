@@ -187,3 +187,115 @@ test("timers.removePlayer is a no-op (never throws) for a player in no shared ti
     t1.cancel()
   }
 }
+
+// --- SharedTimer.hasPlayer: membership query by vertex or by id ----------------------------------
+
+test("SharedTimer.hasPlayer answers by vertex and by player id") {
+  def a = g.addPlayer('hp-a')
+  def b = g.addPlayer('hp-b')
+  def t = new SharedTimer([time: 3600, name: 'hp-t', player: a])
+  try {
+    assert t.hasPlayer(a)       : "a was added, hasPlayer(vertex) should be true"
+    assert t.hasPlayer('hp-a')  : "a was added, hasPlayer(id) should be true"
+    assert !t.hasPlayer(b)      : "b was never added"
+    assert !t.hasPlayer('hp-b')
+
+    t.removePlayer(a)
+    assert !t.hasPlayer(a)      : "a was removed, hasPlayer(vertex) should now be false"
+    assert !t.hasPlayer('hp-a') : "a was removed, hasPlayer(id) should now be false"
+  } finally {
+    t.cancel()
+  }
+}
+
+// --- removePlayer endIfEmpty: end the timer once its last player leaves --------------------------
+// onDone runs synchronously inside end(), so these need no async harness -- the flag is set on the
+// same thread before removePlayer returns.
+
+test("SharedTimer.removePlayer(player, true) ends the timer only once the last player is gone") {
+  def a = g.addPlayer('rpe-a')
+  def b = g.addPlayer('rpe-b')
+  def ended = new AtomicBoolean(false)
+  def t = new SharedTimer([time: 3600, name: 'rpe-t', players: [a, b]])
+  t.onDone { ended.set(true) }
+  try {
+    t.removePlayer(a, true)
+    assert !ended.get()   : "one player still remains; the timer must not end yet"
+    assert t.isRunning()
+    assert t.players*.id == ['rpe-b']
+
+    t.removePlayer(b, true)
+    assert ended.get()    : "the last player left with endIfEmpty=true; the timer should have ended"
+    assert !t.isRunning() : "an ended timer must no longer be running"
+  } finally {
+    t.cancel()
+  }
+}
+
+test("SharedTimer.removePlayer defaults to endIfEmpty=false: emptying the timer leaves it running") {
+  def a = g.addPlayer('rpd-a')
+  def ended = new AtomicBoolean(false)
+  def t = new SharedTimer([time: 3600, name: 'rpd-t', player: a])
+  t.onDone { ended.set(true) }
+  try {
+    t.removePlayer(a)     // no endIfEmpty flag -> keep running even with no players left
+    assert t.players.isEmpty()
+    assert !ended.get()   : "the default removePlayer must not end the timer"
+    assert t.isRunning()
+  } finally {
+    t.cancel()
+  }
+}
+
+test("timers.removePlayer(player, true) ends every shared timer left empty, keeping the rest") {
+  def a = g.addPlayer('tre-a')
+  def b = g.addPlayer('tre-b')
+  def t1ended = new AtomicBoolean(false)
+  def t2ended = new AtomicBoolean(false)
+  def t1 = new SharedTimer([time: 3600, name: 'tre-t1', players: [a]])       // a only -> empties
+  def t2 = new SharedTimer([time: 3600, name: 'tre-t2', players: [a, b]])    // a and b -> keeps b
+  t1.onDone { t1ended.set(true) }
+  t2.onDone { t2ended.set(true) }
+  try {
+    timers.removePlayer(a, true)
+    assert t1ended.get()  : "t1 held only a; removing a with endIfEmpty should end it"
+    assert !t1.isRunning()
+    assert !t2ended.get() : "t2 still holds b; it must not end"
+    assert t2.players*.id == ['tre-b']
+    assert t2.isRunning()
+  } finally {
+    t1.cancel()
+    t2.cancel()
+  }
+}
+
+// --- endPlayer null-guard: don't NPE when a player's per-timer map is already gone ---------------
+
+test("removePlayer does not throw when a player's timers map is missing (endPlayer null-guard)") {
+  def a = g.addPlayer('ep-guard-a')
+  def t = new SharedTimer([time: 3600, name: 'ep-guard-t', player: a])
+  try {
+    a.removeProperty('timers')   // simulate a player whose per-timer map was already torn down
+    t.removePlayer(a)            // endPlayer() must bail out instead of NPEing on a null timers map
+    assert !t.hasPlayer(a)       : "a should still be removed from the timer's player list"
+  } finally {
+    t.cancel()
+  }
+}
+
+// --- setDuration: floor the duration at 2000ms --------------------------------------------------
+
+test("SharedTimer.setDuration floors durations below 2000ms and passes larger ones through") {
+  def a = g.addPlayer('sd-a')
+  def t = new SharedTimer([time: 3600, name: 'sd-t', player: a])
+  try {
+    t.setDuration(500)
+    assert t.playerTimer.duration == 2000 :
+      "a sub-floor duration should clamp to 2000, got ${t.playerTimer.duration}"
+    t.setDuration(5000)
+    assert t.playerTimer.duration == 5000 :
+      "a duration at/above the floor should pass through unchanged, got ${t.playerTimer.duration}"
+  } finally {
+    t.cancel()
+  }
+}
