@@ -156,6 +156,19 @@ class BBTimers {
     this.sharedTimers.remove(timer)
   }
 
+  /**
+   * Remove a player from every shared timer. Called when a player leaves the
+   * experiment so no timer keeps per-player state (or a reference to the player
+   * vertex) around after they're gone. Only shared timers track players, so
+   * BBTimer/BBScheduledTimer need nothing here.
+   * @param {Vertex} player - The player to remove from all shared timers
+   */
+  public void removePlayer (Vertex player) {
+    for (def timer : new ArrayList(this.sharedTimers)) {
+      timer.removePlayer(player)
+    }
+  }
+
   public BBTimer newTimer () {
     return new BBTimer()
   }

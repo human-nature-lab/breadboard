@@ -141,3 +141,49 @@ test.async("scheduleAtFixedRate skips overlapping ticks instead of stacking them
     }
   }
 }
+
+// --- BBTimers.removePlayer: registry-level per-player cleanup ------------------------------------
+// When a player leaves the experiment the platform calls timers.removePlayer(player) to pull them
+// out of every shared timer, so no timer keeps per-player state (or the player vertex) alive after
+// they're gone. It delegates to SharedTimer.removePlayer on each registered shared timer;
+// BBTimer/BBScheduledTimer hold no per-player state and are left untouched. These are synchronous:
+// the timers use a long (3600s) duration so nothing fires during the test, and both are cancelled in
+// a finally so the shared-timer registry returns to baseline.
+
+test("timers.removePlayer removes the player from every shared timer, leaving other players intact") {
+  def a = g.addPlayer('tr-a')
+  def b = g.addPlayer('tr-b')
+  def t1 = new SharedTimer([time: 3600, name: 'tr-t1', players: [a, b]])   // a and b
+  def t2 = new SharedTimer([time: 3600, name: 'tr-t2', players: [a]])      // a only
+  try {
+    assert t1.players*.id as Set == ['tr-a', 'tr-b'] as Set
+    assert t2.players*.id == ['tr-a']
+    assert a.timers.containsKey('tr-t1') && a.timers.containsKey('tr-t2')
+
+    timers.removePlayer(a)
+
+    assert t1.players*.id == ['tr-b'] : "a removed from t1, b left in place; got ${t1.players*.id}"
+    assert t2.players.isEmpty()       : "a removed from t2; got ${t2.players*.id}"
+    assert !a.timers.containsKey('tr-t1') && !a.timers.containsKey('tr-t2') :
+      "a's per-timer entries should be cleared, got ${a.timers.keySet()}"
+    assert b.timers.containsKey('tr-t1') : "b's entry on t1 must survive a's removal"
+
+    // Idempotent: a is already gone, so a second removal must not throw or disturb b.
+    timers.removePlayer(a)
+    assert t1.players*.id == ['tr-b']
+  } finally {
+    t1.cancel()
+    t2.cancel()
+  }
+}
+
+test("timers.removePlayer is a no-op (never throws) for a player in no shared timer") {
+  def a = g.addPlayer('tr-none')
+  def t1 = new SharedTimer([time: 3600, name: 'tr-none-t1', players: []])
+  try {
+    timers.removePlayer(a)          // a was never added to any timer
+    assert t1.players.isEmpty()
+  } finally {
+    t1.cancel()
+  }
+}
