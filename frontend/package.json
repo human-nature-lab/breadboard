@@ -47,7 +47,7 @@
     "vuedraggable": "^2.24.3"
   },
   "devDependencies": {
-    "@babel/core": "^7.6.0",
+    "@babel/core": "^7.29.6",
     "@babel/polyfill": "^7.6.0",
     "@babel/preset-env": "^7.6.0",
     "@types/d3-force": "^1.2.1",
