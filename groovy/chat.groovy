@@ -129,7 +129,7 @@ class ChatManager extends BaseChatManager {
         v.private.remove(self.CHAT_KEY)
       }
       v.off(self.CHAT_EVENT, self.&chatHandler)
-      self.addEvent("chat-removed", [player: v.id])
+      self.addEvent("chat-removed", [playerId: v.id])
     }
   }
 

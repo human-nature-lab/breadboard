@@ -402,7 +402,32 @@ class RecruitmentController extends BreadboardBase {
     v._system.recruitment.completedAt = DateTime.now()
     setVertexStatus(v, 'completed')
     this.clientCompleted(v.id)
+    this._collectExitFeedback(v)
     this._scheduleKick(v, opts.kickAfter, opts.kickMessage)
+  }
+
+  // --- exit feedback ---------------------------------------------------------------------------
+
+  // Capture the free-text feedback a participant can leave on the finish screen. The Finish*.vue
+  // screens send it as a player-scoped 'exiting' event when the participant clicks Finish
+  // (Breadboard.send('exiting', { feedback })); nothing listened for it before, so the payload was
+  // silently dropped. Registered per-participant here at completion because the box only appears on
+  // the finish screen -- i.e. after complete() has run. The text is stored alongside the other
+  // recruitment fields on _system.recruitment (so it travels with the participant / graph export)
+  // and recorded as an event for the analytics log. `once`: a participant submits at most once, and
+  // it self-removes so no listener leaks. Blank feedback (the box was suppressed via noFeedback, or
+  // simply left empty) is ignored so it adds no noise.
+  //
+  // NOTE: this covers the Prolific finish screen. The MTurk screen posts its comments box straight
+  // to Amazon's externalSubmit form (name="comments"), so that text goes to the requester, not here.
+  private _collectExitFeedback(Vertex v) {
+    v.once('exiting', { player, data ->
+      def feedback = (data instanceof Map) ? data.feedback : null
+      if (feedback == null || feedback.toString().trim().length() == 0) return
+      _ensureSystem(player, 'recruitment')
+      player._system.recruitment.feedback = feedback.toString()
+      this.addEvent('recruitment-feedback', [playerId: player.id, feedback: feedback.toString()])
+    })
   }
 
   // --- kick timer (optional post-completion redirect) ------------------------------------------

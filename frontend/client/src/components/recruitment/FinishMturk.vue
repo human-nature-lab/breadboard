@@ -23,6 +23,8 @@ const submitUrl = computed(() =>
         v-if="!data.noFeedback"
         v-model="comments"
         name="comments"
+        label="Feedback (optional)"
+        placeholder="Have any comments about the HIT? Let us know here before you submit."
         rows="5"
         cols="50"
       />

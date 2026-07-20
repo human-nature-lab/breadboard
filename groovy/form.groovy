@@ -110,7 +110,7 @@ public class Question extends Block {
       name: this.name,
       type: this.type,
       form: form,
-      player: playerId,
+      playerId: playerId,
       value: result.value,
       createdAt: result.createdAt,
       updatedAt: result.updatedAt
@@ -732,7 +732,7 @@ public class Form extends FormBase {
 
     if (this.recordResults) {
       this.addEvent("form-start", [
-        player: player.id,
+        playerId: player.id,
         form: this.name,
         seed: state.seed
       ])
@@ -774,7 +774,7 @@ public class Form extends FormBase {
     if (this.recordNavigation) {
       this.addEvent("form-next", [
         form: this.name,
-        player: player.id
+        playerId: player.id
       ])
     }
 
@@ -820,7 +820,7 @@ public class Form extends FormBase {
     if (this.recordNavigation) {
       this.addEvent("form-prev", [
         form: this.name,
-        player: player.id
+        playerId: player.id
       ])
     }
     def currentPage = this.getPlayerPage(player, state)

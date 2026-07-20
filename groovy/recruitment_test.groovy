@@ -67,6 +67,33 @@ test("complete completes a Prolific participant and records its completion code"
   assert v._system.status == 'completed'               // study-level lifecycle mirrors completion
 }
 
+test("complete captures finish-screen feedback sent via the 'exiting' event") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
+  def v = g.addPlayer('rec-prolific-feedback')
+  rc.admit(v)
+  rc.complete(v, [completionCode: 'CODE123'])
+  // The finish screen (FinishProlific.vue) sends its feedback box as a player-scoped 'exiting'
+  // CustomEvent when the participant clicks Finish. Drive that real path (see events.groovy routing).
+  events.emit('CustomEvent',
+    [playerId: v.id, eventName: 'exiting', data: [feedback: 'Loved the study!']],
+    [clientId: v.id])
+  assert v._system.recruitment.feedback == 'Loved the study!'
+}
+
+test("complete ignores blank finish-screen feedback") {
+  def rc = new RecruitmentController(g)
+  rc.setProvider(new ProlificProvider())
+  def v = g.addPlayer('rec-prolific-feedback-blank')
+  rc.admit(v)
+  rc.complete(v, [completionCode: 'CODE123'])
+  // The client sends 'exiting' on Finish even when the box was suppressed/left empty; don't store it.
+  events.emit('CustomEvent',
+    [playerId: v.id, eventName: 'exiting', data: [feedback: '   ']],
+    [clientId: v.id])
+  assert v._system.recruitment.feedback == null : 'blank feedback should not be stored'
+}
+
 test("complete requires a Prolific completion code") {
   def rc = new RecruitmentController(g)
   rc.setProvider(new ProlificProvider())

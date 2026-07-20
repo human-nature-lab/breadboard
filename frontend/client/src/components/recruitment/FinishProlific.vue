@@ -31,7 +31,13 @@ function submit() {
     <PlayerText :player="player" />
     <p v-html="data.message" />
     <h3 class="py-4">Completion code: {{ data.completionCode }}</h3>
-    <v-textarea v-if="!data.noFeedback" v-model="feedback" solo />
+    <v-textarea
+      v-if="!data.noFeedback"
+      v-model="feedback"
+      label="Feedback (optional)"
+      placeholder="Have any comments about the study? Let us know here before you finish."
+      solo
+    />
     <v-btn @click="submit" :disabled="submitted"> Finish </v-btn>
     <p v-if="submitted">
       Click on this link if you're not automatically redirected:
