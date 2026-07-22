@@ -7,6 +7,10 @@ import com.tinkerpop.blueprints.util.wrappers.event.EventGraph
 import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener
 import java.beans.PropertyChangeListener
 
+// models.ConcurrentObservableMap: a ConcurrentHashMap-backed ObservableMap used for vertex "private"
+// vars and edge inProps/outProps. It lives in Java (app/models) because Groovy 1.8.6 cannot subclass
+// a Map-implementing class on Java 8 without a VerifyError - see that class for the full rationale.
+
 class BreadboardGraph extends EventGraph<TinkerGraph> {
   //TODO: consider tracking number of edges and number of vertices to avoid iterating over graph to count number of edges or vertices
 
@@ -23,7 +27,7 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
       @Override
       void vertexAdded(Vertex vertex) {
         def v = BreadboardGraph.this.getVertex(vertex.id)
-        def pvt = [:] as ObservableMap
+        def pvt = new models.ConcurrentObservableMap()
         pvt.addPropertyChangeListener({ evt ->
           v.onVertexPropertyChanged(v, "private", evt.oldValue, evt.newValue)
         } as PropertyChangeListener)
@@ -169,13 +173,13 @@ class BreadboardGraph extends EventGraph<TinkerGraph> {
 
     EventEdge eventEdge = new EventEdge(edge, this)
 
-    def inProps = [:] as ObservableMap
+    def inProps = new models.ConcurrentObservableMap()
     inProps.addPropertyChangeListener({ evt ->
       eventEdge.onEdgePropertyChanged(edge, "inProps", evt.oldValue, evt.newValue)
     } as PropertyChangeListener)
     eventEdge.setProperty("inProps", inProps);
 
-    def outProps = [:] as ObservableMap
+    def outProps = new models.ConcurrentObservableMap()
     outProps.addPropertyChangeListener({ evt ->
       eventEdge.onEdgePropertyChanged(edge, "outProps", evt.oldValue, evt.newValue)
     } as PropertyChangeListener)

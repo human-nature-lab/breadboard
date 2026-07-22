@@ -5,13 +5,18 @@ import com.tinkerpop.blueprints.Edge;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.Vertex;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 public class EventGraphChangedListener implements BreadboardGraphChangedListener {
   private Graph graph;
-  private ArrayList<ClientListener> adminListeners = new ArrayList<>();
+  // CopyOnWriteArrayList, not ArrayList: the vertex*/edge* handlers iterate this on the graph-change
+  // firing thread while addAdminListener runs on a WebSocket connect thread - a plain ArrayList threw
+  // ConcurrentModificationException when an admin connected mid-dispatch (same fix as clientListeners
+  // above, and as IteratedBreadboardGraphChangedListener).
+  private final List<ClientListener> adminListeners = new CopyOnWriteArrayList<>();
   // Instance-scoped (was `static`): a static map was shared by every listener / every
   // ScriptBoard, so clients from one game/user leaked into another's dispatch and the
   // map could never be safely cleared. Per-instance state is cleared on reload via
@@ -31,7 +36,7 @@ public class EventGraphChangedListener implements BreadboardGraphChangedListener
     adminListeners.add(adminListener);
   }
 
-  public ArrayList<ClientListener> getAdminListeners() {
+  public List<ClientListener> getAdminListeners() {
     return this.adminListeners;
   }
 

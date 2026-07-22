@@ -8,9 +8,10 @@ import com.tinkerpop.blueprints.Vertex;
 import play.Logger;
 import play.libs.Akka;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import akka.actor.*;
@@ -19,7 +20,12 @@ import scala.concurrent.duration.Duration;
 public class IteratedBreadboardGraphChangedListener implements BreadboardGraphChangedListener {
   private Graph graph;
   private Long updateIteration = 0L;
-  private ArrayList<ClientListener> adminListeners = new ArrayList<>();
+  // CopyOnWriteArrayList, not ArrayList: the vertex*/edge* event handlers below iterate this list on
+  // whatever thread fired the graph change (the ScriptBoard actor, but also timer-callback threads),
+  // while addAdminListener runs on a WebSocket connect thread. A plain ArrayList would throw
+  // ConcurrentModificationException if an admin connected mid-dispatch. Iteration vastly outnumbers
+  // mutation (admins connect rarely), so copy-on-write is the right trade-off.
+  private final List<ClientListener> adminListeners = new CopyOnWriteArrayList<>();
   // ConcurrentHashMap, not HashMap: this map is iterated on the Akka scheduler thread
   // (ClientUpdateActor, once per clientUpdateRate) while WebSocket connect/disconnect
   // threads call addClientListener/removeClientListener. A plain HashMap threw
@@ -92,7 +98,7 @@ public class IteratedBreadboardGraphChangedListener implements BreadboardGraphCh
     adminListeners.add(adminListener);
   }
 
-  public ArrayList<ClientListener> getAdminListeners() {
+  public List<ClientListener> getAdminListeners() {
     return this.adminListeners;
   }
 

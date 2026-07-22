@@ -3,7 +3,7 @@ package models;
 import com.tinkerpop.blueprints.Graph;
 import com.tinkerpop.blueprints.util.wrappers.event.listener.GraphChangedListener;
 
-import java.util.ArrayList;
+import java.util.List;
 
 public interface BreadboardGraphChangedListener extends GraphChangedListener {
   void setGraph(Graph g);
@@ -13,5 +13,5 @@ public interface BreadboardGraphChangedListener extends GraphChangedListener {
   // can drop a client from the dispatch registry when it disconnects / on reload,
   // instead of leaking it. No-op if the client was never registered.
   void removeClientListener(Client c);
-  ArrayList<ClientListener> getAdminListeners();
+  List<ClientListener> getAdminListeners();
 }

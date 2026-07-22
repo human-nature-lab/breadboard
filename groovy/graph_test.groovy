@@ -89,3 +89,97 @@ test("the positional g.addTimer(time) helper attaches all of g.V") {
     t.cancel()
   }
 }
+
+// --- models.ConcurrentObservableMap: the private/inProps/outProps maps ---------------------------
+//
+// Vertex `private` vars and edge inProps/outProps are backed by models.ConcurrentObservableMap
+// (a ConcurrentHashMap-backed groovy.util.ObservableMap) instead of the default LinkedHashMap. Two
+// behaviours are pinned here:
+//   1. Concurrent iterate-while-mutate must not throw ConcurrentModificationException. This is the
+//      v2.5.0 field bug: a mutation (e.g. a timer callback on its own thread) fires a change event
+//      whose listener chain (Admin.vertexPropertyChanged) walks the SAME map's keySet to serialize
+//      it; with a LinkedHashMap that race threw CME in LinkedHashMap$LinkedHashIterator.
+//   2. Writing null (`v.private.foo = null`) must not blow up: a raw ConcurrentHashMap forbids null
+//      values, so the map treats a null write as a remove, preserving the old read-back-as-null.
+// Reverting graph.groovy's `new models.ConcurrentObservableMap()` sites to `[:] as ObservableMap`
+// makes the wiring assert fail and the concurrency case throw CME -- i.e. these are real regression
+// guards, not just smoke tests.
+
+test("vertex 'private' and edge inProps/outProps are the ConcurrentHashMap-backed ObservableMap") {
+  def a = g.addPlayer('wire-a')
+  def b = g.addPlayer('wire-b')
+  assert a.private instanceof models.ConcurrentObservableMap :
+    "vertex 'private' should be a models.ConcurrentObservableMap; got ${a.private?.getClass()?.name}"
+
+  def e = g.addEdge(a, b, 'connected')
+  assert e.getProperty('inProps') instanceof models.ConcurrentObservableMap :
+    "edge inProps should be a models.ConcurrentObservableMap; got ${e.getProperty('inProps')?.getClass()?.name}"
+  assert e.getProperty('outProps') instanceof models.ConcurrentObservableMap :
+    "edge outProps should be a models.ConcurrentObservableMap; got ${e.getProperty('outProps')?.getClass()?.name}"
+}
+
+test("a vertex 'private' map survives concurrent mutation while it is being iterated (CME regression)") {
+  def player = g.addPlayer('cme-iter')
+  def priv = player.private
+  (0..<25).each { priv["seed" + it] = it }   // give the iterator entries to walk
+
+  def errors = new java.util.concurrent.CopyOnWriteArrayList()
+  def stop = new java.util.concurrent.atomic.AtomicBoolean(false)
+
+  // A second thread structurally modifies the same map -- standing in for a timer callback touching
+  // private vars off the actor thread while the serialization loop below walks it.
+  def writer = Thread.start {
+    int n = 0
+    try {
+      while (!stop.get()) {
+        priv["w" + (n % 40)] = n
+        priv.remove("w" + ((n + 20) % 40))
+        n++
+      }
+    } catch (Throwable t) {
+      errors << t
+    }
+  }
+
+  // Main thread reproduces Admin.vertexPropertyChanged: iterate keySet() and read each value. On a
+  // LinkedHashMap backing this throws ConcurrentModificationException within milliseconds; on the
+  // ConcurrentHashMap backing the weakly-consistent iterator never throws.
+  try {
+    long deadline = System.currentTimeMillis() + 250
+    while (System.currentTimeMillis() < deadline && errors.isEmpty()) {
+      for (Object k : priv.keySet()) {
+        priv.get(k)
+      }
+    }
+  } catch (Throwable t) {
+    errors << t
+  } finally {
+    stop.set(true)
+    writer.join(5000)
+  }
+
+  assert errors.isEmpty() :
+    "concurrent mutate-while-iterate on a vertex 'private' map must not throw; got: " +
+    errors.collect { it.getClass().name + ": " + it.message }
+}
+
+test("setting a vertex 'private' var to null removes it instead of throwing (CHM forbids null values)") {
+  def player = g.addPlayer('null-guard')
+  player.private.keepMe = 'stays'
+  player.private.dropMe = 'goes'
+  player.private.dropMe = null    // a raw ConcurrentHashMap would NPE here; the guard makes it a remove
+
+  assert player.private.dropMe == null : "a private var set to null reads back as null"
+  assert !player.private.containsKey('dropMe') : "a private var set to null is removed from the map"
+  assert player.private.keepMe == 'stays' : "nulling one var must not disturb the others"
+}
+
+test("putAll into a vertex 'private' map routes null values through the write guard") {
+  def player = g.addPlayer('null-putall')
+  player.private.putAll([a: 1, b: null, c: 3])   // the null must not reach the backing ConcurrentHashMap
+
+  assert player.private.a == 1 : "non-null entries in a putAll batch are stored"
+  assert player.private.c == 3 : "non-null entries in a putAll batch are stored"
+  assert player.private.b == null : "a null-valued entry reads back as null"
+  assert !player.private.containsKey('b') : "a null value in a putAll batch is dropped, not stored"
+}
