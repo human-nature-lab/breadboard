@@ -24,7 +24,7 @@
     "tailwindcss": "^3.0.23",
     "vue": "^2.6.14",
     "vuedraggable": "^2.24.3",
-    "vuetify": "^2.6.8"
+    "vuetify": "^3.0.0"
   },
   "devDependencies": {
     "@types/d3-force": "^3.0.3",
